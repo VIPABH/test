@@ -77,9 +77,9 @@ async def start_f(event):
         await event.respond(f'اكتب ⤶ {answer}')
 @ABH.on(events.NewMessage)
 async def check(event):
-    global answer
-    isabh = event.text
-    if answer == isabh and is_on:
-        await event.reply('احسنت جواب موفق')
-        is_on = False
+    if is_on:
+        isabh = event.text
+        if answer == isabh and is_on:
+             await event.reply('احسنت جواب موفق')
+             is_on = False
 ABH.run_until_disconnected()
