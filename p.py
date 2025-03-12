@@ -80,19 +80,22 @@ async def start_f(event):
 @ABH.on(events.NewMessage)
 async def check(event):
     global is_on, elapsed_time, answer, start_time
-    if start_time:
-        elapsed_time = time.time() - start_time
-        seconds = int(elapsed_time % 60)
-        microseconds = int((elapsed_time - seconds) * 1000000)
+    if not is_on:
+        return
+    elapsed_time = time.time() - start_time
+    seconds = int(elapsed_time % 60)
+    microseconds = int((elapsed_time - seconds) * 1000000)
     isabh = event.text
     uid = event.sender_id
-    if is_on and answer == isabh and uid in players:
+    if answer == isabh and uid in players:
         await event.reply(f'إجابة صحيحة! الوقت المستغرق: {seconds:02}:{microseconds:06}')
-        is_on = False 
-    elif elapsed_time >= 60:
+        is_on = False
+        start_time = None
+        answer = None
+    elif elapsed_time >= 3:
         if is_on:
             await event.reply('انتهت المدة! لم يتم الإجابة في الوقت المحدد.')
             is_on = False
-    else:
-        return
+            start_time = None
+            answer = None
 ABH.run_until_disconnected()
