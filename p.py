@@ -71,5 +71,5 @@ async def start_f(event):
     await event.reply('تم بدء اللعبة جاري الاختيار')
     asyncio.sleep(5)
     abh = random.choice(words)
-    await ABH.send_message(f'اكتب {abh}')
+    await event.send_message(f'اكتب {abh}')
 ABH.run_until_disconnected()
