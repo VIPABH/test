@@ -77,7 +77,7 @@ async def start_f(event):
 @ABH.on(events.NewMessage)
 async def check(event):
     isabh = event.text
-    if abh == isabh and is_on:
+    if isabh == abh and is_on:
         await event.reply('احسنت جواب موفق')
         is_on = False
     else: 
