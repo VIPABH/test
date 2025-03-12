@@ -44,7 +44,7 @@ words = [
     'هروب',
 ]
 @ABH.on(events.NewMessage(pattern="اسرع"))
-async def start_speed(event):
+async def start_s(event):
     global is_on
     is_on = True
     await event.reply("تم بدء لعبة اسرع \nأرسل `انا` لدخول اللعبة أو `تم` للبدء مع أو بدون لاعبين.\n**ENJOY BABY✌**")
