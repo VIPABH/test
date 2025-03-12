@@ -59,8 +59,7 @@ async def players_show(event):
 
 @ABH.on(events.NewMessage(pattern="(?i)ابدا$"))
 async def start_f(event):
-    """بدء الجولة واختيار الكلمة"""
-    global answer, is_on, start_time
+    global answer, is_on, start_time, a
     if is_on:
         await event.reply('تم بدء اللعبه انتظر ثواني')
         await asyncio.sleep(2)
