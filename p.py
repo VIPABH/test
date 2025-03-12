@@ -70,7 +70,7 @@ async def players_show(event):
 async def start_f(event):
     global abh
     await event.reply('تم بدء اللعبة جاري الاختيار')
-    asyncio.sleep(5)
+    await asyncio.sleep(5)
     abh = random.choice(words)
     await event.respond(f'اكتب ⤶ {abh}')
 @ABH.on(events.NewMessage)
