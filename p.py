@@ -76,6 +76,7 @@ async def start_f(event):
         await asyncio.sleep(5)
         answer = random.choice(words)
         await event.respond(f'اكتب ⤶ {answer}')
+        start_time = time.time()
 @ABH.on(events.NewMessage)
 async def check(event):
     global is_on, elapsed_time, answer, start_time
