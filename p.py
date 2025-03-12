@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-import os, asyncio, random
+import os, asyncio, random, time
 api_id = os.getenv("API_ID")      
 api_hash = os.getenv("API_HASH")  
 bot_token = os.getenv("BOT_TOKEN")
@@ -70,19 +70,28 @@ async def players_show(event):
             await event.reply("لا يوجد لاعبين مسجلين بعد!")
 @ABH.on(events.NewMessage(pattern="ابدا"))
 async def start_f(event):
-    global answer
+    global answer, elapsed_time
     if is_on:
         await event.reply('تم بدء اللعبة جاري الاختيار')
         await asyncio.sleep(5)
         answer = random.choice(words)
         await event.respond(f'اكتب ⤶ {answer}')
+start_time = time.time()
+while True:
+    elapsed_time = time.time() - start_time
+    seconds = int(elapsed_time % 60)
+    microseconds = int((elapsed_time - seconds) * 100)
+    if elapsed_time >= 60:  
+        break
+    is_on = False
+a = random.randit(3, 6)
 @ABH.on(events.NewMessage)
 async def check(event):
     global is_on
     isabh = event.text
     uid = event.sender_id
     if answer == isabh and is_on and uid in players:
-        await event.reply('احسنت جواب موفق')
+        await event.reply(f'\n الوقت المستغرق ( {elapsed_time} ) احسنت جواب موفق')
         is_on = False
     else:
         return
