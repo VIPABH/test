@@ -91,7 +91,7 @@ async def check(event):
     isabh = event.text
     uid = event.sender_id
     if answer == isabh and is_on and uid in players:
-        await event.reply(f'\n الوقت المستغرق ( {elapsed_time} ) احسنت جواب موفق')
+        await event.reply(f'إجابة صحيحة! الوقت المستغرق: {seconds:02}:{microseconds:06}')
         is_on = False
     else:
         return
