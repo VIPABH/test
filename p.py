@@ -68,18 +68,14 @@ async def players_show(event):
             await event.reply("لا يوجد لاعبين مسجلين بعد!")
 @ABH.on(events.NewMessage(pattern="ابدا"))
 async def start_f(event):
-    global abh
-    if is_on:
-        await event.reply('تم بدء اللعبة جاري الاختيار')
-        await asyncio.sleep(5)
-        abh = random.choice(words)
-        await event.respond(f'اكتب ⤶ ( {abh} )')
+    global answer
+    await event.reply('تم بدء اللعبة جاري الاختيار')
+    await asyncio.sleep(5)
+    answer = random.choice(words)
+    await event.respond(f'اكتب ⤶ {answer}')
 @ABH.on(events.NewMessage)
 async def check(event):
     isabh = event.text
-    if isabh == abh and is_on:
+    if answer == isabh:
         await event.reply('احسنت جواب موفق')
-        is_on = False
-    else: 
-        return
 ABH.run_until_disconnected()
