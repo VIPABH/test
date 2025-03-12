@@ -28,7 +28,11 @@ async def start_s(event):
     is_on = True
     players.clear()
     await event.reply("تم بدء لعبة اسرع \nأرسل `انا` لدخول اللعبة أو `تم` للبدء.\n**ENJOY BABY✌**")
-
+    uid = event.sender_id
+    sender = await event.get_sender()
+    name = sender.first_name
+    if uid not in players:
+        players[uid] = {"username": name}    
 @ABH.on(events.NewMessage(pattern="(?i)انا$"))
 async def sign_in(event):
     """تسجيل اللاعبين"""
