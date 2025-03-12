@@ -68,7 +68,7 @@ async def start_f(event):
         start_time = time.time()
         for i in range(4):
              await event.reply('تم بدء اللعبه انتظر ثواني')
-             await asyncio.sleep(2)
+             await asyncio.sleep(10)
              answer = random.choice(words)
              await event.respond(f'✍ اكتب ⤶ `{answer}`')
              start_time = time.time()
