@@ -4,7 +4,6 @@ api_id = os.getenv("API_ID")
 api_hash = os.getenv("API_HASH")  
 bot_token = os.getenv("BOT_TOKEN")
 ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
-answer = None
 players = {}
 is_on = False
 words = [
@@ -49,6 +48,17 @@ async def start_speed(event):
     is_on = True
     await event.reply("تم بدء لعبة اسرع \nأرسل `انا` لدخول اللعبة أو `تم` للبدء مع أو بدون لاعبين.\n**ENJOY BABY✌**")
 
+@ABH.on(events.NewMessage(pattern="انا"))
+async def sign_in(event):
+    if is_on:
+        id = event.sender_id
+        sender = await event.get_sender()
+        name = sender.first_name
+        if id not in players:
+            players[id] = {"username": name}
+            await event.reply("تم تسجيلك في اللعبة!")
+        else:
+            await event.reply("عزيزي لتلح سجلتك تره😡")
 @ABH.on(events.NewMessage(pattern="الاعبين"))
 async def players_show(event):
     if is_on:
@@ -57,9 +67,9 @@ async def players_show(event):
             await event.reply(f"قائمة اللاعبين:\n{player_list}")
         else:
             await event.reply("لا يوجد لاعبين مسجلين بعد!")
-@ABH.on(events.NewMessage(pattern="انا"))
+@ABH.on(events.NewMessage(pattern="ابدا"))
 async def start_f(event):
-    global answer, is_on
+    global answer
     if is_on:
         await event.reply('تم بدء اللعبة جاري الاختيار')
         await asyncio.sleep(5)
@@ -67,10 +77,11 @@ async def start_f(event):
         await event.respond(f'اكتب ⤶ {answer}')
 @ABH.on(events.NewMessage)
 async def check(event):
-    global is_on
-    if is_on:
-        isabh = event.text
-        if answer == isabh:
-             await event.reply('احسنت جواب موفق')
-             is_on = False
+    isabh = event.text
+    uid = event.sender_id
+    if answer == isabh and is_on and uid in players:
+        await event.reply('احسنت جواب موفق')
+        is_on = False
+    else:
+        return
 ABH.run_until_disconnected()
