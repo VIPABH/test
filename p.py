@@ -70,7 +70,7 @@ async def players_show(event):
             await event.reply("لا يوجد لاعبين مسجلين بعد!")
 @ABH.on(events.NewMessage(pattern="ابدا"))
 async def start_f(event):
-    global answer, elapsed_time
+    global answer, is_on, start_time
     if is_on:
         await event.reply('تم بدء اللعبة جاري الاختيار')
         await asyncio.sleep(5)
