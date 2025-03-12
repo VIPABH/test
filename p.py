@@ -67,10 +67,12 @@ async def start_f(event):
         await event.respond(f'✍ اكتب ⤶ `{answer}`')
         start_time = time.time()
         for i in range(4):
-            await asyncio.sleep(2)
-            answer = random.choice(words)
-            await event.respond(f'✍ اكتب ⤶ `{answer}`')
-            pass
+             await event.reply('تم بدء اللعبه انتظر ثواني')
+             await asyncio.sleep(2)
+             answer = random.choice(words)
+             await event.respond(f'✍ اكتب ⤶ `{answer}`')
+             start_time = time.time()
+             pass
 @ABH.on(events.NewMessage)
 async def check(event):
     """التحقق من الإجابة وإنهاء اللعبة"""
