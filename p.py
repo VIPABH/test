@@ -5,7 +5,6 @@ api_id = os.getenv("API_ID")
 api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
 
-# التأكد من أن القيم ليست None
 if not all([api_id, api_hash, bot_token]):
     raise ValueError("الرجاء ضبط المتغيرات البيئية API_ID, API_HASH, و BOT_TOKEN")
 
@@ -39,9 +38,9 @@ async def sign_in(event):
         name = sender.first_name
         if uid not in players:
             players[uid] = {"username": name}
-            await event.reply("تم تسجيلك في اللعبة! ✅")
+            await event.reply('سجلتك بالعبة لتدز مره لخ')
         else:
-            await event.reply("عزيزي، انت مسجل بالفعل! 🔄")
+            await event.reply("عزيزي الصديق ضفتك قبل شوية **ميحتاج تدز**")
 
 @ABH.on(events.NewMessage(pattern="(?i)الاعبين$"))
 async def players_show(event):
@@ -51,14 +50,14 @@ async def players_show(event):
             player_list = "\n".join([f"{pid} - {info['username']}" for pid, info in players.items()])
             await event.reply(f"📜 قائمة اللاعبين:\n{player_list}")
         else:
-            await event.reply("❌ لا يوجد لاعبين مسجلين بعد!")
+            await event.reply('ماكو لاعبين 🙃')
 
 @ABH.on(events.NewMessage(pattern="(?i)ابدا$"))
 async def start_f(event):
     """بدء الجولة واختيار الكلمة"""
     global answer, is_on, start_time
     if is_on:
-        await event.reply('🎮 يتم اختيار الكلمة...')
+        await event.reply('تم بدء اللعبه انتظر ثواني')
         await asyncio.sleep(2)
         answer = random.choice(words)
         await event.respond(f'✍ اكتب ⤶ `{answer}`')
@@ -70,21 +69,18 @@ async def check(event):
     global is_on, start_time, answer
     if not is_on or start_time is None:
         return
-
     elapsed_time = time.time() - start_time
     seconds = int(elapsed_time)
     milliseconds = int((elapsed_time - seconds) * 1000)
-
     isabh = event.text.strip()
     uid = event.sender_id
-
     if answer and isabh.lower() == answer.lower() and uid in players:
-        await event.reply(f'🎉 إجابة صحيحة! ⏳ الوقت المستغرق: {seconds} ثانية و {milliseconds} مللي ثانية')
+        await event.reply(f'اجابة موفقة احسنت\n الوقت المستغرق {seconds}:{milliseconds}')
         is_on = False
         answer = None
         start_time = None
     elif elapsed_time >= 10:
-        await event.reply('⏳ انتهت المدة! ❌ لم يتم الإجابة في الوقت المحدد.')
+        await event.reply('انتهت المدة ومحد جاووب🥱')
         is_on = False
         answer = None
         start_time = None
