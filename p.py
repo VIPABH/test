@@ -69,7 +69,7 @@ async def players_show(event):
             await event.reply("لا يوجد لاعبين مسجلين بعد!")
 @ABH.on(events.NewMessage(pattern="ابدا"))
 async def start_f(event):
-    global answer
+    global answer, is_on
     if is_on:
         await event.reply('تم بدء اللعبة جاري الاختيار')
         await asyncio.sleep(5)
@@ -77,6 +77,7 @@ async def start_f(event):
         await event.respond(f'اكتب ⤶ {answer}')
 @ABH.on(events.NewMessage)
 async def check(event):
+    global is_on
     if is_on:
         isabh = event.text
         if answer == isabh and is_on:
