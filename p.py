@@ -75,7 +75,7 @@ async def check(event):
         return
     elapsed_time = time.time() - start_time
     seconds = int(elapsed_time)
-    milliseconds = int((elapsed_time - seconds) * 100)
+    milliseconds = int((elapsed_time - seconds) * 1000)
     isabh = event.text.strip()
     uid = event.sender_id
     if answer and isabh.lower() == answer.lower() and uid in players:
