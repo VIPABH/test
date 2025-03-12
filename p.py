@@ -78,6 +78,7 @@ async def start_f(event):
         await event.respond(f'اكتب ⤶ {answer}')
 @ABH.on(events.NewMessage)
 async def check(event):
+    global is_on
     isabh = event.text
     uid = event.sender_id
     if answer == isabh and is_on and uid in players:
