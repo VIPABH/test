@@ -69,7 +69,7 @@ async def players_show(event):
 @ABH.on(events.NewMessage(pattern="ابدا"))
 async def start_f(event):
     await event.reply('تم بدء اللعبة جاري الاختيار')
-    asyncio.sleep(5)
+    await asyncio.sleep(5)
     abh = random.choice(words)
     await event.respond(f'اكتب {abh}')
 ABH.run_until_disconnected()
