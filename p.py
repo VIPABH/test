@@ -12,8 +12,7 @@ async def start_speed(event):
     is_on = True
     await event.reply('تم بدء لعبة اسرع , ارسل `انا` لدخول اللعبة او `تم للبدء مع او بدون لاعبين\n **ENJOY BABY✌**`')
     id = event.sender_id
-    sender = await event.get_sender()
-    name = {f'sender.first_name'}
+    name = event.sender.first_name
     players[id] = {'username': name}
 
 @ABH.on(events.NewMessage(pattern='انا'))
