@@ -73,6 +73,7 @@ async def start_f(event):
              answer = random.choice(words)
              await event.respond(f'✍ اكتب ⤶ `{answer}`')
              start_time = time.time()
+             a +=1
              pass
 @ABH.on(events.NewMessage)
 async def check(event):
@@ -87,7 +88,6 @@ async def check(event):
     uid = event.sender_id
     if answer and isabh.lower() == answer.lower() and uid in players:
         await event.reply(f'اجابة موفقة احسنت\n الوقت المستغرق {seconds}:{milliseconds}')
-        a +=1
         is_on = True
         answer = None
         start_time = None
