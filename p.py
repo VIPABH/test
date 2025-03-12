@@ -48,17 +48,6 @@ async def start_speed(event):
     is_on = True
     await event.reply("تم بدء لعبة اسرع \nأرسل `انا` لدخول اللعبة أو `تم` للبدء مع أو بدون لاعبين.\n**ENJOY BABY✌**")
 
-@ABH.on(events.NewMessage(pattern="انا"))
-async def sign_in(event):
-    if is_on:
-        id = event.sender_id
-        sender = await event.get_sender()
-        name = sender.first_name
-        if is_on and id not in players:
-            players[id] = {"username": name}
-            await event.reply("تم تسجيلك في اللعبة!")
-        else:
-            await event.reply("أنت مسجل بالفعل!")
 @ABH.on(events.NewMessage(pattern="الاعبين"))
 async def players_show(event):
     if is_on:
@@ -67,7 +56,7 @@ async def players_show(event):
             await event.reply(f"قائمة اللاعبين:\n{player_list}")
         else:
             await event.reply("لا يوجد لاعبين مسجلين بعد!")
-@ABH.on(events.NewMessage(pattern="ابدا"))
+@ABH.on(events.NewMessage(pattern="انا"))
 async def start_f(event):
     global answer, is_on
     if is_on:
@@ -80,6 +69,6 @@ async def check(event):
     global is_on
     isabh = event.text
     if answer == isabh and is_on:
-                 await event.reply('احسنت جواب موفق')
-                 is_on = False
+        await event.reply('احسنت جواب موفق')
+        is_on = False
 ABH.run_until_disconnected()
