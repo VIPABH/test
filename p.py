@@ -10,6 +10,7 @@ if not all([api_id, api_hash, bot_token]):
 
 ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 
+a = 0
 players = {}
 answer = None
 is_on = False
@@ -86,7 +87,8 @@ async def check(event):
     uid = event.sender_id
     if answer and isabh.lower() == answer.lower() and uid in players:
         await event.reply(f'اجابة موفقة احسنت\n الوقت المستغرق {seconds}:{milliseconds}')
-        is_on = False
+        a +=1
+        is_on = True
         answer = None
         start_time = None
     elif elapsed_time >= 10:
@@ -94,5 +96,8 @@ async def check(event):
         is_on = False
         answer = None
         start_time = None
-
+        if a == 5:
+            is_on = False
+        else:
+            True
 ABH.run_until_disconnected()
