@@ -30,11 +30,10 @@ async def show_res(event):
         await event.reply(f"المستخدم [{uid}](tg://user?id={unm}) أرسل {msg_count} رسالة في هذه المجموعة.")
 @ABH.on(events.NewMessage(pattern='رسائله|رسائلة|رسائل|الرسائل'))
 async def show_res(event):
-
+    r = await event.get_reply_message()
     await asyncio.sleep(2)
     if not r:
         return
-    r = await event.get_reply_message()
     uid1 = r.sender.first_name
     unm1 = r.sender_id
     guid1 = event.chat_id
