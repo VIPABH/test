@@ -1,5 +1,6 @@
 from telethon import TelegramClient, events
 import os, asyncio
+import time
 
 api_id = os.getenv("API_ID")
 api_hash = os.getenv("API_HASH")
@@ -7,6 +8,20 @@ bot_token = os.getenv("BOT_TOKEN")
 ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 
 uinfo = {}
+
+async def reset_data_daily():
+    while True:
+        # احصل على الوقت الحالي
+        now = time.localtime()
+        
+        # تحقق إذا كانت الساعة 12:00 مساءً
+        if now.tm_hour == 14 and now.tm_min == 56:
+            global uinfo
+            uinfo = {}  # مسح جميع البيانات المخزنة في القاموس uinfo
+            print("تم مسح البيانات عند الساعة 12:00 مساءً.")
+        
+        # انتظر 60 ثانية (1 دقيقة) ثم تحقق مرة أخرى
+        await asyncio.sleep(60)
 
 @ABH.on(events.NewMessage)
 async def msgs(event):
@@ -54,4 +69,12 @@ async def show_res(event):
         msg_count = uinfo[unm1][guid1]["msg"]
         await event.reply(f"المستخدم [{uid1}](tg://user?id={unm1}) أرسل {msg_count} رسالة في هذه المجموعة.")
 
-ABH.run_until_disconnected()
+async def main():
+    # تشغيل وظيفة مسح البيانات بشكل دوري
+    await asyncio.gather(
+        ABH.run_until_disconnected(),
+        reset_data_daily()  # المسح اليومي
+    )
+
+# تشغيل البوت
+asyncio.run(main())
