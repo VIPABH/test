@@ -28,7 +28,7 @@ async def show_res(event):
     top_users = []
     for user, data in sorted_users:
         if guid in data:
-            top_users.append(f"{unm}: {data[guid]['msg']} رسائل")
+            top_users.append(f"{data[guid][unm]['msg']} رسائل")
     if top_users:
         await event.reply("\n".join(top_users))
     else:
