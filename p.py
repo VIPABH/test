@@ -9,13 +9,14 @@ ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 
 uinfo = {}
 
+# وظيفة لمسح البيانات يوميًا
 async def reset_data_daily():
     while True:
         # احصل على الوقت المحلي
-        now = time.localtime()  # تأكد أن الوقت المحلي مضبوط بشكل صحيح
+        now = time.localtime()  # تأكد من أن الوقت المحلي مضبوط بشكل صحيح
         
         # تحقق إذا كانت الساعة 2:57 مساءً
-        if now.tm_hour == 14 and now.tm_min == 59:
+        if now.tm_hour == 14 and now.tm_min == 57:
             global uinfo
             uinfo = {}  # مسح جميع البيانات المخزنة في القاموس uinfo
             print("تم مسح البيانات عند الساعة 2:57 مساءً.")
