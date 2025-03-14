@@ -1,6 +1,9 @@
 from telethon import events
 import json
-
+api_id = os.getenv("API_ID")
+api_hash = os.getenv("API_HASH")
+bot_token = os.getenv("BOT_TOKEN")
+ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 @ABH.on(events.NewMessage)
 async def store_user_info(event):
     sender = await event.get_sender()  # جلب معلومات الشخص
