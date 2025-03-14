@@ -32,7 +32,7 @@ async def show_res(event):
 async def show_res(event):
 
     await asyncio.sleep(2)
-    if not uid1 or not uid1:
+    if not r:
         return
     r = await event.get_reply_message()
     uid1 = r.sender.first_name
