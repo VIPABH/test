@@ -23,7 +23,7 @@ async def msgs(event):
 async def show_res(event):
     await asyncio.sleep(2)
     guid = event.chat_id    
-    sorted_users = sorted(uinfo.items(), key=lambda x: x[1][guid]['msg'], reverse=True)[:20]
+    sorted_users = sorted(uinfo.items(), key=lambda x: x[1][guid]['msg'], reverse=True)[:2]
     top_users = []
     for user, data in sorted_users:
         if guid in data:
