@@ -1,16 +1,25 @@
-from telethon import TelegramClient, events
-import os
-from faker import Faker 
-api_id = os.getenv("API_ID")
-api_hash = os.getenv("API_HASH")
-bot_token = os.getenv("BOT_TOKEN")
-if not all([api_id, api_hash, bot_token]):
-    raise ValueError("الرجاء ضبط المتغيرات البيئية API_ID, API_HASH, و BOT_TOKEN")
-ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
-fake = Faker("ar_AA")
+from telethon import events
+import json
+
 @ABH.on(events.NewMessage)
-async def a(event):
-    a = fake.word()
-    await event.reply(f'{a}')
+async def store_user_info(event):
+    sender = await event.get_sender()  # جلب معلومات الشخص
+
+    # استخراج البيانات المهمة
+    user_info = {
+        "id": sender.id,
+        "username": sender.username,
+        "first_name": sender.first_name,
+        "last_name": sender.last_name,
+        "phone": sender.phone,
+        "is_bot": sender.bot
+    }
+
+    # حفظ البيانات في ملف JSON
+    with open("users.json", "a", encoding="utf-8") as file:
+        json.dump(user_info, file, ensure_ascii=False, indent=4)
+        file.write(",\n")  # فصل كل مستخدم بفاصلة
+
+    print(f"تم حفظ بيانات المستخدم: {sender.first_name}")
 
 ABH.run_until_disconnected()
