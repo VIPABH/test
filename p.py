@@ -11,14 +11,14 @@ uinfo = {}
 
 async def reset_data_daily():
     while True:
-        # احصل على الوقت الحالي
-        now = time.localtime()
+        # احصل على الوقت المحلي
+        now = time.localtime()  # تأكد أن الوقت المحلي مضبوط بشكل صحيح
         
-        # تحقق إذا كانت الساعة 12:00 مساءً
-        if now.tm_hour == 14 and now.tm_min == 56:
+        # تحقق إذا كانت الساعة 2:57 مساءً
+        if now.tm_hour == 14 and now.tm_min == 59:
             global uinfo
             uinfo = {}  # مسح جميع البيانات المخزنة في القاموس uinfo
-            print("تم مسح البيانات عند الساعة 12:00 مساءً.")
+            print("تم مسح البيانات عند الساعة 2:57 مساءً.")
         
         # انتظر 60 ثانية (1 دقيقة) ثم تحقق مرة أخرى
         await asyncio.sleep(60)
@@ -42,6 +42,7 @@ async def show_res(event):
     await asyncio.sleep(2)
     guid = event.chat_id
     
+    # ترتيب المستخدمين بناءً على عدد الرسائل
     sorted_users = sorted(uinfo.items(), key=lambda x: x[1][guid]['msg'], reverse=True)[:20]
     
     top_users = []
@@ -57,7 +58,7 @@ async def show_res(event):
         await event.reply("لا توجد بيانات لعرضها.")
 
 @ABH.on(events.NewMessage(pattern='رسائله|رسائلة|رسائل|الرسائل'))
-async def show_res(event):
+async def show_user_msgs_res(event):
     r = await event.get_reply_message()
     await asyncio.sleep(2)
     if not r:
