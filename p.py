@@ -5,21 +5,29 @@ api_id = os.getenv("API_ID")
 api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
 ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
-
 uinfo = {}
-
 @ABH.on(events.NewMessage)
 async def msgs(event):
     global uinfo
-    uid = event.sender.first_name
-    unm = event.sender_id    
-    if unm not in uinfo:
-        uinfo[unm] = {"unm": unm, "fname": uid, "msg": 1}
-    else:
-        uinfo[unm]["msg"] += 1
+    if event.is_group:
+        uid = event.sender.first_name
+        unm = event.sender_id
+        guid = event.chat_id
+        if unm not in uinfo:
+            uinfo[unm] = {}
+        if guid not in uinfo[unm]:
+            uinfo[unm][guid] = {"guid": guid, "unm": unm, "fname": uid, "msg": 1}
+        else:
+            uinfo[unm][guid]["msg"] += 1
 @ABH.on(events.NewMessage(pattern='توب'))
 async def show_res(event):
+    await asyncio.sleep(2)
     uid = event.sender.first_name
     unm = event.sender_id
-    await event.reply(f"User: {uid} ({unm}) has sent {uinfo[unm]['msg']} messages.")
+    guid = event.chat_id
+    if unm in uinfo and guid in uinfo[unm]:
+        msg_count = uinfo[unm][guid]["msg"]
+        await event.reply(f"المستخدم [{unm}](tg://user?id={uid}) أرسل {msg_count} رسالة في هذه المجموعة.")
+    else:
+        await event.reply("لم يتم العثور على بيانات لهذا المستخدم في هذه المجموعة.")
 ABH.run_until_disconnected()
