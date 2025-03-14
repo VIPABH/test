@@ -22,12 +22,13 @@ async def msgs(event):
 @ABH.on(events.NewMessage(pattern='توب'))
 async def show_res(event):
     await asyncio.sleep(2)
-    guid = event.chat_id    
-    sorted_users = sorted(uinfo.items(), key=lambda x: x[1][guid]['msg'], reverse=True)[:2]
+    guid = event.chat_id
+    unm = event.sender_id
+    sorted_users = sorted(uinfo.items(), key=lambda x: x[1][guid]['msg'], reverse=True)[:15]
     top_users = []
     for user, data in sorted_users:
         if guid in data:
-            top_users.append(f"{user}: {data[guid]['msg']} رسائل")
+            top_users.append(f"{unm}: {data[guid]['msg']} رسائل")
     if top_users:
         await event.reply("\n".join(top_users))
     else:
@@ -44,5 +45,4 @@ async def show_res(event):
     if unm1 in uinfo and guid1 in uinfo[unm1]:
         msg_count = uinfo[unm1][guid1]["msg"]
         await event.reply(f"المستخدم [{uid1}](tg://user?id={unm1}) أرسل {msg_count} رسالة في هذه المجموعة.")
-
 ABH.run_until_disconnected()
