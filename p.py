@@ -31,6 +31,8 @@ async def show_res(event):
 @ABH.on(events.NewMessage(pattern='رسائله|رسائلة|رسائل|الرسائل'))
 async def show_res(event):
     await asyncio.sleep(2)
+    if not uid or not uid:
+        return
     r = await event.get_reply_message()
     uid = r.sender.first_name
     unm = r.sender_id
