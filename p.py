@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-import os, asyncio
+import os, asyncio, time
 
 api_id = os.getenv("API_ID")
 api_hash = os.getenv("API_HASH")
@@ -33,6 +33,18 @@ async def show_res(event):
         await event.reply("\n".join(top_users))
     else:
         await event.reply("لا توجد بيانات لعرضها.")
+@ABH.on(events.NewMessage(pattern='رسائلي'))
+async def show_res(event):
+    r = await event.get_reply_message()
+    await asyncio.sleep(2)
+    if not r:
+        return
+    uid1 = event.sender.first_name
+    unm1 = event.sender_id
+    guid1 = event.chat_id
+    if unm1 in uinfo and guid1 in uinfo[unm1]:
+        msg_count = uinfo[unm1][guid1]["msg"]
+        await event.reply(f"المستخدم [{uid1}](tg://user?id={unm1}) ارسلت {msg_count} رسالة في هذه المجموعة.")
 @ABH.on(events.NewMessage(pattern='رسائله|رسائلة|رسائل|الرسائل'))
 async def show_res(event):
     r = await event.get_reply_message()
