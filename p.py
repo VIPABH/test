@@ -16,7 +16,7 @@ async def msgs(event):
         uinfo.setdefault(unm, {}).setdefault(guid, {"guid": guid, "unm": unm, "fname": uid, "msg": 0})["msg"] += 1
         now = datetime.now()
         timenow = now.strftime("%I:%M %p")
-        targetdate = "02:29 PM"
+        targetdate = "11:30 AM"
         print(timenow)
     if timenow == targetdate:
         uinfo.setdefault(unm, {}).setdefault(guid, {"guid": guid, "unm": unm, "fname": uid, "msg": 0})
