@@ -16,11 +16,11 @@ async def msgs(event):
         uinfo.setdefault(unm, {}).setdefault(guid, {"guid": guid, "unm": unm, "fname": uid, "msg": 0})["msg"] += 1
         now = datetime.now()
         timenow = now.strftime("%I:%M %p")
-        targetdate = "11:30 AM"
-        print(timenow)
+        targetdate = "11:33 AM"
+        print(f"it is {timenow}")
     if timenow == targetdate:
-        uinfo.setdefault(unm, {}).setdefault(guid, {"guid": guid, "unm": unm, "fname": uid, "msg": 0})
-        print(timenow)
+        uinfo = {}
+        print(f"it is not {timenow}")
 @ABH.on(events.NewMessage(pattern='توب'))
 async def show_res(event):
     await asyncio.sleep(2)
