@@ -9,21 +9,17 @@ ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 
 uinfo = {}
 
-# دالة للتحقق من الوقت في كل رسالة جديدة
-async def check_and_reset_data():
-    now = time.localtime()  # الحصول على الوقت المحلي
-    if now.tm_hour == 15 and now.tm_min == 2:
-        global uinfo
-        uinfo = {}  # مسح جميع البيانات المخزنة في القاموس uinfo
-        print("تم مسح البيانات عند الساعة 2:57 مساءً.")
-
 @ABH.on(events.NewMessage)
 async def msgs(event):
     global uinfo
-    if event.is_group:
-        # تحقق من الوقت في كل رسالة
-        await check_and_reset_data()
+    # تحقق من الوقت في كل رسالة جديدة
+    now = time.localtime()  # الحصول على الوقت المحلي
+    # تحقق إذا كانت الساعة 2:57 مساءً
+    if now.tm_hour == 15 and now.tm_min == 4:
+        uinfo = {}  # مسح جميع البيانات المخزنة في القاموس uinfo
+        print("تم مسح البيانات عند الساعة 2:57 مساءً.")
 
+    if event.is_group:
         uid = event.sender.first_name
         unm = event.sender_id
         guid = event.chat_id
@@ -39,6 +35,7 @@ async def show_res(event):
     await asyncio.sleep(2)
     guid = event.chat_id
     
+    # ترتيب المستخدمين بناءً على عدد الرسائل
     sorted_users = sorted(uinfo.items(), key=lambda x: x[1][guid]['msg'], reverse=True)[:20]
     
     top_users = []
