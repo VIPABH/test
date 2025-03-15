@@ -16,7 +16,7 @@ async def msgs(event):
     formatted_time = time.strftime("%H:%M", now)
 
     # إذا كان الوقت 15:08، مسح البيانات
-    if formatted_time == "15:10":
+    if formatted_time == "15:08":
         uinfo = {}
         print("تم مسح البيانات عند الساعة 15:08.")
     
@@ -39,7 +39,7 @@ async def show_top_users(event):
     sorted_users = sorted(uinfo.items(), key=lambda x: x[1][guid]['msg'], reverse=True)[:15]
     top_users = []
     for user, data in sorted_users:
-        if guid in data:
+        if guid in data and unm in data[guid]:  # تحقق من وجود المفتاح unm
             top_users.append(f"{data[guid][unm]['msg']} رسائل")
     if top_users:
         await event.reply("\n".join(top_users))
@@ -47,7 +47,7 @@ async def show_top_users(event):
         await event.reply("لا توجد بيانات لعرضها.")
 
 @ABH.on(events.NewMessage(pattern='رسائله|رسائلة|رسائل|الرسائل'))
-async def show_user_msgs(event):
+async def show_user_msgs_res(event):
     r = await event.get_reply_message()
     await asyncio.sleep(2)
     if not r:
@@ -59,4 +59,5 @@ async def show_user_msgs(event):
         msg_count = uinfo[unm1][guid1]["msg"]
         await event.reply(f"المستخدم [{uid1}](tg://user?id={unm1}) أرسل {msg_count} رسالة في هذه المجموعة.")
 
+# تشغيل البوت
 ABH.run_until_disconnected()
