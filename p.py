@@ -12,7 +12,7 @@ uinfo = {}
 # دالة للتحقق من الوقت في كل رسالة جديدة
 async def check_and_reset_data():
     now = time.localtime()  # الحصول على الوقت المحلي
-    if now.tm_hour == 14 and now.tm_min == 57:
+    if now.tm_hour == 15 and now.tm_min == 2:
         global uinfo
         uinfo = {}  # مسح جميع البيانات المخزنة في القاموس uinfo
         print("تم مسح البيانات عند الساعة 2:57 مساءً.")
