@@ -15,13 +15,12 @@ async def msgs(event):
     now = time.localtime()
     formatted_time = time.strftime("%H:%M", now)
 
-    # إذا كان الوقت 03:21، مسح جميع الرسائل للمستخدمين
     if formatted_time == "03:23":
         # مسح جميع الرسائل لجميع المستخدمين
         for user in uinfo:
             for group in uinfo[user]:
                 uinfo[user][group]["msg"] = 0
-        print("تم مسح جميع الرسائل لجميع المستخدمين عند الساعة 03:21.")
+        print("تم مسح جميع الرسائل لجميع المستخدمين عند الساعة 03:23.")
     
     if event.is_group:
         uid = event.sender.first_name
