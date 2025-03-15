@@ -14,7 +14,7 @@ async def check_time():
         now = time.localtime()
         formatted_time = time.strftime("%H:%M", now)
 
-        if formatted_time == "03:36":
+        if formatted_time == "03:39":
             # مسح جميع الرسائل لجميع المستخدمين عند الوقت المحدد
             for user in uinfo:
                 for group in uinfo[user]:
@@ -22,6 +22,8 @@ async def check_time():
             print("تم مسح جميع الرسائل لجميع المستخدمين عند الساعة 03:33.")
             uinfo = {}
             print("تم مسح جميع عند الساعة 03:33.")
+            players.clear()
+            print("تم مسح  03:33.")
 
 @ABH.on(events.NewMessage)
 async def msgs(event):
