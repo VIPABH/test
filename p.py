@@ -15,10 +15,10 @@ async def msgs(event):
     now = time.localtime()
     formatted_time = time.strftime("%H:%M", now)
 
-    # إذا كان الوقت 15:07، مسح البيانات
+    # إذا كان الوقت 15:08، مسح البيانات
     if formatted_time == "15:08":
         uinfo = {}
-        print("تم مسح البيانات عند الساعة 15:07.")
+        print("تم مسح البيانات عند الساعة 15:08.")
     
     if event.is_group:
         uid = event.sender.first_name
@@ -32,7 +32,7 @@ async def msgs(event):
             uinfo[unm][guid]["msg"] += 1
 
 @ABH.on(events.NewMessage(pattern='توب'))
-async def show_res(event):
+async def show_top_users(event):
     await asyncio.sleep(2)
     guid = event.chat_id
     unm = event.sender_id
@@ -47,7 +47,7 @@ async def show_res(event):
         await event.reply("لا توجد بيانات لعرضها.")
 
 @ABH.on(events.NewMessage(pattern='رسائله|رسائلة|رسائل|الرسائل'))
-async def show_res(event):
+async def show_user_msgs(event):
     r = await event.get_reply_message()
     await asyncio.sleep(2)
     if not r:
