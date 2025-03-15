@@ -17,7 +17,7 @@ async def msgs(event):
     if timenow == targetdate:
         now = datetime.now()
         timenow = now.strftime("%I:%M %p")
-        targetdate = "02:17 PM"
+        targetdate = "02:18 PM"
         uinfo.setdefault(unm, {}).setdefault(guid, {"guid": guid, "unm": unm, "fname": uid, "msg": 0})
 @ABH.on(events.NewMessage(pattern='توب'))
 async def show_res(event):
