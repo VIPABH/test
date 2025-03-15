@@ -66,9 +66,7 @@ async def show_user_msgs_res(event):
     if unm1 in uinfo and guid1 in uinfo[unm1]:
         msg_count = uinfo[unm1][guid1]["msg"]
         await event.reply(f"المستخدم [{uid1}](tg://user?id={unm1}) أرسل {msg_count} رسالة في هذه المجموعة.")
-
-# بدء التحقق من الوقت بشكل دوري
-asyncio.create_task(check_time())
+        await asyncio.create_task(check_time())
 
 # تشغيل البوت
 ABH.run_until_disconnected()
