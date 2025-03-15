@@ -16,16 +16,18 @@ async def msgs(event):
         uinfo.setdefault(unm, {}).setdefault(guid, {"guid": guid, "unm": unm, "fname": uid, "msg": 0})["msg"] += 1
         now = datetime.now()
         timenow = now.strftime("%I:%M %p")
-        targetdate = "11:33 AM"
-        print(f"it is {timenow}")
-    if timenow == targetdate:
+        targetdate = "8:59 PM"
+        targetdate2 = "20:59"
+        targetdate3 = "11:45"
+    # if timenow == targetdate or timenow == targetdate2:
+    if timenow == targetdate or timenow == targetdate2 or timenow == targetdate3:
         uinfo = {}
-        print(f"it is not {timenow}")
-@ABH.on(events.NewMessage(pattern='توب'))
+        await event.reply('تم تصفير التوب يتم احتساب الرسائل في تمام ال 12:00')
+@ABH.on(events.NewMessage(pattern='توب اليومي|المتفاعلين'))
 async def show_res(event):
     await asyncio.sleep(2)
     guid = event.chat_id
-    sorted_users = sorted(uinfo.items(), key=lambda x: x[1][guid]['msg'], reverse=True)[:20]
+    sorted_users = sorted(uinfo.items(), key=lambda x: x[1][guid]['msg'], reverse=True)[:10]
     top_users = []
     for user, data in sorted_users:
         if guid in data:
