@@ -14,12 +14,14 @@ async def check_time():
         now = time.localtime()
         formatted_time = time.strftime("%H:%M", now)
 
-        if formatted_time == "03:33":
+        if formatted_time == "03:36":
             # مسح جميع الرسائل لجميع المستخدمين عند الوقت المحدد
             for user in uinfo:
                 for group in uinfo[user]:
                     uinfo[user][group]["msg"] = 0
-            print("تم مسح جميع الرسائل لجميع المستخدمين عند الساعة 03:29.")
+            print("تم مسح جميع الرسائل لجميع المستخدمين عند الساعة 03:33.")
+            uinfo = {}
+            print("تم مسح جميع عند الساعة 03:33.")
 
 @ABH.on(events.NewMessage)
 async def msgs(event):
@@ -67,6 +69,8 @@ async def show_user_msgs_res(event):
         msg_count = uinfo[unm1][guid1]["msg"]
         await event.reply(f"المستخدم [{uid1}](tg://user?id={unm1}) أرسل {msg_count} رسالة في هذه المجموعة.")
         await asyncio.create_task(check_time())
+
+
 
 # تشغيل البوت
 ABH.run_until_disconnected()
