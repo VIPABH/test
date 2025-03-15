@@ -9,25 +9,21 @@ ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 
 uinfo = {}
 
-# وظيفة لمسح البيانات يوميًا
-async def reset_data_daily():
-    while True:
-        # احصل على الوقت المحلي
-        now = time.localtime()  # تأكد من أن الوقت المحلي مضبوط بشكل صحيح
-        
-        # تحقق إذا كانت الساعة 2:57 مساءً
-        if now.tm_hour == 14 and now.tm_min == 57:
-            global uinfo
-            uinfo = {}  # مسح جميع البيانات المخزنة في القاموس uinfo
-            print("تم مسح البيانات عند الساعة 2:57 مساءً.")
-        
-        # انتظر 60 ثانية (1 دقيقة) ثم تحقق مرة أخرى
-        await asyncio.sleep(60)
+# دالة للتحقق من الوقت في كل رسالة جديدة
+async def check_and_reset_data():
+    now = time.localtime()  # الحصول على الوقت المحلي
+    if now.tm_hour == 14 and now.tm_min == 57:
+        global uinfo
+        uinfo = {}  # مسح جميع البيانات المخزنة في القاموس uinfo
+        print("تم مسح البيانات عند الساعة 2:57 مساءً.")
 
 @ABH.on(events.NewMessage)
 async def msgs(event):
     global uinfo
     if event.is_group:
+        # تحقق من الوقت في كل رسالة
+        await check_and_reset_data()
+
         uid = event.sender.first_name
         unm = event.sender_id
         guid = event.chat_id
@@ -43,7 +39,6 @@ async def show_res(event):
     await asyncio.sleep(2)
     guid = event.chat_id
     
-    # ترتيب المستخدمين بناءً على عدد الرسائل
     sorted_users = sorted(uinfo.items(), key=lambda x: x[1][guid]['msg'], reverse=True)[:20]
     
     top_users = []
@@ -72,11 +67,7 @@ async def show_user_msgs_res(event):
         await event.reply(f"المستخدم [{uid1}](tg://user?id={unm1}) أرسل {msg_count} رسالة في هذه المجموعة.")
 
 async def main():
-    # تشغيل وظيفة مسح البيانات بشكل دوري
-    await asyncio.gather(
-        ABH.run_until_disconnected(),
-        reset_data_daily()  # المسح اليومي
-    )
+    await ABH.run_until_disconnected()
 
 # تشغيل البوت
 asyncio.run(main())
