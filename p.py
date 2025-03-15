@@ -8,7 +8,7 @@ ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 uinfo = {}
 @ABH.on(events.NewMessage)
 async def msgs(event):
-    global uinfo
+    global uinfo, timenow, targetdate
     if event.is_group:
         uid = event.sender.first_name
         unm = event.sender_id
