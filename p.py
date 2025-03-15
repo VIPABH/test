@@ -18,9 +18,7 @@ async def msgs(event):
         timenow = now.strftime("%I:%M %p")
         targetdate = "8:59 PM"
         targetdate2 = "20:59"
-        targetdate3 = "11:46 AM"
-    # if timenow == targetdate or timenow == targetdate2:
-    if timenow == targetdate or timenow == targetdate2 or timenow == targetdate3:
+    if timenow == targetdate:
         uinfo = {}
         await event.reply('تم تصفير التوب يتم احتساب الرسائل في تمام ال 12:00')
 @ABH.on(events.NewMessage(pattern='توب اليومي|المتفاعلين'))
