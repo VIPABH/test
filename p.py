@@ -1,4 +1,4 @@
-from telethon import TelegramClient, events
+from telethon import TelegramClient, events 
 import os, asyncio, time
 
 api_id = os.getenv("API_ID")
@@ -15,10 +15,13 @@ async def msgs(event):
     now = time.localtime()
     formatted_time = time.strftime("%H:%M", now)
 
-    # إذا كان الوقت 15:15، مسح البيانات
-    if formatted_time == "03:21":
-        uinfo = {}
-        print("تم مسح البيانات عند الساعة 15:15.")
+    # إذا كان الوقت 03:21، مسح جميع الرسائل للمستخدمين
+    if formatted_time == "03:23":
+        # مسح جميع الرسائل لجميع المستخدمين
+        for user in uinfo:
+            for group in uinfo[user]:
+                uinfo[user][group]["msg"] = 0
+        print("تم مسح جميع الرسائل لجميع المستخدمين عند الساعة 03:21.")
     
     if event.is_group:
         uid = event.sender.first_name
