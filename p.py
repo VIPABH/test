@@ -35,10 +35,7 @@ async def show_res(event):
         await event.reply("لا توجد بيانات لعرضها.")
 @ABH.on(events.NewMessage(pattern='رسائلي'))
 async def show_res(event):
-    r = await event.get_reply_message()
     await asyncio.sleep(2)
-    if not r:
-        return
     uid1 = event.sender.first_name
     unm1 = event.sender_id
     guid1 = event.chat_id
