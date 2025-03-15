@@ -1,4 +1,4 @@
-from telethon import TelegramClient, events 
+from telethon import TelegramClient, events
 import os, asyncio, time
 
 api_id = os.getenv("API_ID")
@@ -7,21 +7,24 @@ bot_token = os.getenv("BOT_TOKEN")
 ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 uinfo = {}
 
+# دالة للتحقق من الوقت بشكل دوري
+async def check_time():
+    while True:
+        await asyncio.sleep(60)  # التحقق كل دقيقة
+        now = time.localtime()
+        formatted_time = time.strftime("%H:%M", now)
+
+        if formatted_time == "03:33":
+            # مسح جميع الرسائل لجميع المستخدمين عند الوقت المحدد
+            for user in uinfo:
+                for group in uinfo[user]:
+                    uinfo[user][group]["msg"] = 0
+            print("تم مسح جميع الرسائل لجميع المستخدمين عند الساعة 03:29.")
+
 @ABH.on(events.NewMessage)
 async def msgs(event):
     global uinfo
 
-    # التحقق من الوقت كل مرة عند وصول رسالة جديدة
-    now = time.localtime()
-    formatted_time = time.strftime("%H:%M", now)
-
-    if formatted_time == "03:29":
-        # مسح جميع الرسائل لجميع المستخدمين
-        for user in uinfo:
-            for group in uinfo[user]:
-                uinfo[user][group]["msg"] = 0
-        print("تم مسح جميع الرسائل لجميع المستخدمين عند الساعة 03:23.")
-    
     if event.is_group:
         uid = event.sender.first_name
         unm = event.sender_id
@@ -63,6 +66,9 @@ async def show_user_msgs_res(event):
     if unm1 in uinfo and guid1 in uinfo[unm1]:
         msg_count = uinfo[unm1][guid1]["msg"]
         await event.reply(f"المستخدم [{uid1}](tg://user?id={unm1}) أرسل {msg_count} رسالة في هذه المجموعة.")
+
+# بدء التحقق من الوقت بشكل دوري
+asyncio.create_task(check_time())
 
 # تشغيل البوت
 ABH.run_until_disconnected()
