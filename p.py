@@ -8,16 +8,16 @@ ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 uinfo = {}
 @ABH.on(events.NewMessage)
 async def msgs(event):
-    global uinfo, timenow, targetdate
+    global uinfo
     if event.is_group:
         uid = event.sender.first_name
         unm = event.sender_id
         guid = event.chat_id
         uinfo.setdefault(unm, {}).setdefault(guid, {"guid": guid, "unm": unm, "fname": uid, "msg": 0})["msg"] += 1
-    if timenow == targetdate:
         now = datetime.now()
         timenow = now.strftime("%I:%M %p")
-        targetdate = "02:20 PM"
+        targetdate = "02:22 PM"
+    if timenow == targetdate:
         uinfo.setdefault(unm, {}).setdefault(guid, {"guid": guid, "unm": unm, "fname": uid, "msg": 0})
 @ABH.on(events.NewMessage(pattern='توب'))
 async def show_res(event):
