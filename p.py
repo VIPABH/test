@@ -16,7 +16,7 @@ async def msgs(event):
     formatted_time = time.strftime("%H:%M", now)
 
     # إذا كان الوقت 15:08، مسح البيانات
-    if formatted_time == "15:13":
+    if formatted_time == "15:15":
         uinfo = {}
         print("تم مسح البيانات عند الساعة 15:08.")
     
