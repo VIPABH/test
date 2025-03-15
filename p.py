@@ -15,10 +15,10 @@ async def msgs(event):
     now = time.localtime()
     formatted_time = time.strftime("%H:%M", now)
 
-    # إذا كان الوقت 15:08، مسح البيانات
+    # إذا كان الوقت 15:15، مسح البيانات
     if formatted_time == "15:15":
         uinfo = {}
-        print("تم مسح البيانات عند الساعة 15:08.")
+        print("تم مسح البيانات عند الساعة 15:15.")
     
     if event.is_group:
         uid = event.sender.first_name
@@ -35,12 +35,15 @@ async def msgs(event):
 async def show_top_users(event):
     await asyncio.sleep(2)
     guid = event.chat_id
-    unm = event.sender_id
-    sorted_users = sorted(uinfo.items(), key=lambda x: x[1][guid]['msg'], reverse=True)[:15]
+    # ترتيب المستخدمين حسب عدد الرسائل
+    sorted_users = sorted(uinfo.items(), key=lambda x: x[1].get(guid, {}).get('msg', 0), reverse=True)[:15]
+    
     top_users = []
     for user, data in sorted_users:
-        if guid in data and unm in data[guid]:  # تحقق من وجود المفتاح unm
-            top_users.append(f"{data[guid][unm]['msg']} رسائل")
+        if guid in data:  # تحقق من وجود المفتاح guid
+            msg_count = data[guid]["msg"]
+            top_users.append(f"{data[guid]['fname']} [{data[guid]['unm']}]: {msg_count} رسائل")
+    
     if top_users:
         await event.reply("\n".join(top_users))
     else:
