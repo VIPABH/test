@@ -1,13 +1,24 @@
 import os
 from telethon import TelegramClient, events
+
+# جلب المتغيرات من البيئة
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
+
+# التحقق من أن جميع القيم موجودة
+assert api_id and api_hash and bot_token, "يرجى التأكد من ضبط API_ID و API_HASH و BOT_TOKEN"
+
+# تشغيل البوت
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+
+# تخزين معلومات المستخدمين
 uinfo = {}
+
+# أوامر البوت
 @ABH.on(events.NewMessage(pattern=r'^اوامري|اوامر$'))
 async def start(event):
-await event.reply("""
+    await event.reply("""
 **أوامر البوت المخفي** 卐
 
 1 → `اوامر التوب`  
@@ -44,4 +55,5 @@ await event.reply("""
    يرسل لك لطمية عشوائية.  
 """)
 
+# تشغيل البوت بشكل مستمر
 ABH.run_until_disconnected()
