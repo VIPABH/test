@@ -24,6 +24,7 @@ def reset_game(chat_id):
 group_game_status = {}
 @ABH.on(events.NewMessage(pattern='/rings'))
 async def handle_start_game(event):
+    global number2
     chat_id = event.chat_id
     user_id = event.sender_id
     username = event.sender.username or "unknown"
@@ -32,8 +33,6 @@ async def handle_start_game(event):
     if not group_game_status[chat_id]['game_active']:
         group_game_status[chat_id]['game_active'] = True
         group_game_status[chat_id]['active_player_id'] = user_id
-    
-        global number2
         number2 = random.randint(1, 6)
         group_game_status[chat_id]['number2'] = number2
         await event.respond(
@@ -45,7 +44,6 @@ async def handle_guess(event):
     global number2, game_board, points, group_game_status
     chat_id = event.chat_id
     if chat_id in group_game_status and group_game_status[chat_id]['game_active']:
-      
         try:
             guess = int(event.text.split()[1])  
             if 1 <= guess <= 6:  
@@ -65,7 +63,6 @@ async def handle_guess(event):
                 await event.reply("❗ يرجى إدخال رقم صحيح بين 1 و 6.")
         except (IndexError, ValueError):
             await event.reply("❗ يرجى إدخال رقم صحيح بين 1 و 6.")
-        
 @ABH.on(events.NewMessage(pattern=r'طك (\d+)'))
 async def handle_strike(event):
     global game_board, number2, group_game_status
