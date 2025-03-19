@@ -23,7 +23,7 @@ DEVICES = {
     "android": "Galaxy S5"
 }
 def is_safe_url(url):
-    return not any(banned in url.lower() for banned in BANNED_SITES)
+    return not any(banned in url() for banned in BANNED_SITES)
 
 async def take_screenshot(url, device="pc"):
     async with async_playwright() as p:
