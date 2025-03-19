@@ -70,7 +70,7 @@ async def handle_strike(event):
     if chat_id in group_game_status and group_game_status[chat_id]['game_active']:
         try:
             strike_position = int(event.text.split()[1])  
-            if strike_position == number2:
+            if strike_position != number2:
                 game_board = [["💍" if i == number2 - 1 else "🖐️" for i in range(6)]]
                 await event.reply(f"**خسرت!** \n{format_board(game_board, numbers_board)}")
                 reset_game(chat_id)
@@ -84,8 +84,6 @@ async def handle_strike(event):
                 iuABH = random.choice(abh)
                 game_board[0][strike_position - 1] = '🖐️'
                 await event.reply(f" {iuABH} \n{format_board(game_board, numbers_board)}")
-            elif strike_position != number2:
-                await event.reply('خطا')
         except (IndexError, ValueError):
             await event.reply("يرجى إدخال رقم صحيح بين 1 و 6.")
             
