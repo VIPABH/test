@@ -70,11 +70,10 @@ async def handle_strike(event):
     if chat_id in group_game_status and group_game_status[chat_id]['game_active']:
         try:
             strike_position = int(event.text.split()[1])  
-            if strike_position != number2:
+            if strike_position == number2:
                 game_board = [["💍" if i == number2 - 1 else "🖐️" for i in range(6)]]
                 await event.reply(f"**خسرت!** \n{format_board(game_board, numbers_board)}")
                 reset_game(chat_id)
-
                 abh = [
                     "تلعب وخوش تلعب 👏🏻",
                     "لك عاش يابطل استمر 💪🏻",
