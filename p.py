@@ -74,6 +74,7 @@ async def handle_strike(event):
                 game_board = [["💍" if i == number2 - 1 else "🖐️" for i in range(6)]]
                 await event.reply(f"**خسرت!** \n{format_board(game_board, numbers_board)}")
                 reset_game(chat_id)
+            else:
                 abh = [
                     "تلعب وخوش تلعب 👏🏻",
                     "لك عاش يابطل استمر 💪🏻",
