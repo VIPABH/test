@@ -4,97 +4,75 @@ api_id = os.getenv('API_ID')
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-group_game_status = {}
-number2 = None
-game_board = [["👊", "👊", "👊", "👊", "👊", "👊"]]
-numbers_board = [["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"]]
-original_game_board = [["👊", "👊", "👊", "👊", "👊", "👊"]]
-points = {}
-def format_board(game_board, numbers_board):
-    formatted_board = ""
-    formatted_board += " ".join(numbers_board[0]) + "\n"
-    formatted_board += " ".join(game_board[0]) + "\n"
-    return formatted_board
-def reset_game(chat_id):
-    global game_board, number2, group_game_status
-    game_board = [row[:] for row in original_game_board]
-    number2 = None
-    group_game_status[chat_id]['game_active'] = False
-    group_game_status[chat_id]['active_player_id'] = None
-group_game_status = {}
-@ABH.on(events.NewMessage(pattern='/rings'))
-async def handle_start_game(event):
-    global number2
-    chat_id = event.chat_id
-    user_id = event.sender_id
-    username = event.sender.username or "unknown"
-    if chat_id not in group_game_status:
-        group_game_status[chat_id] = {'game_active': False, 'active_player_id': None}    
-    if not group_game_status[chat_id]['game_active']:
-        group_game_status[chat_id]['game_active'] = True
-        group_game_status[chat_id]['active_player_id'] = user_id
-        number2 = random.randint(1, 6)
-        group_game_status[chat_id]['number2'] = number2
-        await event.respond(
-            f"عزيزي [{event.sender.first_name}](https://t.me/@{username})! تم تسجيلك في لعبة محيبس \nارسل `جيب ` + رقم للحزر \n ارسل `طك ` + رقم للتخمين.",
-            parse_mode="Markdown"
-        )
-@ABH.on(events.NewMessage(pattern=r'جيب (\d+)'))
-async def handle_guess(event):
-    global number2, game_board, points, group_game_status
-    chat_id = event.chat_id
-    if chat_id in group_game_status and group_game_status[chat_id]['game_active']:
-        try:
-            guess = int(event.text.split()[1])  
-            if 1 <= guess <= 6:  
-                if guess == number2:
-                    winner_id = event.sender_id 
-                    points[winner_id] = points.get(winner_id, 0) + 1 
-                    sender_first_name = event.sender.first_name
-                    game_board = [["💍" if i == number2 - 1 else "🖐️" for i in range(6)]]
-                    await event.reply(f'🎉 الف مبروك! اللاعب ({sender_first_name}) وجد المحبس 💍!\n{format_board(game_board, numbers_board)}')
-                    reset_game(chat_id)
-                else: 
-                    sender_first_name = event.sender.first_name
-                    game_board = [["❌" if i == guess - 1 else "🖐️" for i in range(6)]]
-                    await event.reply(f"ضاع البات ماضن بعد تلگونة ☹️ \n{format_board(game_board, numbers_board)}")
-                    reset_game(chat_id)
+
+BANNED_SITES = [
+    "porn", "xvideos", "xnxx", "redtube", "xhamster",
+    "brazzers", "youjizz", "spankbang", "erotic", "sex"
+]
+
+DEVICES = {
+    "pc": {"width": 1920, "height": 1080, "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+    "android": "Galaxy S5"
+}
+
+async def take_screenshot(url, device="pc"):
+    if not url:
+        print("❌ خطأ: الرابط غير صالح.")
+        return None
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        playwright = p
+
+        if device in DEVICES:
+            if isinstance(DEVICES[device], str):
+                device_preset = playwright.devices[DEVICES[device]]
+                context = await browser.new_context(**device_preset)
             else:
-                await event.reply("يرجى إدخال رقم صحيح بين 1 و 6.")
-        except (IndexError, ValueError):
-            await event.reply("يرجى إدخال رقم صحيح بين 1 و 6.")
-@ABH.on(events.NewMessage(pattern=r'طك (\d+)'))
-async def handle_strike(event):
-    global game_board, number2, group_game_status
-    chat_id = event.chat_id
-    if chat_id in group_game_status and group_game_status[chat_id]['game_active']:
+                context = await browser.new_context(
+                    user_agent=DEVICES[device]["user_agent"],
+                    viewport={"width": DEVICES[device]["width"], "height": DEVICES[device]["height"]}
+                )
+            page = await context.new_page()
+        else:
+            page = await browser.new_page()
+
         try:
-            strike_position = int(event.text.split()[1])  
-            if strike_position == number2:
-                game_board = [["💍" if i == number2 - 1 else "🖐️" for i in range(6)]]
-                await event.reply(f"**خسرت!** \n{format_board(game_board, numbers_board)}")
-                reset_game(chat_id)
-            else:
-                abh = [
-                    "تلعب وخوش تلعب 👏🏻",
-                    "لك عاش يابطل استمر 💪🏻",
-                    "على كيفك ركزززز انتَ كدها 🤨",
-                    "لك وعلي ذيييب 😍"
-                ]
-                iuABH = random.choice(abh)
-                game_board[0][strike_position - 1] = '🖐️'
-                await event.reply(f" {iuABH} \n{format_board(game_board, numbers_board)}")
-        except (IndexError, ValueError):
-            await event.reply("يرجى إدخال رقم صحيح بين 1 و 6.")
-            
-@ABH.on(events.NewMessage(pattern='/محيبس'))
-async def show_number(event):
-    """إظهار الرقم السري عند الطلب وإرساله إلى @k_4x1"""
-    chat_id = event.chat_id
-    if chat_id in group_game_status and group_game_status[chat_id]['game_active']:
-        target_user_id = 1910015590  
-        await ABH.send_message(target_user_id, f"الرقم السري هو: {number2}")
-        await event.reply("تم إرسال الرقم السري إلى @k_4x1.")
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            screenshot_path = f"screenshot_{device}.png"
+            await page.screenshot(path=screenshot_path)
+        except Exception as e:
+            print(f"❌ خطأ أثناء تحميل الصفحة: {e}")
+            screenshot_path = None
+        finally:
+            await browser.close()
+
+    return screenshot_path
+
+@ABH.on(events.NewMessage(pattern=r'كشف رابط|سكرين (.+)'))
+async def handler(event):
+    match = event.pattern_match
+    if not match or not match.group(1):
+        await event.reply("❌ يرجى إدخال رابط صحيح.")
+        return
+
+    url = match.group(1).strip()
+    
+    if not url.startswith(("http://", "https://")):
+        await event.reply("🚨 يجب أن يبدأ الرابط بـ `http://` أو `https://`.")
+        return
+
+    devices = ['pc', 'android']
+    screenshot_paths = []
+
+    for device in devices:
+        screenshot_path = await take_screenshot(url, device)
+        if screenshot_path:
+            screenshot_paths.append(screenshot_path)
+
+    if screenshot_paths:
+        await event.reply(f'✅ تم التقاط لقطات الشاشة للأجهزة التالية: **PC، Android**', file=screenshot_paths)
     else:
-        await event.reply("لم تبدأ اللعبة بعد. أرسل /rings لبدء اللعبة.")
+        await event.reply("🙄 هنالك خطأ أثناء التقاط لقطة الشاشة، تأكد من صحة الرابط أو جرب مجددًا.")
+
 ABH.run_until_disconnected()
