@@ -60,9 +60,9 @@ async def handle_guess(event):
                     await event.reply(f"ضاع البات ماضن بعد تلگونة ☹️ \n{format_board(game_board, numbers_board)}")
                     reset_game(chat_id)
             else:
-                await event.reply("❗ يرجى إدخال رقم صحيح بين 1 و 6.")
+                await event.reply("يرجى إدخال رقم صحيح بين 1 و 6.")
         except (IndexError, ValueError):
-            await event.reply("❗ يرجى إدخال رقم صحيح بين 1 و 6.")
+            await event.reply("يرجى إدخال رقم صحيح بين 1 و 6.")
 @ABH.on(events.NewMessage(pattern=r'طك (\d+)'))
 async def handle_strike(event):
     global game_board, number2, group_game_status
@@ -84,8 +84,10 @@ async def handle_strike(event):
                 iuABH = random.choice(abh)
                 game_board[0][strike_position - 1] = '🖐️'
                 await event.reply(f" {iuABH} \n{format_board(game_board, numbers_board)}")
+            elif strike_position != number2:
+                await event.reply('خطا')
         except (IndexError, ValueError):
-            await event.reply("❗ يرجى إدخال رقم صحيح بين 1 و 6.")
+            await event.reply("يرجى إدخال رقم صحيح بين 1 و 6.")
             
 @ABH.on(events.NewMessage(pattern='/محيبس'))
 async def show_number(event):
