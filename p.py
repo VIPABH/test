@@ -1,71 +1,63 @@
 import os
 import random
-from telethon import TelegramClient, events
-from playwright.async_api import async_playwright  # ✅ إصلاح الاستيراد
 
-# جلب البيانات من المتغيرات البيئية
-api_id = os.getenv('API_ID')
-api_hash = os.getenv('API_HASH')
-bot_token = os.getenv('BOT_TOKEN')
+# اسم الملف لتخزين النقاط
+POINTS_FILE = "points.txt"
 
-# التحقق من أن المتغيرات البيئية غير فارغة
-if not all([api_id, api_hash, bot_token]):
-    raise ValueError("❌ تأكد من تعيين API_ID, API_HASH, و BOT_TOKEN في المتغيرات البيئية.")
-
-# تهيئة عميل تيليجرام
-ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-BANNED_SITES = [
-    "porn", "xvideos", "xnxx", "redtube", "xhamster",
-    "brazzers", "youjizz", "spankbang", "erotic", "sex"
+# قائمة الأسئلة والأجوبة
+QUESTIONS = [
+    ("ما عاصمة العراق؟", "بغداد"),
+    ("كم عدد الكواكب في المجموعة الشمسية؟", "8"),
+    ("ما هو حاصل ضرب 5 × 6؟", "30"),
+    ("من هو مخترع المصباح الكهربائي؟", "توماس إديسون"),
+    ("ما هو الحيوان الذي ينام واقفًا؟", "الحصان"),
 ]
-DEVICES = {
-    "pc": {"width": 1920, "height": 1080, "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
-    "android": "Galaxy S5"
-}
-def is_safe_url(url):
-    return not any(banned in url for banned in BANNED_SITES)
 
-async def take_screenshot(url, device="pc"):
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+# التحقق من وجود الملف، وإذا لم يكن موجودًا يتم إنشاؤه
+if not os.path.exists(POINTS_FILE):
+    with open(POINTS_FILE, "w") as f:
+        f.write("0")
+    print("📁 تم إنشاء ملف النقاط بنجاح!")
 
-        if device in DEVICES:
-            if isinstance(DEVICES[device], str):
-                device_preset = p.devices[DEVICES[device]]
-                context = await browser.new_context(**device_preset)
-            else:
-                context = await browser.new_context(
-                    user_agent=DEVICES[device]["user_agent"],
-                    viewport={"width": DEVICES[device]["width"], "height": DEVICES[device]["height"]}
-                )
-            page = await context.new_page()
-        else:
-            page = await browser.new_page()
-        try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            screenshot_path = f"screenshot_{device}.png"
-            await page.screenshot(path=screenshot_path)
-        except Exception as e:
-            print(f"❌ خطأ أثناء تحميل الصفحة: {e}")
-            screenshot_path = None
-        finally:
-            await browser.close()
-    return screenshot_path
-@ABH.on(events.NewMessage(pattern=r'كشف رابط|سكرين (.+)'))
-async def handler(event):
-    url = event.pattern_match.group(1)
-    if not is_safe_url(url):
-        await event.reply("هذا الموقع محظور! \nجرب تتواصل مع المطور @k_4x1")
-        return
-    devices = ['pc', 'android']
-    screenshot_paths = []
-    for device in devices:
-        screenshot_path = await take_screenshot(url, device)
-        if screenshot_path:
-            screenshot_paths.append(screenshot_path)
-    if screenshot_paths:
-        await event.reply(f' تم التقاط لقطات الشاشة للأجهزة التالية: **PC، Android**:', file=screenshot_paths)
+# دالة لقراءة النقاط
+def get_points():
+    with open(POINTS_FILE, "r") as f:
+        return int(f.read().strip())
+
+# دالة لحفظ النقاط الجديدة
+def save_points(points):
+    with open(POINTS_FILE, "w") as f:
+        f.write(str(points))
+
+# دالة لطرح سؤال وإذا كانت الإجابة صحيحة يضيف نقطة
+def ask_question():
+    question, correct_answer = random.choice(QUESTIONS)
+    print(f"\n🧐 سؤال: {question}")
+    answer = input("✍️ أدخل إجابتك: ").strip()
+
+    if answer.lower() == correct_answer.lower():
+        new_points = get_points() + 1
+        save_points(new_points)
+        print(f"✅ إجابة صحيحة! 🎉 تم إضافة نقطة. النقاط الحالية: {new_points}")
     else:
-        await event.reply("🙄 هنالك خطأ أثناء التقاط لقطة الشاشة، تأكد من صحة الرابط أو جرب مجددًا.")
-# تشغيل العميل إلى الأبد
-ABH.run_until_disconnected()
+        print(f"❌ إجابة خاطئة! الإجابة الصحيحة: {correct_answer}")
+
+# دالة لعرض النقاط
+def show_points():
+    points = get_points()
+    print(f"📊 عدد النقاط الحالية: {points}")
+
+# القائمة الرئيسية
+while True:
+    print("\nاختر: [1] سؤال 🎯 | [2] عرض النقاط 📊 | [3] خروج ❌")
+    choice = input("👉 أدخل رقم الخيار: ")
+
+    if choice == "1":
+        ask_question()
+    elif choice == "2":
+        show_points()
+    elif choice == "3":
+        print("👋 تم الخروج من البرنامج.")
+        break
+    else:
+        print("🚨 خيار غير صحيح، حاول مرة أخرى!")
