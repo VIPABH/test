@@ -13,4 +13,5 @@ async def p(event):
     gid = event.chat_id
     points = {'uid': uid, "nid": nid, "gid": gid, "points": 0}
     points["points"] += 2
+    await event.reply(f'{points[uid][gid][nid]["points"]}')
 ABH.run_until_disconnected()
