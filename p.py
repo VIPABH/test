@@ -2,7 +2,7 @@ from y2mate_api import Handler
 import os , sys
 from tabulate import tabulate
 # Custom Modules
-from modules import banner, cmds
+# from modules import banner, cmds
 
 # Clear the previous output from the terminal.
 cmds.clear()
