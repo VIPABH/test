@@ -14,7 +14,7 @@ videoURL = str(input("Enter Video Link : "))
 # Don't Enable if you're don't know what it does.
 # videoURL = 'https://www.youtube.com/watch?v=mDTMBdYAjHI' 
 
-cmds.clear()
+# cmds.clear()
 # banner.WelcomeBanner()
 print("Looking for Available Qualities..")
 
