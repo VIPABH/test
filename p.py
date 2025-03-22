@@ -1,35 +1,43 @@
-import os
-from telethon import TelegramClient, events
+import random
+import string
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
-# جلب بيانات API من المتغيرات البيئية
-api_id = os.getenv('API_ID')      
-api_hash = os.getenv('API_HASH')  
-bot_token = os.getenv('BOT_TOKEN')
+API_KEY = "AIzaSyBUjhH0GoaNk9V9ebIH0ZYeMBSZWS0VZHg" 
 
-# تهيئة بوت تيليجرام
-ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+# Function to generate a random YouTube video ID of a given length
+def genVidID(length=11):
+    characters = string.ascii_letters + string.digits + "_-"
+    return ''.join(random.choice(characters) for _ in range(length))
 
-# قاموس لتخزين النقاط للمستخدمين
-points = {}
+# Function to check if a video exists and get its type
+def vidCheck(video_id, api_key):
+    youtube = build('youtube', 'v3', developerKey=api_key)
 
-@ABH.on(events.NewMessage)
-async def p(event):
-    global points
+    try:
+        response = youtube.videos().list(
+            part="status",
+            id=video_id
+        ).execute()
 
-    # الحصول على معرف المستخدم والمجموعة واسم المستخدم
-    uid = event.sender_id
-    gid = event.chat_id
-    nid = event.sender.username if event.sender.username else "Unknown"
+        if response['items']:
+            video_status = response['items'][0]['status']['privacyStatus']
+            return True, video_status
+        else:
+            return False, None
+    except HttpError as e:
+        print("An error occurred:", e)
+        return False, None
 
-    # التحقق مما إذا كان المستخدم موجودًا في القاموس وإلا يتم إضافته
-    if uid not in points:
-        points[uid] = {"nid": nid, "gid": gid, "points": 0}
 
-    # زيادة النقاط
-    points[uid]["points"] += 2
+while True:
+    video_id = genVidID()
+    print("Checking ID:", video_id)
 
-    # إرسال عدد النقاط الحالي للمستخدم
-    await event.reply(f'🎯 {nid} لديك الآن {points[uid]["points"]} نقاط!')
+    exists, status = vidCheck(video_id, API_KEY)
 
-# تشغيل البوت
-ABH.run_until_disconnected()
+    if exists:
+        print(f"✅ Found: ID '{video_id}' exists and its type is: {status}")
+        break
+    else:
+        pass
