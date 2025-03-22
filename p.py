@@ -5,9 +5,9 @@ from tabulate import tabulate
 # from modules import banner, cmds
 
 # Clear the previous output from the terminal.
-cmds.clear()
+# cmds.clear()
 # print Welcome Banner
-banner.WelcomeBanner()
+# banner.WelcomeBanner()
 
 videoURL = str(input("Enter Video Link : "))
 
@@ -15,7 +15,7 @@ videoURL = str(input("Enter Video Link : "))
 # videoURL = 'https://www.youtube.com/watch?v=mDTMBdYAjHI' 
 
 cmds.clear()
-banner.WelcomeBanner()
+# banner.WelcomeBanner()
 print("Looking for Available Qualities..")
 
 api = Handler(videoURL)
@@ -97,8 +97,8 @@ for video_metadata in api.run(quality=showList[userInput]["q"]):
 
 
 
-cmds.clear()
-banner.WelcomeBanner()
+# cmds.clear()
+# banner.WelcomeBanner()
 print(f"Download Completed:\n{vidFileName} ✅")
 print(f"\nPlease Check the 'vid' Folder for your files!\n")
 
