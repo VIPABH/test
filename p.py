@@ -19,15 +19,11 @@ async def download_video(url: str, download_path: str):
     ydl_opts = {
         'outtmpl': f'{download_path}/%(title)s.%(ext)s',
         'quiet': True,
-        'cookiefile': 'cookies.txt',  # استخدام ملف الكوكيز لدعم الفيديوهات المحمية
-        'merge_output_format': 'mp4'  # تحويل الفيديو النهائي إلى mp4
+        'cookiefile': 'cookies.txt'  # استخدام ملف الكوكيز لدعم الفيديوهات المحمية
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info_dict)
-        filename = filename.replace(".webm", ".mp4").replace(".mkv", ".mp4")  # لضمان الإرسال الصحيح
-        return filename
+        ydl.download([url])
 
 # الحدث عند تلقي رسالة
 @client.on(events.NewMessage(pattern='/download'))
@@ -43,10 +39,14 @@ async def handler(event):
         await event.respond('جارٍ تحميل الفيديو...')
         
         # تحميل الفيديو
-        video_path = await download_video(url, download_path)
+        await download_video(url, download_path)
         
-        await event.respond('تم التحميل! إليك الفيديو:', file=video_path)
+        # تحديد المسار الكامل للفيديو
+        video_file_path = os.path.join(download_path, f'{url.split("=")[1]}.webm')
         
+        # إرسال الفيديو
+        await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله...')
+        await event.respond(file=video_file_path)
     except IndexError:
         await event.respond('الرجاء إرسال رابط الفيديو بعد الأمر /download')
     except Exception as e:
