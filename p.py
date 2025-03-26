@@ -4,7 +4,7 @@ import yt_dlp as youtube_dl
 # جلب بيانات API من المتغيرات البيئية
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
-bot_token = os.getenv('BOT_TOKEN')import os
+bot_token = os.getenv('BOT_TOKEN')
 # إعدادات العميل
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
