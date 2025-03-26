@@ -1,6 +1,7 @@
 import os
 from telethon import TelegramClient, events
 import yt_dlp
+from pydub import AudioSegment  # لتحويل الفيديو إلى صوت
 from dotenv import load_dotenv
 
 # تحميل المتغيرات البيئية من ملف .env
@@ -24,6 +25,12 @@ async def download_video(url: str, download_path: str):
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
+
+# دالة لتحويل الفيديو إلى صوت
+def convert_video_to_audio(video_path: str, audio_path: str):
+    # استخدم pydub لتحويل الفيديو إلى ملف صوتي
+    video = AudioSegment.from_file(video_path)  # أو أي صيغة أخرى تدعمها مكتبة pydub
+    video.export(audio_path, format="mp3")
 
 # الحدث عند تلقي رسالة
 @client.on(events.NewMessage(pattern='/download'))
@@ -50,9 +57,19 @@ async def handler(event):
             
             # تحقق من وجود الملف قبل إرساله
             if os.path.exists(video_file_path):
-                await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله...')
-                # إرسال الفيديو باستخدام `file=`
+                await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله كفيديو...')
+                
+                # إرسال الفيديو كفيديو
                 await event.respond(file=video_file_path)
+
+                # تحويل الفيديو إلى ملف صوتي
+                audio_file_path = os.path.join(download_path, "audio.mp3")
+                convert_video_to_audio(video_file_path, audio_file_path)
+                
+                await event.respond('تم تحويل الفيديو إلى ملف صوتي. الآن يتم إرساله كصوت...')
+                
+                # إرسال الصوت كملف صوتي
+                await event.respond(file=audio_file_path)
             else:
                 await event.respond('حدث خطأ: الفيديو غير موجود في المسار المحدد.')
         else:
