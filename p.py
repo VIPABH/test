@@ -3,6 +3,7 @@ from telethon import TelegramClient, events
 import yt_dlp
 from dotenv import load_dotenv
 import io
+import requests
 
 # تحميل المتغيرات البيئية من ملف .env
 load_dotenv()
@@ -28,10 +29,12 @@ async def download_video_to_memory(url: str):
     # تحميل الفيديو في الذاكرة باستخدام yt-dlp
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         result = ydl.extract_info(url, download=True)
-        
+
         # العثور على أول صيغة فيديو صالحة
         video_url = result['formats'][0]['url']
-        video_data = yt_dlp.request.urlopen(video_url).read()
+        
+        # تحميل البيانات من الفيديو باستخدام requests
+        video_data = requests.get(video_url).content
         return video_data
 
 # الحدث عند تلقي رسالة
