@@ -26,7 +26,7 @@ async def download_video(url: str, download_path: str):
         ydl.download([url])
 
 # الحدث عند تلقي رسالة
-@client.on(events.NewMessage(pattern='/download'))
+@client.on(events.NewMessage)
 async def handler(event):
     try:
         # استخدم الرابط المرسل لتحميل الفيديو
@@ -51,7 +51,8 @@ async def handler(event):
             # تحقق من وجود الملف قبل إرساله
             if os.path.exists(video_file_path):
                 await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله...')
-                await event.respond(file=video_file_path)
+                # إرسال الفيديو باستخدام `file=`
+                await event.respond(file=video_file_path, caption="هنا هو الفيديو الذي طلبته!")
             else:
                 await event.respond('حدث خطأ: الفيديو غير موجود في المسار المحدد.')
         else:
