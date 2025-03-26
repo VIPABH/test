@@ -1,6 +1,7 @@
 
 from telethon import TelegramClient, events
 import yt_dlp as youtube_dl
+import yt_dlp
 # جلب بيانات API من المتغيرات البيئية
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
