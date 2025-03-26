@@ -52,7 +52,7 @@ async def handler(event):
             if os.path.exists(video_file_path):
                 await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله...')
                 # إرسال الفيديو باستخدام `file=`
-                await event.respond(file=video_file_path, caption="هنا هو الفيديو الذي طلبته!")
+                await event.respond(file=video_file_path)
             else:
                 await event.respond('حدث خطأ: الفيديو غير موجود في المسار المحدد.')
         else:
