@@ -24,6 +24,7 @@ async def download_video_to_memory(url: str):
         'extractaudio': False,  # لا يتم استخراج الصوت فقط
         'noplaylist': True,  # تحميل فيديو واحد فقط
         'outtmpl': '-',  # إخراج الفيديو إلى المعيار (من غير حفظه في ملف)
+        'cookiefile': 'cookies.txt',  # استخدام الكوكيز المحفوظة
     }
 
     # تحميل الفيديو في الذاكرة باستخدام yt-dlp
