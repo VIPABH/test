@@ -14,11 +14,12 @@ bot_token = os.getenv('BOT_TOKEN')
 # إعدادات العميل
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# دالة لتحميل الفيديو باستخدام yt-dlp
+# دالة لتحميل الفيديو باستخدام yt-dlp مع دعم الكوكيز
 async def download_video(url: str, download_path: str):
     ydl_opts = {
         'outtmpl': f'{download_path}/%(title)s.%(ext)s',
         'quiet': True,
+        'cookiefile': 'cookies.txt'  # استخدام ملف الكوكيز لدعم الفيديوهات المحمية
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
