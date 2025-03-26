@@ -20,7 +20,8 @@ async def download_video(url: str, download_path: str):
     ydl_opts = {
         'outtmpl': f'{download_path}/%(title)s.%(ext)s',
         'quiet': True,
-        'cookiefile': 'cookies.txt'  # استخدام ملف الكوكيز لدعم الفيديوهات المحمية
+        'cookiefile': 'cookies.txt',  # استخدام ملف الكوكيز لدعم الفيديوهات المحمية
+        'format': 'bestvideo+bestaudio/best'  # اختيار أفضل فيديو وصوت متاحين
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -49,7 +50,7 @@ async def handler(event):
         await download_video(url, download_path)
         
         # البحث عن الملفات في المجلد بعد التحميل
-        downloaded_files = [f for f in os.listdir(download_path) if f.endswith(('.webm', '.mp4'))]
+        downloaded_files = [f for f in os.listdir(download_path) if f.endswith(('.mp4', '.webm'))]
         
         if downloaded_files:
             # اختيار أول ملف تم تحميله
@@ -60,7 +61,7 @@ async def handler(event):
                 await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله كفيديو...')
                 
                 # إرسال الفيديو كفيديو
-                await event.respond(file=video_file_path)
+                await event.respond(file=video_file_path, caption="هذا هو الفيديو المطلوب")
 
                 # تحويل الفيديو إلى ملف صوتي
                 audio_file_path = os.path.join(download_path, "audio.mp3")
