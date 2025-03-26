@@ -1,7 +1,7 @@
 import os
 from telethon import TelegramClient, events
 import yt_dlp
-from pydub import AudioSegment  # لتحويل الفيديو إلى صوت
+from pydub import AudioSegment
 from dotenv import load_dotenv
 
 # تحميل المتغيرات البيئية من ملف .env
@@ -21,7 +21,8 @@ async def download_video(url: str, download_path: str):
         'outtmpl': f'{download_path}/%(title)s.%(ext)s',
         'quiet': True,
         'cookiefile': 'cookies.txt',  # استخدام ملف الكوكيز لدعم الفيديوهات المحمية
-        'format': 'bestvideo+bestaudio/best'  # اختيار أفضل فيديو وصوت متاحين
+        'format': 'bestvideo+bestaudio/best',  # اختيار أفضل فيديو وصوت متاحين
+        'noplaylist': True  # لتجنب تحميل قوائم التشغيل
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -29,9 +30,11 @@ async def download_video(url: str, download_path: str):
 
 # دالة لتحويل الفيديو إلى صوت
 def convert_video_to_audio(video_path: str, audio_path: str):
-    # استخدم pydub لتحويل الفيديو إلى ملف صوتي
-    video = AudioSegment.from_file(video_path, format="webm")  # أو أي صيغة أخرى تدعمها مكتبة pydub
-    video.export(audio_path, format="mp3")
+    try:
+        video = AudioSegment.from_file(video_path)  # محاولة لتحميل الملف بغض النظر عن الصيغة
+        video.export(audio_path, format="mp3")
+    except Exception as e:
+        raise Exception(f"فشل تحويل الفيديو إلى صوت: {str(e)}")
 
 # الحدث عند تلقي رسالة
 @client.on(events.NewMessage(pattern='/download'))
@@ -50,7 +53,7 @@ async def handler(event):
         await download_video(url, download_path)
         
         # البحث عن الملفات في المجلد بعد التحميل
-        downloaded_files = [f for f in os.listdir(download_path) if f.endswith(('.mp4'))]
+        downloaded_files = [f for f in os.listdir(download_path) if f.endswith(('.mp4', '.webm'))]
         
         if downloaded_files:
             # اختيار أول ملف تم تحميله
@@ -61,16 +64,18 @@ async def handler(event):
                 await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله كفيديو...')
                 
                 # إرسال الفيديو كفيديو
-                await event.respond(file=video_file_path)
+                await event.respond(file=video_file_path, caption="هذا هو الفيديو المطلوب")
 
                 # تحويل الفيديو إلى ملف صوتي
                 audio_file_path = os.path.join(download_path, "audio.mp3")
-                convert_video_to_audio(video_file_path, audio_file_path)
-                
-                await event.respond('تم تحويل الفيديو إلى ملف صوتي. الآن يتم إرساله كصوت...')
-                
-                # إرسال الصوت كملف صوتي
-                await event.respond(file=audio_file_path)
+                try:
+                    convert_video_to_audio(video_file_path, audio_file_path)
+                    await event.respond('تم تحويل الفيديو إلى ملف صوتي. الآن يتم إرساله كصوت...')
+                    
+                    # إرسال الصوت كملف صوتي
+                    await event.respond(file=audio_file_path)
+                except Exception as e:
+                    await event.respond(f'حدث خطأ أثناء تحويل الفيديو إلى صوت: {str(e)}')
             else:
                 await event.respond('حدث خطأ: الفيديو غير موجود في المسار المحدد.')
         else:
