@@ -16,44 +16,42 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 # دالة لتحميل الفيديو باستخدام yt-dlp مع دعم الكوكيز
 async def download_video(url: str, download_path: str):
-    # التأكد من أن ملف الكوكيز موجود
-    if not os.path.exists("cookies.txt"):
-        raise FileNotFoundError("ملف cookies.txt غير موجود، تأكد من استخراجه بشكل صحيح!")
-
     ydl_opts = {
         'outtmpl': f'{download_path}/%(title)s.%(ext)s',
-        'quiet': False,  # تعطيل الوضع الصامت لرؤية الأخطاء عند الحاجة
-        'cookiefile': 'cookies.txt'  # استخدام ملف الكوكيز لدعم الفيديوهات المحمية
+        'quiet': True,
+        'cookiefile': 'cookies.txt',  # استخدام ملف الكوكيز لدعم الفيديوهات المحمية
+        'merge_output_format': 'mp4'  # تحويل الفيديو النهائي إلى mp4
     }
-
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-    except Exception as e:
-        raise RuntimeError(f"فشل تحميل الفيديو: {str(e)}")
+    
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.extract_info(url, download=True)
+        filename = ydl.prepare_filename(info_dict)
+        filename = filename.replace(".webm", ".mp4").replace(".mkv", ".mp4")  # لضمان الإرسال الصحيح
+        return filename
 
 # الحدث عند تلقي رسالة
-@client.on(events.NewMessage(pattern=r'^/download\s+(.+)$'))
+@client.on(events.NewMessage(pattern='/download'))
 async def handler(event):
     try:
-        # استخراج الرابط من الرسالة
-        url = event.pattern_match.group(1)
-
+        # استخدم الرابط المرسل لتحميل الفيديو
+        url = event.message.text.split(' ', 1)[1]
+        
         # تحديد المسار لحفظ الفيديو
         download_path = os.path.join(os.getcwd(), 'downloads')
         os.makedirs(download_path, exist_ok=True)
-
+        
         await event.respond('جارٍ تحميل الفيديو...')
-
+        
         # تحميل الفيديو
-        await download_video(url, download_path)
-        await event.respond(f'تم تحميل الفيديو بنجاح: {url}')
-    except FileNotFoundError as e:
-        await event.respond(f"خطأ: {str(e)}\nيرجى التأكد من استخراج الكوكيز بشكل صحيح.")
-    except RuntimeError as e:
-        await event.respond(f"خطأ أثناء التحميل: {str(e)}")
+        video_path = await download_video(url, download_path)
+        
+        await event.respond('تم التحميل! إليك الفيديو:', file=video_path)
+        
+    except IndexError:
+        await event.respond('الرجاء إرسال رابط الفيديو بعد الأمر /download')
     except Exception as e:
-        await event.respond(f'حدث خطأ غير متوقع: {str(e)}')
+        await event.respond(f'حدث خطأ أثناء التحميل: {str(e)}')
 
 # تشغيل البوت
+client.start()
 client.run_until_disconnected()
