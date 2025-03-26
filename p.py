@@ -26,7 +26,7 @@ async def download_video(url: str, download_path: str):
         ydl.download([url])
 
 # الحدث عند تلقي رسالة
-@client.on(events.NewMessage)
+@client.on(events.NewMessage(pattern='/download'))
 async def handler(event):
     try:
         # استخدم الرابط المرسل لتحميل الفيديو
