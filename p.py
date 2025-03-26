@@ -64,7 +64,7 @@ async def handler(event):
                 await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله كفيديو...')
                 
                 # إرسال الفيديو كفيديو
-                await event.respond(file=video_file_path, caption="هذا هو الفيديو المطلوب")
+                await event.respond(file=video_file_path)
 
                 # تحويل الفيديو إلى ملف صوتي
                 audio_file_path = os.path.join(download_path, "audio.mp3")
