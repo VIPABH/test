@@ -1,9 +1,8 @@
 import os
 from telethon import TelegramClient, events
 import yt_dlp
+from pydub import AudioSegment
 from dotenv import load_dotenv
-import io
-import requests
 
 # تحميل المتغيرات البيئية من ملف .env
 load_dotenv()
@@ -16,27 +15,26 @@ bot_token = os.getenv('BOT_TOKEN')
 # إعدادات العميل
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# دالة لتحميل الفيديو باستخدام yt-dlp إلى الذاكرة
-async def download_video_to_memory(url: str):
+# دالة لتحميل الفيديو باستخدام yt-dlp مع دعم الكوكيز
+async def download_video(url: str, download_path: str):
     ydl_opts = {
-        'format': 'best',
+        'outtmpl': f'{download_path}/%(title)s.%(ext)s',
         'quiet': True,
-        'extractaudio': False,  # لا يتم استخراج الصوت فقط
-        'noplaylist': True,  # تحميل فيديو واحد فقط
-        'outtmpl': '-',  # إخراج الفيديو إلى المعيار (من غير حفظه في ملف)
-        'cookiefile': 'cookies.txt',  # استخدام الكوكيز المحفوظة
+        'cookiefile': 'cookies.txt',  # استخدام ملف الكوكيز لدعم الفيديوهات المحمية
+        'format': 'bestvideo+bestaudio/best',  # اختيار أفضل فيديو وصوت متاحين
+        'noplaylist': True  # لتجنب تحميل قوائم التشغيل
     }
-
-    # تحميل الفيديو في الذاكرة باستخدام yt-dlp
+    
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        result = ydl.extract_info(url, download=True)
+        ydl.download([url])
 
-        # العثور على أول صيغة فيديو صالحة
-        video_url = result['formats'][0]['url']
-        
-        # تحميل البيانات من الفيديو باستخدام requests
-        video_data = requests.get(video_url).content
-        return video_data
+# دالة لتحويل الفيديو إلى صوت
+def convert_video_to_audio(video_path: str, audio_path: str):
+    try:
+        video = AudioSegment.from_file(video_path)  # محاولة لتحميل الملف بغض النظر عن الصيغة
+        video.export(audio_path, format="mp3")
+    except Exception as e:
+        raise Exception(f"فشل تحويل الفيديو إلى صوت: {str(e)}")
 
 # الحدث عند تلقي رسالة
 @client.on(events.NewMessage(pattern='/download'))
@@ -45,13 +43,43 @@ async def handler(event):
         # استخدم الرابط المرسل لتحميل الفيديو
         url = event.message.text.split(' ', 1)[1]
         
+        # تحديد المسار لحفظ الفيديو
+        download_path = os.path.join(os.getcwd(), 'downloads')
+        os.makedirs(download_path, exist_ok=True)
+        
         await event.respond('جارٍ تحميل الفيديو...')
         
-        # تحميل الفيديو إلى الذاكرة
-        video_data = await download_video_to_memory(url)
+        # تحميل الفيديو
+        await download_video(url, download_path)
         
-        # إرسال الفيديو مباشرة من الذاكرة
-        await event.respond(file=io.BytesIO(video_data), force_document=False)
+        # البحث عن الملفات في المجلد بعد التحميل
+        downloaded_files = [f for f in os.listdir(download_path) if f.endswith(('.mp4', '.webm'))]
+        
+        if downloaded_files:
+            # اختيار أول ملف تم تحميله
+            video_file_path = os.path.join(download_path, downloaded_files[0])
+            
+            # تحقق من وجود الملف قبل إرساله
+            if os.path.exists(video_file_path):
+                await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله كفيديو...')
+                
+                # إرسال الفيديو كفيديو
+                await event.respond(file=video_file_path, caption="هذا هو الفيديو المطلوب")
+
+                # تحويل الفيديو إلى ملف صوتي
+                audio_file_path = os.path.join(download_path, "audio.mp3")
+                try:
+                    convert_video_to_audio(video_file_path, audio_file_path)
+                    await event.respond('تم تحويل الفيديو إلى ملف صوتي. الآن يتم إرساله كصوت...')
+                    
+                    # إرسال الصوت كملف صوتي
+                    await event.respond(file=audio_file_path)
+                except Exception as e:
+                    await event.respond(f'حدث خطأ أثناء تحويل الفيديو إلى صوت: {str(e)}')
+            else:
+                await event.respond('حدث خطأ: الفيديو غير موجود في المسار المحدد.')
+        else:
+            await event.respond('لم يتم العثور على فيديو في المجلد.')
 
     except IndexError:
         await event.respond('الرجاء إرسال رابط الفيديو بعد الأمر /download')
