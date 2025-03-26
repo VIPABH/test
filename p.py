@@ -41,12 +41,23 @@ async def handler(event):
         # تحميل الفيديو
         await download_video(url, download_path)
         
-        # تحديد المسار الكامل للفيديو
-        video_file_path = os.path.join(download_path, f'{url.split("=")[1]}.webm')
+        # البحث عن الملفات في المجلد بعد التحميل
+        downloaded_files = [f for f in os.listdir(download_path) if f.endswith(('.webm', '.mp4'))]
         
-        # إرسال الفيديو
-        await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله...')
-        await event.respond(file=video_file_path)
+        if downloaded_files:
+            # اختيار أول ملف تم تحميله
+            video_file_path = os.path.join(download_path, downloaded_files[0])
+            
+            # تحقق من وجود الملف قبل إرساله
+            if os.path.exists(video_file_path):
+                await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله...')
+                # إرسال الفيديو باستخدام `file=`
+                await event.respond(file=video_file_path
+            else:
+                await event.respond('حدث خطأ: الفيديو غير موجود في المسار المحدد.')
+        else:
+            await event.respond('لم يتم العثور على فيديو في المجلد.')
+
     except IndexError:
         await event.respond('الرجاء إرسال رابط الفيديو بعد الأمر /download')
     except Exception as e:
