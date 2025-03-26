@@ -49,7 +49,7 @@ async def handler(event):
         await download_video(url, download_path)
         
         # البحث عن الملفات في المجلد بعد التحميل
-        downloaded_files = [f for f in os.listdir(download_path) if f.endswith(('.webm', '.mp4'))]
+        downloaded_files = [f for f in os.listdir(download_path) if f.endswith(('.mp4'))]
         
         if downloaded_files:
             # اختيار أول ملف تم تحميله
