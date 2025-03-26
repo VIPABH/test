@@ -43,10 +43,13 @@ async def handler(event):
         
         # تحديد المسار الكامل للفيديو
         video_file_path = os.path.join(download_path, f'{url.split("=")[1]}.webm')
-        
-        # إرسال الفيديو
-        await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله...')
-        await event.respond(file=video_file_path)
+
+        # تحقق من وجود الملف قبل إرساله
+        if os.path.exists(video_file_path):
+            await event.respond('تم تحميل الفيديو بنجاح. الآن يتم إرساله...')
+            await event.respond(file=video_file_path)
+        else:
+            await event.respond('حدث خطأ: الفيديو غير موجود في المسار المحدد.')
     except IndexError:
         await event.respond('الرجاء إرسال رابط الفيديو بعد الأمر /download')
     except Exception as e:
