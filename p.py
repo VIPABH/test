@@ -24,22 +24,23 @@ async def download_audio(url: str):
         'quiet': True,
         'noplaylist': True,
         'cookiefile': 'cookies.txt',  # دعم الفيديوهات المحمية إذا لزم الأمر
+        'outtmpl': '-',  # إخراج الملف إلى الذاكرة
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        audio_url = info.get('url')
-        
-        if not audio_url:
-            raise ValueError("تعذر العثور على رابط الصوت.")
+    buffer = io.BytesIO()
 
-        # تحميل البيانات إلى الذاكرة
-        buffer = io.BytesIO()
-        with yt_dlp.YoutubeDL({'outtmpl': '-', 'format': 'bestaudio'}) as ydl:
-            ydl.download([url])
-        
-        buffer.seek(0)
-        return buffer
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+        info = ydl.extract_info(url, download=False)
+        audio_title = info.get('title', 'audio')  # استخدم العنوان الافتراضي عند الحاجة
+
+    buffer.seek(0)
+    return buffer, f"{audio_title}.mp3"
 
 # الحدث عند تلقي رسالة
 @client.on(events.NewMessage(pattern='/download'))
@@ -54,10 +55,10 @@ async def handler(event):
         await event.respond('جارٍ تحميل الصوت...')
 
         # تحميل الصوت إلى الذاكرة
-        audio_data = await download_audio(url)
+        audio_data, filename = await download_audio(url)
 
         # إرسال الصوت
-        await event.respond(file=audio_data, force_document=False, voice=True)
+        await event.respond(file=audio_data, force_document=False, voice=True, attributes={'filename': filename})
 
     except Exception as e:
         await event.respond(f'حدث خطأ أثناء التحميل: {str(e)}')
