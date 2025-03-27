@@ -35,12 +35,14 @@ async def download_audio(url: str):
     buffer = io.BytesIO()
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
         info = ydl.extract_info(url, download=False)
-        audio_title = info.get('title', 'audio')  # استخدم العنوان الافتراضي عند الحاجة
+        audio_title = info.get('title', 'audio') + '.mp3'  # اسم الملف الصوتي
+        
+        # تحميل الصوت إلى الذاكرة
+        ydl.download([url])
 
     buffer.seek(0)
-    return buffer, f"{audio_title}.mp3"
+    return buffer, audio_title
 
 # الحدث عند تلقي رسالة
 @client.on(events.NewMessage(pattern='/download'))
@@ -57,8 +59,8 @@ async def handler(event):
         # تحميل الصوت إلى الذاكرة
         audio_data, filename = await download_audio(url)
 
-        # إرسال الصوت
-        await event.respond(file=audio_data, force_document=False, voice=True, attributes={'filename': filename})
+        # إرسال الصوت كملف صوتي
+        await event.client.send_file(event.chat_id, audio_data, voice_note=True, attributes=[filename])
 
     except Exception as e:
         await event.respond(f'حدث خطأ أثناء التحميل: {str(e)}')
