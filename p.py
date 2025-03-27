@@ -2,7 +2,6 @@ import os
 from telethon import TelegramClient, events
 import yt_dlp
 from dotenv import load_dotenv
-
 load_dotenv()
 
 api_id = os.getenv('API_ID')      
@@ -16,7 +15,6 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(url: str):
     output_file = "tt"
-
     ydl_opts = {
         'format': 'worstaudio',  # اختيار أسوأ جودة صوت
         'quiet': False,  # تفعيل السجلات لتشخيص الأخطاء
@@ -65,7 +63,7 @@ async def handler(event):
             await event.client.send_file(
                 event.chat_id, 
                 audio_file, 
-                file_name=".",  # تحديد اسم الملف
+                file_name="anymous.mp3",  # تحديد اسم الملف
                 thumb="موارد/photo_2025-02-10_11-40-17.jpg"  # تحديد الصورة المصغرة (تأكد من المسار الصحيح للصورة)
             )
             os.remove(audio_file)  # حذف الملف بعد الإرسال
@@ -92,7 +90,7 @@ async def handle_voice(event):
                 event.chat_id, 
                 audio_file, 
                 voice_note=True,
-                file_name=">>",  # تحديد اسم الملف
+                file_name="anymous.mp3",  # تحديد اسم الملف
                 thumb="موارد/photo_2025-02-10_11-40-17.jpg"  # تحديد الصورة المصغرة (تأكد من المسار الصحيح للصورة)
             )
             os.remove(audio_file)  # حذف الملف بعد الإرسال
