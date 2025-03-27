@@ -72,4 +72,24 @@ async def handler(event):
     except Exception as e:
         await event.respond(f'خطأ: {e}')
 
+@client.on(events.NewMessage(pattern='/فويس'))
+async def handle_voice(event):
+    try:
+        msg_parts = event.message.text.split(' ', 1)
+        if len(msg_parts) < 2:
+            await event.respond('يرجى إرسال رابط الفيديو بعد /فويس')
+            return
+
+        await event.respond('جارٍ التحميل...')
+        audio_file = await download_audio(msg_parts[1])
+
+        if audio_file:
+            # إرسال الملف الصوتي كـ ملاحظة صوتية فقط
+            await event.client.send_file(event.chat_id, audio_file, voice_note=True)
+            os.remove(audio_file)  # حذف الملف بعد الإرسال
+        else:
+            await event.respond("فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
+    except Exception as e:
+        await event.respond(f'خطأ: {e}')
+
 client.run_until_disconnected()
