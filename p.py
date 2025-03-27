@@ -92,8 +92,8 @@ async def handle_voice(event):
                 event.chat_id, 
                 audio_file, 
                 voice_note=True,
-                file_name="audio.mp3",  # تحديد اسم الملف
-                thumb="thumbnail.jpg"  # تحديد الصورة المصغرة (إذا كانت موجودة)
+                file_name="audio",  # تحديد اسم الملف
+                thumb="موارد/photo_2025-02-10_11-40-17.jpg"  # تحديد الصورة المصغرة (إذا كانت موجودة)
             )
             os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
