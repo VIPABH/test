@@ -27,6 +27,7 @@ async def download_audio(url: str):
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '64',
+            'nopostoverwrites': True,  # لتجنب إضافة الامتداد مرتين
         }],
     }
 
@@ -38,6 +39,7 @@ async def download_audio(url: str):
 
             ydl.download([url])
 
+        # التحقق من وجود الملف
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
             raise FileNotFoundError("فشل تحميل الملف الصوتي")
 
