@@ -16,38 +16,50 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(search_query: str):
     output_file = "audio.mp3"
-    cookies_file = 'cookies.txt'  # تأكد من أن هذا هو اسم ملف الكوكيز الخاص بك
+    cookies_file = 'cookies.txt'
 
     ydl_opts = {
-        'format': 'worstaudio',
-        'quiet': False,  # تفعيل السجلات
+        'format': 'bestaudio/best',
+        'quiet': False,
         'noplaylist': True,
-        'cookiefile': cookies_file,  # استخدام الكوكيز
         'outtmpl': output_file,
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
-            'preferredquality': '64',
-            'nopostoverwrites': True,  # لتجنب إضافة الامتداد مرتين
+            'preferredquality': '128',
+            'nopostoverwrites': True,  
         }],
+        'extractor_args': {
+            'youtube': {
+                'noplaylist': True,
+            }
+        },
     }
+
+    # التأكد من أن ملف الكوكيز موجود قبل استخدامه
+    if os.path.exists(cookies_file):
+        ydl_opts['cookiefile'] = cookies_file
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch:{search_query}", download=False)  # التحقق من إمكانية الجلب
-            if not info:
-                raise Exception("لم يتمكن yt-dlp من جلب المعلومات")
+            # البحث عن الفيديو باستخدام النص
+            search_url = f"ytsearch:{search_query}"
+            info = ydl.extract_info(search_url, download=False)
+            if not info or 'entries' not in info or len(info['entries']) == 0:
+                raise Exception("❌ لم يتم العثور على أي نتائج للبحث.")
 
-            ydl.download([info['entries'][0]['url']])
+            # اختيار أول نتيجة من البحث
+            video_url = info['entries'][0]['url']
+            ydl.download([video_url])
 
-        # التحقق من وجود الملف
+        # التحقق من وجود الملف الصوتي
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
-            raise FileNotFoundError("فشل تحميل الملف الصوتي")
+            raise FileNotFoundError("❌ فشل تحميل الملف الصوتي.")
 
         return output_file
     except Exception as e:
         with open("log.txt", "a") as log_file:
-            log_file.write(f"خطأ: {e}\n")
+            log_file.write(f"⚠️ خطأ: {e}\n")
         return None
 
 @client.on(events.NewMessage(pattern='/تحميل'))
@@ -64,7 +76,7 @@ async def handler(event):
         audio_file = await download_audio(msg_parts[1])
 
         if audio_file:
-            await event.client.send_file(event.chat_id, audio_file, voice_note=True)
+            await event.client.send_file(event.chat_id, audio_file) 
             os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
             await event.respond("❌ فشل تحميل الصوت، تحقق من النص أو حاول لاحقًا.")
