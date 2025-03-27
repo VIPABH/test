@@ -1,4 +1,5 @@
 import os
+import re
 from telethon import TelegramClient, events
 from pytube import YouTube
 from dotenv import load_dotenv
@@ -18,13 +19,24 @@ if not api_id or not api_hash or not bot_token:
 # إنشاء العميل
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
+# تحويل روابط Shorts إلى صيغة قابلة للتحميل
+def fix_youtube_url(url):
+    match = re.search(r"(?:youtube\.com\/shorts\/|youtu\.be\/)([\w-]+)", url)
+    if match:
+        return f"https://www.youtube.com/watch?v={match.group(1)}"
+    return url
+
 # دالة تحميل الصوت
 async def download_audio(url: str):
-    output_file = "anymous.mp3"
-    
     try:
+        url = fix_youtube_url(url)  # تصحيح رابط Shorts
         yt = YouTube(url)
         audio_stream = yt.streams.filter(only_audio=True).first()
+
+        if not audio_stream:
+            raise Exception("لم يتم العثور على مسار صوتي")
+
+        output_file = "anymous.mp3"
         audio_stream.download(filename=output_file)
 
         # التأكد من أن الملف تم تحميله
