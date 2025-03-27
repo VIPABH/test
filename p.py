@@ -23,7 +23,11 @@ async def download_video(url: str):
         'quiet': True,
         'cookiefile': 'cookies.txt',  # استخدام ملف الكوكيز لدعم الفيديوهات المحمية
         'format': 'bestvideo+bestaudio/best',  # اختيار أفضل فيديو وصوت متاحين
-        'noplaylist': True  # لتجنب تحميل قوائم التشغيل
+        'noplaylist': True,  # لتجنب تحميل قوائم التشغيل
+        'postprocessors': [{
+            'key': 'FFmpegVideoConvertor',
+            'preferredformat': 'mp4',  # تحويل الفيديو إلى mp4
+        }]
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -36,7 +40,7 @@ async def download_video(url: str):
 def convert_video_to_audio(video_data: bytes):
     try:
         # تحويل الفيديو إلى ملف مؤقت في الذاكرة باستخدام BytesIO
-        video = AudioSegment.from_file(io.BytesIO(video_data))  # تحميل الفيديو من الذاكرة
+        video = AudioSegment.from_file(io.BytesIO(video_data), format="mp4")  # تحديد التنسيق كـ mp4
         audio_io = io.BytesIO()
         video.export(audio_io, format="mp3")
         audio_io.seek(0)  # إعادة التوجيه إلى بداية الملف
@@ -52,7 +56,7 @@ async def handler(event):
         url = event.message.text.split(' ', 1)[1]
         
         await event.respond('جارٍ تحميل الفيديو...')
-        
+
         # تحميل الفيديو إلى الذاكرة
         video_data = await download_video(url)
         
