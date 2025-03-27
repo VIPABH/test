@@ -49,7 +49,7 @@ async def download_audio(url: str):
             log_file.write(f"خطأ: {e}\n")
         return None
 
-@client.on(events.NewMessage(pattern='/download'))
+@client.on(events.NewMessage(pattern='تحميل'))
 async def handler(event):
     try:
         msg_parts = event.message.text.split(' ', 1)
