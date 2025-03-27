@@ -66,7 +66,7 @@ async def handler(event):
                 event.chat_id, 
                 audio_file, 
                 file_name="audio.mp3",  # تحديد اسم الملف
-                thumb="https://files.catbox.moe/l3t8sl"  # تحديد الصورة المصغرة (إذا كانت موجودة)
+                thumb="موارد/photo_2025-02-10_11-40-17.jpg"  # تحديد الصورة المصغرة (إذا كانت موجودة)
             )
             os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
@@ -93,7 +93,7 @@ async def handle_voice(event):
                 audio_file, 
                 voice_note=True,
                 file_name="audio.mp3",  # تحديد اسم الملف
-                thumb="https://files.catbox.moe/l3t8sl"  # تحديد الصورة المصغرة (إذا كانت موجودة)
+                thumb="موارد/photo_2025-02-10_11-40-17.jpg"  # تحديد الصورة المصغرة (إذا كانت موجودة)
             )
             os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
