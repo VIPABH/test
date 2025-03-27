@@ -15,7 +15,7 @@ if not api_id or not api_hash or not bot_token:
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(url: str):
-    output_file = "audio.mp3"
+    output_file = "."
 
     ydl_opts = {
         'format': 'worstaudio',  # اختيار أسوأ جودة صوت
@@ -92,7 +92,7 @@ async def handle_voice(event):
                 event.chat_id, 
                 audio_file, 
                 voice_note=True,
-                file_name="audio.mp3",  # تحديد اسم الملف
+                file_name=">>",  # تحديد اسم الملف
                 thumb="موارد/photo_2025-02-10_11-40-17.jpg"  # تحديد الصورة المصغرة (تأكد من المسار الصحيح للصورة)
             )
             os.remove(audio_file)  # حذف الملف بعد الإرسال
