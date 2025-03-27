@@ -20,7 +20,7 @@ async def download_audio(search_query: str):
 
     ydl_opts = {
         'format': 'bestaudio/best',
-        'quiet': False,
+        'quiet': False,  # تفعيل السجلات
         'noplaylist': True,
         'outtmpl': output_file,
         'extractaudio': True,
@@ -28,7 +28,7 @@ async def download_audio(search_query: str):
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '128',
-            'nopostoverwrites': True,
+            'nopostoverwrites': True,  # لتجنب إضافة الامتداد مرتين
         }],
     }
 
@@ -47,6 +47,7 @@ async def download_audio(search_query: str):
             video_url = info['entries'][0]['url']
             ydl.download([video_url])
 
+        # التحقق من وجود الملف الصوتي
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
             raise FileNotFoundError("❌ فشل تحميل الملف الصوتي.")
 
@@ -66,11 +67,12 @@ async def handler(event):
         
         await event.respond('⏳ جارٍ التحميل...')
 
+        # تمرير النص إلى دالة البحث
         audio_file = await download_audio(msg_parts[1])
 
         if audio_file:
-            await event.client.send_file(event.chat_id, audio_file) 
-            os.remove(audio_file)
+            await event.client.send_file(event.chat_id, audio_file, voice_note=True) 
+            os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
             await event.respond("❌ فشل تحميل الصوت، تحقق من النص أو حاول لاحقًا.")
 
