@@ -14,7 +14,25 @@ if not api_id or not api_hash or not bot_token:
 
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-async def download_audio(search_query: str):
+async def search_youtube(query: str):
+    """البحث عن أول فيديو في يوتيوب وإرجاع رابطه"""
+    ydl_opts = {
+        'quiet': True,
+        'noplaylist': True,
+        'default_search': 'ytsearch1',  # البحث عن نتيجة واحدة فقط
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(query, download=False)
+            if info and 'entries' in info and len(info['entries']) > 0:
+                return info['entries'][0]['webpage_url']
+    except Exception as e:
+        print(f"⚠️ خطأ أثناء البحث: {e}")
+
+    return None
+
+async def download_audio(url: str):
     output_file = "audio.mp3"
     cookies_file = 'cookies.txt'
 
@@ -29,30 +47,19 @@ async def download_audio(search_query: str):
             'preferredquality': '128',
             'nopostoverwrites': True,  
         }],
-        'extractor_args': {
-            'youtube': {
-                'noplaylist': True,
-            }
-        },
     }
 
-    # التأكد من أن ملف الكوكيز موجود قبل استخدامه
     if os.path.exists(cookies_file):
         ydl_opts['cookiefile'] = cookies_file
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # البحث عن الفيديو باستخدام النص
-            search_url = f"ytsearch:{search_query}"
-            info = ydl.extract_info(search_url, download=False)
-            if not info or 'entries' not in info or len(info['entries']) == 0:
-                raise Exception("❌ لم يتم العثور على أي نتائج للبحث.")
+            info = ydl.extract_info(url, download=False)
+            if not info or 'formats' not in info:
+                raise Exception("❌ لم يتم العثور على تنسيق صوتي مناسب.")
 
-            # اختيار أول نتيجة من البحث
-            video_url = info['entries'][0]['url']
-            ydl.download([video_url])
+            ydl.download([url])
 
-        # التحقق من وجود الملف الصوتي
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
             raise FileNotFoundError("❌ فشل تحميل الملف الصوتي.")
 
@@ -62,24 +69,37 @@ async def download_audio(search_query: str):
             log_file.write(f"⚠️ خطأ: {e}\n")
         return None
 
-@client.on(events.NewMessage(pattern='/تحميل'))
+@client.on(events.NewMessage(pattern='تحميل'))
 async def handler(event):
     try:
         msg_parts = event.message.text.split(' ', 1)
         if len(msg_parts) < 2:
-            await event.respond('❌ ارسل النص بعد /تحميل')
+            await event.respond('❌ ارسل الرابط أو كلمة البحث بعد /تحميل')
             return
-        
-        await event.respond('⏳ جارٍ التحميل...')
 
-        # تمرير النص إلى دالة البحث
-        audio_file = await download_audio(msg_parts[1])
+        query_or_url = msg_parts[1].strip()
+        
+        # التحقق مما إذا كان الإدخال رابط يوتيوب أم مجرد كلمات بحث
+        if "youtube.com" not in query_or_url and "youtu.be" not in query_or_url:
+            await event.respond(f'🔍 البحث عن "{query_or_url}"...')
+            query_or_url = await search_youtube(query_or_url)
+
+            if not query_or_url:
+                await event.respond("❌ لم يتم العثور على نتائج في يوتيوب.")
+                return
+
+            await event.respond(f'✅ العثور على الفيديو: {query_or_url}\n⏳ جارٍ التحميل...')
+
+        else:
+            await event.respond('⏳ جارٍ التحميل...')
+
+        audio_file = await download_audio(query_or_url)
 
         if audio_file:
-            await event.client.send_file(event.chat_id, audio_file) 
-            os.remove(audio_file)  # حذف الملف بعد الإرسال
+            await event.client.send_file(event.chat_id, audio_file, voice_note=True)
+            os.remove(audio_file)
         else:
-            await event.respond("❌ فشل تحميل الصوت، تحقق من النص أو حاول لاحقًا.")
+            await event.respond("❌ فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
 
     except Exception as e:
         await event.respond(f'⚠️ خطأ: {e}')
