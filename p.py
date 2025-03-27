@@ -18,22 +18,19 @@ async def download_audio(search_query: str):
     output_file = "audio.mp3"
     cookies_file = 'cookies.txt'
 
+    # إعدادات yt-dlp لتحميل الصوت مباشرة بتنسيق mp3
     ydl_opts = {
-        'format': 'bestaudio/best',
+        'format': 'bestaudio/best',  # تحديد أفضل جودة صوتية متاحة
         'quiet': False,
         'noplaylist': True,
-        'outtmpl': output_file,
+        'outtmpl': output_file,  # تحديد اسم الملف النهائي
+        'extractaudio': True,  # التأكد من استخراج الصوت فقط
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '128',
-            'nopostoverwrites': True,  
+            'preferredcodec': 'mp3',  # تحويل إلى MP3
+            'preferredquality': '128',  # جودة الصوت 128kbps
+            'nopostoverwrites': True,  # عدم الكتابة فوق الملف
         }],
-        'extractor_args': {
-            'youtube': {
-                'noplaylist': True,
-            }
-        },
     }
 
     # التأكد من أن ملف الكوكيز موجود قبل استخدامه
@@ -45,12 +42,13 @@ async def download_audio(search_query: str):
             # البحث عن الفيديو باستخدام النص
             search_url = f"ytsearch:{search_query}"
             info = ydl.extract_info(search_url, download=False)
+
             if not info or 'entries' not in info or len(info['entries']) == 0:
                 raise Exception("❌ لم يتم العثور على أي نتائج للبحث.")
 
             # اختيار أول نتيجة من البحث
             video_url = info['entries'][0]['url']
-            ydl.download([video_url])
+            ydl.download([video_url])  # تحميل الفيديو
 
         # التحقق من وجود الملف الصوتي
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
