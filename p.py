@@ -2,7 +2,6 @@ import os
 from telethon import TelegramClient, events
 import yt_dlp
 from dotenv import load_dotenv
-import io
 
 load_dotenv()
 
@@ -16,35 +15,36 @@ if not api_id or not api_hash or not bot_token:
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(url: str):
+    output_file = "audio.mp3"
     ydl_opts = {
-        'format': 'bestaudio/best',
+        'format': 'worstaudio',
         'quiet': True,
         'noplaylist': True,
-        'outtmpl': '-',
-        'cookiefile': 'cookies.txt',  # ✅ استخدام الكوكيز لمصادقة يوتيوب
+        'cookiefile': 'cookies.txt',
+        'outtmpl': output_file,
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
-            'preferredquality': '192',
+            'preferredquality': '64',
         }],
     }
-    buffer = io.BytesIO()
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
-    buffer.seek(0)
-    return buffer
+    
+    return output_file
+
 @client.on(events.NewMessage(pattern='/download'))
 async def handler(event):
     try:
         msg_parts = event.message.text.split(' ', 1)
         if len(msg_parts) < 2:
-            await event.respond('ارسل رابط الفيديو بعد /download')
+            await event.respond('ارسل الرابط بعد /download')
             return
-        url = msg_parts[1]
         await event.respond('جارٍ التحميل...')
-        audio_data = await download_audio(url)
-        await event.client.send_file(event.chat_id, audio_data, voice_note=True)
+        audio_file = await download_audio(msg_parts[1])
+        await event.client.send_file(event.chat_id, audio_file, voice_note=True)
+        os.remove(audio_file)  # حذف الملف بعد الإرسال
     except Exception as e:
-        await event.respond(f'خطأ: {str(e)}')
+        await event.respond(f'خطأ: {e}')
 
 client.run_until_disconnected()
