@@ -25,8 +25,9 @@ async def download_video(url: str):
         'format': 'bestvideo+bestaudio/best',  # اختيار أفضل فيديو وصوت متاحين
         'noplaylist': True,  # لتجنب تحميل قوائم التشغيل
         'postprocessors': [{
-            'key': 'FFmpegVideoConvertor',
-            'preferredformat': 'mp4',  # تحويل الفيديو إلى mp4
+            'key': 'FFmpegAudioConvertor',  # تحويل الفيديو إلى صوت
+            'preferredcodec': 'mp3',  # تحديد صيغة الملف الصوتي (mp3)
+            'preferredquality': '192',  # جودة الصوت (192 kbps)
         }]
     }
 
