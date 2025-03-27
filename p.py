@@ -2,7 +2,6 @@ import os
 from telethon import TelegramClient, events
 import yt_dlp
 from dotenv import load_dotenv
-import asyncio
 
 load_dotenv()
 
@@ -17,10 +16,10 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(url: str):
     output_file = "audio.mp3"
-    
+
     ydl_opts = {
         'format': 'worstaudio',
-        'quiet': True,
+        'quiet': False,  # تفعيل السجلات
         'noplaylist': True,
         'cookiefile': 'cookies.txt',
         'outtmpl': output_file,
@@ -30,18 +29,22 @@ async def download_audio(url: str):
             'preferredquality': '64',
         }],
     }
-    
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)  # التحقق من إمكانية الجلب
+            if not info:
+                raise Exception("لم يتمكن yt-dlp من جلب المعلومات")
+
             ydl.download([url])
-        
-        # التحقق من أن الملف تم تحميله
+
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
             raise FileNotFoundError("فشل تحميل الملف الصوتي")
 
         return output_file
     except Exception as e:
-        print(f"Error in download_audio: {e}")
+        with open("log.txt", "a") as log_file:
+            log_file.write(f"خطأ: {e}\n")
         return None
 
 @client.on(events.NewMessage(pattern='/download'))
@@ -59,7 +62,7 @@ async def handler(event):
             await event.client.send_file(event.chat_id, audio_file, voice_note=True)
             os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
-            await event.respond("فشل تحميل الصوت، يرجى المحاولة لاحقًا.")
+            await event.respond("فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
 
     except Exception as e:
         await event.respond(f'خطأ: {e}')
