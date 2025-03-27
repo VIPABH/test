@@ -61,10 +61,13 @@ async def handler(event):
         audio_file = await download_audio(msg_parts[1])
 
         if audio_file:
-            # إرسال الملف الصوتي كـ ملاحظة صوتية
-            await event.client.send_file(event.chat_id, audio_file, voice_note=True)  
-            # إرسال الملف الصوتي كـ ملف MP3 عادي
-            await event.client.send_file(event.chat_id, audio_file, file_name="audio.mp3")
+            # إرسال الملف الصوتي كـ ملف MP3 مع تحديد اسم الملف
+            await event.client.send_file(
+                event.chat_id, 
+                audio_file, 
+                file_name="audio.mp3",  # تحديد اسم الملف
+                thumb="https://t.me/VIPABH/1242"  # تحديد الصورة المصغرة (إذا كانت موجودة)
+            )
             os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
             await event.respond("فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
@@ -84,8 +87,14 @@ async def handle_voice(event):
         audio_file = await download_audio(msg_parts[1])
 
         if audio_file:
-            # إرسال الملف الصوتي كـ ملاحظة صوتية فقط
-            await event.client.send_file(event.chat_id, audio_file, voice_note=True)
+            # إرسال الملف الصوتي كـ ملاحظة صوتية فقط مع تحديد اسم الملف
+            await event.client.send_file(
+                event.chat_id, 
+                audio_file, 
+                voice_note=True,
+                file_name="audio.mp3",  # تحديد اسم الملف
+                thumb="https://t.me/VIPABH/1242"  # تحديد الصورة المصغرة (إذا كانت موجودة)
+            )
             os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
             await event.respond("فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
