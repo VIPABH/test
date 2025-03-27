@@ -21,6 +21,7 @@ async def download_audio(url: str):
         'quiet': True,
         'noplaylist': True,
         'outtmpl': '-',
+        'cookiefile': 'cookies.txt',  # ✅ استخدام الكوكيز لمصادقة يوتيوب
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -32,7 +33,6 @@ async def download_audio(url: str):
         ydl.download([url])
     buffer.seek(0)
     return buffer
-
 @client.on(events.NewMessage(pattern='/download'))
 async def handler(event):
     try:
