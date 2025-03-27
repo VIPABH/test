@@ -13,10 +13,18 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(url):
     file = "audio.mp3"
-    opts = {'format': 'bestaudio', 'outtmpl': file, 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}]}
+    opts = {
+        'format': 'bestaudio',
+        'outtmpl': file,
+        'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}],
+        'cookiefile': 'cookies.txt',  # هنا نستخدم ملف cookies.txt
+    }
     
     with yt_dlp.YoutubeDL(opts) as ydl:
-        ydl.download([url])
+        try:
+            ydl.download([url])
+        except Exception as e:
+            return None
     
     return file if os.path.exists(file) else None
 
