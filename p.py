@@ -4,65 +4,47 @@ import yt_dlp
 from dotenv import load_dotenv
 import io
 
-# تحميل المتغيرات البيئية
 load_dotenv()
 
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
 
-# التحقق من صحة القيم البيئية
 if not api_id or not api_hash or not bot_token:
-    raise ValueError("يرجى التأكد من ضبط API_ID, API_HASH، و BOT_TOKEN في ملف .env")
+    raise ValueError("يرجى ضبط API_ID, API_HASH، و BOT_TOKEN")
 
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# دالة لتحميل الصوت
 async def download_audio(url: str):
     ydl_opts = {
         'format': 'bestaudio/best',
         'quiet': True,
         'noplaylist': True,
-        'cookiefile': 'cookies.txt',  # دعم الفيديوهات المحمية إذا لزم الأمر
-        'outtmpl': '-',  # إخراج الملف إلى الذاكرة
+        'outtmpl': '-',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
     }
-
     buffer = io.BytesIO()
-
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        audio_title = info.get('title', 'audio') + '.mp3'  # اسم الملف الصوتي
-        
-        # تحميل الصوت إلى الذاكرة
         ydl.download([url])
-
     buffer.seek(0)
-    return buffer, audio_title
+    return buffer
 
-# الحدث عند تلقي رسالة
 @client.on(events.NewMessage(pattern='/download'))
 async def handler(event):
     try:
         msg_parts = event.message.text.split(' ', 1)
         if len(msg_parts) < 2:
-            await event.respond('الرجاء إرسال رابط الفيديو بعد الأمر /download')
+            await event.respond('ارسل رابط الفيديو بعد /download')
             return
-        
         url = msg_parts[1]
-        await event.respond('جارٍ تحميل الصوت...')
-
-        # تحميل الصوت إلى الذاكرة
-        audio_data, filename = await download_audio(url)
-
-        # إرسال الصوت كملف صوتي
-        await event.client.send_file(event.chat_id, audio_data, voice_note=True, attributes=[filename])
-
+        await event.respond('جارٍ التحميل...')
+        audio_data = await download_audio(url)
+        await event.client.send_file(event.chat_id, audio_data, voice_note=True)
     except Exception as e:
-        await event.respond(f'حدث خطأ أثناء التحميل: {str(e)}')
+        await event.respond(f'خطأ: {str(e)}')
 
 client.run_until_disconnected()
