@@ -4,53 +4,62 @@ import yt_dlp
 from dotenv import load_dotenv
 import io
 
-# تحميل المتغيرات البيئية من ملف .env
+# تحميل المتغيرات البيئية
 load_dotenv()
 
-# جلب بيانات API من المتغيرات البيئية
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
 
-# إعدادات العميل
+# التحقق من صحة القيم البيئية
+if not api_id or not api_hash or not bot_token:
+    raise ValueError("يرجى التأكد من ضبط API_ID, API_HASH، و BOT_TOKEN في ملف .env")
+
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# دالة لتحميل الصوت باستخدام yt-dlp
+# دالة لتحميل الصوت
 async def download_audio(url: str):
     ydl_opts = {
-        'outtmpl': '-',  # تحميل الصوت مباشرة إلى الذاكرة
+        'format': 'bestaudio/best',
         'quiet': True,
-        'cookiefile': 'cookies.txt',  # استخدام ملف الكوكيز لدعم الفيديوهات المحمية
-        'format': 'bestaudio',  # تحميل أفضل صوت فقط
-        'noplaylist': True,  # لتجنب تحميل قوائم التشغيل
+        'noplaylist': True,
+        'cookiefile': 'cookies.txt',  # دعم الفيديوهات المحمية إذا لزم الأمر
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        result = ydl.extract_info(url, download=True)
-        audio_url = result['formats'][0]['url']
-        audio_data = yt_dlp.request.urlopen(audio_url).read()
-        return audio_data
+        info = ydl.extract_info(url, download=False)
+        audio_url = info.get('url')
+        
+        if not audio_url:
+            raise ValueError("تعذر العثور على رابط الصوت.")
+
+        # تحميل البيانات إلى الذاكرة
+        buffer = io.BytesIO()
+        with yt_dlp.YoutubeDL({'outtmpl': '-', 'format': 'bestaudio'}) as ydl:
+            ydl.download([url])
+        
+        buffer.seek(0)
+        return buffer
 
 # الحدث عند تلقي رسالة
 @client.on(events.NewMessage(pattern='/download'))
 async def handler(event):
     try:
-        # استخدم الرابط المرسل لتحميل الصوت
-        url = event.message.text.split(' ', 1)[1]
+        msg_parts = event.message.text.split(' ', 1)
+        if len(msg_parts) < 2:
+            await event.respond('الرجاء إرسال رابط الفيديو بعد الأمر /download')
+            return
         
+        url = msg_parts[1]
         await event.respond('جارٍ تحميل الصوت...')
 
         # تحميل الصوت إلى الذاكرة
         audio_data = await download_audio(url)
-        
-        # إرسال الصوت مباشرة من الذاكرة
-        await event.respond(file=io.BytesIO(audio_data), force_document=False, voice=True)
 
-    except IndexError:
-        await event.respond('الرجاء إرسال رابط الفيديو بعد الأمر /download')
+        # إرسال الصوت
+        await event.respond(file=audio_data, force_document=False, voice=True)
+
     except Exception as e:
         await event.respond(f'حدث خطأ أثناء التحميل: {str(e)}')
 
-# تشغيل البوت
-client.start()
 client.run_until_disconnected()
