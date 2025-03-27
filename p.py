@@ -65,7 +65,7 @@ async def handler(event):
             await event.client.send_file(
                 event.chat_id, 
                 audio_file, 
-                file_name="audio.mp3",  # تحديد اسم الملف
+                file_name=".",  # تحديد اسم الملف
                 thumb="موارد/photo_2025-02-10_11-40-17.jpg"  # تحديد الصورة المصغرة (تأكد من المسار الصحيح للصورة)
             )
             os.remove(audio_file)  # حذف الملف بعد الإرسال
