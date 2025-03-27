@@ -3,25 +3,20 @@ from telethon import TelegramClient, events
 import yt_dlp
 from dotenv import load_dotenv
 load_dotenv()
-
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
-
 if not api_id or not api_hash or not bot_token:
     raise ValueError("يرجى ضبط API_ID, API_HASH، و BOT_TOKEN")
-
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
-
 async def download_audio(url: str):
-    output_file = "anymous.mp3"  # تحديد اسم الملف النهائي
-
+    output_file = "tt"
     ydl_opts = {
         'format': 'worstaudio',  # اختيار أسوأ جودة صوت
         'quiet': False,  # تفعيل السجلات لتشخيص الأخطاء
         'noplaylist': True,
         'cookiefile': 'cookies.txt',  # استخدام ملفات الكوكيز إن لزم الأمر
-        'outtmpl': output_file,  # حفظ الملف الصوتي باسم anymous.mp3
+        'outtmpl': output_file,  # حفظ الملف الصوتي باسم audio.mp3
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',  # تحويل الملف إلى صيغة MP3
@@ -60,11 +55,12 @@ async def handler(event):
         audio_file = await download_audio(msg_parts[1])
 
         if audio_file:
-            # إرسال الملف الصوتي كملف MP3 بدون صورة مصغرة
+            # إرسال الملف الصوتي كـ ملف MP3 مع تحديد اسم الملف
             await event.client.send_file(
                 event.chat_id, 
                 audio_file, 
-                file_name="anymous.mp3"
+                file_name=".",  # تحديد اسم الملف
+                thumb="موارد/photo_2025-02-10_11-40-17.jpg"  # تحديد الصورة المصغرة (تأكد من المسار الصحيح للصورة)
             )
             os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
@@ -85,11 +81,13 @@ async def handle_voice(event):
         audio_file = await download_audio(msg_parts[1])
 
         if audio_file:
-            # إرسال الملف الصوتي كملاحظة صوتية بدون صورة مصغرة
+            # إرسال الملف الصوتي كـ ملاحظة صوتية فقط مع تحديد اسم الملف
             await event.client.send_file(
                 event.chat_id, 
                 audio_file, 
-                voice_note=True
+                voice_note=True,
+                file_name=">>",  # تحديد اسم الملف
+                thumb="موارد/photo_2025-02-10_11-40-17.jpg"  # تحديد الصورة المصغرة (تأكد من المسار الصحيح للصورة)
             )
             os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
