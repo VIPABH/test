@@ -19,42 +19,35 @@ async def download_audio(search_query: str):
     cookies_file = 'cookies.txt'  # تأكد من أن هذا هو اسم ملف الكوكيز الخاص بك
 
     ydl_opts = {
-        'format': 'bestaudio/best',
+        'format': 'worstaudio',
         'quiet': False,  # تفعيل السجلات
         'noplaylist': True,
+        'cookiefile': cookies_file,  # استخدام الكوكيز
         'outtmpl': output_file,
-        'extractaudio': True,
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
-            'preferredquality': '128',
+            'preferredquality': '64',
             'nopostoverwrites': True,  # لتجنب إضافة الامتداد مرتين
         }],
     }
 
-    # إضافة الكوكيز إذا كان الملف موجودًا
-    if os.path.exists(cookies_file):
-        ydl_opts['cookiefile'] = cookies_file
-
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            search_url = f"ytsearch:{search_query}"
-            info = ydl.extract_info(search_url, download=False)
+            info = ydl.extract_info(f"ytsearch:{search_query}", download=False)  # التحقق من إمكانية الجلب
+            if not info:
+                raise Exception("لم يتمكن yt-dlp من جلب المعلومات")
 
-            if not info or 'entries' not in info or len(info['entries']) == 0:
-                raise Exception("❌ لم يتم العثور على أي نتائج للبحث.")
+            ydl.download([info['entries'][0]['url']])
 
-            video_url = info['entries'][0]['url']
-            ydl.download([video_url])
-
-        # التحقق من وجود الملف الصوتي
+        # التحقق من وجود الملف
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
-            raise FileNotFoundError("❌ فشل تحميل الملف الصوتي.")
+            raise FileNotFoundError("فشل تحميل الملف الصوتي")
 
         return output_file
     except Exception as e:
         with open("log.txt", "a") as log_file:
-            log_file.write(f"⚠️ خطأ: {e}\n")
+            log_file.write(f"خطأ: {e}\n")
         return None
 
 @client.on(events.NewMessage(pattern='/تحميل'))
@@ -71,7 +64,7 @@ async def handler(event):
         audio_file = await download_audio(msg_parts[1])
 
         if audio_file:
-            await event.client.send_file(event.chat_id, audio_file, voice_note=True) 
+            await event.client.send_file(event.chat_id, audio_file, voice_note=True)
             os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
             await event.respond("❌ فشل تحميل الصوت، تحقق من النص أو حاول لاحقًا.")
