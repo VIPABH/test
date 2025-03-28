@@ -17,22 +17,18 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(query: str):
     ydl_opts = {
-        'format': 'bestaudio/best',  # اختيار أفضل جودة صوت
-        'quiet': True,                # إخفاء معظم الرسائل
-        'noplaylist': True,           # عدم تحميل قوائم التشغيل
-        'cookiefile': 'cookies.txt',  # استخدام الكوكيز إذا كانت مطلوبة
-        'noprogress': True,           # إخفاء شريط التقدم
-        'extractaudio': True,         # استخراج الصوت فقط
-        'default_search': 'ytsearch', # البحث في يوتيوب
-        'outtmpl': '%(title)s.%(ext)s',  # تحديد اسم الملف النهائي
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',  # استخراج الصوت فقط
-            'preferredcodec': 'mp3',  # التحويل إلى MP3 مباشرة
-            'preferredquality': '192',  # تحديد جودة الصوت المطلوبة
-            'nopostoverwrites': True,
-        }],
+        'format': 'bestaudio/best',  # تحميل الصوت بأعلى جودة
+        'quiet': True,
+        'noplaylist': True,
+        'cookiefile': 'cookies.txt',
+        'noprogress': True,
+        'default_search': 'ytsearch',  # البحث في يوتيوب
+        'outtmpl': '%(id)s.%(ext)s',  # تحديد اسم الملف وفقًا للـ ID
+        'extractaudio': True,  # استخراج الصوت (لكن سيكون MP3 مباشرة دون تحويل)
+        'prefer_ffmpeg': True,  # استخدام FFmpeg إذا كان متاحًا
+        'postprocessors': [],  # لا نحتاج لوجود محول بعد التحميل
         'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
-        'concurrent_fragment_downloads': 5,  # تقليل عدد الأجزاء المحملة في نفس الوقت لتحسين السرعة
+        'concurrent_fragment_downloads': 100,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
         'max_filesize': 50 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
         'socket_timeout': 30,  # تحديد مهلة الاتصال لتقليل التأخير
     }
@@ -45,7 +41,7 @@ async def download_audio(query: str):
         if 'entries' in info:
             info = info['entries'][0]
         output_file = ydl.prepare_filename(info)
-        audio_file = output_file.rsplit('.', 1)[0] + ".mp3"  # التأكد من أن الملف سيكون بصيغة MP3
+        audio_file = output_file.rsplit('.', 1)[0] + ".mp3"  # التأكد من أن الملف سيكون MP3
         if os.path.exists(audio_file) and os.path.getsize(audio_file) > 0:
             return audio_file
 
