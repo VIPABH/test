@@ -60,7 +60,7 @@ async def handler(event):
             await event.client.send_file(
                 event.chat_id, 
                 audio_file, 
-                caption='**Enjoy dear**',
+                caption='[**Enjoy dear**](https://t.me/VIPABH_BOT)',
                 buttons=button,
                 reply_to=event.message.id
             )
