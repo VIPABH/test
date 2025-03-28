@@ -27,8 +27,9 @@ async def download_audio(url: str):
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '64',
-            'nopostoverwrites': True,  # لتجنب إضافة الامتداد مرتين
+            'nopostoverwrites': True,  # لمنع إضافة الامتداد مرتين
         }],
+        'noprogress': True  # لمنع إظهار التقدم بشكل مستمر
     }
 
     try:
