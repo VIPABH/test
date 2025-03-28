@@ -1,5 +1,6 @@
 import os
-from telethon import TelegramClient, events, Button
+from telethon.tl.custom import Button
+from telethon import TelegramClient, events
 import yt_dlp
 from dotenv import load_dotenv
 load_dotenv()
@@ -55,7 +56,7 @@ async def handler(event):
             await event.respond('جارٍ البحث عن الصوت...')
             audio_file = await download_audio(query)
         if audio_file:
-            button = [Button.url("chanel", url="https://t.me/sszxl")]
+            button = [Button.url("chanel", "https://t.me/sszxl")]
             await event.client.send_file(event.chat_id, audio_file, button=button, caption='**Enjoy dear**')
             os.remove(audio_file)
         else:
