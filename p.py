@@ -15,36 +15,36 @@ if not api_id or not api_hash or not bot_token:
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(query: str):
-    output_file = "audio.mp3"
-    
     ydl_opts = {
-        'format': 'worstaudio',
+        'format': 'bestaudio/best',
         'noplaylist': True,
-        'cookiefile': 'cookies.txt',
-        'outtmpl': 'audio.%(ext)s',
+        'outtmpl': 'audio.%(ext)s',  # تحديد اسم الملف مع الامتداد الصحيح
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '64',
-            'nopostoverwrites': True,
         }],
         'noprogress': True,
     }
 
     try:
         search_query = query if "http" in query else f"ytsearch:{query}"
-        
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(search_query, download=False)
-            if not info:
-                raise Exception("لم يتمكن yt-dlp من العثور على نتائج")
+            info = ydl.extract_info(search_query, download=True)
 
-            ydl.download([search_query])
+            if not info or 'entries' in info and not info['entries']:
+                raise Exception("⚠️ لم يتم العثور على نتائج، حاول استخدام كلمات مختلفة.")
 
-        if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
-            raise FileNotFoundError("فشل تحميل الملف الصوتي")
+            # استخراج اسم الملف الفعلي بعد التحميل
+            filename = ydl.prepare_filename(info)
+            audio_file = filename.rsplit('.', 1)[0] + ".mp3"
 
-        return output_file
+        # التأكد من وجود الملف الصوتي بعد التحميل
+        if not os.path.exists(audio_file) or os.path.getsize(audio_file) == 0:
+            raise FileNotFoundError("⚠️ فشل تحميل الملف الصوتي!")
+
+        return audio_file
     except Exception as e:
         with open("log.txt", "a") as log_file:
             log_file.write(f"خطأ: {e}\n")
@@ -65,7 +65,7 @@ async def handler(event):
 
         if audio_file:
             await event.client.send_file(event.chat_id, audio_file, voice_note=True)
-            os.remove(audio_file)
+            os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
             await event.respond("❌ فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
 
