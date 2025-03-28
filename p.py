@@ -21,9 +21,9 @@ async def download_video(query: str):
         'quiet': True,               # إخفاء معظم الرسائل
         'noplaylist': True,          # عدم تحميل قوائم التشغيل
         'cookiefile': 'cookies.txt', # استخدام الكوكيز إذا كانت مطلوبة
-        'noprogress': True,           # إخفاء شريط التقدم
+        'noprogress': True,          # إخفاء شريط التقدم
         'default_search': 'ytsearch', # البحث في يوتيوب
-        'extractaudio': False,        # عدم استخراج الصوت فقط
+        'extractaudio': False,       # لا استخراج الصوت فقط
     }
 
     if not query.startswith(("http://", "https://")):
@@ -54,8 +54,15 @@ async def handler(event):
 
         if video_file:
             button = [Button.url("chanel", "https://t.me/sszxl")]
-            await event.client.send_file(event.chat_id, video_file, caption='[**Enjoy dear**](https://t.me/VIPABH_BOT)', buttons=button, reply_to=event.message.id)
-            os.remove(video_file)
+            await event.client.send_file(
+                event.chat_id, 
+                video_file, 
+                caption='[**Enjoy dear**](https://t.me/VIPABH_BOT)', 
+                buttons=button, 
+                reply_to=event.message.id,
+                force_document=False  # هذه النقطة تضمن إرسال الملف كفيديو وليس مستند
+            )
+            os.remove(video_file)  # حذف الفيديو بعد إرساله
         else:
             await event.respond("فشل تحميل الفيديو.")
     except Exception as e:
