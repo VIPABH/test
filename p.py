@@ -30,8 +30,6 @@ async def download_audio(query: str):
             'preferredquality': '64',  # ضغط الصوت لجودة أقل (أسرع)
             'nopostoverwrites': True,
         }],
-    
-
         'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
         'concurrent_fragment_downloads': 10,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
         'max_filesize': 50 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
@@ -49,8 +47,10 @@ async def download_audio(query: str):
         audio_file = output_file.rsplit('.', 1)[0] + ".mp3"
         if os.path.exists(audio_file) and os.path.getsize(audio_file) > 0:
             return audio_file
+        return output_file  # إذا كان الفيديو نفسه هو المطلوب تحميله
+
 @client.on(events.NewMessage(pattern='يوت'))
-async def handler(event):
+async def handler_audio(event):
     msg = await event.reply('🤌')
     msg_parts = event.message.text.split(' ', 1)
     if len(msg_parts) < 2:
@@ -70,4 +70,27 @@ async def handler(event):
         os.remove(audio_file)
     else:
         await event.respond("فشل تحميل الصوت.")
+
+@client.on(events.NewMessage(pattern='فيديو'))
+async def handler_video(event):
+    msg = await event.reply('🤌')
+    msg_parts = event.message.text.split(' ', 1)
+    if len(msg_parts) < 2:
+        return await event.respond('ارسل الرابط أو النص المطلوب.')
+    query = msg_parts[1]
+    video_file = await download_audio(query)  # نحاول تحميل الفيديو أو الصوت كما هو
+    if video_file:
+        button = [Button.url("chanel", "https://t.me/sszxl")]
+        await msg.delete()
+        await event.client.send_file(
+            event.chat_id, 
+            video_file, 
+            caption='**[Enjoy dear]**(https://t.me/VIPABH_BOT)', 
+            buttons=button, 
+            reply_to=event.message.id
+        )
+        os.remove(video_file)  # حذف الفيديو بعد إرساله
+    else:
+        await event.respond("فشل تحميل الفيديو.")
+
 client.run_until_disconnected()
