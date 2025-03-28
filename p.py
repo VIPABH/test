@@ -52,18 +52,18 @@ async def download_audio(query: str):
     except Exception:
         return None
 
-@client.on(events.NewMessage(pattern='تحميل'))
+@client.on(events.NewMessage(pattern='يوت'))
 async def handler(event):
+    msg = await event.reply('🤌')
     try:
         msg_parts = event.message.text.split(' ', 1)
         if len(msg_parts) < 2:
             return await event.respond('ارسل الرابط أو النص المطلوب.')
-
         query = msg_parts[1]
         audio_file = await download_audio(query)
-
         if audio_file:
             button = [Button.url("chanel", "https://t.me/sszxl")]
+            await msg.delete()
             await event.client.send_file(
                 event.chat_id, 
                 audio_file, 
@@ -78,3 +78,4 @@ async def handler(event):
         await event.respond(f'خطأ: {e}')
 
 client.run_until_disconnected()
+
