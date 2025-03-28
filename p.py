@@ -19,6 +19,7 @@ async def download_audio(query: str):
         'format': 'bestaudio/best',
         'noplaylist': True,
         'outtmpl': 'audio.%(ext)s',  # تحديد اسم الملف مع الامتداد الصحيح
+        'cookiefile': 'cookies.txt',        
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
