@@ -62,19 +62,19 @@ async def handler(event):
     if len(msg_parts) < 2:
         return await event.respond('ارسل الرابط أو النص المطلوب.')
     query = msg_parts[1]
-    video_file = await download_video(query)
-    if video_file:
+    audio_file = await download_audio(query)  # استخدم download_audio بدلاً من download_video
+    if audio_file:
         button = [Button.url("chanel", "https://t.me/sszxl")]
         await msg.delete()
         await event.client.send_file(
             event.chat_id, 
-            video_file, 
-            caption='**[Enjoy dear]**(https://t.me/VIPABH_BOT)', 
+            audio_file,  # إرسال الصوت بدلاً من الفيديو
+            caption='**[استمتع بالصوت]**(https://t.me/VIPABH_BOT)', 
             buttons=button, 
             reply_to=event.message.id
         )
-        os.remove(video_file)
+        os.remove(audio_file)  # حذف الملف بعد الإرسال
     else:
-        await event.respond("فشل تحميل الفيديو. تحقق من الرابط أو استعلم عن سبب المشكلة.")
+        await event.respond("فشل تحميل الصوت. تحقق من الرابط أو استعلم عن سبب المشكلة.")
 
 client.run_until_disconnected()
