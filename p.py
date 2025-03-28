@@ -104,12 +104,10 @@ async def download_video(query: str):
         except yt_dlp.utils.DownloadError as e:
             print(f"Error: {e}")  
             return None
-@ABH.on(events.NewMessage(pattern='يوت'))
+@ABH.on(events.NewMessage(pattern='فديو|فيديو'))
 async def handler(event):
     msg = await event.reply('🤌')
     msg_parts = event.message.text.split(' ', 1)
-    if len(msg_parts) < 2:
-        return await event.respond('ارسل الرابط أو النص المطلوب.')
     query = msg_parts[1]
     video_file = await download_video(query)
     if video_file:
