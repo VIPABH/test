@@ -9,7 +9,16 @@ api_id, api_hash, bot_token = os.getenv('API_ID'), os.getenv('API_HASH'), os.get
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(query: str):
-    opts = {'format': 'bestaudio/best', 'outtmpl': '%(title)s.%(ext)s', 'noplaylist': True, 'quiet': True}
+    if not query.startswith(("http://", "https://")):
+        query = f"ytsearch:{query}"  # استخدام ytsearch عند البحث النصي
+
+    opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': '%(title)s.%(ext)s',
+        'noplaylist': True,
+        'quiet': True
+    }
+    
     with yt_dlp.YoutubeDL(opts) as ydl:
         try:
             info = ydl.extract_info(query, download=True)
@@ -22,16 +31,18 @@ async def download_audio(query: str):
 
 @client.on(events.NewMessage(pattern='يوت'))
 async def audio_handler(event):
-    query = event.text.split(' ', 1)[1] if ' ' in event.text else None
-    if not query:
+    msg_parts = event.text.split(' ', 1)
+    if len(msg_parts) < 2:
         return await event.respond("أرسل الرابط أو اسم الفيديو.")
     
+    query = msg_parts[1]
     audio_file = await download_audio(query)
+    
     if audio_file:
         await event.respond("جاري الإرسال...")
         await event.client.send_file(event.chat_id, audio_file)
         os.remove(audio_file)
     else:
-        await event.respond("فشل التحميل، جرب رابط آخر.")
+        await event.respond("فشل التحميل، جرب رابط آخر أو تحقق من الاتصال.")
 
 client.run_until_disconnected()
