@@ -60,6 +60,7 @@ async def download_video(query: str):
         'max_filesize': 50 * 1024 * 1024,
         'socket_timeout': 30,
     }
+
     if not query.startswith(("http://", "https://")):
         query = f"ytsearch:{query}"
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
