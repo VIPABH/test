@@ -47,7 +47,7 @@ async def download_audio(query: str):
         audio_file = output_file.rsplit('.', 1)[0] + ".mp3"
         if os.path.exists(audio_file) and os.path.getsize(audio_file) > 0:
             return audio_file
-        return output_file  # إذا كان الفيديو نفسه هو المطلوب تحميله
+        return None  # إذا فشل التحميل، إرجاع None
 
 async def download_video(query: str):
     ydl_opts = {
@@ -83,7 +83,7 @@ async def handler_audio(event):
     if len(msg_parts) < 2:
         return await event.respond('ارسل الرابط أو النص المطلوب.')
     query = msg_parts[1]
-    audio_file = await download_audio(query)
+    audio_file = await download_audio(query)  # تحميل الصوت فقط
     if audio_file:
         button = [Button.url("chanel", "https://t.me/sszxl")]
         await msg.delete()
@@ -97,17 +97,7 @@ async def handler_audio(event):
         os.remove(audio_file)
     else:
         await event.respond("فشل تحميل الصوت.")
-    if not query.startswith(("http://", "https://")):
-        query = f"ytsearch:{query}"
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(query, download=True)
-        if 'entries' in info:
-            info = info['entries'][0]
-        output_file = ydl.prepare_filename(info)
-        if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-            return output_file
-        return None  # إذا فشل التحميل، إرجاع None
 @client.on(events.NewMessage(pattern='فيديو'))
 async def handler_video(event):
     msg = await event.reply('🤌')
@@ -129,6 +119,5 @@ async def handler_video(event):
         os.remove(video_file)  # حذف الفيديو بعد إرساله
     else:
         await event.respond("فشل تحميل الفيديو.")
-
 
 client.run_until_disconnected()
