@@ -1,9 +1,9 @@
 import os
-import asyncio
 from telethon.tl.custom import Button
 from telethon import TelegramClient, events
 import yt_dlp
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
 api_id = os.getenv('API_ID')      
@@ -17,107 +17,54 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(query: str):
     ydl_opts = {
-        'format': 'worstaudio',  # لتحميل أقل جودة صوتية
-        'quiet': True,
-        'noplaylist': True,
-        'cookiefile': 'cookies.txt',
-        'noprogress': True,
-        'extractaudio': True,
-        'default_search': 'ytsearch',
+        'format': 'bestaudio/best',  # تحميل أفضل جودة صوتية
+        'quiet': True,               # إخفاء معظم الرسائل
+        'noplaylist': True,          # عدم تحميل قوائم التشغيل
+        'cookiefile': 'cookies.txt', # استخدام الكوكيز إذا كانت مطلوبة
         'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',  # تحويل الصوت إلى MP3
-            'preferredquality': '64',  # ضغط الصوت لجودة أقل (أسرع)
-            'nopostoverwrites': True,
+            'key': 'FFmpegExtractAudio',  # تحويل الملف الصوتي
+            'preferredcodec': 'mp3',
+            'preferredquality': '64',
+            'nopostoverwrites': True,  # تجنب الكتابة فوق الملفات القديمة
         }],
-        'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
-        'concurrent_fragment_downloads': 10,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
-        'max_filesize': 50 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
-        'socket_timeout': 30,  # تحديد مهلة الاتصال لتقليل التأخير
+        'noprogress': True,           # إخفاء شريط التقدم
+        'default_search': 'ytsearch', # البحث في يوتيوب
+        'extractaudio': True,         # استخراج الصوت فقط
     }
 
     if not query.startswith(("http://", "https://")):
         query = f"ytsearch:{query}"
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(query, download=True)
-        if 'entries' in info:
-            info = info['entries'][0]
-        output_file = ydl.prepare_filename(info)
-        audio_file = output_file.rsplit('.', 1)[0] + ".mp3"
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(query, download=True)
+            if 'entries' in info:
+                info = info['entries'][0]
+            output_file = ydl.prepare_filename(info)
+            audio_file = output_file.rsplit('.', 1)[0] + ".mp3"
+
         if os.path.exists(audio_file) and os.path.getsize(audio_file) > 0:
             return audio_file
-        return None  # إذا فشل التحميل، إرجاع None
+    except Exception:
+        return None
 
-async def download_video(query: str):
-    ydl_opts = {
-        'format': 'bestvideo+bestaudio/best',  # لتحميل الفيديو والصوت بأفضل جودة
-        'quiet': True,
-        'noplaylist': True,
-        'cookiefile': 'cookies.txt',
-        'noprogress': True,
-        'extractaudio': False,  # لا استخراج للصوت
-        'default_search': 'ytsearch',
-        'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
-        'concurrent_fragment_downloads': 10,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
-        'max_filesize': 50 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
-        'socket_timeout': 30,  # تحديد مهلة الاتصال لتقليل التأخير
-    }
+@client.on(events.NewMessage(pattern='تحميل'))
+async def handler(event):
+    try:
+        msg_parts = event.message.text.split(' ', 1)
+        if len(msg_parts) < 2:
+            return await event.respond('ارسل الرابط أو النص المطلوب.')
+        
+        query = msg_parts[1]
+        audio_file = await download_audio(query)
 
-    if not query.startswith(("http://", "https://")):
-        query = f"ytsearch:{query}"
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(query, download=True)
-        if 'entries' in info:
-            info = info['entries'][0]
-        output_file = ydl.prepare_filename(info)
-        if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-            return output_file
-        return None  # إذا فشل التحميل، إرجاع None
-
-@client.on(events.NewMessage(pattern='يوت'))
-async def handler_audio(event):
-    msg = await event.reply('🤌')
-    msg_parts = event.message.text.split(' ', 1)
-    if len(msg_parts) < 2:
-        return await event.respond('ارسل الرابط أو النص المطلوب.')
-    query = msg_parts[1]
-    audio_file = await download_audio(query)  # تحميل الصوت فقط
-    if audio_file:
-        button = [Button.url("chanel", "https://t.me/sszxl")]
-        await msg.delete()
-        await event.client.send_file(
-            event.chat_id, 
-            audio_file, 
-            caption='**[Enjoy dear]**(https://t.me/VIPABH_BOT)', 
-            buttons=button, 
-            reply_to=event.message.id
-        )
-        os.remove(audio_file)
-    else:
-        await event.respond("فشل تحميل الصوت.")
-
-@client.on(events.NewMessage(pattern='فيديو'))
-async def handler_video(event):
-    msg = await event.reply('🤌')
-    msg_parts = event.message.text.split(' ', 1)
-    if len(msg_parts) < 2:
-        return await event.respond('ارسل الرابط أو النص المطلوب.')
-    query = msg_parts[1]
-    video_file = await download_video(query)  # تحميل الفيديو فقط
-    if video_file:
-        button = [Button.url("chanel", "https://t.me/sszxl")]
-        await msg.delete()
-        await event.client.send_file(
-            event.chat_id, 
-            video_file, 
-            caption='**[Enjoy dear]**(https://t.me/VIPABH_BOT)', 
-            buttons=button, 
-            reply_to=event.message.id
-        )
-        os.remove(video_file)  # حذف الفيديو بعد إرساله
-    else:
-        await event.respond("فشل تحميل الفيديو.")
+        if audio_file:
+            button = [Button.url("chanel", "https://t.me/sszxl")]
+            await event.client.send_file(event.chat_id, audio_file, caption='[**Enjoy dear**](https://t.me/VIPABH_BOT)', buttons=button, reply_to=event.message.id)
+            os.remove(audio_file)
+        else:
+            await event.respond("فشل تحميل الصوت.")
+    except Exception as e:
+        await event.respond(f'خطأ: {e}')
 
 client.run_until_disconnected()
