@@ -15,21 +15,15 @@ if not api_id or not api_hash or not bot_token:
 
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-async def download_audio(query: str):
+async def download_video(query: str):
     ydl_opts = {
-        'format': 'bestaudio/best',  # تحميل أفضل جودة صوتية
+        'format': 'bestvideo+bestaudio/best',  # لتحميل الفيديو بأفضل جودة
         'quiet': True,               # إخفاء معظم الرسائل
         'noplaylist': True,          # عدم تحميل قوائم التشغيل
         'cookiefile': 'cookies.txt', # استخدام الكوكيز إذا كانت مطلوبة
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',  # تحويل الملف الصوتي
-            'preferredcodec': 'mp3',
-            'preferredquality': '64',
-            'nopostoverwrites': True,  # تجنب الكتابة فوق الملفات القديمة
-        }],
         'noprogress': True,           # إخفاء شريط التقدم
         'default_search': 'ytsearch', # البحث في يوتيوب
-        'extractaudio': True,         # استخراج الصوت فقط
+        'extractaudio': False,        # عدم استخراج الصوت فقط
     }
 
     if not query.startswith(("http://", "https://")):
@@ -41,10 +35,10 @@ async def download_audio(query: str):
             if 'entries' in info:
                 info = info['entries'][0]
             output_file = ydl.prepare_filename(info)
-            audio_file = output_file.rsplit('.', 1)[0] + ".mp3"
 
-        if os.path.exists(audio_file) and os.path.getsize(audio_file) > 0:
-            return audio_file
+        # تحقق من وجود الفيديو في المسار بعد التحميل
+        if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+            return output_file
     except Exception:
         return None
 
@@ -56,14 +50,14 @@ async def handler(event):
             return await event.respond('ارسل الرابط أو النص المطلوب.')
         
         query = msg_parts[1]
-        audio_file = await download_audio(query)
+        video_file = await download_video(query)
 
-        if audio_file:
+        if video_file:
             button = [Button.url("chanel", "https://t.me/sszxl")]
-            await event.client.send_file(event.chat_id, audio_file, caption='[**Enjoy dear**](https://t.me/VIPABH_BOT)', buttons=button, reply_to=event.message.id)
-            os.remove(audio_file)
+            await event.client.send_file(event.chat_id, video_file, caption='[**Enjoy dear**](https://t.me/VIPABH_BOT)', buttons=button, reply_to=event.message.id)
+            os.remove(video_file)
         else:
-            await event.respond("فشل تحميل الصوت.")
+            await event.respond("فشل تحميل الفيديو.")
     except Exception as e:
         await event.respond(f'خطأ: {e}')
 
