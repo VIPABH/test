@@ -15,7 +15,7 @@ if not api_id or not api_hash or not bot_token:
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(query: str):
-    output_file = "audio.mp3"
+    output_file = "mp3"
 
     ydl_opts = {
         'format': 'worstaudio',
