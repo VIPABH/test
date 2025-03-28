@@ -2,7 +2,6 @@ import os
 from telethon import TelegramClient, events
 import yt_dlp
 from dotenv import load_dotenv
-import re
 
 load_dotenv()
 
@@ -17,11 +16,6 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(url: str):
     output_file = "audio.mp3"
-
-    # التحقق إذا كان الرابط هو رابط Shorts
-    if "youtube.com/shorts/" in url:
-        # تحويل رابط الـ Shorts إلى رابط فيديو عادي
-        url = url.replace("youtube.com/shorts/", "youtube.com/watch?v=")
 
     ydl_opts = {
         'format': 'worstaudio',
@@ -38,16 +32,12 @@ async def download_audio(url: str):
     }
 
     try:
-        # إضافة ytsearch: للبحث عن الفيديو في يوتيوب
-        search_url = f"ytsearch:{url}"
-        
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(search_url, download=False)  # التحقق من إمكانية الجلب
+            info = ydl.extract_info(url, download=False)  # التحقق من إمكانية الجلب
             if not info:
                 raise Exception("لم يتمكن yt-dlp من جلب المعلومات")
 
-            # تنزيل الفيديو
-            ydl.download([info['entries'][0]['url']])
+            ydl.download([url])
 
         # التحقق من وجود الملف
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
