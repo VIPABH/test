@@ -17,7 +17,7 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_video(query: str):
     ydl_opts = {
-        'format': 'bestvideo+bestaudio/best',  # لتحميل الفيديو بأفضل جودة
+        'format': 'bestvideo+bestaudio/best',  # لتحميل الفيديو بأفضل جودة ممكنة
         'quiet': True,               # إخفاء معظم الرسائل
         'noplaylist': True,          # عدم تحميل قوائم التشغيل
         'cookiefile': 'cookies.txt', # استخدام الكوكيز إذا كانت مطلوبة
