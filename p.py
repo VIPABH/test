@@ -17,19 +17,21 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(query: str):
     ydl_opts = {
-        'format': 'bestaudio/best',  # تحميل أفضل جودة صوتية بأسرع وقت
-        'quiet': True,                # إخفاء معظم الرسائل
-        'noplaylist': True,           # عدم تحميل قوائم التشغيل
-        'cookiefile': 'cookies.txt',  # استخدام الكوكيز إذا كانت مطلوبة
-        'noprogress': True,           # إخفاء شريط التقدم
-        'extractaudio': True,         # استخراج الصوت فقط
-        'default_search': 'ytsearch', # البحث في يوتيوب
+        'format': 'worstaudio',  # لتحميل أقل جودة صوتية
+        'quiet': True,
+        'noplaylist': True,
+        'cookiefile': 'cookies.txt',
+        'noprogress': True,
+        'extractaudio': True,
+        'default_search': 'ytsearch',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',  # تحويل الصوت إلى MP3
             'preferredquality': '64',  # ضغط الصوت لجودة أقل (أسرع)
             'nopostoverwrites': True,
         }],
+    
+
         'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
         'concurrent_fragment_downloads': 10,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
         'max_filesize': 50 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
