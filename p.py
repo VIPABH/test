@@ -31,7 +31,9 @@ async def download_audio(query: str):
             'nopostoverwrites': True,
         }],
         'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
-        'concurrent_fragment_downloads': 5,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
+        'concurrent_fragment_downloads': 10,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
+        'max_filesize': 50 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
+        'socket_timeout': 30,  # تحديد مهلة الاتصال لتقليل التأخير
     }
 
     if not query.startswith(("http://", "https://")):
@@ -56,11 +58,6 @@ async def handler(event):
         msg_parts = event.message.text.split(' ', 1)
         if len(msg_parts) < 2:
             return await event.respond('ارسل الرابط أو النص المطلوب.')
-
-        # ارسال رسالة أولية
-        msg = await event.reply('جاري البحث انتظر...')
-        await asyncio.sleep(2)  # تقليل الوقت قليلاً من 4 إلى 2 ثانية
-        await msg.delete()  # حذف الرسالة بعد التأكيد
 
         query = msg_parts[1]
         audio_file = await download_audio(query)
