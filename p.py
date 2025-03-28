@@ -3,6 +3,7 @@ from telethon.tl.custom import Button
 from telethon import TelegramClient, events
 import yt_dlp
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
 api_id = os.getenv('API_ID')      
@@ -16,21 +17,24 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(query: str):
     ydl_opts = {
-        'format': 'worstaudio',
-        'quiet': True,
-        'noplaylist': True,
-        'cookiefile': 'cookies.txt',
+        'format': 'bestaudio/best',  # تحميل أفضل جودة صوتية
+        'quiet': True,               # إخفاء معظم الرسائل
+        'noplaylist': True,          # عدم تحميل قوائم التشغيل
+        'cookiefile': 'cookies.txt', # استخدام الكوكيز إذا كانت مطلوبة
         'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
+            'key': 'FFmpegExtractAudio',  # تحويل الملف الصوتي
             'preferredcodec': 'mp3',
             'preferredquality': '64',
-            'nopostoverwrites': True,
+            'nopostoverwrites': True,  # تجنب الكتابة فوق الملفات القديمة
         }],
-        'noprogress': True,
-        'default_search': 'ytsearch',
+        'noprogress': True,           # إخفاء شريط التقدم
+        'default_search': 'ytsearch', # البحث في يوتيوب
+        'extractaudio': True,         # استخراج الصوت فقط
     }
+
     if not query.startswith(("http://", "https://")):
-        query = f"ytsearch1:{query}"
+        query = f"ytsearch:{query}"
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(query, download=True)
@@ -38,6 +42,7 @@ async def download_audio(query: str):
                 info = info['entries'][0]
             output_file = ydl.prepare_filename(info)
             audio_file = output_file.rsplit('.', 1)[0] + ".mp3"
+
         if os.path.exists(audio_file) and os.path.getsize(audio_file) > 0:
             return audio_file
     except Exception:
@@ -49,8 +54,10 @@ async def handler(event):
         msg_parts = event.message.text.split(' ', 1)
         if len(msg_parts) < 2:
             return await event.respond('ارسل الرابط أو النص المطلوب.')
+        
         query = msg_parts[1]
         audio_file = await download_audio(query)
+
         if audio_file:
             button = [Button.url("chanel", "https://t.me/sszxl")]
             await event.client.send_file(event.chat_id, audio_file, caption='[**Enjoy dear**](https://t.me/VIPABH_BOT)', buttons=button, reply_to=event.message.id)
