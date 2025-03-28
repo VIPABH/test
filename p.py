@@ -118,21 +118,6 @@ async def video_handler(event):
     else:
         await event.respond("فشل تحميل الفيديو والصوت. تحقق من الرابط أو استعلم عن سبب المشكلة.")
 
-@client.on(events.NewMessage(pattern='كلام'))
-async def audio_handler(event):
-    msg = await event.reply('🤌')
-    msg_parts = event.message.text.split(' ', 1)
-    if len(msg_parts) < 2:
-        return await event.respond('ارسل الرابط أو النص المطلوب.')
-    query = msg_parts[1]
-    audio_file = await download_audio(query)
-    if audio_file:
-        button = [Button.url("chanel", "https://t.me/sszxl")]
-        await msg.delete()
-        await send_file_with_check(event, audio_file, '**[استمتع بالصوت]**(https://t.me/VIPABH_BOT)', button)
-    else:
-        await event.respond("فشل تحميل الصوت. تحقق من الرابط أو استعلم عن سبب المشكلة.")
-
 @client.on(events.NewMessage(pattern='يوت'))
 async def mp3_handler(event):
     msg = await event.reply('🤌')
