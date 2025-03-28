@@ -54,18 +54,23 @@ async def handler(event):
     try:
         msg_parts = event.message.text.split(' ', 1)
         if len(msg_parts) < 2:
-            await event.respond('ارسل الرابط بعد /download')
+            await event.respond('ارسل الرابط بعد كلمة "تحميل" أو النص المطلوب.')
             return
-        
-        await event.respond('جارٍ التحميل...')
-        audio_file = await download_audio(msg_parts[1])
 
-        if audio_file:
-            await event.client.send_file(event.chat_id, audio_file, voice_note=True)
-            os.remove(audio_file)  # حذف الملف بعد الإرسال
+        # التحقق إذا كان النص يحتوي على رابط
+        url = msg_parts[1]
+        if "http" in url:  # إذا كان النص يحتوي على رابط
+            await event.respond('جارٍ التحميل من الرابط...')
+            audio_file = await download_audio(url)
+
+            if audio_file:
+                await event.client.send_file(event.chat_id, audio_file, voice_note=True)
+                os.remove(audio_file)  # حذف الملف بعد الإرسال
+            else:
+                await event.respond("فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
         else:
-            await event.respond("فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
-
+            await event.respond('يرجى إرسال رابط لتحميل الصوت كـ mp3.')
+        
     except Exception as e:
         await event.respond(f'خطأ: {e}')
 
