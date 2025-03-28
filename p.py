@@ -1,20 +1,3 @@
-import os
-import asyncio
-from telethon.tl.custom import Button
-from telethon import TelegramClient, events
-import yt_dlp
-from dotenv import load_dotenv
-
-load_dotenv()
-api_id = os.getenv('API_ID')      
-api_hash = os.getenv('API_HASH')  
-bot_token = os.getenv('BOT_TOKEN')
-
-if not api_id or not api_hash or not bot_token:
-    raise ValueError("يرجى ضبط API_ID, API_HASH، و BOT_TOKEN")
-
-client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
-
 async def download_audio(query: str):
     ydl_opts = {
         'format': 'bestaudio/best',  # تحميل الصوت بأعلى جودة
@@ -53,28 +36,3 @@ async def download_audio(query: str):
         except yt_dlp.utils.DownloadError as e:
             print(f"Error: {e}")
             return None
-
-
-@client.on(events.NewMessage(pattern='يوت'))
-async def handler(event):
-    msg = await event.reply('🤌')
-    msg_parts = event.message.text.split(' ', 1)
-    if len(msg_parts) < 2:
-        return await event.respond('ارسل الرابط أو النص المطلوب.')
-    query = msg_parts[1]
-    audio_file = await download_audio(query)  # استخدم download_audio بدلاً من download_video
-    if audio_file:
-        button = [Button.url("chanel", "https://t.me/sszxl")]
-        await msg.delete()
-        await event.client.send_file(
-            event.chat_id, 
-            audio_file,  # إرسال الصوت بدلاً من الفيديو
-            caption='**[استمتع بالصوت]**(https://t.me/VIPABH_BOT)', 
-            buttons=button, 
-            reply_to=event.message.id
-        )
-        os.remove(audio_file)  # حذف الملف بعد الإرسال
-    else:
-        await event.respond("فشل تحميل الصوت. تحقق من الرابط أو استعلم عن سبب المشكلة.")
-
-client.run_until_disconnected()
