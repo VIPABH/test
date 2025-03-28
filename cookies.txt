@@ -1,24 +1,35 @@
-# Netscape HTTP Cookie File
-# http://curl.haxx.se/rfc/cookie_spec.html
-# This is a generated file!  Do not edit.
+import os
+from telethon import TelegramClient, events
+import yt_dlp
+from dotenv import load_dotenv
 
-.youtube.com	TRUE	/	TRUE	1777326489	__Secure-1PAPISID	Rh-Pt5RXWvv1pqUx/AVFVd2qVqtm-p9sWF
-.youtube.com	TRUE	/	TRUE	1777326489	__Secure-1PSID	g.a000vAi308s6BSUBpJ0INSK2sxLZUtpk1qR_wi7S_2oc12OtrC3Fd_mZbCbONlt8-saRbX7pgAACgYKARISARASFQHGX2MiiiWjPmTnlDbW_vaVZfan3hoVAUF8yKr4ER-vg9BrGZvbhqygfdgj0076
-.youtube.com	TRUE	/	TRUE	1777326489	__Secure-3PAPISID	Rh-Pt5RXWvv1pqUx/AVFVd2qVqtm-p9sWF
-.youtube.com	TRUE	/	TRUE	1777326489	__Secure-3PSID	g.a000vAi308s6BSUBpJ0INSK2sxLZUtpk1qR_wi7S_2oc12OtrC3FM0Z6ciB0HlyT9MrD34L7HAACgYKAfkSARASFQHGX2Micb4sdQAOg9HcudUsngstGBoVAUF8yKrLxWRd_tavUR8WHbMKtPoW0076
-.youtube.com	TRUE	/	FALSE	1777326489	APISID	3hyNpMGwhHXjZAM9/A1bcZ7xuA7l6n_Rpt
-.youtube.com	TRUE	/	FALSE	1777326489	HSID	AKpMgeA1Y8kK0Y2x3
-.youtube.com	TRUE	/	TRUE	1777326489	SAPISID	Rh-Pt5RXWvv1pqUx/AVFVd2qVqtm-p9sWF
-.youtube.com	TRUE	/	FALSE	1777326489	SID	g.a000vAi308s6BSUBpJ0INSK2sxLZUtpk1qR_wi7S_2oc12OtrC3FQ0l1GkRC35z3DE6eApk1FwACgYKASUSARASFQHGX2MiRfJ6OeB8rOqURQ8TJEMSshoVAUF8yKpJqVkpIjS2Rk8yYImhe-_k0076
-.youtube.com	TRUE	/	TRUE	1777326489	SSID	AtTRo6Huucy4MYp3b
-.youtube.com	TRUE	/	TRUE	1777675696	LOGIN_INFO	AFmmF2swRgIhAOMRUphcK3auRkd0fF6xeK7z0mLXDydMK6P2WKwLcptPAiEA0Cf8lo7hP2hhRNcHAHrVKsz1P_8fWzXsp5lynbap4jw:QUQ3MjNmekRxcUcwYi1OQ1JrQU1FRkIxUWk5VnY4bWtJeFFobUEtVzI1VmlYVUdUNUFNTmhvLWVNQlVPdTNHdjJVSGRXV0FJY1dDSFpaQ2VBZVk0Ym1GRXMtXzFXZXNUdHJaNFNhT2M5Yy0zR3JHZFNMamZkdTBZa0Eya25keGNnUVlBV2ZKSDlrMXNlRjFVcHNDT1YtRmlvVnBRMjFxb09n
-.youtube.com	TRUE	/	TRUE	1777756505	PREF	tz=Asia.Baghdad&f7=100&f5=20000&f6=400&f4=10000
-.youtube.com	TRUE	/	TRUE	1774732514	__Secure-1PSIDTS	sidts-CjIB7pHptc0wbcJ_MUn_0aHHwY2QcfG7KX067-nHZnFNXx7Z4tW--kmckzfQ4mzJXasGsRAA
-.youtube.com	TRUE	/	TRUE	1774732514	__Secure-3PSIDTS	sidts-CjIB7pHptc0wbcJ_MUn_0aHHwY2QcfG7KX067-nHZnFNXx7Z4tW--kmckzfQ4mzJXasGsRAA
-.youtube.com	TRUE	/	FALSE	1774732514	SIDCC	AKEyXzW28xTDDxQxIPBWGnBPEBUUT509a4ybTkqmGsJ_dgeEmbW1A08BeyOhQVlL0H-qeYtlwQ
-.youtube.com	TRUE	/	TRUE	1774732514	__Secure-1PSIDCC	AKEyXzWYgM8xPU6fzozRqHwWCkieBbL3SHslIUWNicZkcb6C25SUSbsyydQb4DwjRgufP51UJc4
-.youtube.com	TRUE	/	TRUE	1774732514	__Secure-3PSIDCC	AKEyXzWgNRxVC8nu97HBvXcLKNzfjdAF7Jxzw4sMvxDWfASU1HbvPV9NKlYqDm6r0iUo3ZRwkVA
-.youtube.com	TRUE	/	TRUE	1758748479	VISITOR_INFO1_LIVE	Lb_lWhB8rjo
-.youtube.com	TRUE	/	TRUE	1758748479	VISITOR_PRIVACY_METADATA	CgJJURIEGgAgRg%3D%3D
-.youtube.com	TRUE	/	TRUE	1758664112	__Secure-ROLLOUT_TOKEN	CMyRpI_d9ozkhwEQu9PJht-uigMY1d6C0p6rjAM%3D
-.youtube.com	TRUE	/	TRUE	0	YSC	3s-hOE8dlKE
+load_dotenv()
+api_id, api_hash, bot_token = os.getenv('API_ID'), os.getenv('API_HASH'), os.getenv('BOT_TOKEN')
+
+client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
+
+async def download_audio(query: str):
+    opts = {'format': 'bestaudio/best', 'outtmpl': '%(title)s.%(ext)s', 'noplaylist': True, 'quiet': True}
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        try:
+            info = ydl.extract_info(query, download=True)
+            return ydl.prepare_filename(info)
+        except Exception as e:
+            print("خطأ:", e)
+            return None
+
+@client.on(events.NewMessage(pattern='يوت'))
+async def audio_handler(event):
+    query = event.text.split(' ', 1)[1] if ' ' in event.text else None
+    if not query:
+        return await event.respond("أرسل الرابط أو اسم الفيديو.")
+    
+    audio_file = await download_audio(query)
+    if audio_file and os.path.exists(audio_file):
+        await event.respond("جاري الإرسال...")
+        await event.client.send_file(event.chat_id, audio_file)
+        os.remove(audio_file)
+    else:
+        await event.respond("فشل التحميل.")
+
+client.run_until_disconnected()
