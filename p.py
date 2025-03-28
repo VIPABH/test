@@ -41,12 +41,12 @@ async def download_video_and_audio(query: str):
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
-            info = ydl.extract_info(query, download=True)  # استخراج معلومات الفيديو وتحميله
+            info = ydl.extract_info(query, download=True)
             if 'entries' in info:
-                info = info['entries'][0]  # اختر أول نتيجة
-            output_file = ydl.prepare_filename(info)  # تحديد اسم الملف
-            video_file = output_file.rsplit('.', 1)[0] + ".mp4"  # التأكد من أنه فيديو
-            audio_file = output_file.rsplit('.', 1)[0] + ".mp3"  # التأكد من أنه MP3
+                info = info['entries'][0]
+            output_file = ydl.prepare_filename(info)
+            video_file = output_file.rsplit('.', 1)[0] + ".mp4"
+            audio_file = output_file.rsplit('.', 1)[0] + ".mp3"
             return video_file, audio_file
         except yt_dlp.utils.DownloadError as e:
             print(f"Error: {e}")
@@ -55,22 +55,22 @@ async def download_video_and_audio(query: str):
 # تحميل الصوت فقط كـ MP3
 async def download_audio(query: str):
     ydl_opts = {
-        'format': 'bestaudio/best',  # تحميل الصوت بأعلى جودة
-        'quiet': True,  # إخفاء التقدم
-        'noplaylist': True,  # عدم تحميل قوائم التشغيل
-        'cookiefile': 'cookies.txt',  # إذا كانت الكوكيز مطلوبة
-        'noprogress': True,  # إخفاء شريط التقدم
-        'default_search': 'ytsearch',  # البحث في يوتيوب
-        'outtmpl': '%(id)s.%(ext)s',  # اسم الملف وفقًا لـ ID
-        'extractaudio': True,  # استخراج الصوت فقط
-        'prefer_ffmpeg': True,  # استخدام FFmpeg إذا كان متاحًا
-        'postprocessors': [],  # لا نحتاج إلى معالج إضافي
-        'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
-        'concurrent_fragment_downloads': 100,  # تحميل أجزاء متعددة في وقت واحد
-        'max_filesize': 50 * 1024 * 1024,  # الحد الأقصى للحجم (50 ميجابايت)
-        'socket_timeout': 30,  # مهلة الاتصال
-        'audio_quality': '0',  # تحميل الصوت بأعلى جودة متاحة
-        'audio_only': True,  # تحميل الصوت فقط
+        'format': 'bestaudio/best',
+        'quiet': True,
+        'noplaylist': True,
+        'cookiefile': 'cookies.txt',
+        'noprogress': True,
+        'default_search': 'ytsearch',
+        'outtmpl': '%(id)s.%(ext)s',
+        'extractaudio': True,
+        'prefer_ffmpeg': True,
+        'postprocessors': [],
+        'progress_hooks': [lambda d: None],
+        'concurrent_fragment_downloads': 100,
+        'max_filesize': 50 * 1024 * 1024,
+        'socket_timeout': 30,
+        'audio_quality': '0',
+        'audio_only': True,
     }
 
     if not query.startswith(("http://", "https://")):
@@ -78,11 +78,11 @@ async def download_audio(query: str):
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
-            info = ydl.extract_info(query, download=True)  # استخراج معلومات الفيديو وتحميله
+            info = ydl.extract_info(query, download=True)
             if 'entries' in info:
-                info = info['entries'][0]  # اختر أول نتيجة
-            output_file = ydl.prepare_filename(info)  # تحديد اسم الملف
-            audio_file = output_file.rsplit('.', 1)[0] + ".mp3"  # التأكد من أنه MP3
+                info = info['entries'][0]
+            output_file = ydl.prepare_filename(info)
+            audio_file = output_file.rsplit('.', 1)[0] + ".mp3"
             return audio_file
         except yt_dlp.utils.DownloadError as e:
             print(f"Error: {e}")
@@ -90,7 +90,7 @@ async def download_audio(query: str):
 
 # إرسال الملف إذا كان موجودًا
 async def send_file_with_check(event, file_path, caption, buttons=None):
-    if os.path.exists(file_path):  # تحقق من وجود الملف
+    if os.path.exists(file_path):
         await event.client.send_file(
             event.chat_id,
             file_path,
@@ -98,7 +98,7 @@ async def send_file_with_check(event, file_path, caption, buttons=None):
             buttons=buttons,
             reply_to=event.message.id
         )
-        os.remove(file_path)  # حذف الملف بعد إرساله
+        os.remove(file_path)
     else:
         await event.respond(f"الملف {file_path} غير موجود.")
 
@@ -125,7 +125,7 @@ async def mp3_handler(event):
     if len(msg_parts) < 2:
         return await event.respond('ارسل الرابط أو النص المطلوب.')
     query = msg_parts[1]
-    audio_file = await download_audio(query)  # تحميل الصوت فقط كـ MP3
+    audio_file = await download_audio(query)
     if audio_file:
         button = [Button.url("chanel", "https://t.me/sszxl")]
         await msg.delete()
