@@ -49,6 +49,33 @@ async def download_audio(query: str):
             return audio_file
         return output_file  # إذا كان الفيديو نفسه هو المطلوب تحميله
 
+async def download_video(query: str):
+    ydl_opts = {
+        'format': 'bestvideo+bestaudio/best',  # لتحميل الفيديو والصوت بأفضل جودة
+        'quiet': True,
+        'noplaylist': True,
+        'cookiefile': 'cookies.txt',
+        'noprogress': True,
+        'extractaudio': False,  # لا استخراج للصوت
+        'default_search': 'ytsearch',
+        'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
+        'concurrent_fragment_downloads': 10,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
+        'max_filesize': 50 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
+        'socket_timeout': 30,  # تحديد مهلة الاتصال لتقليل التأخير
+    }
+
+    if not query.startswith(("http://", "https://")):
+        query = f"ytsearch:{query}"
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(query, download=True)
+        if 'entries' in info:
+            info = info['entries'][0]
+        output_file = ydl.prepare_filename(info)
+        if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+            return output_file
+        return None  # إذا فشل التحميل، إرجاع None
+
 @client.on(events.NewMessage(pattern='يوت'))
 async def handler_audio(event):
     msg = await event.reply('🤌')
@@ -81,7 +108,6 @@ async def handler_audio(event):
         if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
             return output_file
         return None  # إذا فشل التحميل، إرجاع None
-
 @client.on(events.NewMessage(pattern='فيديو'))
 async def handler_video(event):
     msg = await event.reply('🤌')
@@ -103,5 +129,6 @@ async def handler_video(event):
         os.remove(video_file)  # حذف الفيديو بعد إرساله
     else:
         await event.respond("فشل تحميل الفيديو.")
+
 
 client.run_until_disconnected()
