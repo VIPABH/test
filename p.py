@@ -17,8 +17,8 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_video(query: str):
     ydl_opts = {
-        'format': 'best',  # تحميل الفيديو بأفضل جودة بدون تعديل
-        'quiet': True,     # إخفاء الرسائل أثناء التحميل
+        'format': 'best',  # تحميل الفيديو بأعلى جودة
+        'quiet': False,  # إظهار رسائل الأخطاء (لتشخيص المشكلة)
         'noplaylist': True,  # عدم تحميل قوائم التشغيل
         'cookiefile': 'cookies.txt',  # استخدام الكوكيز إذا كانت مطلوبة
         'noprogress': True,  # إخفاء شريط التقدم
@@ -26,7 +26,7 @@ async def download_video(query: str):
         'outtmpl': '%(id)s.%(ext)s',  # استخدام اسم الفيديو كما هو
         'progress_hooks': [lambda d: None],  # إخفاء التقدم
         'concurrent_fragment_downloads': 100,  # تحميل الأجزاء في نفس الوقت
-        'max_filesize': 50 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
+        'max_filesize': 200 * 1024 * 1024,  # زيادة الحد الأقصى للحجم (200 ميجابايت)
         'socket_timeout': 30,  # تقليل التأخير
     }
 
@@ -34,12 +34,16 @@ async def download_video(query: str):
         query = f"ytsearch:{query}"
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(query, download=True)
-        if 'entries' in info:
-            info = info['entries'][0]
-        output_file = ydl.prepare_filename(info)  # الحصول على اسم الملف
-        if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-            return output_file  # إرجاع مسار الملف المحمل
+        try:
+            info = ydl.extract_info(query, download=True)
+            if 'entries' in info:
+                info = info['entries'][0]
+            output_file = ydl.prepare_filename(info)  # الحصول على اسم الملف
+            if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+                return output_file  # إرجاع مسار الملف المحمل
+        except yt_dlp.utils.DownloadError as e:
+            print(f"Error: {e}")  # طباعة الرسالة عند حدوث الخطأ
+            return None
 
 @client.on(events.NewMessage(pattern='يوت'))
 async def handler(event):
@@ -61,6 +65,6 @@ async def handler(event):
         )
         os.remove(video_file)
     else:
-        await event.respond("فشل تحميل الفيديو.")
+        await event.respond("فشل تحميل الفيديو. تحقق من الرابط أو استعلم عن سبب المشكلة.")
 
 client.run_until_disconnected()
