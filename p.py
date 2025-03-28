@@ -15,22 +15,19 @@ if not api_id or not api_hash or not bot_token:
 
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-async def download_audio(query: str):
+async def download_video(query: str):
     ydl_opts = {
-        'format': 'bestaudio/best',  # تحميل الصوت بأعلى جودة
-        'quiet': True,
-        'noplaylist': True,
-        'cookiefile': 'cookies.txt',
-        'noprogress': True,
+        'format': 'best',  # تحميل الفيديو بأفضل جودة بدون تعديل
+        'quiet': True,     # إخفاء الرسائل أثناء التحميل
+        'noplaylist': True,  # عدم تحميل قوائم التشغيل
+        'cookiefile': 'cookies.txt',  # استخدام الكوكيز إذا كانت مطلوبة
+        'noprogress': True,  # إخفاء شريط التقدم
         'default_search': 'ytsearch',  # البحث في يوتيوب
-        'outtmpl': '%(id)s.%(ext)s',  # تحديد اسم الملف وفقًا للـ ID
-        'extractaudio': True,  # استخراج الصوت (لكن سيكون MP3 مباشرة دون تحويل)
-        'prefer_ffmpeg': True,  # استخدام FFmpeg إذا كان متاحًا
-        'postprocessors': [],  # لا نحتاج لوجود محول بعد التحميل
-        'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
-        'concurrent_fragment_downloads': 100,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
+        'outtmpl': '%(id)s.%(ext)s',  # استخدام اسم الفيديو كما هو
+        'progress_hooks': [lambda d: None],  # إخفاء التقدم
+        'concurrent_fragment_downloads': 100,  # تحميل الأجزاء في نفس الوقت
         'max_filesize': 50 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
-        'socket_timeout': 30,  # تحديد مهلة الاتصال لتقليل التأخير
+        'socket_timeout': 30,  # تقليل التأخير
     }
 
     if not query.startswith(("http://", "https://")):
@@ -40,10 +37,9 @@ async def download_audio(query: str):
         info = ydl.extract_info(query, download=True)
         if 'entries' in info:
             info = info['entries'][0]
-        output_file = ydl.prepare_filename(info)
-        audio_file = output_file.rsplit('.', 1)[0] + ".mp3"  # التأكد من أن الملف سيكون MP3
-        if os.path.exists(audio_file) and os.path.getsize(audio_file) > 0:
-            return audio_file
+        output_file = ydl.prepare_filename(info)  # الحصول على اسم الملف
+        if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+            return output_file  # إرجاع مسار الملف المحمل
 
 @client.on(events.NewMessage(pattern='يوت'))
 async def handler(event):
@@ -52,18 +48,19 @@ async def handler(event):
     if len(msg_parts) < 2:
         return await event.respond('ارسل الرابط أو النص المطلوب.')
     query = msg_parts[1]
-    audio_file = await download_audio(query)
-    if audio_file:
+    video_file = await download_video(query)
+    if video_file:
         button = [Button.url("chanel", "https://t.me/sszxl")]
         await msg.delete()
         await event.client.send_file(
             event.chat_id, 
-            audio_file, 
+            video_file, 
             caption='**[Enjoy dear]**(https://t.me/VIPABH_BOT)', 
             buttons=button, 
             reply_to=event.message.id
         )
-        os.remove(audio_file)
+        os.remove(video_file)
     else:
-        await event.respond("فشل تحميل الصوت.")
+        await event.respond("فشل تحميل الفيديو.")
+
 client.run_until_disconnected()
