@@ -78,4 +78,3 @@ async def handler(event):
         await event.respond(f'خطأ: {e}')
 
 client.run_until_disconnected()
-
