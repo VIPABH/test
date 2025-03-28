@@ -9,6 +9,7 @@ load_dotenv()
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
+ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
 if not api_id or not api_hash or not bot_token:
     raise ValueError("يرجى ضبط API_ID, API_HASH، و BOT_TOKEN")
