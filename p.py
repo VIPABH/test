@@ -14,7 +14,7 @@ if not api_id or not api_hash or not bot_token:
 
 client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-async def download_audio(url: str):
+async def download_audio(query: str):
     output_file = "audio.mp3"
 
     ydl_opts = {
@@ -29,16 +29,17 @@ async def download_audio(url: str):
             'preferredquality': '64',
             'nopostoverwrites': True,  # لمنع إضافة الامتداد مرتين
         }],
-        'noprogress': True  # لمنع إظهار التقدم بشكل مستمر
+        'noprogress': True,  # لمنع إظهار التقدم بشكل مستمر
+        'default_search': 'ytsearch',  # تفعيل البحث باستخدام الكلمات المفتاحية
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)  # التحقق من إمكانية الجلب
+            info = ydl.extract_info(query, download=False)  # التحقق من إمكانية الجلب عبر الكلمات المفتاحية
             if not info:
                 raise Exception("لم يتمكن yt-dlp من جلب المعلومات")
 
-            ydl.download([url])
+            ydl.download([query])
 
         # التحقق من وجود الملف
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
@@ -55,22 +56,23 @@ async def handler(event):
     try:
         msg_parts = event.message.text.split(' ', 1)
         if len(msg_parts) < 2:
-            await event.respond('ارسل الرابط بعد كلمة "تحميل" أو النص المطلوب.')
+            await event.respond('ارسل الرابط أو النص المطلوب للبحث عن الصوت.')
             return
 
-        # التحقق إذا كان النص يحتوي على رابط
-        url = msg_parts[1]
-        if "http" in url:  # إذا كان النص يحتوي على رابط
+        query = msg_parts[1]
+        
+        if "http" in query:  # إذا كان النص يحتوي على رابط
             await event.respond('جارٍ التحميل من الرابط...')
-            audio_file = await download_audio(url)
+            audio_file = await download_audio(query)
+        else:  # إذا كان النص يحتوي على كلمات للبحث عنها
+            await event.respond('جارٍ البحث عن الصوت...')
+            audio_file = await download_audio(query)
 
-            if audio_file:
-                await event.client.send_file(event.chat_id, audio_file, voice_note=True)
-                os.remove(audio_file)  # حذف الملف بعد الإرسال
-            else:
-                await event.respond("فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
+        if audio_file:
+            await event.client.send_file(event.chat_id, audio_file, voice_note=True)
+            os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
-            await event.respond('يرجى إرسال رابط لتحميل الصوت كـ mp3.')
+            await event.respond("فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
         
     except Exception as e:
         await event.respond(f'خطأ: {e}')
