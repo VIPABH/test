@@ -2,23 +2,16 @@
 # http://curl.haxx.se/rfc/cookie_spec.html
 # This is a generated file!  Do not edit.
 
-.youtube.com	TRUE	/	TRUE	1777326489	__Secure-1PAPISID	Rh-Pt5RXWvv1pqUx/AVFVd2qVqtm-p9sWF
-.youtube.com	TRUE	/	TRUE	1777326489	__Secure-1PSID	g.a000vAi308s6BSUBpJ0INSK2sxLZUtpk1qR_wi7S_2oc12OtrC3Fd_mZbCbONlt8-saRbX7pgAACgYKARISARASFQHGX2MiiiWjPmTnlDbW_vaVZfan3hoVAUF8yKr4ER-vg9BrGZvbhqygfdgj0076
-.youtube.com	TRUE	/	TRUE	1777326489	__Secure-3PAPISID	Rh-Pt5RXWvv1pqUx/AVFVd2qVqtm-p9sWF
-.youtube.com	TRUE	/	TRUE	1777326489	__Secure-3PSID	g.a000vAi308s6BSUBpJ0INSK2sxLZUtpk1qR_wi7S_2oc12OtrC3FM0Z6ciB0HlyT9MrD34L7HAACgYKAfkSARASFQHGX2Micb4sdQAOg9HcudUsngstGBoVAUF8yKrLxWRd_tavUR8WHbMKtPoW0076
-.youtube.com	TRUE	/	FALSE	1777326489	APISID	3hyNpMGwhHXjZAM9/A1bcZ7xuA7l6n_Rpt
-.youtube.com	TRUE	/	FALSE	1777326489	HSID	AKpMgeA1Y8kK0Y2x3
-.youtube.com	TRUE	/	TRUE	1777723894	PREF	tz=Asia.Baghdad&f7=100&f5=20000&f6=400&f4=10000
-.youtube.com	TRUE	/	TRUE	1777326489	SAPISID	Rh-Pt5RXWvv1pqUx/AVFVd2qVqtm-p9sWF
-.youtube.com	TRUE	/	FALSE	1777326489	SID	g.a000vAi308s6BSUBpJ0INSK2sxLZUtpk1qR_wi7S_2oc12OtrC3FQ0l1GkRC35z3DE6eApk1FwACgYKASUSARASFQHGX2MiRfJ6OeB8rOqURQ8TJEMSshoVAUF8yKpJqVkpIjS2Rk8yYImhe-_k0076
-.youtube.com	TRUE	/	TRUE	1777326489	SSID	AtTRo6Huucy4MYp3b
-.youtube.com	TRUE	/	TRUE	1777675696	LOGIN_INFO	AFmmF2swRgIhAOMRUphcK3auRkd0fF6xeK7z0mLXDydMK6P2WKwLcptPAiEA0Cf8lo7hP2hhRNcHAHrVKsz1P_8fWzXsp5lynbap4jw:QUQ3MjNmekRxcUcwYi1OQ1JrQU1FRkIxUWk5VnY4bWtJeFFobUEtVzI1VmlYVUdUNUFNTmhvLWVNQlVPdTNHdjJVSGRXV0FJY1dDSFpaQ2VBZVk0Ym1GRXMtXzFXZXNUdHJaNFNhT2M5Yy0zR3JHZFNMamZkdTBZa0Eya25keGNnUVlBV2ZKSDlrMXNlRjFVcHNDT1YtRmlvVnBRMjFxb09n
-.youtube.com	TRUE	/	TRUE	1774699898	__Secure-1PSIDTS	sidts-CjIB7pHptZ5iWqOuK5WlEX30xAfJkkJEd5At5szT-StUM-NOgIWx7aO69VLZRaZdqiYMPxAA
-.youtube.com	TRUE	/	TRUE	1774699898	__Secure-3PSIDTS	sidts-CjIB7pHptZ5iWqOuK5WlEX30xAfJkkJEd5At5szT-StUM-NOgIWx7aO69VLZRaZdqiYMPxAA
-.youtube.com	TRUE	/	FALSE	1774699898	SIDCC	AKEyXzWgxIC3LzNwixRiNSCPnjxifhPz1Z37WzryVCMvinp4CbTehOKRlV3o0WFLftbJRz7W-w
-.youtube.com	TRUE	/	TRUE	1774699898	__Secure-1PSIDCC	AKEyXzUq1EyJDbDWCEcvGL5OhaeowMjsjPPAjw-_aUTDpSXTJ-0peNSFQoBQSMVxZ5jKHZ_QerY
-.youtube.com	TRUE	/	TRUE	1774699898	__Secure-3PSIDCC	AKEyXzUGKZEngFI5ceuKy0ACwVkcO9_v73ph8HvH3RPTPB4fxqYLnd9RPFmMXz0lzEkRccnYTgk
-.youtube.com	TRUE	/	TRUE	1758715368	VISITOR_INFO1_LIVE	Lb_lWhB8rjo
-.youtube.com	TRUE	/	TRUE	1758715368	VISITOR_PRIVACY_METADATA	CgJJURIEGgAgRg%3D%3D
-.youtube.com	TRUE	/	TRUE	1758664112	__Secure-ROLLOUT_TOKEN	CMyRpI_d9ozkhwEQu9PJht-uigMY1d6C0p6rjAM%3D
-.youtube.com	TRUE	/	TRUE	0	YSC	3s-hOE8dlKE
+.github.com	TRUE	/	TRUE	1773923931	_octo	GH1.1.1947628124.1742387930
+.github.com	TRUE	/	TRUE	1757939937	GHCC	Required:1-Analytics:1-SocialMedia:1-Advertising:1
+github.com	FALSE	/	TRUE	1774651381	_device_id	cc16899c462bed9f0606c2b0afb5334a
+.github.com	TRUE	/	TRUE	1773923943	logged_in	yes
+github.com	FALSE	/	TRUE	1750464670	saved_user_sessions	186876223%3AgwpOmoLSCdDPauAx3dJi2KXb2EcfZvaOpznnCmwqL33tLSqA%7C191177247%3AC7m4ZKo2cGZEFAuxIbSew1RSJpz5QDP-kZvDQLNpZg_VVYUh
+github.com	FALSE	/	TRUE	1744324981	user_session	gwpOmoLSCdDPauAx3dJi2KXb2EcfZvaOpznnCmwqL33tLSqA
+github.com	FALSE	/	TRUE	1744324981	__Host-user_session_same_site	gwpOmoLSCdDPauAx3dJi2KXb2EcfZvaOpznnCmwqL33tLSqA
+.github.com	TRUE	/	TRUE	1774365145	dotcom_user	VIPABH
+.github.com	TRUE	/	TRUE	0	color_mode	%7B%22color_mode%22%3A%22auto%22%2C%22light_theme%22%3A%7B%22name%22%3A%22light%22%2C%22color_mode%22%3A%22light%22%7D%2C%22dark_theme%22%3A%7B%22name%22%3A%22dark%22%2C%22color_mode%22%3A%22dark%22%7D%7D
+.github.com	TRUE	/	TRUE	0	cpu_bucket	md
+.github.com	TRUE	/	TRUE	0	preferred_color_mode	light
+.github.com	TRUE	/	TRUE	0	tz	Asia%2FBaghdad
+github.com	FALSE	/	TRUE	0	_gh_sess	BKdxCgdkhMBktRJxRaAbvofpsviZ08KaL7CvCcozqkPhEEdZlPdSQrZUMUrZo3UpDd6Ag%2FpyODw2CCHxCYlJ6lWuP1SOdsQR06spEvPOylmc65G8bSvH9gp8grqPD%2FB0BUZP0fb%2BEaai5R3o3XnSyjRk3mnNfizT6M3WDXfain4scSFZ516lsPxq7T2ZYElGioTZuaOrQDpHow3nLoWEAl9GucbdEygSxkQcUmg5Oo0og1QqfrCZQnrIIpVDwCtEsL7l%2FSarDEMi4evuja1%2BVHhM5vFaYNbFFSED4caPpDU9h9dGipr%2FxBpUgOOW4zdPiOLVqpfx6W85mHlcEgbqnzOkwze%2BroxMvjadW%2BLuBsA%2BBSo30BryS%2BHS6K0yrCbT--5fVoVh6vfnwziHW%2F--lfqCw1f46fZtMSzAwz4Fkw%3D%3D
