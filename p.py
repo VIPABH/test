@@ -88,6 +88,20 @@ async def download_audio(query: str):
             print(f"Error: {e}")
             return None
 
+# إرسال الملف إذا كان موجودًا
+async def send_file_with_check(event, file_path, caption, buttons=None):
+    if os.path.exists(file_path):  # تحقق من وجود الملف
+        await event.client.send_file(
+            event.chat_id,
+            file_path,
+            caption=caption,
+            buttons=buttons,
+            reply_to=event.message.id
+        )
+        os.remove(file_path)  # حذف الملف بعد إرساله
+    else:
+        await event.respond(f"الملف {file_path} غير موجود.")
+
 @client.on(events.NewMessage(pattern='فيديو'))
 async def video_handler(event):
     msg = await event.reply('🤌')
@@ -99,22 +113,8 @@ async def video_handler(event):
     if video_file and audio_file:
         button = [Button.url("chanel", "https://t.me/sszxl")]
         await msg.delete()
-        await event.client.send_file(
-            event.chat_id, 
-            video_file, 
-            caption='**[استمتع بالفيديو والصوت]**(https://t.me/VIPABH_BOT)', 
-            buttons=button, 
-            reply_to=event.message.id
-        )
-        await event.client.send_file(
-            event.chat_id, 
-            audio_file, 
-            caption='**[استمتع بالصوت]**(https://t.me/VIPABH_BOT)', 
-            buttons=button, 
-            reply_to=event.message.id
-        )
-        os.remove(video_file)
-        os.remove(audio_file)
+        await send_file_with_check(event, video_file, '**[استمتع بالفيديو والصوت]**(https://t.me/VIPABH_BOT)', button)
+        await send_file_with_check(event, audio_file, '**[استمتع بالصوت]**(https://t.me/VIPABH_BOT)', button)
     else:
         await event.respond("فشل تحميل الفيديو والصوت. تحقق من الرابط أو استعلم عن سبب المشكلة.")
 
@@ -129,14 +129,7 @@ async def audio_handler(event):
     if audio_file:
         button = [Button.url("chanel", "https://t.me/sszxl")]
         await msg.delete()
-        await event.client.send_file(
-            event.chat_id, 
-            audio_file, 
-            caption='**[استمتع بالصوت]**(https://t.me/VIPABH_BOT)', 
-            buttons=button, 
-            reply_to=event.message.id
-        )
-        os.remove(audio_file)
+        await send_file_with_check(event, audio_file, '**[استمتع بالصوت]**(https://t.me/VIPABH_BOT)', button)
     else:
         await event.respond("فشل تحميل الصوت. تحقق من الرابط أو استعلم عن سبب المشكلة.")
 
@@ -151,14 +144,7 @@ async def mp3_handler(event):
     if audio_file:
         button = [Button.url("chanel", "https://t.me/sszxl")]
         await msg.delete()
-        await event.client.send_file(
-            event.chat_id, 
-            audio_file, 
-            caption='**[استمتع بالصوت MP3]**(https://t.me/VIPABH_BOT)', 
-            buttons=button, 
-            reply_to=event.message.id
-        )
-        os.remove(audio_file)
+        await send_file_with_check(event, audio_file, '**[استمتع بالصوت MP3]**(https://t.me/VIPABH_BOT)', button)
     else:
         await event.respond("فشل تحميل الصوت MP3. تحقق من الرابط أو استعلم عن سبب المشكلة.")
 
