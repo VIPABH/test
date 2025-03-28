@@ -69,7 +69,7 @@ async def handler(event):
             audio_file = await download_audio(query)
 
         if audio_file:
-            await event.client.send_file(event.chat_id, audio_file, voice_note=True)
+            await event.client.send_file(event.chat_id, audio_file)
             os.remove(audio_file)  # حذف الملف بعد الإرسال
         else:
             await event.respond("فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
