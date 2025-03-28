@@ -2,6 +2,7 @@ import os
 from telethon import TelegramClient, events
 import yt_dlp
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
@@ -16,6 +17,11 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(url: str):
     output_file = "audio.mp3"
+
+    # التحقق إذا كان الرابط هو رابط Shorts
+    if "youtube.com/shorts/" in url:
+        # تحويل رابط الـ Shorts إلى رابط فيديو عادي
+        url = url.replace("youtube.com/shorts/", "youtube.com/watch?v=")
 
     ydl_opts = {
         'format': 'worstaudio',
