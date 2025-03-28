@@ -33,8 +33,8 @@ async def download_audio(query: str):
     
 
         'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
-        'concurrent_fragment_downloads': 10,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
-        'max_filesize': 10 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
+        'concurrent_fragment_downloads': 100,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
+        'max_filesize': 50 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
         'socket_timeout': 30,  # تحديد مهلة الاتصال لتقليل التأخير
     }
 
