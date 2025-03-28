@@ -17,23 +17,22 @@ client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def download_audio(query: str):
     ydl_opts = {
-        'format': 'worstaudio',  # لتحميل أقل جودة صوتية
-        'quiet': True,
-        'noplaylist': True,
-        'cookiefile': 'cookies.txt',
-        'noprogress': True,
-        'extractaudio': True,
-        'default_search': 'ytsearch',
+        'format': 'bestaudio/best',  # اختيار أفضل جودة صوت
+        'quiet': True,                # إخفاء معظم الرسائل
+        'noplaylist': True,           # عدم تحميل قوائم التشغيل
+        'cookiefile': 'cookies.txt',  # استخدام الكوكيز إذا كانت مطلوبة
+        'noprogress': True,           # إخفاء شريط التقدم
+        'extractaudio': True,         # استخراج الصوت فقط
+        'default_search': 'ytsearch', # البحث في يوتيوب
+        'outtmpl': '%(title)s.%(ext)s',  # تحديد اسم الملف النهائي
         'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',  # تحويل الصوت إلى MP3
-            'preferredquality': '64',  # ضغط الصوت لجودة أقل (أسرع)
+            'key': 'FFmpegExtractAudio',  # استخراج الصوت فقط
+            'preferredcodec': 'mp3',  # التحويل إلى MP3 مباشرة
+            'preferredquality': '192',  # تحديد جودة الصوت المطلوبة
             'nopostoverwrites': True,
         }],
-    
-
         'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
-        'concurrent_fragment_downloads': 100,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
+        'concurrent_fragment_downloads': 5,  # تقليل عدد الأجزاء المحملة في نفس الوقت لتحسين السرعة
         'max_filesize': 50 * 1024 * 1024,  # تحديد الحد الأقصى للحجم (50 ميجابايت)
         'socket_timeout': 30,  # تحديد مهلة الاتصال لتقليل التأخير
     }
@@ -46,9 +45,10 @@ async def download_audio(query: str):
         if 'entries' in info:
             info = info['entries'][0]
         output_file = ydl.prepare_filename(info)
-        audio_file = output_file.rsplit('.', 1)[0] + ".mp3"
+        audio_file = output_file.rsplit('.', 1)[0] + ".mp3"  # التأكد من أن الملف سيكون بصيغة MP3
         if os.path.exists(audio_file) and os.path.getsize(audio_file) > 0:
             return audio_file
+
 @client.on(events.NewMessage(pattern='يوت'))
 async def handler(event):
     msg = await event.reply('🤌')
@@ -71,4 +71,3 @@ async def handler(event):
     else:
         await event.respond("فشل تحميل الصوت.")
 client.run_until_disconnected()
-
