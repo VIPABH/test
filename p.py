@@ -57,7 +57,13 @@ async def handler(event):
             audio_file = await download_audio(query)
         if audio_file:
             button = [Button.url("chanel", "https://t.me/sszxl")]
-            await event.client.send_file(event.chat_id, audio_file, button=button, caption='**Enjoy dear**')
+            await event.client.send_file(
+                event.chat_id, 
+                audio_file, 
+                caption='**Enjoy dear**',
+                buttons=button,
+                reply_to=event.message.id
+            )
             os.remove(audio_file)
         else:
             await event.respond("فشل تحميل الصوت، تحقق من الرابط أو حاول لاحقًا.")
