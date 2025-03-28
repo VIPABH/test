@@ -30,6 +30,8 @@ async def download_audio(query: str):
             'preferredquality': '64',  # ضغط الصوت لجودة أقل (أسرع)
             'nopostoverwrites': True,
         }],
+        'progress_hooks': [lambda d: None],  # إخفاء التقدم بشكل كامل
+        'concurrent_fragment_downloads': 5,  # زيادة عدد الأجزاء التي يتم تحميلها في نفس الوقت
     }
 
     if not query.startswith(("http://", "https://")):
@@ -57,7 +59,7 @@ async def handler(event):
 
         # ارسال رسالة أولية
         msg = await event.reply('جاري البحث انتظر...')
-        await asyncio.sleep(4)  # الانتظار قليلاً
+        await asyncio.sleep(2)  # تقليل الوقت قليلاً من 4 إلى 2 ثانية
         await msg.delete()  # حذف الرسالة بعد التأكيد
 
         query = msg_parts[1]
