@@ -45,6 +45,7 @@ async def download_video(query: str):
 
 @ABH.on(events.NewMessage(pattern='انستا'))
 async def handler(event):
+    await event.delete()  # ✅ حذف رسالة الأمر
     msg = await event.reply('🤌')
     msg_parts = event.message.text.split(' ', 1)
     if len(msg_parts) < 2:
