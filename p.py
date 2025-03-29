@@ -13,42 +13,34 @@ ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
 if not api_id or not api_hash or not bot_token:
     raise ValueError("يرجى ضبط API_ID, API_HASH، و BOT_TOKEN")
-import yt_dlp
+from pytube import YouTube
 import os
 from telethon import events
 from telethon.tl.custom import Button
 
+# الدالة الخاصة بتنزيل الفيديو باستخدام pytube
 async def download_video(query: str):
-    ydl_opts = {
-        'format': 'best',  
-        'quiet': False, 
-        'noplaylist': True, 
-        'cookiefile': 'cookies.txt',  # ملف الكوكيز لتسجيل الدخول التلقائي
-        'noprogress': True,  
-        'default_search': 'ytsearch',  
-        'outtmpl': '%(id)s.%(ext)s',  # تحديد اسم الملف
-        'progress_hooks': [lambda d: None],  
-        'concurrent_fragment_downloads': 100,  # عدد تحميلات الأجزاء المتوازية
-        'max_filesize': 200 * 1024 * 1024,  # تحديد الحجم الأقصى للملف
-        'socket_timeout': 30,
-    }
-    
-    # التأكد من أن الاستعلام يحتوي على رابط صالح أو يتم تحويله إلى بحث
+    # إذا لم يكن الرابط موجودًا، يتم تحويل النص إلى رابط بحث يوتيوب
     if not query.startswith(("http://", "https://")):
-        query = f"ytsearch:{query}"
+        query = f"https://www.youtube.com/results?search_query={query}"
     
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
-            info = ydl.extract_info(query, download=True)
-            if 'entries' in info:
-                info = info['entries'][0]
-            output_file = ydl.prepare_filename(info)
-            if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-                return output_file  # إعادة اسم الملف بعد التنزيل
-        except yt_dlp.utils.DownloadError as e:
-            print(f"Error: {e}")  
-            return None
+    try:
+        # تحميل الفيديو
+        yt = YouTube(query)
+        video_stream = yt.streams.filter(progressive=True, file_extension="mp4").get_highest_resolution()
+        output_file = f"{yt.title}.mp4"
+        
+        # تنزيل الفيديو إلى الملف المحلي
+        video_stream.download(filename=output_file)
+        
+        # التأكد من أن الفيديو تم تنزيله بنجاح
+        if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+            return output_file
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
+# الدالة لمعالجة الرسائل الجديدة
 @ABH.on(events.NewMessage(pattern='فديو|فيديو'))
 async def handler(event):
     msg = await event.reply('🤌')
@@ -57,6 +49,7 @@ async def handler(event):
     
     # تحميل الفيديو بناءً على الاستعلام
     video_file = await download_video(query)
+    
     if video_file:
         # إضافة زر في الرسالة بعد تحميل الفيديو
         button = [Button.url("chanel", "https://t.me/sszxl")]
@@ -71,5 +64,6 @@ async def handler(event):
         os.remove(video_file)  # إزالة الملف بعد إرساله
     else:
         await event.respond("فشل تحميل الفيديو. تحقق من الرابط أو استعلم عن سبب المشكلة.")
+
 
 ABH.run_until_disconnected()
