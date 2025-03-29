@@ -31,39 +31,21 @@ api_id = os.getenv('API_ID')
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+
 async def ytsearch(query, limit):
     result = ""
-    try:
-        # التحقق مما إذا كانت النتيجة فارغة أو غير موجودة
-        videolinks = VideosSearch(query.lower(), limit=limit)
-        search_results = videolinks.result().get("result", [])
-
-        if not search_results:
-            return "لا توجد نتائج للبحث."
-
-        for v in search_results:
-            textresult = f"[{v['title']}](https://www.youtube.com/watch?v={v['id']})\n"
-            
-            # التعامل مع الأخطاء في حال كان هناك خطأ في استخراج الوصف
-            try:
-                description = v.get("descriptionSnippet", [])
-                if description:
-                    textresult += f"**الشرح : **`{description[-1].get('text', 'لا يوجد وصف')}`\n"
-                else:
-                    textresult += "**الشرح : **`لا يوجد وصف`\n"
-            except Exception:
-                textresult += "**الشرح : **`خطأ في جلب الوصف`\n"
-            
-            # التحقق من وجود مدة المشاهدة والمشاهدات
-            textresult += f"**المدة : **{v.get('duration', 'غير متوفر')}  **المشاهدات : **{v.get('viewCount', {}).get('short', 'غير متوفرة')}\n"
-            
-            result += f"☞ {textresult}\n"
-            
-    except Exception as e:
-        return f"حدث خطأ أثناء البحث: {str(e)}"
-    
+    videolinks = VideosSearch(query.lower(), limit=limit)
+    for v in videolinks.result()["result"]:
+        textresult = f"[{v['title']}](https://www.youtube.com/watch?v={v['id']})\n"
+        try:
+            textresult += f"**الشرح : **`{v['descriptionSnippet'][-1]['text']}`\n"
+        except Exception:
+            textresult += "**الشرح : **`None`\n"
+        textresult += (
+            f"**المدة : **{v['duration']}  **المشاهدات : **{v['viewCount']['short']}\n"
+        )
+        result += f"☞ {textresult}\n"
     return result
-
 
 audio_opts = {
     "format": "bestaudio",
@@ -293,12 +275,11 @@ async def download_audio(event):
         catthumb = pathlib.Path(f"{ytdl_data['title']}.mp3.webp".replace("|", "_"))
     if not os.path.exists(catthumb):
         catthumb = None
-    c_time = time.time()
     ul = io.open(f, "rb")
     uploaded = await event.client.fast_upload_file(
         file=ul,
         progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
-            progress(d, t, catevent, c_time, "upload", file_name=f)
+            progress(d, t, catevent, "upload", file_name=f)
         ),
     )
     ul.close()
@@ -349,12 +330,11 @@ async def download_video(event):
         \nبـواسطة *{ytdl_data['uploader']}*"
     )
     ul = io.open(f, "rb")
-    c_time = time.time()
     attributes, mime_type = await fix_attributes(f, ytdl_data, supports_streaming=True)
     uploaded = await event.client.fast_upload_file(
         file=ul,
         progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
-            progress(d, t, catevent, c_time, "upload", file_name=f)
+            progress(d, t, catevent, "upload", file_name=f)
         ),
     )
     ul.close()
