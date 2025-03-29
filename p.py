@@ -2,13 +2,12 @@ from telethon import TelegramClient, events
 import yt_dlp
 import os
 
-# ✨ استبدل هذه القيم بالمعلومات الخاصة بك
-API_ID = 123456
-API_HASH = "abcdef1234567890"
-BOT_TOKEN = "YOUR_BOT_TOKEN"
+api_id = os.getenv('API_ID')      
+api_hash = os.getenv('API_HASH')  
+bot_token = os.getenv('BOT_TOKEN')
 
 # ✅ إنشاء جلسة البوت
-bot = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 # 🎵 إعداد خيارات yt_dlp لتنزيل الصوت
 ydl_opts = {
