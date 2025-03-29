@@ -1,44 +1,68 @@
+import os
+import asyncio
+from telethon.tl.custom import Button
 from telethon import TelegramClient, events
 import yt_dlp
-import os
+from dotenv import load_dotenv
 
+load_dotenv()
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
 
-# ✅ إنشاء جلسة البوت
-bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
+if not api_id or not api_hash or not bot_token:
+    raise ValueError("يرجى ضبط API_ID, API_HASH، و BOT_TOKEN")
 
-# 🎵 إعداد خيارات yt_dlp لتنزيل الصوت
-ydl_opts = {
-    'format': 'm4a/bestaudio/best',
-    'postprocessors': [{  
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'm4a',
-    }]
-}
+ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# 📥 استقبال الأوامر ومعالجة الرابط
-@bot.on(events.NewMessage(pattern='/download (.+)'))
-async def download_audio(event):
-    url = event.pattern_match.group(1)  # استخراج الرابط من الرسالة
-    await event.reply("⏳ جاري تحميل الصوت...")
+async def download_video(query: str):
+    ydl_opts = {
+        'format': 'best',  
+        'quiet': False, 
+        'noplaylist': True, 
+        'cookiefile': 'cookies.txt',
+        'noprogress': True,  
+        'outtmpl': '%(id)s.%(ext)s',
+        'progress_hooks': [lambda d: None],  
+        'concurrent_fragment_downloads': 100,
+        'max_filesize': 200 * 1024 * 1024,  
+        'socket_timeout': 30,
+    }
+    if not query.startswith(("http://", "https://")):
+        query = f"{query}"
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)  # تحميل الصوت
-            file_name = ydl.prepare_filename(info).replace('.webm', '.m4a')  # اسم الملف النهائي
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        try:
+            info = ydl.extract_info(query, download=True)
+            if 'entries' in info:
+                info = info['entries'][0]
+            output_file = ydl.prepare_filename(info) 
+            if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+                return output_file  
+        except yt_dlp.utils.DownloadError as e:
+            print(f"Error: {e}")  
+            return None
 
-        # 📤 إرسال الملف الصوتي
-        await event.reply("✅ تم التحميل، جاري الإرسال...")
-        await event.client.send_file(event.chat_id, file_name, caption="🎶 الصوت المطلوب")
+@ABH.on(events.NewMessage(pattern='انستا'))
+async def handler(event):
+    msg = await event.reply('🤌')
+    msg_parts = event.message.text.split(' ', 1)
+    if len(msg_parts) < 2:
+        return await event.respond('ارسل الرابط المطلوب.')
+    query = msg_parts[1]
+    video_file = await download_video(query)
+    if video_file:
+        button = [Button.url("chanel", "https://t.me/sszxl")]
+        await msg.delete()
+        await event.client.send_file(
+            event.chat_id, 
+            video_file, 
+            caption='**[Enjoy dear]**(https://t.me/VIPABH_BOT)', 
+            buttons=button, 
+            reply_to=event.message.id
+        )
+        os.remove(video_file)
+    else:
+        await event.respond("فشل تحميل الفيديو. تحقق من الرابط أو استعلم عن سبب المشكلة.")
 
-        # 🗑️ حذف الملف بعد الإرسال لتوفير المساحة
-        os.remove(file_name)
-
-    except Exception as e:
-        await event.reply(f"❌ حدث خطأ: {str(e)}")
-
-# 🚀 تشغيل البوت
-print("🤖 البوت يعمل...")
-bot.run_until_disconnected()
+ABH.run_until_disconnected()
