@@ -1,4 +1,4 @@
-from youtubesearchpython import VideosSearch
+from youtubesearchpython import VideosSearch  # تغيير مكتبة البحث
 import pytube, os
 from telethon import TelegramClient, events
 from dotenv import load_dotenv
@@ -19,8 +19,10 @@ async def download_video(event):
     if query:
         try:
             # البحث عن الفيديو
+            print(f"البحث عن الفيديو باستخدام الاستعلام: {query}")
             videos_search = VideosSearch(query, limit=1)
             results = videos_search.result()
+            print("النتائج:", results)  # طباعه النتائج لمراجعتها
 
             if 'result' in results and len(results['result']) > 0:
                 # استخراج رابط الفيديو
