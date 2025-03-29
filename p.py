@@ -34,7 +34,7 @@ ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
 async def ytsearch(query, limit):
     result = ""
-    videolinks = VideosSearch(query.lower(), limit=limit)
+    videolinks = VideosSearch(query, limit=limit)
     for v in videolinks.result()["result"]:
         textresult = f"[{v['title']}](https://www.youtube.com/watch?v={v['id']})\n"
         try:
