@@ -1,4 +1,4 @@
-import os
+import os, time
 from telethon import TelegramClient, events
 from youtubesearchpython import VideosSearch
 import pathlib
