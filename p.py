@@ -82,7 +82,7 @@ video_opts = {
 }
 
 
-async def ytdl_down(event, opts, url):
+async def ytdl_down( opts, url):
     try:
         with YoutubeDL(opts) as ytdl:
             ytdl_data = ytdl.extract_info(url)
@@ -99,7 +99,6 @@ async def ytdl_down(event, opts, url):
     except UnavailableVideoError:
         return None
     except XAttrMetadataError as XAME:
-        await event.edit(f"`{XAME.code}: {XAME.msg}\n{XAME.reason}`")
         return None
     except ExtractorError:
         return None
@@ -258,8 +257,8 @@ async def download_audio(event):
         myString = rmsg.text
         url = re.search(r"(?P<url>https?://[^\s]+)", myString).group("url")
     if not url:
-        return await event.reply(event, "᯽︙ - يجب وضع رابط لتحميله ❕")
-    catevent = await event.reply(event, "᯽︙ يتم الاعداد انتظر")
+        return await event.reply( "᯽︙ - يجب وضع رابط لتحميله ❕")
+    catevent = await event.reply( "᯽︙ يتم الاعداد انتظر")
     ytdl_data = await ytdl_down(catevent, audio_opts, url)
     if ytdl_data is None:
 
@@ -312,8 +311,8 @@ async def download_video(event):
         myString = rmsg.text
         url = re.search(r"(?P<url>https?://[^\s]+)", myString).group("url")
     if not url:
-        return await event.reply(event, "᯽︙ عـليك وضع رابـط اولا ليتـم تنـزيله")
-    catevent = await event.reply(event, "᯽︙ يتم التحميل انتظر قليلا")
+        return await event.reply("᯽︙ عـليك وضع رابـط اولا ليتـم تنـزيله")
+    catevent = await event.reply("᯽︙ يتم التحميل انتظر قليلا")
 
     ytdl_data = await ytdl_down(catevent, video_opts, url)
     if ytdl_down is None:
@@ -371,7 +370,7 @@ async def yt_search(event):
         query = str(event.pattern_match.group(2))
     if not query:
         return await event.reply(
-            event, "**᯽︙ قم بالرد على النص او كتابته مع الامر**"
+             "**᯽︙ قم بالرد على النص او كتابته مع الامر**"
         )
     video_q = await event.reply("**᯽︙ يتم البحث في اليوتيوب**")
     if event.pattern_match.group(1) != "":
