@@ -1,53 +1,183 @@
-from telethon.tl.types import ChatBannedRights, ChannelParticipantAdmin, ChannelParticipantCreator
-from telethon.tl.functions.channels import EditBannedRequest, GetParticipantRequest
-import os, asyncio, re
+import os
 from telethon import TelegramClient, events
+from youtubesearchpython import VideosSearch
+import pathlib
+from telethon.tl import types
+from telethon.utils import get_attributes
+from youtube_dl import YoutubeDL
+from youtube_dl.utils import (
+    ContentTooShortError,
+    DownloadError,
+    ExtractorError,
+    GeoRestrictedError,
+    MaxDownloadsReached,
+    PostProcessingError,
+    UnavailableVideoError,
+    XAttrMetadataError,
+)
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-banned_words = ["خرب دينه", "كسك", "كسه", "كسة", "اكحاب", "أكحاب", "زنا", "كوم بي", "كمبي", "ارقة جاي", "انيجك", "نيجك", "كحبة", "ابن الكحبة", "ابن الكحبه", "تنيج", "اتنيج", "ينيج", "طيرك", "ارقه جاي", "يموط", "تموط", "موطلي", "اموط", "بورن", "الفرخ", "الفرحْ", "تيز", "كسم", "سكسي", "كحاب", "مناويج", "منيوج", "عيورة", "عيورتكم", "انيجة", "انيچة", "انيجه", "انيچه", "أناج", "اناج", "انيج", "أنيج", "فريخ", "فريخة", "فريخه", "فرخي","قضيب", "مايا", "ماية", "مايه", "بكسمك", "بكسختك", "🍑", "نغل", "نغولة", "نغوله", "ينغل", "كس", "عير", "كسمك", "كسختك", "كس امك", "طيز", "طيزك", "فرخ", "كواد", "اخلكحبة", "اينيج", "بربوك", "زب", "طيزها", "عيري", "خرب الله", "العير", "بعيري", "كحبه", "برابيك", "سب" ,"نيجني", "نيچني", "نودز", "نتلاوط", "لواط", "لوطي", "فروخ", "منيوك"]
-normalized_banned_words = {word: re.sub(r'(.)\1+', r'\1', word) for word in banned_words}
-def normalize_text(text):
- text = text.lower()
- text = re.sub(r'[^أ-يa-zA-Z\s]', '', text)
- replace_map = {'أ': 'ا', 'إ': 'ا', 'آ': 'ا', 'ى': 'ي', 'ؤ': 'و', 'ئ': 'ي'}
- for old, new in replace_map.items():
-  text = text.replace(old, new)
- text = re.sub(r'(.)\1+', r'\1', text)
- return text
-async def is_admin(chat, user_id):
- try:
-  participant = await ABH(GetParticipantRequest(chat, user_id))
-  return isinstance(participant.participant, (ChannelParticipantAdmin, ChannelParticipantCreator))
- except:
-  return False
-def check_message(message):
- normalized_message = normalize_text(message)
- words = normalized_message.split()
- return any(word in normalized_banned_words.values() for word in words)
-restrict_rights = ChatBannedRights(until_date=None,send_messages=True,send_media=True,send_stickers=True,send_gifs=True,send_games=True,send_inline=True,embed_links=True)
-unrestrict_rights = ChatBannedRights(until_date=None,send_messages=False,send_media=False,send_stickers=False,send_gifs=False,send_games=False,send_inline=False,embed_links=False)
-warns = {}
-@ABH.on(events.NewMessage)
-async def handler_res(event):
- if event.is_group:
-  message_text = event.raw_text.strip()
-  if check_message(message_text):  
-   user_id = event.sender_id
-   chat = await event.get_chat()
-   if await is_admin(chat, user_id):
-    await event.delete()
-    return
-   await event.delete()
-   if user_id not in warns:
-    warns[user_id] = {}
-   if chat.id not in warns[user_id]:
-    warns[user_id][chat.id] = 0
-   warns[user_id][chat.id] += 1
-   if warns[user_id][chat.id] == 3:
-    await ABH(EditBannedRequest(chat.id, user_id, restrict_rights))
-    warns[user_id][chat.id] = 0
-    await asyncio.sleep(20 * 60)
-    await ABH(EditBannedRequest(chat.id, user_id, unrestrict_rights))
+audio_opts = {
+    "format": "bestaudio",
+    "addmetadata": True,
+    "key": "FFmpegMetadata",
+    "writethumbnail": True,
+    "prefer_ffmpeg": True,
+    "geo_bypass": True,
+    "nocheckcertificate": True,
+    "postprocessors": [
+        {
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "320",
+        }
+    ],
+    "outtmpl": "%(title)s.mp3",
+    "quiet": True,
+    "logtostderr": False,
+}
+
+video_opts = {
+    "format": "best",
+    "addmetadata": True,
+    "key": "FFmpegMetadata",
+    "writethumbnail": True,
+    "prefer_ffmpeg": True,
+    "geo_bypass": True,
+    "nocheckcertificate": True,
+    "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}],
+    "outtmpl": "%(title)s.mp4",
+    "logtostderr": False,
+    "quiet": True,
+}
+
+
+async def ytdl_down(event, opts, url):
+    try:
+        await event.edit("᯽︙ - يتم جلب البيانات انتظر قليلا")
+        with YoutubeDL(opts) as ytdl:
+            ytdl_data = ytdl.extract_info(url)
+    except DownloadError as DE:
+        await event.edit(f"`{str(DE)}`")
+        return
+    except ContentTooShortError:
+        await event.edit("᯽︙ - عذرا هذا المحتوى قصير جدا لتنزيله ⚠️")
+        return None
+    except GeoRestrictedError:
+        await event.edit(
+            "᯽︙ - الفيديو غير متاح من موقعك الجغرافي بسبب القيود الجغرافية التي يفرضها موقع الويب ❕"
+        )
+        return None
+    except MaxDownloadsReached:
+        await event.edit("᯽︙ - تم الوصول إلى الحد الأقصى لعدد التنزيلات ❕")
+        return None
+    except PostProcessingError:
+        await event.edit("᯽︙ كان هناك خطأ أثناء المعالجة")
+        return None
+    except UnavailableVideoError:
+        await event.edit("`الوسائط غير متوفرة بالتنسيق المطلوب`")
+        return None
+    except XAttrMetadataError as XAME:
+        await event.edit(f"`{XAME.code}: {XAME.msg}\n{XAME.reason}`")
+        return None
+    except ExtractorError:
+        await event.edit("᯽︙ حدث خطأ أثناء استخراج المعلومات يرجى وضعها بشكل صحيح ⚠️")
+        return None
+    except Exception as e:
+        await event.edit(f"᯽︙ حدث خطا : \n__{str(e)}__")
+        return None
+    return ytdl_data
+
+
+async def fix_attributes(
+    path, info_dict: dict, supports_streaming: bool = False, round_message: bool = False
+) -> list:
+    """Avoid multiple instances of an attribute."""
+    new_attributes = []
+    video = False
+    audio = False
+
+    uploader = info_dict.get("uploader", "Unknown artist")
+    duration = int(info_dict.get("duration", 0))
+    suffix = path.suffix[1:]
+    if supports_streaming and suffix != "mp4":
+        supports_streaming = False
+
+    attributes, mime_type = get_attributes(path)
+    if suffix == "mp3":
+        title = str(info_dict.get("title", info_dict.get("id", "Unknown title")))
+        audio = types.DocumentAttributeAudio(duration, None, title, uploader)
+    elif suffix == "mp4":
+        width = int(info_dict.get("width", 0))
+        height = int(info_dict.get("height", 0))
+        for attr in attributes:
+            if isinstance(attr, types.DocumentAttributeVideo):
+                duration = duration or attr.duration
+                width = width or attr.w
+                height = height or attr.h
+                break
+        video = types.DocumentAttributeVideo(
+            duration, width, height, round_message, supports_streaming
+        )
+
+    if audio and isinstance(audio, types.DocumentAttributeAudio):
+        new_attributes.append(audio)
+    if video and isinstance(video, types.DocumentAttributeVideo):
+        new_attributes.append(video)
+
+    for attr in attributes:
+        if (
+            isinstance(attr, types.DocumentAttributeAudio)
+            and not audio
+            or not isinstance(attr, types.DocumentAttributeAudio)
+            and not video
+            or not isinstance(attr, types.DocumentAttributeAudio)
+            and not isinstance(attr, types.DocumentAttributeVideo)
+        ):
+            new_attributes.append(attr)
+    return new_attributes, mime_type
+async def _get_file_name(path: pathlib.Path, full: bool = True) -> str:
+    return str(path.absolute()) if full else path.stem + path.suffix
+
+async def ytsearch(query, limit):
+    result = ""
+    videolinks = VideosSearch(query.lower(), limit=limit)
+    for v in videolinks.result()["result"]:
+        textresult = f"[{v['title']}](https://www.youtube.com/watch?v={v['id']})\n"
+        try:
+            textresult += f"**الشرح : **`{v['descriptionSnippet'][-1]['text']}`\n"
+        except Exception:
+            textresult += "**الشرح : **`None`\n"
+        textresult += (
+            f"**المدة : **{v['duration']}  **المشاهدات : **{v['viewCount']['short']}\n"
+        )
+        result += f"☞ {textresult}\n"
+    return result
+@ABH.on(events.NewMessage(pattren='يوت'))
+async def yt_search(event):
+    "Youtube search command"
+    if event.is_reply and not event.pattern_match.group(2):
+        query = await event.get_reply_message()
+        query = str(query.message)
+    else:
+        query = str(event.pattern_match.group(2))
+    if not query:
+        return await event.reply(
+            event, "**᯽︙ قم بالرد على النص او كتابته مع الامر**"
+        )
+    video_q = await event.reply(event, "**᯽︙ يتم البحث في اليوتيوب**")
+    if event.pattern_match.group(1) != "":
+        lim = int(event.pattern_match.group(1))
+        if lim <= 0:
+            lim = 10
+    else:
+        lim = 10
+    try:
+        full_response = await ytsearch(query, limit=lim)
+    except Exception as e:
+        return await event.reply(video_q, str(e), time=10)
+    reply_text = f"**•  البحث المطلوب:**\n`{query}`\n\n**•  النتائج:**\n{full_response}"
+    await event.reply(video_q, reply_text)
 ABH.run_until_disconnected()
