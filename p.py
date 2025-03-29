@@ -450,10 +450,7 @@ async def yt_search(event):
             lim = 10
     else:
         lim = 10
-    try:
         full_response = await ytsearch(query, limit=lim)
-    except Exception as e:
-       return await event.reply(str(e))
-    reply_text = f"**•  البحث المطلوب:**\n`{query}`\n\n**•  النتائج:**\n{full_response}"
-    await event.reply(video_q, reply_text)
+        reply_text = f"**•  البحث المطلوب:**\n`{query}`\n\n**•  النتائج:**\n{full_response}"
+    await event.reply(reply_text)
 ABH.run_until_disconnected()
