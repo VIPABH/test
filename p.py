@@ -309,7 +309,7 @@ async def download_video(event):
     rmsg = await event.get_reply_message()
     if not url and rmsg:
         myString = rmsg.text
-        url = re.search(r"(?P<url>https?://[^\s]+)", myString).group("url")
+        url = "https://www.youtube.com/watch?v=MvsAesQ-4zA"
     if not url:
         return await event.reply("᯽︙ عـليك وضع رابـط اولا ليتـم تنـزيله")
     catevent = await event.reply("᯽︙ يتم التحميل انتظر قليلا")
