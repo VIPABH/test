@@ -138,7 +138,7 @@ async def fix_attributes(
         ):
             new_attributes.append(attr)
     return new_attributes, mime_type
-async def _get_file_name(path: pathlib.Path, full: bool = True) -> str:
+async def get_file_name(path: pathlib.Path, full: bool = True) -> str:
     return str(path.absolute()) if full else path.stem + path.suffix
 
 async def ytsearch(query, limit):
@@ -155,54 +155,29 @@ async def ytsearch(query, limit):
         )
         result += f"☞ {textresult}\n"
     return result
-from telethon import events
-from youtubesearchpython import VideosSearch
-
-@ABH.on(events.NewMessage(pattern=r"^\.yt(?:\s+(\d+))?\s*(.+)?$"))
+@ABH.on(events.NewMessage(pattern="يوت(?: |$)(\d*)? ?([\s\S]*)"))
 async def yt_search(event):
-    query = event.pattern_match.group(2)  # استخراج استعلام البحث
-    lim = event.pattern_match.group(1)    # استخراج عدد النتائج
-    
-    if not query:  # التحقق إذا لم يكن هناك بحث
-        return await event.reply("**᯽︙ قم بكتابة البحث أو الرد على رسالة تحتوي عليه**")
-
-    lim = int(lim) if lim else 10  # تعيين حد البحث (افتراضي 10)
-    lim = min(max(lim, 1), 10)  # التأكد أن العدد بين 1 و 10
-
-    video_q = await event.reply("**᯽︙ يتم البحث في اليوتيوب...**")
-
+    "Youtube search command"
+    if event.is_reply and not event.pattern_match.group(2):
+        query = await event.get_reply_message()
+        query = str(query.message)
+    else:
+        query = str(event.pattern_match.group(2))
+    if not query:
+        return await event.reply(
+            event, "**᯽︙ قم بالرد على النص او كتابته مع الامر**"
+        )
+    video_q = await event.reply(event, "**᯽︙ يتم البحث في اليوتيوب**")
+    if event.pattern_match.group(1) != "":
+        lim = int(event.pattern_match.group(1))
+        if lim <= 0:
+            lim = 10
+    else:
+        lim = 10
     try:
-        search = VideosSearch(query, limit=lim)
-        results = search.result()
+        full_response = await ytsearch(query, limit=lim)
     except Exception as e:
-        return await video_q.edit(f"❌ **خطأ:** {str(e)}")
-
-    if not results["result"]:  # التحقق إذا لم يتم العثور على نتائج
-        return await video_q.edit("❌ **لم يتم العثور على نتائج!**")
-
-    # تنسيق النتائج
-    reply_text = f"**🔎 نتائج البحث عن:** `{query}`\n\n"
-    for video in results["result"]:
-        title = video["title"]
-        link = video["link"]
-        reply_text += f"🎥 [{title}]({link})\n"
-
-    await video_q.edit(reply_text)
-
-# @ABH.on(events.NewMessage)
-# async def yt_search(event):
-#     query = event.text()
-#     video_q = await event.reply(event, "**᯽︙ يتم البحث في اليوتيوب**")
-#     if event.pattern_match.group(1) != "":
-#         lim = int(event.pattern_match.group(1))
-#         if lim <= 0:
-#             lim = 10
-#     else:
-#         lim = 10
-#     try:
-#         full_response = await ytsearch(query, limit=lim)
-#     except Exception as e:
-#         return await event.reply(video_q, str(e), time=10)
-#     reply_text = f"**•  البحث المطلوب:**\n`{query}`\n\n**•  النتائج:**\n{full_response}"
-#     await event.reply(video_q, reply_text)
+        return await event.reply(video_q, str(e), time=10)
+    reply_text = f"**•  البحث المطلوب:**\n`{query}`\n\n**•  النتائج:**\n{full_response}"
+    await event.reply(video_q, reply_text)
 ABH.run_until_disconnected()
