@@ -31,21 +31,39 @@ api_id = os.getenv('API_ID')
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-
 async def ytsearch(query, limit):
     result = ""
-    videolinks = VideosSearch(query.lower(), limit=limit)
-    for v in videolinks.result()["result"]:
-        textresult = f"[{v['title']}](https://www.youtube.com/watch?v={v['id']})\n"
-        try:
-            textresult += f"**الشرح : **`{v['descriptionSnippet'][-1]['text']}`\n"
-        except Exception:
-            textresult += "**الشرح : **`None`\n"
-        textresult += (
-            f"**المدة : **{v['duration']}  **المشاهدات : **{v['viewCount']['short']}\n"
-        )
-        result += f"☞ {textresult}\n"
+    try:
+        # التحقق مما إذا كانت النتيجة فارغة أو غير موجودة
+        videolinks = VideosSearch(query.lower(), limit=limit)
+        search_results = videolinks.result().get("result", [])
+
+        if not search_results:
+            return "لا توجد نتائج للبحث."
+
+        for v in search_results:
+            textresult = f"[{v['title']}](https://www.youtube.com/watch?v={v['id']})\n"
+            
+            # التعامل مع الأخطاء في حال كان هناك خطأ في استخراج الوصف
+            try:
+                description = v.get("descriptionSnippet", [])
+                if description:
+                    textresult += f"**الشرح : **`{description[-1].get('text', 'لا يوجد وصف')}`\n"
+                else:
+                    textresult += "**الشرح : **`لا يوجد وصف`\n"
+            except Exception:
+                textresult += "**الشرح : **`خطأ في جلب الوصف`\n"
+            
+            # التحقق من وجود مدة المشاهدة والمشاهدات
+            textresult += f"**المدة : **{v.get('duration', 'غير متوفر')}  **المشاهدات : **{v.get('viewCount', {}).get('short', 'غير متوفرة')}\n"
+            
+            result += f"☞ {textresult}\n"
+            
+    except Exception as e:
+        return f"حدث خطأ أثناء البحث: {str(e)}"
+    
     return result
+
 
 audio_opts = {
     "format": "bestaudio",
