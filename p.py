@@ -155,7 +155,7 @@ async def ytsearch(query, limit):
         )
         result += f"☞ {textresult}\n"
     return result
-@ABH.on(events.NewMessage(pattern=r"^\.yt(?:\s+(.+))?$"))
+@ABH.on(events.NewMessage(pattern="يوت"))
 async def yt_search(event):
     if event.is_reply and not event.pattern_match.group(2):
         query = await event.get_reply_message()
