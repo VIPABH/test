@@ -324,7 +324,7 @@ async def download_audio(event):
     rmsg = await event.get_reply_message()
     if not url and rmsg:
         myString = rmsg.text
-        url = re.search("(?P<url>https?://[^\s]+)", myString).group("url")
+        url = re.search(r"(?P<url>https?://[^\s]+)", myString).group("url")
     if not url:
         return await event.reply(event, "᯽︙ - يجب وضع رابط لتحميله ❕")
     catevent = await event.reply(event, "᯽︙ يتم الاعداد انتظر")
