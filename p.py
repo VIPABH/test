@@ -1,6 +1,10 @@
 from telethon.tl.types import MessageEntityPre
 from telethon.utils import add_surrogate
-
+import hashlib
+import re
+import time
+from typing import Dict, Tuple
+from telethon.errors.rpcerrorlist import MessageNotModifiedError
 import asyncio
 import io
 import os
@@ -21,7 +25,7 @@ from youtube_dl.utils import (
     UnavailableVideoError,
     XAttrMetadataError,
 )
-from youtubesearchpython import VideosSearch
+from youtubesearchpython import VideosSearch # type: ignore
 
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
@@ -80,64 +84,28 @@ video_opts = {
 
 async def ytdl_down(event, opts, url):
     try:
-        await event.edit("᯽︙ - يتم جلب البيانات انتظر قليلا")
         with YoutubeDL(opts) as ytdl:
             ytdl_data = ytdl.extract_info(url)
     except DownloadError as DE:
-        await event.edit(f"`{str(DE)}`")
         return
     except ContentTooShortError:
-        await event.edit("᯽︙ - عذرا هذا المحتوى قصير جدا لتنزيله ⚠️")
         return None
     except GeoRestrictedError:
-        await event.edit(
-            "᯽︙ - الفيديو غير متاح من موقعك الجغرافي بسبب القيود الجغرافية التي يفرضها موقع الويب ❕"
-        )
         return None
     except MaxDownloadsReached:
-        await event.edit("᯽︙ - تم الوصول إلى الحد الأقصى لعدد التنزيلات ❕")
         return None
     except PostProcessingError:
-        await event.edit("᯽︙ كان هناك خطأ أثناء المعالجة")
         return None
     except UnavailableVideoError:
-        await event.edit("`الوسائط غير متوفرة بالتنسيق المطلوب`")
         return None
     except XAttrMetadataError as XAME:
         await event.edit(f"`{XAME.code}: {XAME.msg}\n{XAME.reason}`")
         return None
     except ExtractorError:
-        await event.edit("᯽︙ حدث خطأ أثناء استخراج المعلومات يرجى وضعها بشكل صحيح ⚠️")
         return None
     except Exception as e:
-        await event.edit(f"᯽︙ حدث خطا : \n__{str(e)}__")
         return None
     return ytdl_data
-
-# Copyright (C) 2020 Adek Maulana
-#
-# SPDX-License-Identifier: GPL-3.0-or-later
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-import hashlib
-import math
-import re
-import time
-from typing import Dict, Tuple
-
-from telethon.errors.rpcerrorlist import MessageNotModifiedError
 _TASKS: Dict[str, Tuple[int, int]] = {}
 async def md5(fname: str) -> str:
     hash_md5 = hashlib.md5()
@@ -158,7 +126,6 @@ def humanbytes(size: int) -> str:
         raised_to_pow += 1
     return f"{str(round(size, 2))} {dict_power_n[raised_to_pow]}B"
 
-
 def time_formatter(seconds: int) -> str:
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
@@ -172,36 +139,6 @@ def time_formatter(seconds: int) -> str:
     )
 
     return tmp[:-2]
-
-
-def readable_time(seconds: int) -> str:
-    minutes, seconds = divmod(seconds, 60)
-    hours, minutes = divmod(minutes, 60)
-    days, hours = divmod(hours, 24)
-    return (
-        (f"{int(days)} day(s), " if days else "")
-        + (f"{int(hours)}:" if hours else "00:")
-        + (f"{int(minutes)}:" if minutes else "00:")
-        + (str(int(seconds)) if seconds else "00")
-    )
-
-
-def human_to_bytes(size: str) -> int:
-    units = {
-        "M": 2**20,
-        "MB": 2**20,
-        "G": 2**30,
-        "GB": 2**30,
-        "T": 2**40,
-        "TB": 2**40,
-    }
-
-    size = size.upper()
-    if not re.match(r" ", size):
-        size = re.sub(r"([KMGT])", r" \1", size)
-    number, unit = [string.strip() for string in size.split()]
-    return int(float(number) * units[unit])
-
 
 class CancelProcess(Exception):
     """
@@ -311,11 +248,6 @@ async def fix_attributes(
         ):
             new_attributes.append(attr)
     return new_attributes, mime_type
-
-
-async def get_file_name(path: pathlib.Path, full: bool = True) -> str:
-    return str(path.absolute()) if full else path.stem + path.suffix
-
 
 @ABH.on(events.NewMessage(pattern=r"فيديو(?: |$)(\d*)? ?([\s\S]*)"))
 async def download_audio(event):
