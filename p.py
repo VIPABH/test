@@ -1,49 +1,50 @@
-from pytube import YouTube
 import os
-from telethon import events, TelegramClient
+import streamlink
+from telethon import TelegramClient, events
 from telethon.tl.custom import Button
+
+# إعدادات API و BOT
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-async def download_video(query: str):
+
+# دالة لتنزيل الفيديو باستخدام streamlink
+async def download_video(url: str):
     try:
-        # إذا لم يكن الرابط موجودًا، يتم تحويل النص إلى رابط بحث يوتيوب
-        if not query.startswith(("http://", "https://")):
-            query = f"https://www.youtube.com/results?search_query={query}"
+        # الحصول على أفضل بث (video stream) من الرابط
+        streams = streamlink.streams(url)
+        best_stream = streams.get("best")
+
+        # اسم الملف الذي سيتم تنزيل الفيديو فيه
+        output_file = 'video.mp4'
+
+        # كتابة الفيديو إلى الملف
+        with open(output_file, 'wb') as f:
+            for chunk in best_stream.iter_chunks():
+                f.write(chunk)
         
-        # تحميل الفيديو
-        yt = YouTube(query)
-        video_stream = yt.streams.filter(progressive=True, file_extension="mp4").get_highest_resolution()
-        
-        # تحديد اسم الملف
-        output_file = f"{yt.title}.mp4"
-        
-        # تنزيل الفيديو إلى الملف المحلي
-        video_stream.download(filename=output_file)
-        
-        # التأكد من أن الفيديو تم تنزيله بنجاح
+        # التحقق من أن الفيديو تم تنزيله
         if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
             return output_file
         else:
             return None
-        
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error downloading video: {e}")
         return None
 
-# الدالة لمعالجة الرسائل الجديدة
+# دالة لمعالجة الرسائل الجديدة
 @ABH.on(events.NewMessage(pattern='فديو|فيديو'))
 async def handler(event):
     msg = await event.reply('🤌')
     msg_parts = event.message.text.split(' ', 1)
     query = msg_parts[1]
     
-    # تحميل الفيديو بناءً على الاستعلام
+    # تنزيل الفيديو بناءً على الرابط أو الاستعلام
     video_file = await download_video(query)
     
     if video_file:
-        # إضافة زر في الرسالة بعد تحميل الفيديو
+        # إضافة زر في الرسالة بعد تنزيل الفيديو
         button = [Button.url("chanel", "https://t.me/sszxl")]
         await msg.delete()
         await event.client.send_file(
@@ -56,4 +57,6 @@ async def handler(event):
         os.remove(video_file)  # إزالة الملف بعد إرساله
     else:
         await event.respond("فشل تحميل الفيديو. تحقق من الرابط أو استعلم عن سبب المشكلة.")
+
+# تشغيل البوت
 ABH.run_until_disconnected()
