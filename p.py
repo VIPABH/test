@@ -2,8 +2,9 @@ from pytube import YouTube
 import os
 from telethon import events
 from telethon.tl.custom import Button
-
-# الدالة الخاصة بتنزيل الفيديو باستخدام pytube
+api_hash = os.getenv('API_HASH')  
+bot_token = os.getenv('BOT_TOKEN')
+ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 async def download_video(query: str):
     try:
         # إذا لم يكن الرابط موجودًا، يتم تحويل النص إلى رابط بحث يوتيوب
@@ -54,3 +55,4 @@ async def handler(event):
         os.remove(video_file)  # إزالة الملف بعد إرساله
     else:
         await event.respond("فشل تحميل الفيديو. تحقق من الرابط أو استعلم عن سبب المشكلة.")
+ABH.run_until_disconnected()
