@@ -1,6 +1,6 @@
 from pytube import YouTube
 import os
-from telethon import events
+from telethon import events, TelegramClient
 from telethon.tl.custom import Button
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
