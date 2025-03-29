@@ -443,7 +443,7 @@ async def yt_search(event):
         return await event.reply(
             event, "**᯽︙ قم بالرد على النص او كتابته مع الامر**"
         )
-    video_q = await event.reply(event, "**᯽︙ يتم البحث في اليوتيوب**")
+    video_q = await event.reply("**᯽︙ يتم البحث في اليوتيوب**")
     if event.pattern_match.group(1) != "":
         lim = int(event.pattern_match.group(1))
         if lim <= 0:
