@@ -47,4 +47,4 @@ async def vagueness(event):
         players.discard(sid)
     if len(players) == 1:
         await event.reply('انتهت اللعبة فاز الاعب -> ')
-ABH.run_until_disconnected
+ABH.run_until_disconnected()
