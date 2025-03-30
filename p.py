@@ -54,4 +54,4 @@ async def vagueness(event):
         game = False
         join = False
         done = False
-ABH.run_until_disconnected
+ABH.run_until_disconnected()
