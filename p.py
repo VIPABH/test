@@ -1,48 +1,50 @@
-from youtubesearchpython import VideosSearch  # تغيير مكتبة البحث
-import pytube, os
 from telethon import TelegramClient, events
-from dotenv import load_dotenv
-
-# تحميل المتغيرات البيئية من ملف .env
-load_dotenv()
-
+import os, asyncio
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
-
-client = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
-
-# البحث عن الفيديوهات
-@client.on(events.NewMessage(pattern='/download'))
-async def download_video(event):
-    query = event.message.text.replace('/download', '').strip()  # استلام استعلام البحث من المستخدم
-    if query:
-        try:
-            # البحث عن الفيديو
-            print(f"البحث عن الفيديو باستخدام الاستعلام: {query}")
-            videos_search = VideosSearch(query, limit=1)
-            results = videos_search.result()
-            print("النتائج:", results)  # طباعه النتائج لمراجعتها
-
-            if 'result' in results and len(results['result']) > 0:
-                # استخراج رابط الفيديو
-                video_url = results['result'][0]['link']
-
-                # تنزيل الفيديو باستخدام pytube
-                yt = pytube.YouTube(video_url)
-                stream = yt.streams.get_highest_resolution()
-                file_path = f"{yt.title}.mp4"  # اسم الملف الذي سيتم تنزيله
-                stream.download(filename=file_path)
-
-                # إرسال الفيديو للمستخدم
-                await event.reply('تم تنزيل الفيديو بنجاح!')
-                await client.send_file(event.sender_id, file_path)
-            else:
-                await event.reply('لم يتم العثور على أي فيديو باستخدام هذا الاستعلام.')
-        except Exception as e:
-            await event.reply(f"حدث خطأ أثناء البحث أو التنزيل: {e}")
+ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+players = set()
+join = False
+@ABH.on(events.NewMessage(pattern='/vagueness|غموض'))
+async def vagueness_start(event):
+    global game, join
+    await event.reply('تم بدء لعبة الغموض , يسجل الاعبين عبر امر `انا`')
+    uid = event.sender_id
+    if uid not in players:
+        players.add(uid)
+        return
+    game = True
+    join = True
+@ABH.on(events.NewMessage(pattern='انا'))
+async def me(event):
+    if game and join:
+        pid = event.sender_id
+        players.add(pid)
+        await event.reply('سجلتك , كول يا علي وانتظر')
+    if pid in players:
+        await event.reply('سجلتك من قبل😶')
+        return
+@ABH.on(events.NewMessage('تم'))
+async def start_vagueness(event):
+    global game, join
+    join = False
+    if len(players) < 2:
+        await event.reply('اعتذر عن بدء اللعبة لكن العدد قليل')
+        game = False
+        join = False
+        return
     else:
-        await event.reply('يرجى إدخال اسم الفيديو بعد الأمر /download.')
-
-# تشغيل البوت
-client.run_until_disconnected()
+        await event.reply('تم الان اكملوا محادثتكم')
+@ABH.on(events.NewMessage)
+async def vagueness(event):
+    sid = event.sender_id
+    isrep = await event.get_reply_message()
+    if sid in players and isrep:
+        user = await event.client.get_entity(sid)
+        nid = user.first_name
+        await event.reply(f'العينتين {nid} سوه رد علئ رساله معينه وخسر 😁')
+        players.discard(sid)
+    if len(players) == 1:
+        await event.reply('انتهت اللعبة فاز الاعب -> ')
+ABH.run_until_disconnected
