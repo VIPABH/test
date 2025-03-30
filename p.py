@@ -26,7 +26,7 @@ async def me(event):
     if pid in players:
         await event.reply('سجلتك من قبل😶')
         return
-@ABH.on(events.NewMessage('تم'))
+@ABH.on(events.NewMessage(pattern='تم'))
 async def start_vagueness(event):
     global game, join
     join = False
