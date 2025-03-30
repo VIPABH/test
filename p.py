@@ -6,6 +6,7 @@ bot_token = os.getenv('BOT_TOKEN')
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 players = set()
 join = False
+game = False
 @ABH.on(events.NewMessage(pattern='/vagueness|غموض'))
 async def vagueness_start(event):
     global game, join
@@ -47,4 +48,6 @@ async def vagueness(event):
         players.discard(sid)
     if len(players) == 1:
         await event.reply('انتهت اللعبة فاز الاعب -> ')
+        game = False
+        join = False
 ABH.run_until_disconnected()
