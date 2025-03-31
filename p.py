@@ -1,55 +1,49 @@
-import random
-import os
-import json
+import os, json
 from telethon import TelegramClient, events
-
-# تحميل المتغيرات من البيئة
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
-
-# إنشاء البوت
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-
-# تحميل النقاط من ملف JSON
 def load_points(filename="points.json"):
     try:
         with open(filename, "r") as file:
             return json.load(file)
     except FileNotFoundError:
         return {}
-
-# حفظ النقاط في ملف JSON
 def save_points(data, filename="points.json"):
     with open(filename, "w") as file:
         json.dump(data, file, indent=4)
-
-# تحميل النقاط عند بدء التشغيل
 points = load_points()
-
-@ABH.on(events.NewMessage)
-async def p(event):
-    global points  # استخدام القاموس العام
-
-    uid = str(event.sender_id)  # تأكد من أن المفتاح نصي لتجنب الأخطاء
-    gid = str(event.chat_id)
-    nid = event.sender.username if event.sender.username else "unknown"
-
-    # التحقق من وجود المستخدم داخل المجموعة في القاموس
-    if uid not in points:
-        points[uid] = {}
-
-    if gid not in points[uid]:
-        points[uid][gid] = {"nid": nid, "points": 0}
-
-    # إضافة 2 نقطة
-    points[uid][gid]["points"] += 2
-
-    # حفظ التعديلات في الملف
-    save_points(points)
-
-    # إرسال الرد
-    await event.reply(f'نقاط {nid}: {points[uid][gid]["points"]}')
-
-# تشغيل البوت
+def add_points(uid, gid, points_dict, amount=0):
+    """إضافة نقاط لمستخدم معين داخل مجموعة معينة."""
+    uid, gid = str(uid), str(gid)
+    if uid not in points_dict:
+        points_dict[uid] = {}
+    if gid not in points_dict[uid]:
+        points_dict[uid][gid] = {"points": 0}
+    points_dict[uid][gid]["points"] += amount
+    save_points(points_dict)
+questions_and_answers_q = [
+    {"question": "من هم ال البيت؟", "answer": ["هم اهل بيت رسول الله", 'اهل بيت رسول الله', "ال بيت رسول الله"]},
+    {"question": "من هو الخليفة الاول؟", "answer": ["ابا الحسن علي", "الامام علي", "علي ابن ابي طالب"]},
+    ]
+user_states = {}
+@ABH.on(events.NewMessage(pattern='اسئلة|/quist'))
+async def check_answer(event):
+    user_id = event.sender_id
+    user_message = event.text.strip()
+    gid = event.chat_id
+    if user_id in user_states and user_states[user_id].get("waiting_for_answer"):
+        current_question = user_states[user_id].get("question", {})
+        correct_answers = current_question.get('answer', [])        
+        if user_message in correct_answers:
+            if str(user_id) not in points:
+                points[str(user_id)] = {}
+            if str(gid) not in points[str(user_id)]:
+                points[str(user_id)][str(gid)] = {"points": 0}
+            add_points(user_id, gid, points, amount=1)
+            await event.reply(f"هلا هلا طبوا الشيعة 🫡 \n نقاطك ↢ {points[str(user_id)][str(gid)]['points']}")
+            del user_states[user_id]
+        else:
+            pass
 ABH.run_until_disconnected()
