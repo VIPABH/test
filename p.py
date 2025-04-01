@@ -15,7 +15,7 @@ def load_points(filename="rose.json"):
     try:
         with open(filename, "r") as file:
             return json.load(file)
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
 # حفظ النقاط في الملف
@@ -27,19 +27,16 @@ def save_points(data, filename="rose.json"):
 rose = load_points()
 
 # إضافة النقاط
-def add_points(uid, gid, nid):
+def add_points(uid, gid, nid, rose):
     uid, gid, nid = str(uid), str(gid), str(nid)
     
-    if uid not in rose:
-        rose[uid] = {}  # إنشاء مستخدم جديد
+    if gid not in rose:
+        rose[gid] = {}  # إنشاء مجموعة جديدة
     
-    if gid not in rose[uid]:
-        rose[uid][gid] = {}  # إنشاء مجموعة جديدة للمستخدم
-    
-    if nid not in rose[uid][gid]:
-        rose[uid][gid][nid] = 1  # إضافة نقطة جديدة
+    if uid not in rose[gid]:
+        rose[gid][uid] = {"name": nid, "count": 1}  # إضافة مستخدم جديد مع أول وردة
     else:
-        rose[uid][gid][nid] += 1  # زيادة النقاط
+        rose[gid][uid]["count"] += 1  # زيادة النقاط
     
     save_points(rose)  # حفظ التحديثات في الملف
 
@@ -47,24 +44,32 @@ def add_points(uid, gid, nid):
 @ABH.on(events.NewMessage(pattern='رفع وردة'))
 async def rose_handler(event):
     message = await event.get_reply_message()
-    if message:
-        uid = message.sender_id
-        nid = message.sender.first_name  # تصحيح الحصول على الاسم الأول
-        chat = str(event.chat_id)  # تحويل ID الدردشة إلى نص
+    
+    if not message or not message.sender:
+        await event.reply("❌ يجب الرد على رسالة شخص لرفع الوردة!")
+        return
+    
+    uid = message.sender_id
+    nid = message.sender.first_name or "مجهول"  # تجنب الخطأ إذا لم يكن هناك اسم
+    chat = str(event.chat_id)  # تحويل ID المجموعة إلى نص
 
-        add_points(uid, chat, nid)
-        await event.reply(f"تم رفع الوردة لـ {nid} 🌹")
+    add_points(uid, chat, nid, rose)  # تمرير `rose` لضمان التحديث الصحيح
+    await event.reply(f"✅ تم رفع الوردة لـ {nid} 🌹")
 
 # حدث عند إرسال "الوراريد"
 @ABH.on(events.NewMessage(pattern='الوراريد'))
 async def show_handler(event):
-    response = "🌹 قائمة الورود 🌹\n"
-    for uid, groups in rose.items():
-        for gid, names in groups.items():
-            for nid, count in names.items():
-                response += f"👤 {nid} ({count} وردة) في المجموعة {gid}\n"
-    
-    await event.reply(response if response else "🚫 لا يوجد أي ورود حتى الآن.")
+    chat_id = str(event.chat_id)  # استخراج معرف المجموعة
+
+    if chat_id not in rose or not rose[chat_id]:
+        await event.reply("🚫 لا يوجد أي ورود في هذه المجموعة حتى الآن.")
+        return
+
+    response = f"🌹 قائمة الورود في هذه المجموعة ({chat_id}) 🌹\n"
+    for uid, data in rose[chat_id].items():
+        response += f"👤 {data['name']}: {data['count']} وردة\n"
+
+    await event.reply(response)
 
 # تشغيل البوت
 ABH.run_until_disconnected()
