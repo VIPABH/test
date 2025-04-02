@@ -26,16 +26,16 @@ def save_data(data, filename="rose.json"):
 # تحميل البيانات
 rose = load_data()
 
-# إضافة مستخدم جديد مع 100 فلوس
+# إضافة مستخدم جديد مع 100 فلوس و 0 ورود
 def add_user(uid, gid, nid, rose):
     uid, gid = str(uid), str(gid)
     if gid not in rose:
         rose[gid] = {}
     if uid not in rose[gid]:
-        rose[gid][uid] = {"name": nid, "money": 100}  # يبدأ المستخدم بـ 100 فلوس
+        rose[gid][uid] = {"name": nid, "money": 100, "roses": 0}  # يبدأ المستخدم بـ 100 فلوس و 0 وردة
     save_data(rose)
 
-# شراء الورود عبر الفلوس فقط
+# شراء الورود وتسجيل العدد
 @ABH.on(events.NewMessage(pattern=r'رفع وردة\s+(\d+)'))
 async def rose_handler(event):
     number = int(event.pattern_match.group(1))  # عدد الورود المطلوبة
@@ -57,17 +57,47 @@ async def rose_handler(event):
     total_cost = number * cost_per_rose  # حساب التكلفة الإجمالية
 
     if current_money >= total_cost:
-        # خصم الفلوس فقط
+        # خصم الفلوس وزيادة عدد الورود
         rose[gid][uid]["money"] -= total_cost
+        rose[gid][uid]["roses"] += number
         save_data(rose)
-        await event.reply(f"✅ تم رفع {number} وردة لـ {nid} 🌹 بخصم {total_cost} فلوس!")
+        await event.reply(f"✅ تم شراء {number} وردة لـ {nid} 🌹 بخصم {total_cost} فلوس!")
     
     else:
         # إذا لم يكن لديه فلوس كافية
-        await event.reply(f"❌ لا يمكنك رفع {number} وردة، تحتاج إلى {total_cost} فلوس ولكن لديك فقط {current_money} فلوس!")
+        await event.reply(f"❌ لا يمكنك شراء {number} وردة، تحتاج إلى {total_cost} فلوس ولكن لديك فقط {current_money} فلوس!")
 
-# عرض الفلوس في المجموعة
-@ABH.on(events.NewMessage(pattern='الفلوس'))
+# تنزيل الورود (بدون استرجاع فلوس)
+@ABH.on(events.NewMessage(pattern=r'تنزيل وردة\s+(\d+)'))
+async def remove_rose_handler(event):
+    number = int(event.pattern_match.group(1))  # عدد الورود المراد تنزيلها
+    message = await event.get_reply_message()
+
+    if not message or not message.sender:
+        await event.reply("❌ يجب الرد على رسالة شخص لتنزيل الوردة!")
+        return
+    
+    uid = str(message.sender_id)
+    nid = message.sender.first_name or "مجهول"
+    gid = str(event.chat_id)
+
+    # إضافة المستخدم إذا لم يكن موجودًا
+    add_user(uid, gid, nid, rose)
+
+    current_roses = rose[gid][uid]["roses"]  # عدد الورود الحالية
+
+    if current_roses >= number:
+        # تقليل عدد الورود بدون استرجاع الفلوس
+        rose[gid][uid]["roses"] -= number
+        save_data(rose)
+        await event.reply(f"✅ تم تنزيل {number} وردة لـ {nid} 🌹!")
+    
+    else:
+        # إذا حاول تنزيل أكثر مما رفع
+        await event.reply(f"❌ لا يمكنك تنزيل {number} وردة، لديك فقط {current_roses} وردة!")
+
+# عرض الفلوس والورود في المجموعة
+@ABH.on(events.NewMessage(pattern='الحساب'))
 async def show_handler(event):
     chat_id = str(event.chat_id)
 
@@ -75,9 +105,9 @@ async def show_handler(event):
         await event.reply("❌ لا يوجد أي بيانات مالية في هذه المجموعة حتى الآن.")
         return
 
-    response = "💰 قائمة الأرصدة المالية في هذه المجموعة:\n"
+    response = "💰 قائمة الحسابات في هذه المجموعة:\n"
     for uid, data in rose[chat_id].items():
-        response += f"👤 {data['name']}: {data['money']} فلوس\n"
+        response += f"👤 {data['name']}: 💰 {data['money']} فلوس | 🌹 {data['roses']} ورود\n"
 
     await event.reply(response)
 
