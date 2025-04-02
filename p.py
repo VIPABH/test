@@ -10,32 +10,32 @@ bot_token = os.getenv('BOT_TOKEN')
 # تشغيل البوت
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
-# تحميل بيانات الورود والفلوس من ملف JSON
-def load_points(filename="rose.json"):
+# تحميل بيانات الفلوس من ملف JSON
+def load_data(filename="rose.json"):
     try:
         with open(filename, "r") as file:
             return json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
-# حفظ بيانات الورود والفلوس
-def save_points(data, filename="rose.json"):
+# حفظ بيانات الفلوس
+def save_data(data, filename="rose.json"):
     with open(filename, "w") as file:
         json.dump(data, file, indent=4)
 
 # تحميل البيانات
-rose = load_points()
+rose = load_data()
 
-# إضافة مستخدم جديد مع فلوس وافتراضيًا 40 وردة
-def add_points(uid, gid, nid, rose):
+# إضافة مستخدم جديد مع 100 فلوس
+def add_user(uid, gid, nid, rose):
     uid, gid = str(uid), str(gid)
     if gid not in rose:
         rose[gid] = {}
     if uid not in rose[gid]:
-        rose[gid][uid] = {"name": nid, "count": 40, "money": 100}  # يبدأ المستخدم بـ 100 فلوس
-    save_points(rose)
+        rose[gid][uid] = {"name": nid, "money": 100}  # يبدأ المستخدم بـ 100 فلوس
+    save_data(rose)
 
-# رفع الورود مع خصم الفلوس عند الحاجة
+# شراء الورود عبر الفلوس فقط
 @ABH.on(events.NewMessage(pattern=r'رفع وردة\s+(\d+)'))
 async def rose_handler(event):
     number = int(event.pattern_match.group(1))  # عدد الورود المطلوبة
@@ -50,44 +50,34 @@ async def rose_handler(event):
     gid = str(event.chat_id)
 
     # إضافة المستخدم إذا لم يكن موجودًا
-    add_points(uid, gid, nid, rose)
+    add_user(uid, gid, nid, rose)
 
-    current_roses = rose[gid][uid]["count"]  # عدد الورود الحالي
     current_money = rose[gid][uid]["money"]  # الرصيد الحالي
+    cost_per_rose = 2  # كل وردة = 2 فلوس
+    total_cost = number * cost_per_rose  # حساب التكلفة الإجمالية
 
-    if current_roses >= number:
-        # إذا كان لديه ورود كافية، يتم خصم العدد مباشرة
-        rose[gid][uid]["count"] -= number
-        save_points(rose)
-        await event.reply(f"✅ تم رفع {number} وردة لـ {nid} 🌹")
-    
-    elif current_roses + current_money >= number:
-        # إذا كان لديه ورود غير كافية لكن يستطيع الشراء من رصيده
-        needed_roses = number - current_roses
-        cost = needed_roses  # كل وردة = 1 فلوس
-
-        rose[gid][uid]["count"] = 0  # ينتهي رصيد الورود
-        rose[gid][uid]["money"] -= cost  # خصم الفلوس
-        save_points(rose)
-
-        await event.reply(f"⚠️ كان عند {nid} {current_roses} وردة فقط، تم استخدامها واشترى {needed_roses} وردة بخصم {cost} فلوس! 💰")
+    if current_money >= total_cost:
+        # خصم الفلوس فقط
+        rose[gid][uid]["money"] -= total_cost
+        save_data(rose)
+        await event.reply(f"✅ تم رفع {number} وردة لـ {nid} 🌹 بخصم {total_cost} فلوس!")
     
     else:
-        # إذا لم يكن لديه ورود ولا فلوس كافية
-        await event.reply(f"❌ لا يمكنك رفع {number} وردة، ليس لديك ورود كافية ولا فلوس كافية!")
+        # إذا لم يكن لديه فلوس كافية
+        await event.reply(f"❌ لا يمكنك رفع {number} وردة، تحتاج إلى {total_cost} فلوس ولكن لديك فقط {current_money} فلوس!")
 
-# عرض الورود والفلوس في المجموعة
-@ABH.on(events.NewMessage(pattern='الورود'))
+# عرض الفلوس في المجموعة
+@ABH.on(events.NewMessage(pattern='الفلوس'))
 async def show_handler(event):
     chat_id = str(event.chat_id)
 
     if chat_id not in rose or not rose[chat_id]:
-        await event.reply("❌ لا يوجد أي ورود في هذه المجموعة حتى الآن.")
+        await event.reply("❌ لا يوجد أي بيانات مالية في هذه المجموعة حتى الآن.")
         return
 
-    response = "🌹 قائمة الورود والفلوس في هذه المجموعة:\n"
+    response = "💰 قائمة الأرصدة المالية في هذه المجموعة:\n"
     for uid, data in rose[chat_id].items():
-        response += f"👤 {data['name']}: {data['count']} وردة | 💰 {data['money']} فلوس\n"
+        response += f"👤 {data['name']}: {data['money']} فلوس\n"
 
     await event.reply(response)
 
