@@ -20,7 +20,7 @@ def add_points(uid, gid, nid, rose):
     if gid not in rose:
         rose[gid] = {}
     if uid not in rose[gid]:
-        rose[gid][uid] = {"name": nid, "count": 1}
+        rose[gid][uid] = {"name": nid, "count": 40}
     else:
         rose[gid][uid]["count"]
     save_points(rose)
@@ -36,9 +36,9 @@ async def rose_handler(event):
         return
     uid = message.sender_id
     nid = message.sender.first_name or "مجهول"
-    chat = str(event.chat_id)
-    add_points(uid, chat, nid, rose)
-    if rose[uid][nid][chat] > number:
+    gid = str(event.chat_id)
+    add_points(uid, gid, nid, rose)
+    if rose[gid][uid]["count"] > number:
         await event.reply(f"✅ تم رفع الوردة لـ {nid} 🌹")
     else:
         await event.reply('يا فقير ماعندك فلوس حته ترفع')
