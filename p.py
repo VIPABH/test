@@ -2,15 +2,12 @@ import os
 import json
 from telethon import TelegramClient, events
 
-# تحميل متغيرات البيئة
 api_id = os.getenv('API_ID')
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
-# تشغيل البوت
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
-# تحميل البيانات المالية
 def load_data(filename="rose.json"):
     try:
         with open(filename, "r") as file:
@@ -18,15 +15,12 @@ def load_data(filename="rose.json"):
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
-# حفظ البيانات المالية
 def save_data(data, filename="rose.json"):
     with open(filename, "w") as file:
         json.dump(data, file, indent=4)
 
-# تحميل البيانات
 rose = load_data()
 
-# إضافة مستخدم جديد
 def add_user(uid, gid, name, rose):
     uid, gid = str(uid), str(gid)
     if gid not in rose:
@@ -40,12 +34,11 @@ def add_user(uid, gid, name, rose):
         }
     save_data(rose)
 
-# أمر رفع الوردة (ترقية)
 @ABH.on(events.NewMessage(pattern=r'رفع وردة'))
 async def promote_handler(event):
     message = await event.get_reply_message()
     if not message or not message.sender:
-        await event.reply("❌ يجب الرد على رسالة الشخص المراد رفعه.")
+        await event.reply("الامر يعمل بالرد , تحب اسويلك شرح🙄؟")
         return
 
     giver_id = str(event.sender_id)
@@ -57,7 +50,7 @@ async def promote_handler(event):
     add_user(giver_id, gid, event.sender.first_name, rose)
 
     if rose[gid][receiver_id]["status"] == "مرفوع":
-        await event.reply("⚠️ هذا الشخص مرفوع بالفعل.")
+        await event.reply("`هذا الشخص مرفوع من قبل")
         return
 
     min_required = 1000
@@ -65,7 +58,7 @@ async def promote_handler(event):
     giver_money = rose[gid][giver_id]["money"]
 
     if giver_money < min_required:
-        await event.reply(f"❌ الحد الأدنى للرفع هو {min_required} فلوس. رصيدك الحالي: {giver_money}.")
+        await event.reply(f"ماتكدر ترفع يا فقير فلوسك {giver_money} اقل مبلغ تكدر ترفعه`1000`")
         return
 
     rose[gid][giver_id]["money"] -= cost
@@ -73,14 +66,13 @@ async def promote_handler(event):
     rose[gid][receiver_id]["giver"] = giver_id
     save_data(rose)
 
-    await event.reply(f"✅ تم رفع {receiver_name} إلى منصب 🌹 'مرفوع' مقابل {cost} فلوس.")
+    await event.reply(f"تم بحمد الله المستخدم الئ وردة ")
 
-# أمر تنزيل الوردة (إلغاء الترقية)
 @ABH.on(events.NewMessage(pattern=r'تنزيل وردة'))
 async def demote_handler(event):
     message = await event.get_reply_message()
     if not message or not message.sender:
-        await event.reply("❌ يجب الرد على رسالة الشخص المراد تنزيله.")
+        await event.reply("متكدر تنزل الفراغ , سوي رد على شخص")
         return
 
     executor_id = str(event.sender_id)
@@ -92,7 +84,7 @@ async def demote_handler(event):
     add_user(executor_id, gid, event.sender.first_name, rose)
 
     if rose[gid][target_id]["status"] != "مرفوع":
-        await event.reply("⚠️ هذا المستخدم ليس مرفوعًا.")
+        await event.reply("المستخدم هاذ ما مرفوع من قبل😐")
         return
 
     giver_id = rose[gid][target_id].get("giver")
@@ -105,7 +97,8 @@ async def demote_handler(event):
     executor_money = rose[gid][executor_id]["money"]
 
     if executor_money < min_required:
-        await event.reply(f"❌ الحد الأدنى للتنزيل هو {min_required} فلوس. رصيدك الحالي: {executor_money}.")
+
+        await event.reply(f"ماتكدر تنزله لان رصيدك {executor_money} لازم يكون {min_required} ")
         return
 
     rose[gid][executor_id]["money"] -= cost
@@ -113,14 +106,13 @@ async def demote_handler(event):
     rose[gid][target_id]["giver"] = None
     save_data(rose)
 
-    await event.reply(f"✅ تم تنزيل {target_name} من منصب 'مرفوع' مقابل {cost} فلوس.")
+    await event.reply(f"تم تنزيل المستخدم من قائمة الوردات")
 
-# عرض الحسابات
 @ABH.on(events.NewMessage(pattern='الحساب'))
 async def show_handler(event):
     chat_id = str(event.chat_id)
     if chat_id not in rose or not rose[chat_id]:
-        await event.reply("❌ لا توجد بيانات مالية في هذه المجموعة.")
+        await event.reply("ماكو وردات هنا بالمجموعة!")
         return
 
     response = "📊 قائمة الحسابات:\n"
@@ -130,5 +122,4 @@ async def show_handler(event):
 
     await event.reply(response)
 
-# تشغيل البوت
 ABH.run_until_disconnected()
