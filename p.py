@@ -49,9 +49,8 @@ async def take_rose(event):
     gid, actor, target = str(event.chat_id), str(event.sender_id), str(msg.sender_id)
     number = int(event.pattern_match.group(1))
     init_user(gid, target, msg.sender.first_name)
-    giver = rose[gid][target].get("giver")
 
-    cost = number if actor in [target, giver] else number * 4
+    cost = number * 4  # ثابت: 4 أضعاف عدد الورود
     if rose[gid][target]["roses"] < cost:
         return await event.reply(f"❌ لا يمكن تنزيل {cost} وردة، يملك فقط {rose[gid][target]['roses']}.")
     
