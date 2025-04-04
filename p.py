@@ -66,7 +66,6 @@ async def rose_handler(event):
     else:
         await event.reply(f"❌ لا يمكنك شراء {number} وردة، تحتاج إلى {total_cost} فلوس ولكن لديك فقط {current_money} فلوس!")
 
-# تنزيل الورود (فقط للشخص الذي رفعها أو الذي تم رفعها له)
 @ABH.on(events.NewMessage(pattern=r'تنزيل وردة\s+(\d+)'))
 async def remove_rose_handler(event):
     number = int(event.pattern_match.group(1))  
@@ -76,7 +75,7 @@ async def remove_rose_handler(event):
         await event.reply("❌ يجب الرد على رسالة شخص لتنزيل الوردة!")
         return
     
-    executor_id = str(event.sender_id)  # الشخص الذي يريد تنزيل الورود
+    executor_id = str(event.sender_id)  # الشخص الذي يريد التنزيل
     target_id = str(message.sender_id)  # الشخص الذي سيتم تنزيل الورود منه
     gid = str(event.chat_id)
 
@@ -88,21 +87,22 @@ async def remove_rose_handler(event):
 
     giver_id = rose[gid][target_id]["giver"]  # الشخص الذي رفع الورود لهذا المستخدم
 
-    # التحقق من أن الذي ينزل الورود هو نفسه الذي رفعها أو المستخدم نفسه
-    if executor_id != target_id and executor_id != giver_id:
-        await event.reply("❌ لا يمكنك تنزيل هذه الورود، فقط الشخص الذي رفعها أو الذي تم رفعها له يمكنه ذلك!")
-        return
+    # تحديد عدد الورود التي سيتم تنزيلها وفقًا للشخص الذي يقوم بالتنزيل
+    if executor_id == target_id or executor_id == giver_id:
+        final_number = number  # لا يوجد مضاعفة
+    else:
+        final_number = number * 4  # يتم تنزيل 4 أضعاف العدد المطلوب
 
     current_roses = rose[gid][target_id]["roses"]  
 
-    if current_roses >= number:
-        rose[gid][target_id]["roses"] -= number
+    if current_roses >= final_number:
+        rose[gid][target_id]["roses"] -= final_number
         save_data(rose)
-        await event.reply(f"✅ تم تنزيل {number} وردة من {message.sender.first_name} 🌹!")
+        await event.reply(f"✅ تم تنزيل {final_number} وردة من {message.sender.first_name} 🌹!")
     else:
-        await event.reply(f"❌ لا يمكنك تنزيل {number} وردة، لديه فقط {current_roses} وردة!")
+        await event.reply(f"❌ لا يمكنك تنزيل {final_number} وردة، لديه فقط {current_roses} وردة!")
 
-# عرض الفلوس والورود في المجموعة
+
 @ABH.on(events.NewMessage(pattern='الحساب'))
 async def show_handler(event):
     chat_id = str(event.chat_id)
@@ -117,5 +117,4 @@ async def show_handler(event):
 
     await event.reply(response)
 
-# تشغيل البوت
 ABH.run_until_disconnected()
