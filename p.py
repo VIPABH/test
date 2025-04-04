@@ -27,7 +27,7 @@ def add_user(uid, gid, name, rose):
         rose[gid] = {}
     if uid not in rose[gid]:
         rose[gid][uid] = {
-            "name": name,
+            "name": name or "مستخدم",
             "money": 1200,
             "status": "عادي",
             "giver": None
@@ -38,27 +38,27 @@ def add_user(uid, gid, name, rose):
 async def promote_handler(event):
     message = await event.get_reply_message()
     if not message or not message.sender:
-        await event.reply("الامر يعمل بالرد , تحب اسويلك شرح🙄؟")
+        await event.reply("❌ لازم ترد على رسالة الشخص الي تريد ترفعه.")
         return
 
     giver_id = str(event.sender_id)
     receiver_id = str(message.sender_id)
-    receiver_name = message.sender.first_name or "مجهول"
+    receiver_name = message.sender.first_name or "مستخدم"
     gid = str(event.chat_id)
 
     add_user(receiver_id, gid, receiver_name, rose)
     add_user(giver_id, gid, event.sender.first_name, rose)
 
     if rose[gid][receiver_id]["status"] == "مرفوع":
-        await event.reply("`هذا الشخص مرفوع من قبل")
+        await event.reply("⚠️ هذا الشخص مرفوع أساسًا.")
         return
 
-    min_required = 1000
-    cost = min_required
+    min_required = 3000
+    cost = 2
     giver_money = rose[gid][giver_id]["money"]
 
     if giver_money < min_required:
-        await event.reply(f"ماتكدر ترفع يا فقير فلوسك {giver_money} اقل مبلغ تكدر ترفعه`1000`")
+        await event.reply(f"💸 رصيدك {giver_money} فلوس، والحد الأدنى للرفع هو {min_required} فلوس.")
         return
 
     rose[gid][giver_id]["money"] -= cost
@@ -66,39 +66,34 @@ async def promote_handler(event):
     rose[gid][receiver_id]["giver"] = giver_id
     save_data(rose)
 
-    await event.reply(f"تم بحمد الله المستخدم الئ وردة ")
+    await event.reply(f"🌹 تم رفع {receiver_name} إلى قائمة الورود مقابل {cost} فلوس.")
 
 @ABH.on(events.NewMessage(pattern=r'تنزيل وردة'))
 async def demote_handler(event):
     message = await event.get_reply_message()
     if not message or not message.sender:
-        await event.reply("متكدر تنزل الفراغ , سوي رد على شخص")
+        await event.reply("❌ لازم ترد على رسالة الشخص الي تريد تنزله.")
         return
 
     executor_id = str(event.sender_id)
     target_id = str(message.sender_id)
-    target_name = message.sender.first_name or "مجهول"
+    target_name = message.sender.first_name or "مستخدم"
     gid = str(event.chat_id)
 
     add_user(target_id, gid, target_name, rose)
     add_user(executor_id, gid, event.sender.first_name, rose)
 
     if rose[gid][target_id]["status"] != "مرفوع":
-        await event.reply("المستخدم هاذ ما مرفوع من قبل😐")
+        await event.reply("⚠️ هذا الشخص ما مرفوع أصلًا.")
         return
 
     giver_id = rose[gid][target_id].get("giver")
-    if executor_id == target_id or executor_id == giver_id:
-        cost = 2
-    else:
-        cost = 4
-
+    cost = 2 if executor_id in [target_id, giver_id] else 4
     min_required = 3000
     executor_money = rose[gid][executor_id]["money"]
 
     if executor_money < min_required:
-
-        await event.reply(f"ماتكدر تنزله لان رصيدك {executor_money} لازم يكون {min_required} ")
+        await event.reply(f"💸 رصيدك {executor_money} فلوس، والحد الأدنى لتنزيل شخص هو {min_required} فلوس.")
         return
 
     rose[gid][executor_id]["money"] -= cost
@@ -106,16 +101,16 @@ async def demote_handler(event):
     rose[gid][target_id]["giver"] = None
     save_data(rose)
 
-    await event.reply(f"تم تنزيل المستخدم من قائمة الوردات")
+    await event.reply(f"🔻 تم تنزيل {target_name} من قائمة الورود مقابل {cost} فلوس.")
 
 @ABH.on(events.NewMessage(pattern='الحساب'))
 async def show_handler(event):
     chat_id = str(event.chat_id)
     if chat_id not in rose or not rose[chat_id]:
-        await event.reply("ماكو وردات هنا بالمجموعة!")
+        await event.reply("❌ لا توجد بيانات مالية في هذه المجموعة حتى الآن.")
         return
 
-    response = "📊 قائمة الحسابات:\n"
+    response = "📊 الحسابات في هذه المجموعة:\n"
     for uid, data in rose[chat_id].items():
         status_icon = "🌹" if data["status"] == "مرفوع" else "👤"
         response += f"{status_icon} {data['name']}: 💰 {data['money']} فلوس | 🏷️ الحالة: {data['status']}\n"
