@@ -60,7 +60,7 @@ async def promote_handler(event):
         await event.reply("⚠️ هذا الشخص مرفوع بالفعل.")
         return
 
-    min_required = 3000
+    min_required = 1000
     cost = min_required
     giver_money = rose[gid][giver_id]["money"]
 
