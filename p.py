@@ -32,8 +32,9 @@ def add_user(uid, gid, nid, rose):
     if gid not in rose:
         rose[gid] = {}
     if uid not in rose[gid]:
-        rose[gid][uid] = {"name": nid, "money": 100, "roses": 0, "giver": None}  # تخزين معرّف الشخص الذي رفع الورود
+        rose[gid][uid] = {"name": nid, "money": 1200, "roses": 0, "giver": None}  # تخزين معرّف الشخص الذي رفع الورود
     save_data(rose)
+
 @ABH.on(events.NewMessage(pattern=r'رفع وردة'))
 async def promote_handler(event):
     message = await event.get_reply_message()
@@ -55,15 +56,18 @@ async def promote_handler(event):
         return
 
     cost = 2
-    if rose[gid][giver_id]["money"] >= cost:
-        rose[gid][giver_id]["money"] -= cost
-        rose[gid][receiver_id]["status"] = "مرفوع"
-        rose[gid][receiver_id]["giver"] = giver_id
-        save_data(rose)
-        await event.reply(f"✅ تم رفع {receiver_name} إلى منصب 🌹 'مرفوع' مقابل {cost} فلوس.")
-    else:
-        await event.reply(f"❌ لا تملك رصيدًا كافيًا، تحتاج إلى {cost} فلوس!")
+    min_required = 1000
+    current_money = rose[gid][giver_id]["money"]
 
+    if current_money < min_required:
+        await event.reply(f"❌ الحد الأدنى لتنفيذ أمر الرفع هو {min_required} فلوس، لديك فقط {current_money} فلوس.")
+        return
+
+    rose[gid][giver_id]["money"] -= cost
+    rose[gid][receiver_id]["status"] = "مرفوع"
+    rose[gid][receiver_id]["giver"] = giver_id
+    save_data(rose)
+    await event.reply(f"✅ تم رفع {receiver_name} إلى منصب 🌹 'مرفوع' مقابل {cost} فلوس.")
 @ABH.on(events.NewMessage(pattern=r'تنزيل وردة'))
 async def demote_handler(event):
     message = await event.get_reply_message()
@@ -89,14 +93,18 @@ async def demote_handler(event):
     else:
         cost = 4
 
-    if rose[gid][executor_id]["money"] >= cost:
-        rose[gid][executor_id]["money"] -= cost
-        rose[gid][target_id]["status"] = "عادي"
-        rose[gid][target_id]["giver"] = None
-        save_data(rose)
-        await event.reply(f"✅ تم تنزيل {message.sender.first_name} من منصب 'مرفوع' مقابل {cost} فلوس.")
-    else:
-        await event.reply(f"❌ لا تملك رصيدًا كافيًا، تحتاج إلى {cost} فلوس!")
+    min_required = 1000
+    current_money = rose[gid][executor_id]["money"]
+
+    if current_money < min_required:
+        await event.reply(f"❌ الحد الأدنى لتنفيذ أمر التنزيل هو {min_required} فلوس، لديك فقط {current_money} فلوس.")
+        return
+
+    rose[gid][executor_id]["money"] -= cost
+    rose[gid][target_id]["status"] = "عادي"
+    rose[gid][target_id]["giver"] = None
+    save_data(rose)
+    await event.reply(f"✅ تم تنزيل {message.sender.first_name} من منصب 'مرفوع' مقابل {cost} فلوس.")
 
 @ABH.on(events.NewMessage(pattern='الحساب'))
 async def show_handler(event):
@@ -108,8 +116,7 @@ async def show_handler(event):
 
     response = "💰 قائمة الحسابات في هذه المجموعة:\n"
     for uid, data in rose[chat_id].items():
-        status = data.get("status", "عادي")
-        response += f"👤 {data['name']}: 💰 {data['money']} فلوس | 📌 {status}\n"
+        response += f"👤 {data['name']}: 💰 {data['money']} فلوس | 🌹 {data['roses']} ورود\n"
 
     await event.reply(response)
 
