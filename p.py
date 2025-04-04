@@ -65,27 +65,32 @@ async def rose_handler(event):
         await event.reply(f"✅ تم شراء {number} وردة لـ {receiver_name} 🌹 بخصم {total_cost} فلوس!")
     else:
         await event.reply(f"❌ لا يمكنك شراء {number} وردة، تحتاج إلى {total_cost} فلوس ولكن لديك فقط {current_money} فلوس!")
-@ABH.on(events.NewMessage(pattern=r'تنزيل وردة\s+(\d+)'))
-async def remove_rose_handler(event):
-    number = int(event.pattern_match.group(1))  
+
+@ABH.on(events.NewMessage(pattern=r'تنزيل وردة'))
+async def remove_all_roses_handler(event):
     message = await event.get_reply_message()
 
     if not message or not message.sender:
         await event.reply("❌ يجب الرد على رسالة شخص لتنزيل الوردة!")
         return
     
-    executor_id = str(event.sender_id)  # الشخص الذي يريد التنزيل
-    target_id = str(message.sender_id)  # الشخص الذي سيتم تنزيل الورود منه
+    executor_id = str(event.sender_id)  # الشخص الذي ينفذ التنزيل
+    target_id = str(message.sender_id)  # الشخص الذي سيتم حذف الورود منه
     gid = str(event.chat_id)
 
     add_user(target_id, gid, message.sender.first_name, rose)
-    add_user(executor_id, gid, event.sender.first_name, rose)  # ضمان وجود المنفّذ في البيانات
+    add_user(executor_id, gid, event.sender.first_name, rose)
 
     if "giver" not in rose[gid][target_id]:
         await event.reply("❌ لا توجد معلومات عن الشخص الذي رفع هذه الورود!")
         return
 
-    giver_id = rose[gid][target_id]["giver"]  # الشخص الذي رفع الورود
+    giver_id = rose[gid][target_id]["giver"]
+    current_roses = rose[gid][target_id]["roses"]
+
+    if current_roses == 0:
+        await event.reply("❌ لا توجد أي ورود ليتم تنزيلها من هذا المستخدم.")
+        return
 
     # تحديد سعر التنزيل
     if executor_id == target_id or executor_id == giver_id:
@@ -93,19 +98,13 @@ async def remove_rose_handler(event):
     else:
         price_per_rose = 4
 
-    total_roses_to_remove = number * price_per_rose
-    current_roses = rose[gid][target_id]["roses"]
+    total_cost = current_roses * price_per_rose
+    rose[gid][target_id]["roses"] = 0  # حذف كل الورود
+    save_data(rose)
 
-    if current_roses >= total_roses_to_remove:
-        rose[gid][target_id]["roses"] -= total_roses_to_remove
-        save_data(rose)
-        await event.reply(
-            f"✅ تم تنزيل {total_roses_to_remove} وردة من {message.sender.first_name} 🌹 حسب سعر {price_per_rose} لكل وردة!"
-        )
-    else:
-        await event.reply(
-            f"❌ لا يمكنك تنزيل {total_roses_to_remove} وردة، لديه فقط {current_roses} وردة!"
-        )
+    await event.reply(
+        f"✅ تم تنزيل جميع الورود ({current_roses} 🌹) من {message.sender.first_name} بسعر {price_per_rose} لكل وردة، المجموع {total_cost}!"
+    )
 
 @ABH.on(events.NewMessage(pattern='الحساب'))
 async def show_handler(event):
