@@ -52,7 +52,6 @@ async def promote_handler(event):
         await event.reply("⚠️ هذا الشخص مرفوع من قبل.")
         return
 
-    # استخراج مبلغ الخصم من الأمر
     match = event.pattern_match
     try:
         cost = int(match.group(1)) if match.group(1) else 2  # القيمة الافتراضية: 2 فلوس
@@ -64,7 +63,7 @@ async def promote_handler(event):
         await event.reply("⚠️ أقل مبلغ للرفع هو 1 فلوس.")
         return
 
-    min_required = 3000
+    min_required = 10
     giver_money = rose[gid][giver_id]["money"]
 
     if giver_money < min_required:
