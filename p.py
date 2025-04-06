@@ -18,6 +18,8 @@ async def test(event):
     has_url = any(isinstance(entity, MessageEntityUrl) for entity in (msg.entities or []))
     perms = await ABH.get_permissions(event.chat_id, event.sender_id)
     uid = event.sender_id
+    if uid in x:
+    return
 
     if (has_media or has_document or has_url) and not (perms.is_admin or perms.is_creator or uid in x):
         await event.reply('ها شعدلت ولك!.')
