@@ -1,26 +1,24 @@
-import os
 from telethon import TelegramClient, events
-from telethon.tl.types import MessageEntityUrl
+import os
 
-# إعدادات البوت
-api_id = os.getenv('API_ID')
+api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
-ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
-@ABH.on(events.MessageEdited)
-async def test(event):
-    msg = event.message
+ABH = TelegramClient('bot_session', api_id, api_hash).start(bot_token=bot_token)
 
-    # تحقق إذا كانت الرسالة تحتوي على وسائط أو ملف أو رابط
-    has_media = bool(msg.media)
-    has_document = bool(msg.document)
-    has_url = any(isinstance(entity, MessageEntityUrl) for entity in (msg.entities or []))
+@ABH.on(events.NewMessage(pattern='/check'))
+async def check_admin_status(event):
+    try:
+        perms = await ABH.get_permissions(event.chat_id, event.sender_id)
 
-    if has_media or has_document or has_url:
-        await event.reply('ها شعدلت ولك! الرابط أو الملف أو الوسائط تم تعديلها.')
-    else:
-        return  # لا ترسل شيء إذا ما كانت تحتوي على أحد هذه الأنواع
+        if perms.is_creator:
+            await event.reply("👑 أنت المالك (Creator).")
+        elif perms.is_admin:
+            await event.reply("🛡️ أنت مشرف (Admin).")
+        else:
+            await event.reply("👤 أنت عضو عادي.")
+    except Exception as e:
+        await event.reply(f"⚠️ لم أتمكن من التحقق.\nالسبب: {str(e)}")
 
-# بدء البوت
 ABH.run_until_disconnected()
