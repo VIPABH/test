@@ -19,7 +19,7 @@ async def test(event):
     perms = await ABH.get_permissions(event.chat_id, event.sender_id)
     uid = event.sender_id
     if uid in x:
-    return
+        return
 
     if (has_media or has_document or has_url) and not (perms.is_admin or perms.is_creator or uid in x):
         await event.reply('ها شعدلت ولك!.')
