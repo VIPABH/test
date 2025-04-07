@@ -1,33 +1,34 @@
-import os, asyncio
-from telethon import TelegramClient, events
-from telethon.tl.types import MessageEntityUrl
-api_id = os.getenv('API_ID')
-api_hash = os.getenv('API_HASH')
-bot_token = os.getenv('BOT_TOKEN')
-ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-x = set()
-hint_gid = -1002168230471
-@ABH.on(events.MessageEdited)
-async def test(event):
-    chat = event.chat_id
-    if chat != -1001784332159:
-        return  
-    msg = event.message
-    has_media = bool(msg.media)
-    has_document = bool(msg.document)
-    has_url = any(isinstance(entity, MessageEntityUrl) for entity in (msg.entities or []))
-    perms = await ABH.get_permissions(event.chat_id, event.sender_id)
-    uid = event.sender_id
-    if uid in x:
-        return
-    if (has_media or has_document or has_url) and not (perms.is_admin or perms.is_creator or uid in x):
-        sender = await event.get_sender()
-        nid = sender.first_name
-        msg_link = f"https://t.me/{event.chat.username}/{event.id}" if event.chat.username else None
-        uid = event.sender_id
-        await ABH.send_message(hint_gid, f'تم تعديل رسالة مريبة \n رابط الرسالة ↢ `{msg_link}` \n ايدي المستخدم ↢ `{uid}` \n اسم المستخدم ↢ `{nid}`')
-        await asyncio.sleep(60)
-        await event.delete()
-    else:
-        return
-ABH.run_until_disconnected()
+from telethon.sync import TelegramClient, events
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.errors import UserNotParticipantError
+
+# إعدادات البوت
+api_id = YOUR_API_ID
+api_hash = 'YOUR_API_HASH'
+bot_token = 'YOUR_BOT_TOKEN'
+
+client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
+
+# معرف القناة (public username)
+channel_username = 'x04ou'  # بدون @
+
+@client.on(events.NewMessage(pattern='/start'))
+async def handler(event):
+    user_id = event.sender_id
+
+    try:
+        # التحقق من العضوية
+        await client(GetParticipantRequest(channel_username, user_id))
+        
+        # في حال كان مشترك
+        await event.respond("مرحبًا بك، يمكنك استخدام البوت ✅")
+    
+    except UserNotParticipantError:
+        # في حال لم يكن مشتركًا
+        await event.respond(
+            f"🚫 للاستخدام، يجب الاشتراك أولًا في القناة:\n"
+            f"👉 https://t.me/{channel_username}\n"
+            f"ثم أرسل /start مجددًا."
+        )
+
+client.run_until_disconnected()
