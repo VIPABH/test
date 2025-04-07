@@ -24,6 +24,7 @@ async def test(event):
     if (has_media or has_document or has_url) and not (perms.is_admin or perms.is_creator or uid in x):
         await event.reply('ها شعدلت ولك!.')
         await asyncio.sleep(3)
+        await event.delete()
     else:
         return
 
