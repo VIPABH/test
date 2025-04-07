@@ -1,6 +1,6 @@
 from telethon.sync import TelegramClient, events
 from telethon.tl.functions.channels import GetParticipantRequest
-from telethon.errors import UserNotParticipantError, ChannelInvalidError, ChannelPrivateError, ChatAdminRequiredError, RpcError
+from telethon.errors import UserNotParticipantError, ChannelInvalidError, ChannelPrivateError, ChatAdminRequiredError, RPCError
 
 import os
 api_id = os.getenv('API_ID')
