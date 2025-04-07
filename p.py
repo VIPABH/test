@@ -8,8 +8,8 @@ bot_token = os.getenv('BOT_TOKEN')
 
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
-x = set()  # تم تصحيحها من dict إلى set
-
+x = set()
+hint_gid = -1002168230471
 @ABH.on(events.MessageEdited)
 async def test(event):
     msg = event.message
@@ -22,7 +22,7 @@ async def test(event):
         return
 
     if (has_media or has_document or has_url) and not (perms.is_admin or perms.is_creator or uid in x):
-        await event.reply('ها شعدلت ولك!.')
+        await ABH.send_message(hint_gid, 'ها شعدلت ولك!.')
         await asyncio.sleep(3)
         await event.delete()
     else:
