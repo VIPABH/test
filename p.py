@@ -28,7 +28,7 @@ async def test(event):
         msg_link = f"https://t.me/{event.chat.username}/{event.id}" if event.chat.username else None
         message = event.message
         if message.edit_date:
-            await ABH.send_message(hint_gid, f'تم #تعديل رسالة مريبة \n رابط الرسالة ↢ **{msg_link}** \n ايدي المستخدم ↢ `{uid}` \n اسم المستخدم ↢ `{nid}` \n تم تعديلها في {message.edit_date}')
+            msg = await ABH.send_message(hint_gid, f'تم #تعديل رسالة مريبة \n رابط الرسالة ↢ **{msg_link}** \n ايدي المستخدم ↢ `{uid}` \n اسم المستخدم ↢ `{nid}`', parse_mode=None)
             await asyncio.sleep(60)
             await event.delete()
     else:
