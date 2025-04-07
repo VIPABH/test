@@ -1,4 +1,4 @@
-import os
+import os, asyncio
 from telethon import TelegramClient, events
 from telethon.tl.types import MessageEntityUrl
 
@@ -23,11 +23,12 @@ async def test(event):
 
     if (has_media or has_document or has_url) and not (perms.is_admin or perms.is_creator or uid in x):
         await event.reply('ها شعدلت ولك!.')
+        await asyncio.sleep(3)
     else:
         return
 
 @ABH.on(events.NewMessage(pattern='سماح'))
-async def سماح(event):  # تم تغيير اسم الدالة لتفادي تعارض الاسم مع المتغير x
+async def سماح(event):
     uid = event.sender_id
     x.add(uid)
 
