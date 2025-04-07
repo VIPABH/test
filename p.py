@@ -11,7 +11,7 @@ bot_token = os.getenv('BOT_TOKEN')
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 hint_gid = -1002168230471
-@ABH.on(events.NewMessage)
+@ABH.on(events.MessageEdited)
 async def test(event):
     msg = event.message
     chat = event.chat_id
