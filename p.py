@@ -44,7 +44,7 @@ async def test(event):
         message = event.message
         
         if message.edit_date:
-            await ABH.send_message(hint_gid, f'تم #تعديل رسالة مريبة \n رابط الرسالة ↢ `{msg_link}` \n ايدي المستخدم ↢ **{uid}** \n اسم المستخدم ↢ `{nid}`')
+            await ABH.send_message(hint_gid, f'تم #تعديل رسالة مريبة \n رابط الرسالة ↢ **{msg_link}** \n ايدي المستخدم ↢ `{uid}` \n اسم المستخدم ↢ `{nid}`')
             await asyncio.sleep(60)
             await event.delete()  # حذف الرسالة المعدلة
     else:
