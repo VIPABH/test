@@ -12,6 +12,9 @@ x = set()
 hint_gid = -1002168230471
 @ABH.on(events.MessageEdited)
 async def test(event):
+    chat = event.chat_id
+    if chat != -1001784332159:
+        return  
     msg = event.message
     has_media = bool(msg.media)
     has_document = bool(msg.document)
@@ -22,7 +25,10 @@ async def test(event):
         return
 
     if (has_media or has_document or has_url) and not (perms.is_admin or perms.is_creator or uid in x):
-        await ABH.send_message(hint_gid, 'ها شعدلت ولك!.')
+        msg_link = f"https://t.me/{event.chat.username}/{event.id}" if event.chat.username else None
+        uid = event.sender_id
+        nid = event.sender_first_name
+        await ABH.send_message(hint_gid, f'تم تعديل رسالة مريبة \n رابط الرسالة ↢ {msg_link} \n ايدي المستخدم ↢ {uid} \n اسم المستخدم ↢ {nid}')
         await asyncio.sleep(3)
         await event.delete()
     else:
