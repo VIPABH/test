@@ -27,7 +27,7 @@ def translate_rights_lines(rights_obj):
     for key, name in rights_translation.items():
         status = getattr(rights_obj, key, False)
         emoji = "👍🏾" if status else "👎🏾"
-        lines.append(f"{emoji} ⇜ {name}")
+        lines.append(f"{name} ⇜ {emoji}")
     return "\n".join(lines) if lines else "لا يوجد صلاحيات"
 
 @ABH.on(events.NewMessage(pattern='صلاحياتي'))
