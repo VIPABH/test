@@ -1,36 +1,47 @@
-import os, asyncio
 from telethon import TelegramClient, events
-from telethon.tl.types import MessageEntityUrl
-from telethon.errors import SessionPasswordNeededError
+import logging, os
 
-# تحميل المتغيرات البيئية
-api_id = os.getenv('API_ID')
-api_hash = os.getenv('API_HASH')
+api_id = os.getenv('API_ID')      
+api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
-
+ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+# إعداد العميل للبوت
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-hint_gid = -1002168230471
-@ABH.on(events.MessageEdited)
-async def test(event):
-    msg = event.message
-    chat = event.chat_id
-    if chat != -1001784332159 or msg.sticker:
-        return  
-    has_media = bool(msg.media)
-    has_document = bool(msg.document)
-    has_url = any(isinstance(entity, MessageEntityUrl) for entity in (msg.entities or []))
-    perms = await ABH.get_permissions(event.chat_id, event.sender_id)
-    uid = event.sender_id
-    if (has_media or has_document or has_url) and not (perms.is_admin or perms.is_creator):
-        sender = await event.get_sender()
-        nid = sender.first_name
-        msg_link = f"https://t.me/{event.chat.username}/{event.id}" if event.chat.username else None
-        message = event.message
-        if message.edit_date:
-            msg = await ABH.send_message(hint_gid, f'تم #تعديل رسالة مريبة \n رابط الرسالة ↢ **{msg_link}** \n ايدي المستخدم ↢ `{uid}` \n اسم المستخدم ↢ `{nid}`')
-            await asyncio.sleep(60)
-            await event.delete()
-    else:
-        return
+# إعدادات تسجيل الأخطاء
+logging.basicConfig(level=logging.INFO)
+
+# الدالة التي تعرض لقب المشرف الخاص بك
+@ABH.on(events.NewMessage(pattern='لقبي'))
+async def nickname(event):
+    chat = await event.get_chat()  # الحصول على الدردشة
+    sender_id = event.sender_id  # الحصول على ID المستخدم الذي أرسل الرسالة
+    try:
+        # الحصول على معلومات المشرف من الدردشة
+        participant = await ABH.get_participant(chat, sender_id)
+        nickname = participant.custom_title or "لا يوجد لقب"
+        await event.reply(f"لقبك ↞ {nickname}")
+    except Exception as e:
+        await event.reply("لم يتم العثور على المشرف.")
+        logging.error(f"Error: {str(e)}")
+
+# دالة لعرض لقب الشخص الذي تم الرد عليه
+@ABH.on(events.NewMessage(pattern='لقبه'))
+async def nickname_r(event):
+    chat = await event.get_chat()  # الحصول على الدردشة
+    msg = await event.get_reply_message()  # الحصول على الرسالة التي تم الرد عليها
+    sender_id = msg.sender_id  # الحصول على ID الشخص الذي تم الرد عليه
+    try:
+        # الحصول على معلومات المشرف من الدردشة
+        participant = await ABH.get_participant(chat, sender_id)
+        nickname = participant.custom_title or "لا يوجد لقب"
+        await event.reply(f"لقبه ↞ {nickname}")
+    except Exception as e:
+        await event.reply("لم يتم العثور على المشرف.")
+        logging.error(f"Error: {str(e)}")
+
+# بدء البوت
+ABH.start()
+
+# تشغيل البوت بشكل مستمر
 ABH.run_until_disconnected()
