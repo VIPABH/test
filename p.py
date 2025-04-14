@@ -1,47 +1,60 @@
 from telethon import TelegramClient, events
+from telethon.tl.functions.channels import GetParticipant
+from telethon.tl.types import InputChannel
 import logging, os
 
-api_id = os.getenv('API_ID')      
-api_hash = os.getenv('API_HASH')  
+api_id = os.getenv('API_ID')
+api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
-ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-# إعداد العميل للبوت
+
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# إعدادات تسجيل الأخطاء
 logging.basicConfig(level=logging.INFO)
 
-# الدالة التي تعرض لقب المشرف الخاص بك
+# ✅ دالة عرض لقب المستخدم الحالي إن كان مشرفًا
 @ABH.on(events.NewMessage(pattern='لقبي'))
 async def nickname(event):
-    chat = await event.get_chat()  # الحصول على الدردشة
-    sender_id = event.sender_id  # الحصول على ID المستخدم الذي أرسل الرسالة
     try:
-        # الحصول على معلومات المشرف من الدردشة
-        participant = await ABH.get_participant(chat, sender_id)
-        nickname = participant.custom_title or "لا يوجد لقب"
-        await event.reply(f"لقبك ↞ {nickname}")
-    except Exception as e:
-        await event.reply("لم يتم العثور على المشرف.")
-        logging.error(f"Error: {str(e)}")
+        chat = await event.get_input_chat()
+        sender_id = event.sender_id
 
-# دالة لعرض لقب الشخص الذي تم الرد عليه
+        result = await ABH(GetParticipant(
+            channel=chat,
+            participant=sender_id
+        ))
+
+        participant = result.participant
+        nickname = getattr(participant, 'rank', None) or "لا يوجد لقب"
+        await event.reply(f"لقبك ↞ {nickname}")
+
+    except Exception as e:
+        await event.reply("المستخدم ليس مشرفًا أو لا يمكن العثور عليه.")
+        logging.error(f"لقبي Error: {str(e)}")
+
+# ✅ دالة عرض لقب الشخص الذي يتم الرد عليه إن كان مشرفًا
 @ABH.on(events.NewMessage(pattern='لقبه'))
 async def nickname_r(event):
-    chat = await event.get_chat()  # الحصول على الدردشة
-    msg = await event.get_reply_message()  # الحصول على الرسالة التي تم الرد عليها
-    sender_id = msg.sender_id  # الحصول على ID الشخص الذي تم الرد عليه
     try:
-        # الحصول على معلومات المشرف من الدردشة
-        participant = await ABH.get_participant(chat, sender_id)
-        nickname = participant.custom_title or "لا يوجد لقب"
+        msg = await event.get_reply_message()
+        if not msg:
+            await event.reply("رد على رسالة المستخدم أولًا.")
+            return
+
+        chat = await event.get_input_chat()
+        sender_id = msg.sender_id
+
+        result = await ABH(GetParticipant(
+            channel=chat,
+            participant=sender_id
+        ))
+
+        participant = result.participant
+        nickname = getattr(participant, 'rank', None) or "لا يوجد لقب"
         await event.reply(f"لقبه ↞ {nickname}")
+
     except Exception as e:
-        await event.reply("لم يتم العثور على المشرف.")
-        logging.error(f"Error: {str(e)}")
+        await event.reply("المستخدم ليس مشرفًا أو لا يمكن العثور عليه.")
+        logging.error(f"لقبه Error: {str(e)}")
 
-# بدء البوت
 ABH.start()
-
-# تشغيل البوت بشكل مستمر
 ABH.run_until_disconnected()
