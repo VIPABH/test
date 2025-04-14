@@ -1,14 +1,12 @@
 from telethon import TelegramClient, events
 from telethon.tl.functions.channels import GetParticipantRequest
-import logging, os
+import os
 
 api_id = os.getenv('API_ID')
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
-
-logging.basicConfig(level=logging.INFO)
 
 @ABH.on(events.NewMessage(pattern='لقبي'))
 async def nickname(event):
@@ -25,9 +23,8 @@ async def nickname(event):
         nickname = getattr(participant, 'rank', None) or "لا يوجد لقب"
         await event.reply(f"لقبك ↞ {nickname}")
 
-    except Exception as e:
+    except Exception:
         await event.reply("المستخدم ليس مشرفًا أو لا يمكن العثور عليه.")
-        logging.error(f"لقبي Error: {str(e)}")
 
 @ABH.on(events.NewMessage(pattern='لقبه'))
 async def nickname_r(event):
@@ -49,9 +46,8 @@ async def nickname_r(event):
         nickname = getattr(participant, 'rank', None) or "لا يوجد لقب"
         await event.reply(f"لقبه ↞ {nickname}")
 
-    except Exception as e:
+    except Exception:
         await event.reply("المستخدم ليس مشرفًا أو لا يمكن العثور عليه.")
-        logging.error(f"لقبه Error: {str(e)}")
 
 ABH.start()
 ABH.run_until_disconnected()
