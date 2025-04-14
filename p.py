@@ -1,6 +1,5 @@
 from telethon import TelegramClient, events
-from telethon.tl.functions.channels import GetParticipant
-from telethon.tl.types import InputChannel
+from telethon.tl.functions.channels import GetParticipantRequest
 import logging, os
 
 api_id = os.getenv('API_ID')
@@ -11,14 +10,13 @@ ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 logging.basicConfig(level=logging.INFO)
 
-# ✅ دالة عرض لقب المستخدم الحالي إن كان مشرفًا
 @ABH.on(events.NewMessage(pattern='لقبي'))
 async def nickname(event):
     try:
         chat = await event.get_input_chat()
         sender_id = event.sender_id
 
-        result = await ABH(GetParticipant(
+        result = await ABH(GetParticipantRequest(
             channel=chat,
             participant=sender_id
         ))
@@ -31,7 +29,6 @@ async def nickname(event):
         await event.reply("المستخدم ليس مشرفًا أو لا يمكن العثور عليه.")
         logging.error(f"لقبي Error: {str(e)}")
 
-# ✅ دالة عرض لقب الشخص الذي يتم الرد عليه إن كان مشرفًا
 @ABH.on(events.NewMessage(pattern='لقبه'))
 async def nickname_r(event):
     try:
@@ -43,7 +40,7 @@ async def nickname_r(event):
         chat = await event.get_input_chat()
         sender_id = msg.sender_id
 
-        result = await ABH(GetParticipant(
+        result = await ABH(GetParticipantRequest(
             channel=chat,
             participant=sender_id
         ))
