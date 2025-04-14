@@ -22,11 +22,13 @@ rights_translation = {
     "manage_topics": "إدارة المواضيع",
 }
 
-def translate_rights(rights_obj):
-    if not rights_obj:
-        return "لا يوجد صلاحيات"
-    perms = [rights_translation.get(k, k) for k, v in rights_obj.to_dict().items() if v]
-    return "،".join(perms) if perms else "لا يوجد صلاحيات"
+def translate_rights_lines(rights_obj):
+    lines = []
+    for key, name in rights_translation.items():
+        status = getattr(rights_obj, key, False)
+        emoji = "👍🏾" if status else "👎🏾"
+        lines.append(f"{emoji} ⇜ {name}")
+    return "\n".join(lines) if lines else "لا يوجد صلاحيات"
 
 @ABH.on(events.NewMessage(pattern='صلاحياتي'))
 async def my_rights(event):
@@ -34,8 +36,8 @@ async def my_rights(event):
         chat = await event.get_input_chat()
         sender_id = event.sender_id
         result = await ABH(GetParticipantRequest(channel=chat, participant=sender_id))
-        translated = translate_rights(result.participant.admin_rights)
-        await event.reply(f"صلاحياتك ↞ {translated}")
+        translated = translate_rights_lines(result.participant.admin_rights)
+        await event.reply(f"صلاحياتك:\n{translated}")
     except Exception:
         await event.reply("لا يمكن عرض الصلاحيات.")
 
@@ -49,8 +51,8 @@ async def his_rights(event):
         chat = await event.get_input_chat()
         sender_id = msg.sender_id
         result = await ABH(GetParticipantRequest(channel=chat, participant=sender_id))
-        translated = translate_rights(result.participant.admin_rights)
-        await event.reply(f"صلاحياته ↞ {translated}")
+        translated = translate_rights_lines(result.participant.admin_rights)
+        await event.reply(f"صلاحياته:\n{translated}")
     except Exception:
         await event.reply("لا يمكن عرض الصلاحيات.")
 
