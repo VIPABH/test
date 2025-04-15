@@ -2,10 +2,10 @@ from telethon import TelegramClient, events
 from telethon.tl.functions.users import GetFullUserRequest
 import os
 
-# جلب بيانات API من متغيرات البيئة
-api_id = int(os.getenv('API_ID'))  # تأكد أن هذا رقم صحيح
-api_hash = os.getenv('API_HASH')
-bot_token = os.getenv('BOT_TOKEN')
+# إعداد بيانات الاتصال
+api_id = int(os.getenv('API_ID', '123456'))  # ضع API_ID الخاص بك هنا إن لم تستخدم متغيرات بيئة
+api_hash = os.getenv('API_HASH', 'your_api_hash')
+bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 
 # إنشاء جلسة البوت
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
@@ -14,26 +14,30 @@ bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 async def handler(event):
     try:
         sender = await event.get_sender()
-        full_user = await bot(GetFullUserRequest(sender.id))
-        user_info = full_user.user
+        
+        # جلب المعلومات التفصيلية عن المرسل
+        user_full = await bot(GetFullUserRequest(sender.id))
+        
+        # استخراج معلومات المستخدم من الكائن الكامل
+        user = user_full.users[0] if hasattr(user_full, 'users') and user_full.users else sender
 
-        # استخراج المعلومات
-        user_id = user_info.id
-        username = f"@{user_info.username}" if user_info.username else "—"
-        full_name = f"{user_info.first_name or ''} {user_info.last_name or ''}".strip()
-        phone = user_info.phone if user_info.phone else "—"
+        # عرض البيانات
+        user_id = user.id
+        username = f"@{user.username}" if user.username else "—"
+        full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+        phone = user.phone if user.phone else "—"
 
-        # بناء الرسالة
         result = (
             f"🆔 ID: `{user_id}`\n"
             f"👤 الاسم: {full_name or '—'}\n"
             f"🔗 يوزر: {username}\n"
             f"📞 رقم الهاتف: {phone}"
         )
+
         await event.reply(result)
 
     except Exception as e:
-        await event.reply(f"⚠️ حدث خطأ: {e}")
+        await event.reply(f"⚠️ حدث خطأ أثناء استخراج المعلومات:\n`{str(e)}`")
 
-print("🤖 البوت يعمل بنجاح...")
+print("🤖 البوت يعمل الآن...")
 bot.run_until_disconnected()
