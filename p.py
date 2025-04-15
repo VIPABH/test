@@ -4,6 +4,7 @@ import aiohttp
 from datetime import datetime
 from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
 from telethon.tl.functions.users import GetFullUserRequest
+
 # تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
@@ -65,7 +66,7 @@ async def handler(event):
         
         user_id = user.id
         chat_id = event.chat_id
-        phone = user.phone if hasattr(user, 'phone') else "—"
+        phone = user.phone if hasattr(user, 'phone') and user.phone else "—"
         premium = "yes" if user.premium else "no"
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
@@ -77,7 +78,7 @@ async def handler(event):
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
-            f"𖡋 𝐏𝐇𝐍 ⌯ +{phone}\n"
+            f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
             f"𖡋 𝐂𝐑 ⌯ {dates}\n"
             f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
             f"{bio}\n"
