@@ -15,59 +15,48 @@ async def handler(event):
     try:
         # التحقق إذا كان الرد على رسالة
         if event.is_reply:
-            # استخراج بيانات المرسل في الرسالة المستجيبة (التي يتم الرد عليها)
             replied_message = await event.get_reply_message()
             sender_id = replied_message.sender_id
         else:
-            # إذا كانت الرسالة مباشرة من المستخدم
             sender_id = event.sender_id
         
-        # استخراج بيانات المرسل
         user = await ABH.get_entity(sender_id)
         
-        # استخراج البيانات المطلوبة
         user_id = user.id
         first_name = user.first_name
         last_name = user.last_name if user.last_name else ''
-        full_name = f"{first_name} {last_name}".strip()  # الاسم الكامل
-        phone = user.phone if hasattr(user, 'phone') else "—"  # رقم الهاتف (إذا كان متاحًا)
-        premium = "نعم" if user.premium else "لا"  # حالة الاشتراك المميز
-        
-        # جلب جميع أسماء المستخدمين المرتبطة بالحساب (إذا كانت موجودة)
+        full_name = f"{first_name} {last_name}".strip()
+        phone = user.phone if hasattr(user, 'phone') else "—"
+        premium = "نعم" if user.premium else "لا"
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["—"]
-        usernames_list = " ".join(usernames)  # عرض جميع أسماء المستخدمين في سطر واحد
+        usernames_list = " ".join(usernames)
 
-        # تحميل الصورة الشخصية (إذا كانت موجودة)
+        message_text = (
+            f"🆔 **ID**: `{user_id}`\n"
+            f"👤 **الاسم**: {full_name or '—'}\n"
+            f"📞 **رقم الهاتف**: {phone}\n"
+            f"💎 **اشتراك مميز**: {premium}\n"
+            f"🔗 **أسماء المستخدمين**: {usernames_list}"
+        )
+
         if user.photo:
-            # تحميل الصورة إلى ملف مؤقت
             with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                photo = await ABH.download_profile_photo(user.id, file=tmp_file.name)  # تحميل الصورة إلى الملف
-                tmp_file.close()  # تأكد من إغلاق الملف
-
-            # إرسال البيانات مع الصورة كصورة مرفقة
-            await event.respond(
-                f"🆔 **ID**: `{user_id}`\n"
-                f"👤 **الاسم**: {full_name or '—'}\n"
-                f"📞 **رقم الهاتف**: {phone}\n"
-                f"💎 **اشتراك مميز**: {premium}\n"
-                f"🔗 **أسماء المستخدمين**: {usernames_list}\n",
-                file=tmp_file.name  # إرسال الصورة كملف
-            )
+                await ABH.download_profile_photo(user.id, file=tmp_file.name)
+                tmp_file_path = tmp_file.name
             
-            # بعد إرسال الصورة كصورة، حذف الملف المؤقت
-            os.remove(tmp_file.name)
-        else:
-            # إذا لم تكن هناك صورة شخصية، إرسال النص فقط
-            await event.respond(
-                f"🆔 **ID**: `{user_id}`\n"
-                f"👤 **الاسم**: {full_name or '—'}\n"
-                f"📞 **رقم الهاتف**: {phone}\n"
-                f"💎 **اشتراك مميز**: {premium}\n"
-                f"🔗 **أسماء المستخدمين**: {usernames_list}\n"
+            # إرسال الصورة كـ صورة حقيقية باستخدام send_file
+            await ABH.send_file(
+                event.chat_id,
+                tmp_file_path,
+                caption=message_text,
+                force_document=False  # هذا يضمن إرسال الصورة كصورة وليس ملف
             )
+
+            os.remove(tmp_file_path)
+        else:
+            await event.respond(message_text)
     
     except Exception as e:
-        # التعامل مع الأخطاء
         await event.reply(f"⚠️ حدث خطأ:\n`{str(e)}`")
 
 print("🤖 البوت يعمل الآن...")
