@@ -9,11 +9,19 @@ bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 # إنشاء جلسة البوت
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-@ABH.on(events.NewMessage(pattern=r'id'))
+@ABH.on(events.NewMessage(pattern=r'id', forwards=False))
 async def handler(event):
     try:
+        # التحقق إذا كان الرد على رسالة
+        if event.is_reply:
+            # استخراج بيانات المرسل في الرسالة المستجيبة (التي يتم الرد عليها)
+            replied_message = await event.get_reply_message()
+            sender_id = replied_message.sender_id
+        else:
+            # إذا كانت الرسالة مباشرة من المستخدم
+            sender_id = event.sender_id
+        
         # استخراج بيانات المرسل
-        sender_id = event.sender_id
         user = await ABH.get_entity(sender_id)
         
         # استخراج المعلومات المطلوبة
@@ -25,8 +33,8 @@ async def handler(event):
         premium = "نعم" if user.premium else "لا"  # حالة الاشتراك المميز
         
         # جلب جميع أسماء المستخدمين المرتبطة بالحساب (إذا كانت موجودة)
-        usernames = [username.username for username in user.usernames] if user.usernames else ["—"]
-        usernames_list = "\n".join(usernames)  # عرض جميع أسماء المستخدمين في قائمة
+        usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["—"]
+        usernames_list = " ".join(usernames)  # عرض جميع أسماء المستخدمين في سطر واحد
 
         # تحميل الصورة الشخصية (إذا كانت موجودة)
         if user.photo:
@@ -40,7 +48,7 @@ async def handler(event):
             f"👤 **الاسم**: {full_name or '—'}\n"
             f"📞 **رقم الهاتف**: {phone}\n"
             f"💎 **اشتراك مميز**: {premium}\n"
-            f"🔗 **أسماء المستخدمين**:\n{usernames_list}\n"
+            f"🔗 **أسماء المستخدمين**: {usernames_list}\n"
         )
 
         # إرسال الرسالة مع الصورة الشخصية إذا كانت موجودة
