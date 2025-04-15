@@ -16,8 +16,14 @@ async def handler(event):
     input_data = event.pattern_match.group(1).strip()
 
     try:
-        # جلب معلومات المستخدم
+        # التحقق إذا كان المعرف يخص يوزر موجود على تيليجرام
         user = await ABH.get_entity(input_data)
+        
+        if not user.username:
+            # إذا لم يكن هناك يوزر، رد برسالة توضح ذلك
+            await event.reply("❌ هذا المستخدم ليس لديه يوزر على تيليجرام.")
+            return
+
         full_user = await ABH(GetFullUserRequest(user.id))  # للحصول على النبذة
 
         # البيانات الأساسية من كائن user (وليس من full_user.user)
