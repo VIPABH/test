@@ -1,13 +1,10 @@
 from telethon import TelegramClient, events
-import os, requests
+import os, requests, aiohttp
 
-
-# تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
 bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 
-# إنشاء جلسة البوت
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 async def date(user_id):
@@ -46,13 +43,13 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         bio = user.about if user.about else "🙄"
-        account_creation_date = await date(user_id)
+        # account_creation_date = await date(user_id)
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐢𝐬𝐩 ⌯ {premium}\n"
             f"𖡋 𝐏𝐇𝐍 ⌯ {phone}\n"
             f"𖡋 𝐁𝐈𝐎 ⌯ {bio}\n"
-            f"𖡋 𝐂𝐑 ⌯ {account_creation_date}\n"
+            # f"𖡋 𝐂𝐑 ⌯ {account_creation_date}\n"
         )
         if user.photo:
             photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
