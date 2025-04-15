@@ -9,24 +9,28 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 # تعريف العميل (Client)
 bot = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-# معرف المستخدم المستهدف الذي سيتم حذف رسائله
+# تعريف الثوابت والحالة
 TARGET_USER_ID = 1421907917
 pending_deletions_count = 0
+ison = False
 
-# أمر التفعيل - يمكن لأي شخص استخدامه
-@bot.on(events.NewMessage(pattern=r'^/حذف القادم$'))
+@bot.on(events.NewMessage(pattern=r'^ح$'))
 async def trigger_deletion(event):
-    global pending_deletions_count
+    global pending_deletions_count, ison
     pending_deletions_count = 2
+    ison = True
     await event.reply("سيتم حذف أول رسالتين قادمتين من المستخدم المحدد.")
 
-# الحذف التلقائي عند استلام رسالة من الشخص المستهدف
 @bot.on(events.NewMessage)
 async def delete_target_messages(event):
-    global pending_deletions_count
-    if event.sender_id == TARGET_USER_ID and pending_deletions_count > 0:
+    global pending_deletions_count, ison
+
+    if ison and event.sender_id == TARGET_USER_ID and pending_deletions_count > 0:
         await event.delete()
         pending_deletions_count -= 1
+
+        if pending_deletions_count == 0:
+            ison = False  # إيقاف الحالة بعد حذف رسالتين
 
 # تشغيل البوت
 bot.run_until_disconnected()
