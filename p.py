@@ -2,7 +2,7 @@ from telethon import TelegramClient, events
 import os
 import aiohttp
 from datetime import datetime
-from telethon.tl.types import ChannelParticipantAdministrator, ChannelParticipantCreator, ChannelParticipant
+from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
 
 # تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
@@ -43,7 +43,7 @@ async def get_user_role(user_id, chat_id):
 
     if isinstance(participant, ChannelParticipantCreator):
         return "مالك"
-    elif isinstance(participant, ChannelParticipantAdministrator):
+    elif isinstance(participant, ChannelParticipantAdmin):
         return "مشرف"
     elif isinstance(participant, ChannelParticipant):
         return "عضو"
