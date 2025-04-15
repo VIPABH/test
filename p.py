@@ -1,5 +1,6 @@
 from telethon import TelegramClient, events
 import os
+import tempfile
 
 # تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
@@ -38,20 +39,22 @@ async def handler(event):
 
         # تحميل الصورة الشخصية (إذا كانت موجودة)
         if user.photo:
-            photo = await ABH.download_profile_photo(user.id)  # تحميل الصورة كملف مؤقت
-        else:
-            photo = None
+            # تحميل الصورة إلى ملف مؤقت
+            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                photo = await ABH.download_profile_photo(user.id, file=tmp_file.name)  # تحميل الصورة إلى الملف
+                tmp_file.close()  # تأكد من إغلاق الملف
 
-        # إرسال البيانات مع الصورة إذا كانت موجودة
-        if photo:
+            # إرسال البيانات مع الصورة
             await event.respond(
                 f"🆔 **ID**: `{user_id}`\n"
                 f"👤 **الاسم**: {full_name or '—'}\n"
                 f"📞 **رقم الهاتف**: {phone}\n"
                 f"💎 **اشتراك مميز**: {premium}\n"
                 f"🔗 **أسماء المستخدمين**: {usernames_list}\n",
-                file=photo  # إرسال الصورة مع الرسالة
+                file=tmp_file.name  # إرسال الصورة كملف
             )
+            # حذف الصورة بعد الإرسال
+            os.remove(tmp_file.name)
         else:
             # إذا لم تكن هناك صورة شخصية، إرسال النص فقط
             await event.respond(
