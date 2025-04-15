@@ -1,5 +1,7 @@
 from telethon import TelegramClient, events
 import os, requests, aiohttp
+from datetime import datetime
+
 
 # تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
