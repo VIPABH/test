@@ -39,7 +39,8 @@ async def handler(event):
             photo = None
 
         if photo:
-            await event.respond(f"{user_id}\n{first_name}\n{premium}\n{full_name}\n{phone}\n{usernames_list}\nالرتبة: {rank}", file=photo)
+            await event.respond(f"{user_id}\n{first_name}\n{premium}\n{full_name}\n{phone}\n{usernames_list}\nالرتبة: {rank}", file=photo, force_document=False
+)
         else:
             await event.respond(f"{user_id}\n{first_name}\n{premium}\n{full_name}\n{phone}\n{usernames_list}\nالرتبة: {rank}")
 
