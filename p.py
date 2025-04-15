@@ -13,14 +13,20 @@ async def date(user_id):
         'x-api-key': 'e758fb28-79be-4d1c-af6b-066633ded128',
         'Accept': '*/*',
         'Accept-Language': 'ar',
-        'Content-Length': '25',
-        'User-Agent': 'Nicegram/101 CFNetwork/1404.0.5 Darwin/22.3.0',
         'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Nicegram/101 CFNetwork/1404.0.5 Darwin/22.3.0',
     }
     data = '{"telegramId":' + str(user_id) + '}'
     response = requests.post('https://restore-access.indream.app/regdate', headers=headers, data=data).json()
-    zelzal_date = response['data']['date']
-    return zelzal_date
+    date_string = response['data']['date']  # التاريخ بشكل نصي، مثل "2021-07-15"
+    
+    # تحويل النص إلى كائن تاريخ
+    date_obj = datetime.strptime(date_string, "%Y-%m-%d")
+    
+    # إعادة تنسيقه
+    formatted_date = date_obj.strftime("%Y/%m")
+    
+    return formatted_date
 
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
