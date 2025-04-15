@@ -8,6 +8,9 @@ api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
 bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 
+from datetime import datetime
+import requests
+
 async def date(user_id):
     headers = {
         'Host': 'restore-access.indream.app',
@@ -20,12 +23,13 @@ async def date(user_id):
     }
     data = '{"telegramId":' + str(user_id) + '}'
     response = requests.post('https://restore-access.indream.app/regdate', headers=headers, data=data).json()
-    date_string = response['data']['date']  # التاريخ بشكل نصي، مثل "2021-07-15"
     
-    # تحويل النص إلى كائن تاريخ
-    date_obj = datetime.strptime(date_string, "%Y-%m-%d")
+    date_string = response['data']['date']  # مثل: "2021-08"
     
-    # إعادة تنسيقه
+    # تحويل النص إلى كائن تاريخ باستخدام التنسيق المناسب
+    date_obj = datetime.strptime(date_string, "%Y-%m")
+    
+    # إعادة تنسيقه: yyyy/mm
     formatted_date = date_obj.strftime("%Y/%m")
     
     return formatted_date
