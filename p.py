@@ -30,15 +30,17 @@ async def handler(event):
         premium = "yes" if user.premium else "no"
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
-        bio = user.about if user.about else "🙄"
-        account_creation_date = user.date.strftime('%Y-%m-%d')
+        bio = user.about if hasattr(user, 'about') and user.about else "🙄"  # التحقق من وجود البايو
+        account_creation_date = user.date.strftime('%Y-%m-%d')  # تاريخ إنشاء الحساب
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐢𝐬𝐩 ⌯ {premium}\n"
             f"𖡋 𝐏𝐇𝐍 ⌯ {phone}\n"
-            f"𖡋 𝐁𝐈𝐎 ⌯ {bio}\n"
             f"𖡋 𝐂𝐑 ⌯ {account_creation_date}\n"
+            f"𖡋 𝐁𝐈𝐎 ⌯ {bio}\n"
         )
+        
+        # إذا كان هناك صورة
         if user.photo:
             photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
             await ABH.download_profile_photo(user.id, file=photo_path)
