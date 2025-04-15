@@ -52,7 +52,7 @@ async def get_user_role(user_id, chat_id):
         return "غير معروف"
 
 # الدالة التي تستجيب للرسائل
-@ABH.on(events.NewMessage(pattern=r'id', forwards=False))
+@ABH.on(events.NewMessage)
 async def handler(event):
     try:
         # التحقق إذا كان الرد على رسالة
@@ -71,7 +71,7 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
-        bio = user_id.user.about if hasattr(full.user, 'about') and full.user.about else "🙄"
+        bio = user_id.user.about if hasattr(user_id.user, 'about') and user_id.user.about else "🙄"
         states = await get_user_role(user_id, chat_id)
         
         message_text = (
