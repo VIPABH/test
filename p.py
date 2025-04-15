@@ -1,6 +1,6 @@
 from telethon import TelegramClient, events
 import os
-import aiohttp  # type: ignore
+import aiohttp
 from datetime import datetime
 from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
 from telethon.tl.functions.users import GetFullUserRequest
@@ -41,10 +41,11 @@ async def date(user_id):
             else:
                 return "غير معروف"
 
-# دالة لجلب دور المستخدم
+# دالة لجلب دور المستخدم في المجموعة
 async def get_user_role(user_id, chat_id):
     try:
         participant = await ABH.get_participant(chat_id, user_id)
+
         if isinstance(participant, ChannelParticipantCreator):
             return "مالك"
         elif isinstance(participant, ChannelParticipantAdmin):
@@ -53,33 +54,36 @@ async def get_user_role(user_id, chat_id):
             return "عضو"
         else:
             return "غير معروف"
-    except Exception:
+    except Exception as e:
         return "خطأ في الحصول على الدور"
 
-# مستمع للرسائل الجديدة
+# الدالة التي تستجيب للرسائل
 @ABH.on(events.NewMessage)
 async def handler(event):
     try:
-        # التحقق مما إذا كانت الرسالة ردًا على رسالة أخرى
-        sender_id = (await event.get_reply_message()).sender_id if event.is_reply else event.sender_id
-
-        # جلب الكائنات
+        # التحقق إذا كان الرد على رسالة
+        if event.is_reply:
+            replied_message = await event.get_reply_message()
+            sender_id = replied_message.sender_id
+        else:
+            sender_id = event.sender_id
+        
         user = await ABH.get_entity(sender_id)
-        full = await ABH(GetFullUserRequest(user))
+        full = await ABH(GetFullUserRequest(user))  # استرجاع معلومات المستخدم بالكامل
+        
         user_id = user.id
         chat_id = event.chat_id
-
-        # البيانات الأساسية
         phone = user.phone if hasattr(user, 'phone') and user.phone else "—"
-        premium = "yes" if getattr(user, "premium", False) else "no"
-        username = f"@{user.username}" if user.username else "x04ou"
+        premium = "yes" if user.premium else "no"
+        usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
+        usernames_list = ", ".join(usernames)
         dates = await date(user_id)
-        bio = full.users[0].about if getattr(full.users[0], 'about', None) else "🙄"
+        bio = full.user.about if getattr(full.user, 'about', None) else "🙄"
         states = await get_user_role(user_id, chat_id)
 
-        # صياغة الرسالة
+        
         message_text = (
-            f"𖡋 𝐔𝐒𝐄 ⌯ {username}\n"
+            f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
             f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
             f"𖡋 𝐂𝐑 ⌯ {dates}\n"
@@ -90,14 +94,18 @@ async def handler(event):
         # إذا كان هناك صورة للمستخدم
         if user.photo:
             photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
-            await ABH.download_profile_photo(user, file=photo_path)
-            await ABH.send_file(event.chat_id, photo_path, caption=message_text, force_document=False)
+            await ABH.download_profile_photo(user.id, file=photo_path)
+            await ABH.send_file(
+                event.chat_id,
+                photo_path,
+                caption=message_text,
+                force_document=False
+            )
         else:
-            await ABH.send_message(event.chat_id, message_text)
-
+            await event.respond(message_text)
+    
     except Exception as e:
         await event.reply(f"⚠️ حدث خطأ:\n`{str(e)}`")
 
-# تشغيل البوت
 print("🤖 البوت يعمل الآن...")
 ABH.run_until_disconnected()
