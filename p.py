@@ -1,6 +1,6 @@
 from telethon import TelegramClient, events
 import os
-
+import time
 # تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
@@ -18,6 +18,8 @@ async def handler(event):
     try:
         msg = await ABH.get_messages(channel, ids=message_id)
         if msg and msg.media:
+            await event.respond("ها")
+            await time.sleep(3)
             await event.respond(file=msg.media)
         else:
             await event.respond("تعذر العثور على الفيديو أو لا توجد وسائط في الرسالة.")
