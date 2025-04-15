@@ -10,7 +10,7 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 bot = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 # المعالج لحذف الرسائل التي تحتوي على "مالي خلقك"
-@bot.on(events.NewMessage(pattern="مالي خلقك"))
+@bot.on(events.NewMessage)
 async def delete_target_messages(event):
     await event.delete()
 
