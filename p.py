@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-import os, requests, aiohttp
+import os, requests
 from datetime import datetime
 
 
@@ -8,7 +8,8 @@ api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
 bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 
-
+from datetime import datetime
+import requests
 
 async def date(user_id):
     headers = {
@@ -23,20 +24,11 @@ async def date(user_id):
     data = '{"telegramId":' + str(user_id) + '}'
     response = requests.post('https://restore-access.indream.app/regdate', headers=headers, data=data).json()
     
-    date_string = response['data']['date']  # مثل: "2021-08-25"
+    date_string = response['data']['date']  # مثل: "2021-08"
+    date_obj = datetime.strptime(date_string, "%Y-%m")
     
-    # إذا كان التاريخ يحتوي على يوم، نقوم بإزالة جزء اليوم (إن وجد) لتحويله بشكل صحيح
-    cleaned_date = date_string.split("/")[0]  # إزالة أي بيانات إضافية قد تكون موجودة
+    formatted_date = date_obj.strftime("%Y/%m")
     
-    try:
-        # تحويل النص إلى كائن تاريخ باستخدام التنسيق المناسب
-        date_obj = datetime.strptime(cleaned_date, "%Y-%m")
-        
-        # إعادة تنسيقه: yyyy/mm
-        formatted_date = date_obj.strftime("%Y/%m")
-    except ValueError:
-        formatted_date = cleaned_date  # في حال فشل التحويل نُرجع النص كما هو
-
     return formatted_date
 
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
@@ -65,9 +57,9 @@ async def handler(event):
         dates = await date(user_id)
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
-            f"𖡋 𝐢𝐬𝐩 ⌯ {premium}\n"
-            f"𖡋 𝐏𝐇𝐍 ⌯ {phone}\n"
-            f"𖡋 𝐏𝐇𝐍 ⌯ {dates}\n"
+            f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
+            f"𖡋 𝐏𝐇𝐍 ⌯ +{phone}\n"
+            f"𖡋 𝐂𝐑 ⌯ {dates}\n"
         )
 
         if user.photo:
