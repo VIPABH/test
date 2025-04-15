@@ -15,7 +15,7 @@ ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 async def handler(event):
     sender_id = event.sender_id
     user = await ABH.get_entity(sender_id)    
-    await event.reply(f"⚠️ حدث خطأ:\n`{str(e)}`")
+    await event.reply(f"{user}")
 
 print("🤖 البوت يعمل الآن...")
 ABH.run_until_disconnected()
