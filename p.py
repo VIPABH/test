@@ -26,7 +26,6 @@ async def handler(event):
         user = await ABH.get_entity(sender_id)
         
         user_id = user.id
-        full_name = f"{first_name} {last_name}".strip()
         phone = user.phone if hasattr(user, 'phone') else "—"
         premium = "نعم" if user.premium else "لا"
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
