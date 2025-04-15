@@ -18,7 +18,7 @@ async def handler(event):
     try:
         msg = await ABH.get_messages(channel, ids=message_id)
         if msg and msg.media:
-            msg = await client.send_message(chat_id, "ها")
+            msg = await ABH.send_message(chat_id, "ها")
             await asyncio.sleep(3)
             await msg.edit("تم التحديث بعد 3 ثوانٍ.")
             await event.respond("تعذر العثور على الفيديو أو لا توجد وسائط في الرسالة.")
