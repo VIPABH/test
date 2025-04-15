@@ -1,6 +1,20 @@
 from telethon import TelegramClient, events
 import os, requests
 from datetime import datetime
+from telethon.tl.functions.messages import GetParticipantsRequest
+from telethon.tl.types import ChannelParticipantAdministrator, ChannelParticipantCreator, ChannelParticipant
+
+async def get_user_role(user_id, chat_id):
+    participant = await ABH.get_participant(chat_id, user_id)
+
+    if isinstance(participant, ChannelParticipantCreator):
+        return "مالك"
+    elif isinstance(participant, ChannelParticipantAdministrator):
+        return "مشرف"
+    elif isinstance(participant, ChannelParticipant):
+        return "عضو"
+    else:
+        return "غير معروف"
 
 
 # تحميل متغيرات البيئة
@@ -50,16 +64,21 @@ async def handler(event):
         user = await ABH.get_entity(sender_id)
         
         user_id = user.id
+        chat_id = event.chat_id
         phone = user.phone if hasattr(user, 'phone') else "—"
         premium = "yes" if user.premium else "no"
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
+        bio = user.about if user.about else "🙄"
+        states = await get_user_role(user_id, chat_id)
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
             f"𖡋 𝐏𝐇𝐍 ⌯ +{phone}\n"
             f"𖡋 𝐂𝐑 ⌯ {dates}\n"
+            f"𖡋 𝐂𝐑 ⌯ {states}\n"
+            f"{bio}\n"
         )
 
         if user.photo:
