@@ -50,7 +50,7 @@ async def handler(event):
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐢𝐬𝐩 ⌯ {premium}\n"
             f"𖡋 𝐏𝐇𝐍 ⌯ {phone}\n"
-            f"𖡋 𝐏𝐇𝐍 ⌯ {phone}\n"
+            f"𖡋 𝐏𝐇𝐍 ⌯ {dates}\n"
         )
 
         if user.photo:
