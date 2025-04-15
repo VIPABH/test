@@ -1,5 +1,4 @@
 from telethon import TelegramClient, events
-from telethon.errors import UsernameNotOccupiedError, UsernameInvalidError
 import os
 
 # تحميل متغيرات البيئة
@@ -24,8 +23,11 @@ async def handler(event):
         full_name = f"{first_name} {last_name}".strip()  # الاسم الكامل
         phone = user.phone if hasattr(user, 'phone') else "—"  # رقم الهاتف (إذا كان متاحًا)
         premium = "نعم" if user.premium else "لا"  # حالة الاشتراك المميز
-        username = f"@{user.username}" if user.username else "—"  # اسم المستخدم (إذا كان موجودًا)
         
+        # جلب جميع أسماء المستخدمين المرتبطة بالحساب (إذا كانت موجودة)
+        usernames = [username.username for username in user.usernames] if user.usernames else ["—"]
+        usernames_list = "\n".join(usernames)  # عرض جميع أسماء المستخدمين في قائمة
+
         # تحميل الصورة الشخصية (إذا كانت موجودة)
         if user.photo:
             photo = await ABH.download_profile_photo(user.id)  # تحميل الصورة
@@ -38,7 +40,7 @@ async def handler(event):
             f"👤 **الاسم**: {full_name or '—'}\n"
             f"📞 **رقم الهاتف**: {phone}\n"
             f"💎 **اشتراك مميز**: {premium}\n"
-            f"🔗 **اليوزر**: {username}\n"
+            f"🔗 **أسماء المستخدمين**:\n{usernames_list}\n"
         )
 
         # إرسال الرسالة مع الصورة الشخصية إذا كانت موجودة
