@@ -1,12 +1,27 @@
 from telethon import TelegramClient, events
-import os
+import os, requests, aiohttp
 
 # تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
 bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 
-# إنشاء جلسة البوت
+async def date(user_id):
+    headers = {
+        'Host': 'restore-access.indream.app',
+        'Connection': 'keep-alive',
+        'x-api-key': 'e758fb28-79be-4d1c-af6b-066633ded128',
+        'Accept': '*/*',
+        'Accept-Language': 'ar',
+        'Content-Length': '25',
+        'User-Agent': 'Nicegram/101 CFNetwork/1404.0.5 Darwin/22.3.0',
+        'Content-Type': 'application/x-www-form-urlencoded',
+    }
+    data = '{"telegramId":' + str(user_id) + '}'
+    response = requests.post('https://restore-access.indream.app/regdate', headers=headers, data=data).json()
+    zelzal_date = response['data']['date']
+    return zelzal_date
+
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 # مجلد الصور المحلية
@@ -30,6 +45,7 @@ async def handler(event):
         premium = "yes" if user.premium else "no"
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
+        dates = await date(user_id)
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐢𝐬𝐩 ⌯ {premium}\n"
