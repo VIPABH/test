@@ -53,9 +53,9 @@ async def handler(event):
 
         # إرسال الرسالة مع الصورة الشخصية إذا كانت موجودة
         if photo:
-            await event.reply(result, file=photo, caption="صورة الملف الشخصي")  # إرسال الصورة كصورة في الرسالة
+            await event.respond(result, file=photo, caption="صورة الملف الشخصي")  # إرسال الصورة كصورة في الرسالة
         else:
-            await event.reply(result)
+            await event.respond(result)
     
     except Exception as e:
         # التعامل مع الأخطاء
