@@ -1,18 +1,28 @@
-import os
 from telethon import TelegramClient, events
+import os
 
-# قراءة القيم من متغيرات البيئة
-API_ID = int(os.getenv('API_ID'))
-API_HASH = os.getenv('API_HASH')
-BOT_TOKEN = os.getenv('BOT_TOKEN')
+# تحميل متغيرات البيئة
+api_id = int(os.getenv('API_ID', '123456'))
+api_hash = os.getenv('API_HASH', 'your_api_hash')
+bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 
-# تشغيل العميل
-bot = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+# إنشاء جلسة البوت
+ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# المعالج لحذف الرسائل التي تحتوي على "مالي خلقك"
-@bot.on(events.NewMessage)
-async def delete_target_messages(event):
-    await event.delete()
+@ABH.on(events.NewMessage)
+async def handler(event):
+    # جلب الرسالة من قناة معينة
+    channel = 'VIPABH'  # بدون @
+    message_id = 1239
 
-# تشغيل البوت حتى يتم إيقافه
-bot.run_until_disconnected()
+    try:
+        msg = await ABH.get_messages(channel, ids=message_id)
+        if msg and msg.media:
+            await event.respond(file=msg.media)
+        else:
+            await event.respond("تعذر العثور على الفيديو أو لا توجد وسائط في الرسالة.")
+    except Exception as e:
+        await event.respond(f"حدث خطأ: {str(e)}")
+
+print("🤖 البوت يعمل الآن...")
+ABH.run_until_disconnected()
