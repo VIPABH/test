@@ -56,22 +56,28 @@ async def get_user_role(user_id, chat_id):
     except Exception:
         return "خطأ في الحصول على الدور"
 
+# مستمع للرسائل الجديدة
 @ABH.on(events.NewMessage)
 async def handler(event):
     try:
+        # التحقق مما إذا كانت الرسالة ردًا على رسالة أخرى
         sender_id = (await event.get_reply_message()).sender_id if event.is_reply else event.sender_id
+
+        # جلب الكائنات
         user = await ABH.get_entity(sender_id)
         full = await ABH(GetFullUserRequest(user))
-
         user_id = user.id
         chat_id = event.chat_id
+
+        # البيانات الأساسية
         phone = user.phone if hasattr(user, 'phone') and user.phone else "—"
         premium = "yes" if getattr(user, "premium", False) else "no"
         username = f"@{user.username}" if user.username else "x04ou"
         dates = await date(user_id)
-        bio = full.user.about if getattr(full.user, 'about', None) else "🙄"
+        bio = full.users[0].about if getattr(full.users[0], 'about', None) else "🙄"
         states = await get_user_role(user_id, chat_id)
 
+        # صياغة الرسالة
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {username}\n"
             f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
@@ -92,5 +98,6 @@ async def handler(event):
     except Exception as e:
         await event.reply(f"⚠️ حدث خطأ:\n`{str(e)}`")
 
+# تشغيل البوت
 print("🤖 البوت يعمل الآن...")
 ABH.run_until_disconnected()
