@@ -3,7 +3,7 @@ import os
 import aiohttp
 from datetime import datetime
 from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
-
+from telethon.tl.functions.users import GetFullUserRequest  # إضافة هذا السطر
 
 # تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
@@ -63,6 +63,7 @@ async def handler(event):
             sender_id = event.sender_id
         
         user = await ABH.get_entity(sender_id)
+        full = await ABH(GetFullUserRequest(user))  # تم التصحيح هنا
         
         user_id = user.id
         chat_id = event.chat_id
@@ -71,7 +72,7 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
-        bio = user_id.user.about if hasattr(user_id.user, 'about') and user_id.user.about else "🙄"
+        bio = full.user.about if hasattr(full.user, 'about') and full.user.about else "🙄"
         states = await get_user_role(user_id, chat_id)
         
         message_text = (
