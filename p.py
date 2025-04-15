@@ -12,9 +12,7 @@ bot = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 # معرف المستخدم أو البوت المستهدف
 TARGET_USER_ID = 1421907917
 
-@bot.on(events.NewMessage)
+@bot.on(events.NewMessage(pattren="مالي خلقك"))
 async def delete_target_messages(event):
-    if event.sender_id == TARGET_USER_ID:
-        await event.delete()
-
+    await event.delete()
 bot.run_until_disconnected()
