@@ -88,7 +88,7 @@ async def handler(event):
             f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
             f"𖡋 𝐂𝐑 ⌯ {dates}\n"
             f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
-            f"{bio}\n"
+            f"{bio}"
         )
 
         # إذا كان هناك صورة للمستخدم
