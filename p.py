@@ -24,7 +24,6 @@ async def handler(event):
         # استخراج بيانات المرسل
         user = await ABH.get_entity(sender_id)
         
-        # استخراج المعلومات المطلوبة
         user_id = user.id
         first_name = user.first_name
         last_name = user.last_name if user.last_name else ''
@@ -36,26 +35,14 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["—"]
         usernames_list = " ".join(usernames)  # عرض جميع أسماء المستخدمين في سطر واحد
 
-        # تحميل الصورة الشخصية (إذا كانت موجودة)
         if user.photo:
             photo = await ABH.download_profile_photo(user.id)  # تحميل الصورة كملف مؤقت
         else:
             photo = None
-
-        # بناء الرسالة
-        result = (
-            f"🆔 **ID**: `{user_id}`\n"
-            f"👤 **الاسم**: {full_name or '—'}\n"
-            f"📞 **رقم الهاتف**: {phone}\n"
-            f"💎 **اشتراك مميز**: {premium}\n"
-            f"🔗 **أسماء المستخدمين**: {usernames_list}\n"
-        )
-
-        # إرسال الرسالة مع الصورة الشخصية إذا كانت موجودة
         if photo:
-            await event.respond(result, file=photo)  # إرسال النص مع الصورة في نفس الرسالة
+            await event.respond(f"{user_id}\n{first_name}\n{premium}\n{full_name}\n{phone}", file="photo")
         else:
-            await event.respond(result)
+            await event.respond('result')
     
     except Exception as e:
         # التعامل مع الأخطاء
