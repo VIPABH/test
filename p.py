@@ -1,7 +1,6 @@
 from telethon import TelegramClient, events
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.errors import UsernameNotOccupiedError, UsernameInvalidError
-from telethon.tl.types import MessageMediaPhoto
 import os
 
 # تحميل متغيرات البيئة
@@ -19,18 +18,15 @@ async def handler(event):
     try:
         # جلب معلومات المستخدم
         user = await ABH.get_entity(input_data)
-        full_user = await ABH(GetFullUserRequest(user.id))
-        user_info = full_user.user
+        full_user = await ABH(GetFullUserRequest(user.id))  # للحصول على النبذة
 
-        # البيانات الأساسية
-        user_id = user_info.id
-        username = f"@{user_info.username}" if user_info.username else "—"
-        full_name = f"{user_info.first_name or ''} {user_info.last_name or ''}".strip()
-        phone = user_info.phone if user_info.phone else "—"
-        bio = full_user.about if full_user.about else "—"
-
-        # إنشاء رابط دائم (إن وجد يوزر)
-        permalink = f"https://t.me/{user_info.username}" if user_info.username else "—"
+        # البيانات الأساسية من كائن user (وليس من full_user.user)
+        user_id = user.id
+        username = f"@{user.username}" if user.username else "—"
+        full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+        phone = user.phone if hasattr(user, 'phone') and user.phone else "—"
+        bio = full_user.about if hasattr(full_user, 'about') and full_user.about else "—"
+        permalink = f"https://t.me/{user.username}" if user.username else "—"
 
         # إعداد الرسالة
         result = (
@@ -43,10 +39,10 @@ async def handler(event):
         )
 
         # إرسال صورة البروفايل إن وُجدت
-        if user_info.photo:
-            photo = await ABH.download_profile_photo(user_info.id)
+        if user.photo:
+            photo = await ABH.download_profile_photo(user.id)
             await event.reply(result, file=photo)
-            os.remove(photo)  # حذف الصورة بعد الإرسال للحفاظ على النظافة
+            os.remove(photo)  # حذف الصورة بعد الإرسال
         else:
             await event.reply(result)
 
