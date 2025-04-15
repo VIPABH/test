@@ -28,7 +28,7 @@ async def handler(event):
             await msg.edit("تم التحديث بعد 3 ثوانٍ.")
 
             # إرسال الفيديو في رسالة جديدة (لا يمكن دمجه مع التعديل)
-            await event.respond(file=msg_from_channel.media)
+            #await event.respond(file=msg_from_channel.media)
         else:
             await event.respond("تعذر العثور على الفيديو أو لا توجد وسائط في الرسالة.")
     except Exception as e:
