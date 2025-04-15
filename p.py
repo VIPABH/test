@@ -18,9 +18,9 @@ async def handler(event):
     try:
         msg = await ABH.get_messages(channel, ids=message_id)
         if msg and msg.media:
-            await event.respond("ها")
+            msg = await event.respond("ها")
             await asyncio.sleep(3)  # استخدم asyncio.sleep
-            await event.respond(file=msg.media)
+            await msg.edit(file=msg.media)
         else:
             await event.respond("تعذر العثور على الفيديو أو لا توجد وسائط في الرسالة.")
     except Exception as e:
