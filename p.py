@@ -38,7 +38,7 @@ async def handler(event):
 
         # تحميل الصورة الشخصية (إذا كانت موجودة)
         if user.photo:
-            photo = await ABH.download_profile_photo(user.id)  # تحميل الصورة
+            photo = await ABH.download_profile_photo(user.id)  # تحميل الصورة كملف مؤقت
         else:
             photo = None
 
@@ -53,7 +53,7 @@ async def handler(event):
 
         # إرسال الرسالة مع الصورة الشخصية إذا كانت موجودة
         if photo:
-            await event.reply(result, file=photo)
+            await event.reply(result, file=photo, caption="صورة الملف الشخصي")  # إرسال الصورة كصورة في الرسالة
         else:
             await event.reply(result)
     
