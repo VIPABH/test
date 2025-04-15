@@ -27,25 +27,19 @@ async def handler(event):
         
         user_id = user.id
         phone = user.phone if hasattr(user, 'phone') else "—"
-        premium = "نعم" if user.premium else "لا"
+        premium = "yes" if user.premium else "no"
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
-        usernames_list = " ".join(usernames)
-
+        usernames_list = ", ".join(usernames)
+        bio = user.about if user.about else "🙄"
         message_text = (
-            f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}"
-            f"💎 **اشتراك مميز**: {premium}\n"
-            f"🔗 **أسماء المستخدمين**: {usernames_list}"
-            f"📞 **رقم الهاتف**: {phone}\n"
+            f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
+            f"𖡋 𝐢𝐬𝐩 ⌯ {premium}\n"
+            f"𖡋 𝐏𝐇𝐍 ⌯ {phone}\n"
+            f"𖡋 𝐁𝐈𝐎 ⌯ {bio}\n"
         )
-
         if user.photo:
-            # اسم الملف المحلي
             photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
-
-            # تحميل الصورة في الملف المحلي
             await ABH.download_profile_photo(user.id, file=photo_path)
-
-            # إرسال الصورة
             await ABH.send_file(
                 event.chat_id,
                 photo_path,
