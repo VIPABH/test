@@ -1,4 +1,5 @@
 from telethon import TelegramClient, events
+from telethon.tl.functions.users import GetFullUserRequest
 from telethon.errors import UsernameNotOccupiedError, UsernameInvalidError
 import os
 
@@ -21,7 +22,8 @@ async def handler(event):
         # استخراج username المرسل
         sender_username = event.sender.username if event.sender.username else "—"
 
-        full_user = await ABH.get_full_user(user.id)  # للحصول على النبذة
+        # الحصول على تفاصيل كاملة عن المستخدم باستخدام GetFullUserRequest
+        full_user = await ABH(GetFullUserRequest(user.id))
 
         # البيانات الأساسية من كائن user
         user_id = user.id
