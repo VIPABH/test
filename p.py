@@ -32,24 +32,30 @@ async def date(user_id):
     
     async with aiohttp.ClientSession() as session:
         async with session.post('https://restore-access.indream.app/regdate', headers=headers, data=data) as response:
-            response_json = await response.json()
-            date_string = response_json['data']['date']
-            date_obj = datetime.strptime(date_string, "%Y-%m")
-            formatted_date = date_obj.strftime("%Y/%m")
-            return formatted_date
+            if response.status == 200:
+                response_json = await response.json()
+                date_string = response_json['data']['date']
+                date_obj = datetime.strptime(date_string, "%Y-%m")
+                formatted_date = date_obj.strftime("%Y/%m")
+                return formatted_date
+            else:
+                return "غير معروف"
 
 # دالة لجلب دور المستخدم في المجموعة
 async def get_user_role(user_id, chat_id):
-    participant = await ABH.get_participant(chat_id, user_id)
+    try:
+        participant = await ABH.get_participant(chat_id, user_id)
 
-    if isinstance(participant, ChannelParticipantCreator):
-        return "مالك"
-    elif isinstance(participant, ChannelParticipantAdmin):
-        return "مشرف"
-    elif isinstance(participant, ChannelParticipant):
-        return "عضو"
-    else:
-        return "غير معروف"
+        if isinstance(participant, ChannelParticipantCreator):
+            return "مالك"
+        elif isinstance(participant, ChannelParticipantAdmin):
+            return "مشرف"
+        elif isinstance(participant, ChannelParticipant):
+            return "عضو"
+        else:
+            return "غير معروف"
+    except Exception as e:
+        return "خطأ في الحصول على الدور"
 
 # الدالة التي تستجيب للرسائل
 @ABH.on(events.NewMessage)
@@ -74,6 +80,7 @@ async def handler(event):
         dates = await date(user_id)
         bio = full.about if hasattr(full, 'about') and full.about else "🙄"  # تم التعديل هنا
         states = await get_user_role(user_id, chat_id)
+
         
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
