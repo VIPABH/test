@@ -1,6 +1,5 @@
 from telethon import TelegramClient, events
 import os
-import tempfile
 
 # تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
@@ -9,6 +8,10 @@ bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 
 # إنشاء جلسة البوت
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
+
+# مجلد الصور المحلية
+LOCAL_PHOTO_DIR = "photos"
+os.makedirs(LOCAL_PHOTO_DIR, exist_ok=True)
 
 @ABH.on(events.NewMessage(pattern=r'id', forwards=False))
 async def handler(event):
@@ -40,19 +43,19 @@ async def handler(event):
         )
 
         if user.photo:
-            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                await ABH.download_profile_photo(user.id, file=tmp_file.name)
-                tmp_file_path = tmp_file.name
-            
-            # إرسال الصورة كـ صورة حقيقية باستخدام send_file
+            # اسم الملف المحلي
+            photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
+
+            # تحميل الصورة في الملف المحلي
+            await ABH.download_profile_photo(user.id, file=photo_path)
+
+            # إرسال الصورة
             await ABH.send_file(
                 event.chat_id,
-                tmp_file_path,
+                photo_path,
                 caption=message_text,
-                force_document=False  # هذا يضمن إرسال الصورة كصورة وليس ملف
+                force_document=False  # إرسال كصورة
             )
-
-            os.remove(tmp_file_path)
         else:
             await event.respond(message_text)
     
