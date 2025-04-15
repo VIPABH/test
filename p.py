@@ -1,5 +1,4 @@
 from telethon import TelegramClient, events
-from telethon.tl.functions.users import GetFullUserRequest
 from telethon.errors import UsernameNotOccupiedError, UsernameInvalidError
 import os
 
@@ -18,15 +17,13 @@ async def handler(event):
     try:
         # التحقق إذا كان المعرف يخص يوزر موجود على تيليجرام
         user = await ABH.get_entity(input_data)
-        
-        if not user.username:
-            # إذا لم يكن هناك يوزر، رد برسالة توضح ذلك
-            await event.reply("❌ هذا المستخدم ليس لديه يوزر على تيليجرام.")
-            return
 
-        full_user = await ABH(GetFullUserRequest(user.id))  # للحصول على النبذة
+        # استخراج username المرسل
+        sender_username = event.sender.username if event.sender.username else "—"
 
-        # البيانات الأساسية من كائن user (وليس من full_user.user)
+        full_user = await ABH.get_full_user(user.id)  # للحصول على النبذة
+
+        # البيانات الأساسية من كائن user
         user_id = user.id
         username = f"@{user.username}" if user.username else "—"
         full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
@@ -41,7 +38,8 @@ async def handler(event):
             f"🔗 يوزر: {username}\n"
             f"📞 رقم الهاتف: {phone}\n"
             f"📝 نبذة: {bio}\n"
-            f"🌐 رابط دائم: {permalink}"
+            f"🌐 رابط دائم: {permalink}\n"
+            f"💬 يوزر المرسل: @{sender_username}"  # إضافة اسم المستخدم للمُرسل
         )
 
         # إرسال صورة البروفايل إن وُجدت
