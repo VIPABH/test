@@ -3,7 +3,7 @@ import os
 import aiohttp
 from datetime import datetime
 from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
-from telethon.tl.functions.users import GetFullUserRequest  # إضافة هذا السطر
+from telethon.tl.functions.users import GetFullUserRequest
 
 # تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
@@ -52,7 +52,7 @@ async def get_user_role(user_id, chat_id):
         return "غير معروف"
 
 # الدالة التي تستجيب للرسائل
-@ABH.on(events.NewMessage)
+@ABH.on(events.NewMessage(pattern=r'id', forwards=False))
 async def handler(event):
     try:
         # التحقق إذا كان الرد على رسالة
@@ -63,7 +63,6 @@ async def handler(event):
             sender_id = event.sender_id
         
         user = await ABH.get_entity(sender_id)
-        full = await ABH(GetFullUserRequest(user))  # تم التصحيح هنا
         
         user_id = user.id
         chat_id = event.chat_id
@@ -72,7 +71,8 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
-        # bio = full.user.about if hasattr(full.user, 'about') and full.user.about else "🙄"
+        full = await ABH(GetFullUserRequest(user.id))
+        bio = full.user.about if hasattr(full.user, 'about') and full.user.about else "🙄"
         states = await get_user_role(user_id, chat_id)
         
         message_text = (
@@ -81,7 +81,7 @@ async def handler(event):
             f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
             f"𖡋 𝐂𝐑 ⌯ {dates}\n"
             f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
-            # f"{bio}\n"
+            f"{bio}\n"
         )
 
         # إذا كان هناك صورة للمستخدم
