@@ -75,8 +75,8 @@ async def handler(event):
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
         user = await ABH.get_entity(user_id)
-        full = await ABH(GetFullUserRequest(user))
-        bio = getattr(full.user, 'about', '🙄')
+        full = await ABH(GetFullUserRequest(user))  # استرجاع معلومات المستخدم بالكامل
+        bio = full.about if full.about else "🙄"  # النبذة الشخصية
         states = await get_user_role(user_id, chat_id)
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
