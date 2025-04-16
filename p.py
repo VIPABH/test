@@ -63,7 +63,7 @@ async def date(user_id):
                 return "غير معروف"
 
 
-@ABH.on(events.NewMessage)
+@ABH.on(events.NewMessage(pattern='id|ا|افتاري|ايدي'))
 async def handler(event):
     try:
         if event.is_reply:
