@@ -3,6 +3,7 @@ import os
 import aiohttp #type: ignore
 from datetime import datetime
 from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
+from telethon.tl.functions.users import GetFullUserRequest
 
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
@@ -71,13 +72,15 @@ async def handler(event):
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
         states = await get_user_role(user_id, chat_id)
+        FullUser = (await event.client(GetFullUserRequest(user.id))).full_user
+        bio = FullUser.about
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
             f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
             f"𖡋 𝐂𝐑 ⌯ {dates}\n"
             f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
-            # f"{bio}"
+            f"{bio}"
         )
 
         # إذا كان هناك صورة للمستخدم
