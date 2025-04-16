@@ -61,12 +61,19 @@ async def get_user_role(user_id, chat_id):
 @ABH.on(events.NewMessage)
 async def handler(event):
     try:
+        # التحقق إذا كان الرد على رسالة
         if event.is_reply:
             replied_message = await event.get_reply_message()
             sender_id = replied_message.sender_id
         else:
             sender_id = event.sender_id
+        
         user = await ABH.get_entity(sender_id)
+        full = await ABH(GetFullUserRequest(user))  # استرجاع معلومات المستخدم بالكامل
+        
+        # طباعة محتويات full للتحقق من وجود النبذة الشخصية
+        print(f"Full User Data: {full.__dict__}")  # طباعة البيانات بالكامل لمراجعتها
+        
         user_id = user.id
         chat_id = event.chat_id
         phone = user.phone if hasattr(user, 'phone') and user.phone else "—"
@@ -74,10 +81,9 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
-        user = await ABH.get_entity(user_id)
-        full = await ABH(GetFullUserRequest(user))  # استرجاع معلومات المستخدم بالكامل
-        bio = full.about if hasattr(full, 'about') and full.about else "🙄"
+        bio = full.about if hasattr(full, 'about') and full.about else "🙄"  # التحقق من النبذة الشخصية
         states = await get_user_role(user_id, chat_id)
+        
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
