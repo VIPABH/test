@@ -1,9 +1,9 @@
-from telethon import TelegramClient, events
+rom telethon import TelegramClient, events
 import os
 import aiohttp
 from datetime import datetime
 from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
-from telethon.tl.functions.users import GetFullUserRequest
+
 
 # تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
@@ -32,30 +32,24 @@ async def date(user_id):
     
     async with aiohttp.ClientSession() as session:
         async with session.post('https://restore-access.indream.app/regdate', headers=headers, data=data) as response:
-            if response.status == 200:
-                response_json = await response.json()
-                date_string = response_json['data']['date']
-                date_obj = datetime.strptime(date_string, "%Y-%m")
-                formatted_date = date_obj.strftime("%Y/%m")
-                return formatted_date
-            else:
-                return "غير معروف"
+            response_json = await response.json()
+            date_string = response_json['data']['date']
+            date_obj = datetime.strptime(date_string, "%Y-%m")
+            formatted_date = date_obj.strftime("%Y/%m")
+            return formatted_date
 
 # دالة لجلب دور المستخدم في المجموعة
 async def get_user_role(user_id, chat_id):
-    try:
-        participant = await ABH.get_participant(chat_id, user_id)
+    participant = await ABH.get_participant(chat_id, user_id)
 
-        if isinstance(participant, ChannelParticipantCreator):
-            return "مالك"
-        elif isinstance(participant, ChannelParticipantAdmin):
-            return "مشرف"
-        elif isinstance(participant, ChannelParticipant):
-            return "عضو"
-        else:
-            return "غير معروف"
-    except Exception as e:
-        return "خطأ في الحصول على الدور"
+    if isinstance(participant, ChannelParticipantCreator):
+        return "مالك"
+    elif isinstance(participant, ChannelParticipantAdmin):
+        return "مشرف"
+    elif isinstance(participant, ChannelParticipant):
+        return "عضو"
+    else:
+        return "غير معروف"
 
 # الدالة التي تستجيب للرسائل
 @ABH.on(events.NewMessage)
@@ -69,7 +63,6 @@ async def handler(event):
             sender_id = event.sender_id
         
         user = await ABH.get_entity(sender_id)
-        full = await ABH(GetFullUserRequest(user))  # استرجاع معلومات المستخدم بالكامل
         
         user_id = user.id
         chat_id = event.chat_id
@@ -78,7 +71,7 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
-        bio = full.about if hasattr(full, 'about') and full.about else "🙄"  # تم التعديل هنا
+        bio = user_id.user.about if hasattr(user_id.user, 'about') and user_id.user.about else "🙄"
         states = await get_user_role(user_id, chat_id)
         
         message_text = (
@@ -104,7 +97,7 @@ async def handler(event):
             await event.respond(message_text)
     
     except Exception as e:
-        await event.reply(f"⚠️ حدث خطأ:\n`{str(e)}`")
+        await event.reply(f"⚠️ حدث خطأ:\n{str(e)}")
 
 print("🤖 البوت يعمل الآن...")
 ABH.run_until_disconnected()
