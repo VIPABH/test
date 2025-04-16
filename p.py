@@ -86,7 +86,7 @@ async def handler(event):
     if user.photo:
         photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
         await ABH.download_profile_photo(user.id, file=photo_path)
-        msg = await event.respond(event.chat_id, photo_path, caption=message_text, force_document=False)
+        msg = await event.respond(photo=photo_path, caption=message_text)
         await asyncio.sleep(2)
         await msg.edit(caption=message_text)
     else:
