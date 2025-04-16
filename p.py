@@ -98,6 +98,7 @@ async def handler(event):
         dates = await date(user_id)
         states = await get_user_role(user_id, chat_id)
         FullUser = (await event.client(GetFullUserRequest(user.id))).full_user
+        bio = FullUser.about
         if bio and bio.strip():
             message_text += f"\n{bio}"
         message_text = (
