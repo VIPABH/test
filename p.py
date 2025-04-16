@@ -86,7 +86,7 @@ async def handler(event):
         user = await ABH.get_entity(sender_id)
         user_id = user.id
         chat_id = event.chat_id
-        phone = user.phone if hasattr(user, 'phone') and user.phone else "—"
+        phone = user.phone if hasattr(user, 'phone') and user.phone else "المستخدم لا يشارك رقم الهاتف"
         premium = "yes" if user.premium else "no"
         usernames = (
             [f"@{username.username}" for username in user.usernames]
@@ -98,7 +98,7 @@ async def handler(event):
         dates = await date(user_id)
         states = await get_user_role(user_id, chat_id)
         FullUser = (await event.client(GetFullUserRequest(user.id))).full_user
-        bio = FullUser.about
+        bio = FullUser.about if bio else "❤❤"
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
