@@ -113,6 +113,7 @@ async def handler(event):
             f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
             f"{bio_text}"
 )
+    await event.reply(message_text)
     if user.photo:
         photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
         await ABH.download_profile_photo(user.id, file=photo_path)
