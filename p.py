@@ -14,7 +14,7 @@ ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 @ABH.on(events.NewMessage)
 async def e(event):
     message_text = '>>>>'
-    msg = await event.send_file(event.chat_id, photo='https://files.catbox.moe/k44qq6.mp4', caption=message_text)
+    msg = await ABH.send_file(event.chat_id, photo='https://files.catbox.moe/k44qq6.mp4', caption=message_text)
     await asyncio.sleep(2)
     message_text = '...'
     await msg.edit(event.chat_id, caption=message_text)
