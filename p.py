@@ -4,7 +4,7 @@ import aiohttp #type: ignore
 from datetime import datetime
 from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
 from telethon.tl.functions.users import GetFullUserRequest
-
+from telethon.tl.functions.channels import GetParticipantRequest
 # تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
@@ -41,21 +41,22 @@ async def date(user_id):
             else:
                 return "غير معروف"
 
+
 async def get_user_role(user_id, chat_id):
     try:
-        participant = await ABH.get_participant(chat_id, user_id)
+        participant = await ABH(GetParticipantRequest(channel=chat_id, participant=user_id))
+        part = participant.participant
 
-        if isinstance(participant, ChannelParticipantCreator):
+        if isinstance(part, ChannelParticipantCreator):
             return "مالك"
-        elif isinstance(participant, ChannelParticipantAdmin):
+        elif isinstance(part, ChannelParticipantAdmin):
             return "مشرف"
-        elif isinstance(participant, ChannelParticipant):
+        elif isinstance(part, ChannelParticipant):
             return "عضو"
         else:
             return "غير معروف"
     except Exception as e:
         return "خطأ في الحصول على الدور"
-
 @ABH.on(events.NewMessage)
 async def handler(event):
     try:
