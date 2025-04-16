@@ -90,7 +90,7 @@ async def handler(event):
         photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
         await ABH.download_profile_photo(user.id, file=photo_path)
         msg = await ABH.send_file(event.chat_id, photo_path, caption=message_text, force_document=False)
-        await asyncio.sleep(2)
+        await asyncio.sleep(60*3)
         await msg.delete()
     else:
         await event.respond(message_text)
@@ -123,7 +123,7 @@ async def handler(event):
         photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
         await ABH.download_profile_photo(user.id, file=photo_path)
         msg = await ABH.send_file(event.chat_id, photo_path, caption=message_text, force_document=False)
-        await asyncio.sleep(2)
+        await asyncio.sleep(60*3)
         await msg.delete()
     else:
         await event.respond(message_text)
