@@ -50,18 +50,30 @@ async def date(user_id):
         'User-Agent': 'Nicegram/101 CFNetwork/1404.0.5 Darwin/22.3.0',
     }
     data = '{"telegramId":' + str(user_id) + '}'
-    
+
     async with aiohttp.ClientSession() as session:
         async with session.post('https://restore-access.indream.app/regdate', headers=headers, data=data) as response:
             if response.status == 200:
                 response_json = await response.json()
                 date_string = response_json['data']['date']
-                date_obj = datetime.strptime(date_string, "%Y-%m")
-                formatted_date = date_obj.strftime("%Y/%m")
-                return formatted_date
+
+                try:
+                    # إذا التاريخ يتضمن يوم (yyyy-mm-dd)
+                    if len(date_string.split("-")) == 3:
+                        date_obj = datetime.strptime(date_string, "%Y-%m-%d")
+                        formatted_date = date_obj.strftime("%Y/%m/%d")
+                    # إذا التاريخ يتضمن فقط سنة وشهر (yyyy-mm)
+                    else:
+                        date_obj = datetime.strptime(date_string, "%Y-%m")
+                        formatted_date = date_obj.strftime("%Y/%m")
+
+                    return formatted_date
+
+                except Exception:
+                    return "تاريخ غير صالح"
+
             else:
                 return "غير معروف"
-
 
 @ABH.on(events.NewMessage(pattern='id|ا|افتاري|ايدي'))
 async def handler(event):
