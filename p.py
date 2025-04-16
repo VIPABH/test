@@ -1,4 +1,4 @@
-rom telethon import TelegramClient, events
+from telethon import TelegramClient, events
 import os
 import aiohttp
 from datetime import datetime
