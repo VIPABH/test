@@ -4,6 +4,8 @@ import aiohttp #type: ignore
 from datetime import datetime
 from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
 from telethon.tl.functions.users import GetFullUserRequest
+from telethon.tl.functions.channels import GetParticipantRequest
+
 
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
@@ -16,7 +18,6 @@ ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 LOCAL_PHOTO_DIR = "photos"
 os.makedirs(LOCAL_PHOTO_DIR, exist_ok=True)
 
-# دالة لجلب تاريخ التسجيل
 async def date(user_id):
     headers = {
         'Host': 'restore-access.indream.app',
@@ -42,7 +43,11 @@ async def date(user_id):
 
 async def get_user_role(user_id, chat_id):
     try:
-        participant = await ABH.get_participant(chat_id, user_id)
+        result = await client(GetParticipantRequest(
+            channel=chat_id,
+            user_id=user_id
+))
+        participant = result.participant
 
         if isinstance(participant, ChannelParticipantCreator):
             return "مالك"
