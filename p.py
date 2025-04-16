@@ -1,7 +1,6 @@
-from telethon import TelegramClient, events, Button
-import requests, os, operator, asyncio, random
-from googletrans import Translator
-from bs4 import BeautifulSoup
+from telethon import TelegramClient, events
+import os, asyncio, random
+
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN') 
