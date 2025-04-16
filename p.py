@@ -17,6 +17,27 @@ ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 # مجلد الصور المحلية
 LOCAL_PHOTO_DIR = "photos"
 os.makedirs(LOCAL_PHOTO_DIR, exist_ok=True)
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.tl.types import ChannelParticipantAdmin, ChannelParticipantCreator, ChannelParticipant
+
+async def get_user_role(user_id, chat_id):
+    try:
+        result = await ABH(GetParticipantRequest(
+            channel=chat_id,
+            user_id=user_id
+        ))
+        participant = result.participant
+
+        if isinstance(participant, ChannelParticipantCreator):
+            return "مالك"
+        elif isinstance(participant, ChannelParticipantAdmin):
+            return "مشرف"
+        elif isinstance(participant, ChannelParticipant):
+            return "عضو"
+        else:
+            return "غير معروف"
+    except Exception as e:
+        return f"خطأ في الحصول على الدور: {e}"
 
 async def date(user_id):
     headers = {
@@ -41,24 +62,6 @@ async def date(user_id):
             else:
                 return "غير معروف"
 
-async def get_user_role(user_id, chat_id):
-    try:
-        result = await ABH(GetParticipantRequest(
-            channel=chat_id,
-            user_id=user_id
-))
-        participant = result.participant
-
-        if isinstance(participant, ChannelParticipantCreator):
-            return "مالك"
-        elif isinstance(participant, ChannelParticipantAdmin):
-            return "مشرف"
-        elif isinstance(participant, ChannelParticipant):
-            return "عضو"
-        else:
-            return "غير معروف"
-    except Exception as e:
-        return f"خطأ في الحصول على الدور {e}"
 
 @ABH.on(events.NewMessage)
 async def handler(event):
