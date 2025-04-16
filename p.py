@@ -12,6 +12,7 @@ async def e(event):
     message_text = '>>>>'
     msg = await ABH.send_file(event.chat_id, file='https://files.catbox.moe/k44qq6.mp4', caption=message_text)
     await asyncio.sleep(1)
-    await msg.edit('تم حذف الفيديو!')
+    await msg.edit(caption="تم حذف الفيديو!")
+    await msg.delete_media()
 
 ABH.run_until_disconnected()
