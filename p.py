@@ -24,8 +24,8 @@ async def get_user_role(user_id, chat_id):
     try:
         result = await ABH(GetParticipantRequest(
             channel=chat_id,
-            user_id=user_id
-        ))
+            participant=user_id  # ✅ الصحيح
+))
         participant = result.participant
 
         if isinstance(participant, ChannelParticipantCreator):
