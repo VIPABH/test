@@ -74,6 +74,8 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
+        user = await client.get_entity(user_id)
+        full = await client(GetFullUserRequest(user))
         bio = getattr(full.user, 'about', '🙄')
         states = await get_user_role(user_id, chat_id)
         message_text = (
