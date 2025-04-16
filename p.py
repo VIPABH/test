@@ -10,12 +10,14 @@ ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 @ABH.on(events.NewMessage)
 async def e(event):
     message_text = '>>>>'
+    # إرسال الفيديو مع الكابشن
     msg = await ABH.send_file(event.chat_id, file='https://files.catbox.moe/k44qq6.mp4', caption=message_text)
     
     # الانتظار لمدة 5 ثوانٍ
-    await asyncio.sleep(5)
+    await asyncio.sleep(1)
     
-    # حذف الفيديو فقط ولكن يبقى الكابشن
-    await msg.edit(file=None)
+    # تعديل الرسالة: حذف الفيديو أو الصورة مع تغيير الكابشن
+    new_caption = "تم حذف الفيديو!"
+    await msg.edit(caption=new_caption, file=None)
 
 ABH.run_until_disconnected()
