@@ -9,6 +9,17 @@ api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
 bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
+id = True
+@ABH.on(events.NewMessage(pattern='الايدي تفعيل'))
+async def turn(event):
+    global id
+    id = False
+    await event.reply('تم التفعيل')
+@ABH.on(events.NewMessage(pattern='الايدي تعطيل'))
+async def turn(event):
+    global id
+    id = True
+    await event.reply('تم التفعيل')
 LOCAL_PHOTO_DIR = "photos"
 os.makedirs(LOCAL_PHOTO_DIR, exist_ok=True)
 async def get_user_role(user_id, chat_id):
@@ -63,7 +74,7 @@ LOCAL_PHOTO_DIR = "/tmp"
 
 @ABH.on(events.NewMessage(pattern='^(id|ا|افتاري|ايدي)$'))
 async def handler(event):
-    if event.is_private:
+    if event.is_private or id:
         return
     sender_id = event.sender_id
     user = await ABH.get_entity(sender_id)
@@ -94,9 +105,10 @@ async def handler(event):
         await msg.delete()
     else:
         await event.respond(message_text)
+
 @ABH.on(events.NewMessage(pattern='^(id|اا|افتار|ايدي)$'))
 async def handler(event):
-    if event.is_reply:
+    if event.is_reply or id:
         replied_message = await event.get_reply_message()
         sender_id = replied_message.sender_id
     user = await ABH.get_entity(sender_id)
