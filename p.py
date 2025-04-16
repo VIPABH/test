@@ -81,7 +81,7 @@ async def handler(event):
     message_text = (
         f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
         f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
-        f"𖡋 𝐏𝐇𝐍 ⌯ {'+' phone if phone != '—' else phone}\n"
+        f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
         f"𖡋 𝐂𝐑 ⌯ {dates}\n"
         f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}"
         f"{bio_text}"
