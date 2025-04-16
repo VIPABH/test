@@ -87,8 +87,8 @@ async def handler(event):
         photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
         await ABH.download_profile_photo(user.id, file=photo_path)
         msg = await ABH.send_file(event.chat_id, photo_path, caption=message_text, force_document=False)
-        await asyncio.sleep(1)
-        await msg.edit(message_text)
+        await asyncio.sleep(2)
+        await msg.edit(caption=message_text)
     else:
         await event.respond(message_text)
 print("🤖 البوت يعمل الآن...")
