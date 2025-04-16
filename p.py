@@ -56,40 +56,60 @@ async def date(user_id):
                     return "تاريخ غير صالح"
             else:
                 return "غير معروف"
-@ABH.on(events.NewMessage(pattern='id|ا|افتاري|ايدي'))
+from telethon import events
+from telethon.tl.functions.users import GetFullUserRequest
+import os, asyncio
+
+LOCAL_PHOTO_DIR = "/tmp"
+
+@ABH.on(events.NewMessage(pattern='^(id|ا|افتاري|ايدي)$'))
 async def handler(event):
     if event.is_reply:
         replied_message = await event.get_reply_message()
         sender_id = replied_message.sender_id
     else:
         sender_id = event.sender_id
+
     user = await ABH.get_entity(sender_id)
     user_id = user.id
     chat_id = event.chat_id
-    phone = user.phone if hasattr(user, 'phone') and user.phone else "المستخدم لا يشارك رقم الهاتف"
-    premium = "yes" if user.premium else "no"
-    usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else [f"@{user.username}"] if user.username else ["—"]
-    usernames_list = ", ".join(usernames)
+
+    # بيانات الهاتف
+    phone = getattr(user, 'phone', None)
+    phone_text = f"+{phone}" if phone else "المستخدم لا يشارك رقم الهاتف"
+
+    # حالة البريميوم
+    premium = "yes" if getattr(user, 'premium', False) else "no"
+
+    # اسم المستخدم
+    usernames_list = f"@{user.username}" if user.username else "—"
+
+    # تواريخ ودور المستخدم (من دوالك)
     dates = await date(user_id)
     states = await get_user_role(user_id, chat_id)
-    FullUser = (await event.client(GetFullUserRequest(user.id))).full_user
+
+    # السيرة الذاتية
+    FullUser = (await ABH(GetFullUserRequest(user.id))).full_user
     bio = FullUser.about
     bio_text = f"\n{bio}" if bio and bio.strip() else ""
+
     message_text = (
         f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
         f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
-        f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
+        f"𖡋 𝐏𝐇𝐍 ⌯ {phone_text}\n"
         f"𖡋 𝐂𝐑 ⌯ {dates}\n"
         f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}"
         f"{bio_text}"
     )
+
+    # تحميل الصورة الشخصية إن وجدت
     if user.photo:
         photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
         await ABH.download_profile_photo(user.id, file=photo_path)
-        msg = await event.respond(photo=photo_path, caption=message_text)
+        msg = await event.respond(file=photo_path, caption=message_text)
         await asyncio.sleep(2)
         await msg.delete()
     else:
         await event.respond(message_text)
-print("🤖 البوت يعمل الآن...")
+
 ABH.run_until_disconnected()
