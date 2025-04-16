@@ -15,19 +15,29 @@ LOCAL_PHOTO_DIR = "photos"
 os.makedirs(LOCAL_PHOTO_DIR, exist_ok=True)
 from telethon.tl.functions.channels import GetParticipantRequest
 from telethon.tl.types import ChannelParticipantAdmin, ChannelParticipantCreator, ChannelParticipant
+from telethon.tl.types import Channel, ChannelParticipantCreator, ChannelParticipantAdmin, ChannelParticipant
+
 async def get_user_role(user_id, chat_id):
-    result = await ABH(GetParticipantRequest(
-        channel=chat_id,
-        participant=user_id))
-    participant = result.participant
-    if isinstance(participant, ChannelParticipantCreator):
-         return "مالك"
-    elif isinstance(participant, ChannelParticipantAdmin):
-         return "مشرف"
-    elif isinstance(participant, ChannelParticipant):
-         return "عضو"
-    else:
-        return "غير معروف"
+    try:
+        chat = await ABH.get_entity(chat_id)
+        
+        if isinstance(chat, Channel):  # فقط إذا كانت قناة أو مجموعة سوبر
+            result = await ABH(GetParticipantRequest(channel=chat, participant=user_id))
+            participant = result.participant
+
+            if isinstance(participant, ChannelParticipantCreator):
+                return "مالك"
+            elif isinstance(participant, ChannelParticipantAdmin):
+                return "مشرف"
+            elif isinstance(participant, ChannelParticipant):
+                return "عضو"
+            else:
+                return "غير معروف"
+        else:
+            return "—"  # ليست مجموعة ولا قناة
+
+    except Exception:
+        return "—"  # تفادي أي خطأ مثل عدم وجود المستخدم أو صلاحيات ناقصة
 async def date(user_id):
     headers = {
         'Host': 'restore-access.indream.app',
@@ -56,10 +66,6 @@ async def date(user_id):
                     return "تاريخ غير صالح"
             else:
                 return "غير معروف"
-from telethon import events
-from telethon.tl.functions.users import GetFullUserRequest
-import os, asyncio
-
 LOCAL_PHOTO_DIR = "/tmp"
 
 @ABH.on(events.NewMessage(pattern='^(id|ا|افتاري|ايدي)$'))
