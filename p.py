@@ -82,44 +82,30 @@ async def handler(event):
         sender_id = replied_message.sender_id
     else:
         sender_id = event.sender_id
-        user = await ABH.get_entity(sender_id)
-        user_id = user.id
-        chat_id = event.chat_id
-        phone = user.phone if hasattr(user, 'phone') and user.phone else "المستخدم لا يشارك رقم الهاتف"
-        premium = "yes" if user.premium else "no"
-        usernames = (
-            [f"@{username.username}" for username in user.usernames]
-            if user.usernames else
-            [f"@{user.username}"] if user.username else
-            ["—"]
-)
+    user = await ABH.get_entity(sender_id)
+    user_id = user.id
+    chat_id = event.chat_id
+    phone = user.phone if hasattr(user, 'phone') and user.phone else "المستخدم لا يشارك رقم الهاتف"
+    premium = "yes" if user.premium else "no"
+    usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else [f"@{user.username}"] if user.username else ["—"]
     usernames_list = ", ".join(usernames)
     dates = await date(user_id)
     states = await get_user_role(user_id, chat_id)
     FullUser = (await event.client(GetFullUserRequest(user.id))).full_user
     bio = FullUser.about
-    if bio and bio.strip():
-         bio_text = f"\n{bio}"
-    else:
-        bio_text = ""  # إذا لم يكن هناك بايو، لا يتم إضافته.
-        message_text = (
-            f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
-            f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
-            f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
-            f"𖡋 𝐂𝐑 ⌯ {dates}\n"
-            f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
-            f"{bio_text}"  # إضافة البايو فقط إذا كان موجودًا.
-)
-
+    bio_text = f"\n{bio}" if bio and bio.strip() else ""
+    message_text = (
+        f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
+        f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
+        f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
+        f"𖡋 𝐂𝐑 ⌯ {dates}\n"
+        f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
+        f"{bio_text}"
+    )
     if user.photo:
         photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
         await ABH.download_profile_photo(user.id, file=photo_path)
-        await ABH.send_file(
-            event.chat_id,
-            photo_path,
-            caption=message_text,
-            force_document=False
-            )
+        await ABH.send_file(event.chat_id, photo_path, caption=message_text, force_document=False)
     else:
         await event.respond(message_text)
 print("🤖 البوت يعمل الآن...")
