@@ -1,6 +1,5 @@
 from telethon import TelegramClient, events
 import os, asyncio
-from datetime import datetime
 
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
@@ -11,9 +10,11 @@ ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 @ABH.on(events.NewMessage)
 async def e(event):
     message_text = '>>>>'
-    msg = await ABH.send_file(event.chat_id, file='https://files.catbox.moe/k44qq6.mp4', caption=message_text)
-    await asyncio.sleep(2)
-    message_text = '...'
-    await msg.edit(message_text)
+    # إرسال الصورة
+    msg = await ABH.send_file(event.chat_id, file='path_to_image.jpg', caption=message_text)
+    # الانتظار لمدة 5 ثوانٍ
+    await asyncio.sleep(1)
+    # حذف الرسالة
+    await msg.delete()
 
 ABH.run_until_disconnected()
