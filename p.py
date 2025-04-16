@@ -1,9 +1,11 @@
 from telethon import TelegramClient, events
 import os
-import aiohttp #type: ignore
+import aiohttp
 from datetime import datetime
 from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
+from telethon.tl.functions.users import GetFullUserRequest
 
+# تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
 bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
@@ -39,6 +41,7 @@ async def date(user_id):
             else:
                 return "غير معروف"
 
+# دالة لجلب دور المستخدم في المجموعة
 async def get_user_role(user_id, chat_id):
     try:
         participant = await ABH.get_participant(chat_id, user_id)
@@ -54,15 +57,20 @@ async def get_user_role(user_id, chat_id):
     except Exception as e:
         return "خطأ في الحصول على الدور"
 
+# الدالة التي تستجيب للرسائل
 @ABH.on(events.NewMessage)
 async def handler(event):
     try:
+        # التحقق إذا كان الرد على رسالة
         if event.is_reply:
             replied_message = await event.get_reply_message()
             sender_id = replied_message.sender_id
         else:
             sender_id = event.sender_id
+        
         user = await ABH.get_entity(sender_id)
+        full = await ABH(GetFullUserRequest(user))  # استرجاع معلومات المستخدم بالكامل
+        
         user_id = user.id
         chat_id = event.chat_id
         phone = user.phone if hasattr(user, 'phone') and user.phone else "—"
@@ -70,14 +78,16 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
+        bio = full.about if hasattr(full, 'about') and full.about else "🙄"  # تم التعديل هنا
         states = await get_user_role(user_id, chat_id)
+        
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
             f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
             f"𖡋 𝐂𝐑 ⌯ {dates}\n"
             f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
-            # f"{bio}"
+            f"{bio}\n"
         )
 
         # إذا كان هناك صورة للمستخدم
