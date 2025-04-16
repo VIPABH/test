@@ -76,7 +76,7 @@ async def handler(event):
         dates = await date(user_id)
         user = await ABH.get_entity(user_id)
         full = await ABH(GetFullUserRequest(user))  # استرجاع معلومات المستخدم بالكامل
-        bio = full.about if full.about else "🙄"  # النبذة الشخصية
+        bio = full.about if hasattr(full, 'about') and full.about else "🙄"
         states = await get_user_role(user_id, chat_id)
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
