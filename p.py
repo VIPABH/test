@@ -43,7 +43,7 @@ async def date(user_id):
 
 async def get_user_role(user_id, chat_id):
     try:
-        result = await client(GetParticipantRequest(
+        result = await ABH(GetParticipantRequest(
             channel=chat_id,
             user_id=user_id
 ))
