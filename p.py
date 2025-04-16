@@ -72,7 +72,7 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
-        bio = full.user.about if hasattr(full.user, 'about') and full.user.about else "🙄"
+        # bio = full.user.about if hasattr(full.user, 'about') and full.user.about else "🙄"
         states = await get_user_role(user_id, chat_id)
         
         message_text = (
@@ -81,7 +81,7 @@ async def handler(event):
             f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
             f"𖡋 𝐂𝐑 ⌯ {dates}\n"
             f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
-            f"{bio}\n"
+            # f"{bio}\n"
         )
 
         # إذا كان هناك صورة للمستخدم
