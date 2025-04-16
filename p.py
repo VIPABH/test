@@ -4,13 +4,13 @@ import aiohttp #type: ignore
 from datetime import datetime
 from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
 from telethon.tl.functions.users import GetFullUserRequest
-from telethon.tl.functions.channels import GetParticipantRequest
-from telethon.tl.functions.users import GetFullUserRequest
+
+# تحميل متغيرات البيئة
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
 bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 
-  # في بعض الإصدارات الجديدة
+# إنشاء جلسة البوت
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 # مجلد الصور المحلية
@@ -41,22 +41,21 @@ async def date(user_id):
             else:
                 return "غير معروف"
 
-
 async def get_user_role(user_id, chat_id):
     try:
-        participant = await ABH(GetParticipantRequest(channel=chat_id, participant=user_id))
-        part = participant.participant
+        participant = await ABH.get_participant(chat_id, user_id)
 
-        if isinstance(part, ChannelParticipantCreator):
+        if isinstance(participant, ChannelParticipantCreator):
             return "مالك"
-        elif isinstance(part, ChannelParticipantAdmin):
+        elif isinstance(participant, ChannelParticipantAdmin):
             return "مشرف"
-        elif isinstance(part, ChannelParticipant):
+        elif isinstance(participant, ChannelParticipant):
             return "عضو"
         else:
             return "غير معروف"
     except Exception as e:
         return "خطأ في الحصول على الدور"
+
 @ABH.on(events.NewMessage)
 async def handler(event):
     try:
@@ -65,9 +64,7 @@ async def handler(event):
             sender_id = replied_message.sender_id
         else:
             sender_id = event.sender_id
-
         user = await ABH.get_entity(sender_id)
-        full = await ABH(GetFullUserRequest(user))
         user_id = user.id
         chat_id = event.chat_id
         phone = user.phone if hasattr(user, 'phone') and user.phone else "—"
@@ -75,17 +72,8 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
-        full = await ABH(GetFullUserRequest(user))
-
-        if hasattr(full, "user"):
-            bio = full.user.about if getattr(full.user, "about", None) else "🙄"
-        elif hasattr(full, "users") and full.users:
-            bio = full.users[0].about if getattr(full.users[0], "about", None) else "🙄"
-        else:
-            bio = "🙄"
-
+        bio = user.about if user.about else "🙄"
         states = await get_user_role(user_id, chat_id)
-
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
             f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
