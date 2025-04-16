@@ -69,30 +69,15 @@ async def handler(event):
     else:
         sender_id = event.sender_id
 
-    user         = await ABH.get_entity(sender_id)
-    user_id      = user.id
-    chat_id      = event.chat_id
-    phone        = user.phone if hasattr(user, 'phone') and user.phone else "👎"
-    premium      = "yes" if user.premium else "no"
-    usernames    = [f"@{u.username}" for u in user.usernames] if user.usernames else [f"@{user.username}"] if user.username else ["—"]
-    usernames_list = ", ".join(usernames)
-    
-    dates        = await date(user_id)
-    states       = await get_user_role(user_id, chat_id)
-    
-    FullUser     = (await event.client(GetFullUserRequest(user.id))).full_user
-    bio          = FullUser.about
-    bio_text     = f"\n{bio}" if bio and bio.strip() else ""
-
-    phone_display = f"+{phone}" if phone != "👎" else phone
+    user = await ABH.get_entity(sender_id)
 
     message_text = (
-        f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
-        f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
-        f"𖡋 𝐏𝐇𝐍 ⌯ {phone_display}\n"
-        f"𖡋 𝐂𝐑 ⌯ {dates}\n"
-        f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
-        f"{bio_text}"
+        f"𖡋 𝐔𝐒𝐄 ⌯ {', '.join([f'@{u.username}' for u in user.usernames] if user.usernames else [f'@{user.username}'] if user.username else ['—'])}\n"
+        f"𖡋 𝐈𝐒𝐏 ⌯ {'yes' if user.premium else 'no'}\n"
+        f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + user.phone if hasattr(user, 'phone') and user.phone else '👎'}\n"
+        f"𖡋 𝐂𝐑 ⌯ {await date(user.id)}\n"
+        f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {await get_user_role(user.id, event.chat_id)}\n"
+        f"{(await event.client(GetFullUserRequest(user.id))).full_user.about if (await event.client(GetFullUserRequest(user.id))).full_user.about.strip() else ''}"
     )
     if user.photo:
         photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
