@@ -5,12 +5,12 @@ from datetime import datetime
 from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.functions.channels import GetParticipantRequest
-# تحميل متغيرات البيئة
+from telethon.tl.functions.users import GetFullUserRequest
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
 bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 
-# إنشاء جلسة البوت
+  # في بعض الإصدارات الجديدة
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 # مجلد الصور المحلية
@@ -74,7 +74,9 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
-        bio = full.about if getattr(full, 'about', None) else "🙄"
+        full = await client(GetFullUserRequest(user_id))
+        bio = full.about  
+        # bio = full.users[0].about
         states = await get_user_role(user_id, chat_id)
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
