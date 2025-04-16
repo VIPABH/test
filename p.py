@@ -13,9 +13,9 @@ async def e(event):
     msg = await ABH.send_file(event.chat_id, file='https://files.catbox.moe/k44qq6.mp4', caption=message_text)
     
     # الانتظار لمدة 5 ثوانٍ
-    await asyncio.sleep(1)
+    await asyncio.sleep(5)
     
     # حذف الفيديو فقط ولكن يبقى الكابشن
-    await msg.delete_media()
+    await msg.edit(file=None)
 
 ABH.run_until_disconnected()
