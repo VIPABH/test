@@ -61,32 +61,39 @@ async def date(user_id):
                 return "غير معروف"
 LOCAL_PHOTO_DIR = "/tmp"
 
-@ABH.on(events.NewMessage(pattern='^(id|ا|افتاري|ايدي)$'))
+@ABH.on(events.NewMessage(pattern='^(id|اا|افتار|ايدي)$'))
 async def handler(event):
-    if event.is_private:
-        return
-    sender_id = event.sender_id
-    user = await ABH.get_entity(sender_id)
-    user_id = user.id
-    chat_id = event.chat_id
-    phone = user.phone if hasattr(user, 'phone') and user.phone else "👎"
-    premium = "yes" if user.premium else "no"
-    usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else [f"@{user.username}"] if user.username else ["—"]
+    if event.is_reply:
+        replied_message = await event.get_reply_message()
+        sender_id = replied_message.sender_id
+    else:
+        sender_id = event.sender_id
+
+    user         = await ABH.get_entity(sender_id)
+    user_id      = user.id
+    chat_id      = event.chat_id
+    phone        = user.phone if hasattr(user, 'phone') and user.phone else "👎"
+    premium      = "yes" if user.premium else "no"
+    usernames    = [f"@{u.username}" for u in user.usernames] if user.usernames else [f"@{user.username}"] if user.username else ["—"]
     usernames_list = ", ".join(usernames)
-    dates = await date(user_id)
-    states = await get_user_role(user_id, chat_id)
-    FullUser = (await event.client(GetFullUserRequest(user.id))).full_user
-    bio = FullUser.about
-    bio_text = f"\n{bio}" if bio and bio.strip() else ""
-    phone_display = f"+{phone}" if phone != "—" else phone
+    
+    dates        = await date(user_id)
+    states       = await get_user_role(user_id, chat_id)
+    
+    FullUser     = (await event.client(GetFullUserRequest(user.id))).full_user
+    bio          = FullUser.about
+    bio_text     = f"\n{bio}" if bio and bio.strip() else ""
+
+    phone_display = f"+{phone}" if phone != "👎" else phone
+
     message_text = (
-            f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
-            f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
-            f"𖡋 𝐏𝐇𝐍 ⌯ {phone_display}\n"
-            f"𖡋 𝐂𝐑 ⌯ {dates}\n"
-            f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
-            f"{bio_text}"
-)
+        f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
+        f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
+        f"𖡋 𝐏𝐇𝐍 ⌯ {phone_display}\n"
+        f"𖡋 𝐂𝐑 ⌯ {dates}\n"
+        f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
+        f"{bio_text}"
+    )
     if user.photo:
         photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
         await ABH.download_profile_photo(user.id, file=photo_path)
