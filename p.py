@@ -88,7 +88,7 @@ async def handler(event):
         await ABH.download_profile_photo(user.id, file=photo_path)
         msg = await event.respond(photo=photo_path, caption=message_text)
         await asyncio.sleep(2)
-        await msg.edit(caption=message_text)
+        await msg.delete()
     else:
         await event.respond(message_text)
 print("🤖 البوت يعمل الآن...")
