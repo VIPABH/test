@@ -88,7 +88,12 @@ async def handler(event):
         chat_id = event.chat_id
         phone = user.phone if hasattr(user, 'phone') and user.phone else "—"
         premium = "yes" if user.premium else "no"
-        usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
+        usernames = (
+            [f"@{username.username}" for username in user.usernames]
+            if user.usernames else
+            [f"@{user.username}"] if user.username else
+            ["—"]
+)
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
         states = await get_user_role(user_id, chat_id)
