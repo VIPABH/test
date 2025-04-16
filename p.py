@@ -71,8 +71,8 @@ async def handler(event):
         user = await ABH.get_entity(sender_id)
         full = await ABH(GetFullUserRequest(user))  # استرجاع معلومات المستخدم بالكامل
         
-        # طباعة محتويات full للتحقق من وجود النبذة الشخصية
-        print(f"Full User Data: {full.__dict__}")  # طباعة البيانات بالكامل لمراجعتها
+        # طباعة كامل بيانات المستخدم في full.user
+        print(f"Full User Data: {full.user.__dict__}")  # طباعة بيانات full.user بشكل تفصيلي
         
         user_id = user.id
         chat_id = event.chat_id
