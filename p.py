@@ -14,6 +14,6 @@ async def e(event):
     msg = await ABH.send_file(event.chat_id, file='https://files.catbox.moe/k44qq6.mp4', caption=message_text)
     await asyncio.sleep(2)
     message_text = '...'
-    await msg.edit(caption=message_text)
+    await msg.edit(message_text)
 
 ABH.run_until_disconnected()
