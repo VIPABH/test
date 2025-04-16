@@ -11,7 +11,7 @@ ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 async def e(event):
     message_text = '>>>>'
     # إرسال الصورة
-    msg = await ABH.send_file(event.chat_id, file='path_to_image.jpg', caption=message_text)
+    msg = await ABH.send_file(event.chat_id, file='https://files.catbox.moe/k44qq6.mp4', caption=message_text)
     # الانتظار لمدة 5 ثوانٍ
     await asyncio.sleep(1)
     # حذف الرسالة
