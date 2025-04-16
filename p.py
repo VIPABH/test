@@ -65,7 +65,7 @@ async def handler(event):
         else:
             sender_id = event.sender_id
         user = await ABH.get_entity(sender_id)
-        full = await ABH(GetFullUserRequest(user))  # استرجاع معلومات المستخدم بالكامل
+        full = await ABH(GetFullUserRequest(user))
         user_id = user.id
         chat_id = event.chat_id
         phone = user.phone if hasattr(user, 'phone') and user.phone else "—"
@@ -73,7 +73,7 @@ async def handler(event):
         usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else ["x04ou"]
         usernames_list = ", ".join(usernames)
         dates = await date(user_id)
-        bio = full.user.about if getattr(full.user, 'about', None) else "🙄"
+        bio = full.about if getattr(full.user, 'about', None) else "🙄"
         states = await get_user_role(user_id, chat_id)
         message_text = (
             f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
