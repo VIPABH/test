@@ -36,8 +36,8 @@ async def get_user_role(user_id, chat_id):
         else:
             return "—"  # ليست مجموعة ولا قناة
 
-    except Exception:
-        return "—"  # تفادي أي خطأ مثل عدم وجود المستخدم أو صلاحيات ناقصة
+    except Exception as e:
+        return f"{e}"  # تفادي أي خطأ مثل عدم وجود المستخدم أو صلاحيات ناقصة
 async def date(user_id):
     headers = {
         'Host': 'restore-access.indream.app',
@@ -92,13 +92,13 @@ async def handler(event):
         f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
         f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
         f"𖡋 𝐂𝐑 ⌯ {dates}\n"
-        f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
+        f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}"
         f"{bio_text}"
     )
     if user.photo:
         photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
         await ABH.download_profile_photo(user.id, file=photo_path)
-        await ABH.send_file(event.chat_id, photo_path, caption=message_text, force_document=False)
+        msg = await ABH.send_file(event.chat_id, photo_path, caption=message_text, force_document=False)
         await asyncio.sleep(2)
         await msg.delete()
     else:
