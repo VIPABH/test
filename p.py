@@ -2,26 +2,19 @@ from telethon import TelegramClient, events
 import os, asyncio
 import aiohttp #type: ignore
 from datetime import datetime
-from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
+from telethon.tl.types import ChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator, Channel
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.functions.channels import GetParticipantRequest
-
-
 api_id = int(os.getenv('API_ID', '123456'))
 api_hash = os.getenv('API_HASH', 'your_api_hash')
 bot_token = os.getenv('BOT_TOKEN', 'your_bot_token')
 ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 LOCAL_PHOTO_DIR = "photos"
 os.makedirs(LOCAL_PHOTO_DIR, exist_ok=True)
-from telethon.tl.functions.channels import GetParticipantRequest
-from telethon.tl.types import ChannelParticipantAdmin, ChannelParticipantCreator, ChannelParticipant
-from telethon.tl.types import Channel, ChannelParticipantCreator, ChannelParticipantAdmin, ChannelParticipant
-
 async def get_user_role(user_id, chat_id):
     try:
         chat = await ABH.get_entity(chat_id)
-        
-        if isinstance(chat, Channel):  # فقط إذا كانت قناة أو مجموعة سوبر
+        if isinstance(chat, Channel):
             result = await ABH(GetParticipantRequest(channel=chat, participant=user_id))
             participant = result.participant
 
@@ -32,12 +25,12 @@ async def get_user_role(user_id, chat_id):
             elif isinstance(participant, ChannelParticipant):
                 return "عضو"
             else:
-                return "غير معروف"
+                return ''
         else:
-            return "—"  # ليست مجموعة ولا قناة
+            return ''
 
-    except Exception as e:
-        return f"{e}"  # تفادي أي خطأ مثل عدم وجود المستخدم أو صلاحيات ناقصة
+    except Exception:
+        return "🌚"
 async def date(user_id):
     headers = {
         'Host': 'restore-access.indream.app',
@@ -70,11 +63,9 @@ LOCAL_PHOTO_DIR = "/tmp"
 
 @ABH.on(events.NewMessage(pattern='^(id|ا|افتاري|ايدي)$'))
 async def handler(event):
-    if event.is_reply:
-        replied_message = await event.get_reply_message()
-        sender_id = replied_message.sender_id
-    else:
-        sender_id = event.sender_id
+    if event.is_private:
+        return
+    sender_id = event.sender_id
     user = await ABH.get_entity(sender_id)
     user_id = user.id
     chat_id = event.chat_id
@@ -92,7 +83,7 @@ async def handler(event):
         f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
         f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
         f"𖡋 𝐂𝐑 ⌯ {dates}\n"
-        f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}"
+        f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
         f"{bio_text}"
     )
     if user.photo:
@@ -103,5 +94,37 @@ async def handler(event):
         await msg.delete()
     else:
         await event.respond(message_text)
-
+@ABH.on(events.NewMessage(pattern='^(id|اا|افتار|ايدي)$'))
+async def handler(event):
+    if event.is_reply:
+        replied_message = await event.get_reply_message()
+        sender_id = replied_message.sender_id
+    user = await ABH.get_entity(sender_id)
+    user_id = user.id
+    chat_id = event.chat_id
+    phone = user.phone if hasattr(user, 'phone') and user.phone else "المستخدم لا يشارك رقم الهاتف"
+    premium = "yes" if user.premium else "no"
+    usernames = [f"@{username.username}" for username in user.usernames] if user.usernames else [f"@{user.username}"] if user.username else ["—"]
+    usernames_list = ", ".join(usernames)
+    dates = await date(user_id)
+    states = await get_user_role(user_id, chat_id)
+    FullUser = (await event.client(GetFullUserRequest(user.id))).full_user
+    bio = FullUser.about
+    bio_text = f"\n{bio}" if bio and bio.strip() else ""
+    message_text = (
+        f"𖡋 𝐔𝐒𝐄 ⌯ {usernames_list}\n"
+        f"𖡋 𝐈𝐒𝐏 ⌯ {premium}\n"
+        f"𖡋 𝐏𝐇𝐍 ⌯ {'+' + phone if phone != '—' else phone}\n"
+        f"𖡋 𝐂𝐑 ⌯ {dates}\n"
+        f"𖡋 𝐑𝐎𝐋𝐄 ⌯ {states}\n"
+        f"{bio_text}"
+    )
+    if user.photo:
+        photo_path = os.path.join(LOCAL_PHOTO_DIR, f"{user_id}.jpg")
+        await ABH.download_profile_photo(user.id, file=photo_path)
+        msg = await ABH.send_file(event.chat_id, photo_path, caption=message_text, force_document=False)
+        await asyncio.sleep(2)
+        await msg.delete()
+    else:
+        await event.respond(message_text)
 ABH.run_until_disconnected()
