@@ -8,13 +8,14 @@ TOKEN = os.getenv('BOT_TOKEN', 'your_bot_token')
 API_KEY = 'AIzaSyDUicHGozWPYq-aUxcCYdKbmqk5Mj_IaXg'
 bot = telebot.TeleBot(TOKEN)
 
-@bot.message_handler(func=lambda message: message.chat.type in ['group', 'supergroup'] and any(key.lower() in message.text.lower() for key in ['yt', 'يوت', 'UT']))
+@bot.message_handler(func=lambda message: any(key.lower() in message.text.lower() for key in ['yt', 'يوت', 'ut']))
 def search_and_download_audio(message):
     search_query = message.text.lower()
     for key in ['yt', 'يوت', 'ut']:
         if key in search_query:
             search_query = search_query.replace(key, '', 1).strip()
             break
+    bot.reply_to(message, f'تم العثور على البحث: {search_query}')
 
     msg = bot.send_message(message.chat.id, "جاري التحميل ...", reply_to_message_id=message.message_id)
 
