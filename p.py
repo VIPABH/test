@@ -1,5 +1,5 @@
 import requests
-import yt_dlp
+import yt_dlp, os
 import telebot
 from io import BytesIO
 
