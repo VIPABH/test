@@ -5,7 +5,6 @@ import os
 from telebot.types import InputFile
 
 TOKEN = os.getenv('BOT_TOKEN', 'your_bot_token')
-API_KEY = 'AIzaSyDUicHGozWPYq-aUxcCYdKbmqk5Mj_IaXg'
 bot = telebot.TeleBot(TOKEN)
 
 @bot.message_handler(func=lambda message: any(key.lower() in message.text.lower() for key in ['yt', 'يوت', 'ut']))
