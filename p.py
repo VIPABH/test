@@ -1,41 +1,63 @@
+import yt_dlp
+import requests
+import telebot
 import os
-import asyncio
-from telethon import TelegramClient, events
-from playwright.async_api import async_playwright
+from telebot.types import InputFile
 
-API_ID = int(os.getenv('API_ID', '123456'))
-API_HASH = os.getenv('API_HASH', 'your_api_hash')
-BOT_TOKEN = os.getenv('BOT_TOKEN', 'your_bot_token')
-BOT = TelegramClient('bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+TOKEN = os.getenv('BOT_TOKEN', 'your_bot_token')
+API_KEY = 'AIzaSyDUicHGozWPYq-aUxcCYdKbmqk5Mj_IaXg'
+bot = telebot.TeleBot(TOKEN)
 
-# مسار لحفظ الصور
-SCREENSHOT_DIR = "screenshots"
-os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+@bot.message_handler(func=lambda message: message.chat.type in ['group', 'supergroup'] and any(key.lower() in message.text.lower() for key in ['yt', 'يوت', 'UT']))
+def search_and_download_audio(message):
+    search_query = message.text.lower()
+    for key in ['yt', 'يوت', 'ut']:
+        if key in search_query:
+            search_query = search_query.replace(key, '', 1).strip()
+            break
 
-# الدالة التي تلتقط السكرين كأنها من iPhone
-async def screenshot_as_iphone(url, filename):
-    async with async_playwright() as p:
-        iphone = p.devices['iPhone 13 Pro']
-        browser = await p.webkit.launch()
-        context = await browser.new_context(**iphone)
-        page = await context.new_page()
-        await page.goto(url)
-        await page.screenshot(path=filename, full_page=True)
-        await browser.close()
+    msg = bot.send_message(message.chat.id, "جاري التحميل ...", reply_to_message_id=message.message_id)
 
-# أمر البوت: التقاط سكرين لرابط
-@BOT.on(events.NewMessage(pattern=r'^سكرين (https?://[^\s]+)$'))
-async def handler(event):
-    url = event.pattern_match.group(1)
-    file_name = os.path.join(SCREENSHOT_DIR, f"screenshot_{event.sender_id}.png")
-    try:
-        await event.reply("📸 جاري التقاط صورة الشاشة كأنها من iPhone ...")
-        await screenshot_as_iphone(url, file_name)
-        await BOT.send_file(event.chat_id, file_name, caption="✅ تم الالتقاط كأنها من iPhone 13 Pro")
-        os.remove(file_name)  # حذف الصورة بعد الإرسال
-    except Exception as e:
-        await event.reply(f"❌ حدث خطأ: {str(e)}")
+    search_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={search_query}&key={API_KEY}"
+    response = requests.get(search_url)
+    data = response.json()
 
-# تشغيل البوت
-print("🤖 البوت يعمل الآن...")
-BOT.run_until_disconnected()
+    if 'items' in data:
+        try:
+            for item in data['items']:
+                if item['id']['kind'] == 'youtube#video':
+                    video_id = item['id']['videoId']
+                    break
+            else:
+                bot.delete_message(message.chat.id, msg.message_id)
+                bot.send_message(message.chat.id, "ماكو فيديو مناسب بهالاسم.")
+                return
+
+            video_url = f"https://www.youtube.com/watch?v={video_id}"
+
+            
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'outtmpl': 'song.%(ext)s',
+                'quiet': True
+            }
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info_dict = ydl.extract_info(video_url, download=True)
+                title = info_dict.get('title', 'Untitled')
+                ext = info_dict.get('ext', 'webm')
+
+            filename = f"song.{ext}"
+            audio = InputFile(filename)
+            bot.delete_message(message.chat.id, msg.message_id)
+            bot.send_audio(message.chat.id, audio, caption=f"تم التحميل ✓: {title}", reply_to_message_id=message.message_id)
+            os.remove(filename)
+
+        except Exception as e:
+            bot.delete_message(message.chat.id, msg.message_id)
+            bot.send_message(message.chat.id, f"حدث خطأ: {e}")
+    else:
+        bot.delete_message(message.chat.id, msg.message_id)
+        bot.send_message(message.chat.id, "ما حصلت شي بهالاسم.")
+
+bot.polling(none_stop=True)
