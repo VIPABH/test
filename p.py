@@ -14,14 +14,17 @@ CHANNEL_ID = 'x04ou'  # تأكد من أن هذا هو ID القناة أو اس
 # دالة التحقق من الاشتراك في القناة باستخدام API الخاص بالبوت
 def is_user_subscribed(user_id):
     url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={CHANNEL_ID}&user_id={user_id}"
-    response = requests.get(url).json()
-
     try:
-        status = response["result"]["status"]
-        # إذا كانت حالة العضوية "عضو"، "مشرف" أو "مالك"، فهو مشترك
-        return status in ["member", "administrator", "creator"]
-    except KeyError:
-        # إذا لم يتم العثور على المستخدم في القناة، يعاد False
+        response = requests.get(url).json()
+        if response.get("ok"):
+            status = response["result"]["status"]
+            print(f"User status: {status}")  # طباعة حالة العضوية
+            return status in ["member", "administrator", "creator"]
+        else:
+            print("Failed to get user status.")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"Error making request: {e}")
         return False
 
 # مراقبة الرسائل الخاصة فقط
@@ -35,7 +38,7 @@ async def handler(event):
         # إذا لم يكن مشتركًا في القناة، أرسل رسالة اشتراك
         channel_link = f"https://t.me/{CHANNEL_ID.strip('@')}"
         await event.respond(
-            f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{CHANNEL_ID}",
+            f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{channel_link}",
             buttons=[Button.url("اضغط هنا للاشتراك", channel_link)]
         )
         await event.delete()
