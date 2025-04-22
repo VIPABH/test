@@ -3,14 +3,15 @@ import requests
 from dotenv import load_dotenv
 from telethon import TelegramClient, events, Button
 
-
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 CHANNEL_ID = 'x04ou'
+
+# دالة التحقق من الاشتراك
 def is_user_subscribed(user_id):
-    url = f"https://api.telegram.org/ABH{bot_token}/getChatMember?chat_id={CHANNEL_ID}&user_id={user_id}"
+    url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={CHANNEL_ID}&user_id={user_id}"
     response = requests.get(url).json()
     try:
         status = response["result"]["status"]
