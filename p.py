@@ -14,16 +14,13 @@ def is_user_subscribed(user_id):
     url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={CHANNEL_ID}&user_id={user_id}"
     try:
         response = requests.get(url).json()
-        # print("Response:", response)
         if response.get("ok"):
             status = response["result"]["status"]
-            print(f"User status: {status}")
             return status in ["member", "administrator", "creator"]
         else:
             print(f"Failed to get user status. Response: {response}")
             return False
     except requests.exceptions.RequestException as e:
-        print(f"Error making request: {e}")
         return False
 @ABH.on(events.NewMessage(incoming=True))
 async def handler(event):
@@ -32,7 +29,7 @@ async def handler(event):
     user_id = event.sender_id
     if not is_user_subscribed(user_id):
         await event.respond(
-            f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{الرابط}",
+            f"لطفاً مع البوت يجب ان تكون مشترك بالقناة",
             buttons=[Button.url("اضغط هنا للاشتراك", الرابط)]
         )
         await event.delete()
