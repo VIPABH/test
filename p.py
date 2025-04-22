@@ -8,19 +8,21 @@ api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 session_name = "session"
 
+# آيدي المستخدم المستهدف
+TARGET_USER_ID = 6498922948  # يمكنك تغييره لمستخدم آخر
+DEFAULT_EMOJI = os.getenv("DEFAULT_REACT", "🍌")  # يمكنك تغييره من متغير بيئة
+
 client = TelegramClient(session_name, api_id, api_hash)
 
-@client.on(events.NewMessage(pattern='ازعاج'))
+@client.on(events.NewMessage())
 async def auto_react(event):
-    TARGET_USER_ID = event.sender_id
-    x = "🍌"  # اختر رمز تعبيري مخصص بدلاً من استخدام نص الرسالة
+    # التأكد أن المرسل هو الشخص المطلوب
     if event.sender_id == TARGET_USER_ID:
         try:
-            # إرسال التفاعل باستخدام رمز تعبيري مخصص
             await client(SendReactionRequest(
                 peer=event.chat_id,
                 msg_id=event.id,
-                reaction=[ReactionEmoji(emoticon=x)]  # رمز تعبيري مخصص
+                reaction=[ReactionEmoji(emoticon=DEFAULT_EMOJI)]
             ))
             print(f"Reacted to message {event.id} from target user.")
         except Exception as e:
