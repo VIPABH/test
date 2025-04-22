@@ -13,23 +13,22 @@ TARGET_USER_ID = 6498922948  # يمكنك تغييره لمستخدم آخر
 DEFAULT_EMOJI = os.getenv("DEFAULT_REACT", "🍓")  # يمكنك تغييره من متغير بيئة
 
 client = TelegramClient(session_name, api_id, api_hash)
+
+# رمز تعبيري إضافي
 x = "🍌"
+
 @client.on(events.NewMessage())
 async def auto_react(event):
     # التأكد أن المرسل هو الشخص المطلوب
     if event.sender_id == TARGET_USER_ID:
         try:
+            # إرسال تفاعل مع أكثر من رمز تعبيري في نفس الوقت
             await client(SendReactionRequest(
                 peer=event.chat_id,
                 msg_id=event.id,
-                reaction=[ReactionEmoji(emoticon=DEFAULT_EMOJI)]
+                reaction=[ReactionEmoji(emoticon=DEFAULT_EMOJI), ReactionEmoji(emoticon=x)]
             ))
-            await client(SendReactionRequest(
-                peer=event.chat_id,
-                msg_id=event.id,
-                reaction=[ReactionEmoji(emoticon=x)]
-            ))
-            print(f"Reacted to message {event.id} from target user.")
+            print(f"Reacted to message {event.id} from target user with emojis {DEFAULT_EMOJI} and {x}.")
         except Exception as e:
             print(f"فشل التفاعل مع الرسالة {event.id}: {e}")
 
