@@ -37,7 +37,26 @@ async def handler(event):
 
     user_id = event.sender_id
 
-    # التحقق من الاشتراك في القناة باستخدام CHANNEL_USERNAME كوسيط
+    if not check(user_id, CHANNEL_USERNAME):
+        channel_link = f"https://t.me/{CHANNEL_USERNAME}"
+        await event.respond(
+            f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{channel_link}",
+            buttons=[Button.url("اضغط هنا للاشتراك", channel_link)]
+        )
+        return
+    CHANNEL_ID = -1001897025581
+    CHANNEL_USERNAME = "EHIEX"
+    user_id = event.sender_id
+    if not check(user_id, CHANNEL_USERNAME):
+        channel_link = f"https://t.me/{CHANNEL_USERNAME}"
+        await event.respond(
+            f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{channel_link}",
+            buttons=[Button.url("اضغط هنا للاشتراك", channel_link)]
+        )
+        return
+    CHANNEL_ID = -1002055758177
+    CHANNEL_USERNAME = "sszxl"
+    user_id = event.sender_id
     if not check(user_id, CHANNEL_USERNAME):
         channel_link = f"https://t.me/{CHANNEL_USERNAME}"
         await event.respond(
