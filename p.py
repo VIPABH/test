@@ -1,53 +1,70 @@
 import os
 import requests
 from telethon import TelegramClient, events, Button
+from telethon.tl.functions.users import GetFullUser
 
 # تحميل المتغيرات من البيئة
 api_id = os.getenv('API_ID')
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
-# إعداد البوت
+# إنشاء العميل (البوت)
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
-CHANNEL_ID = -1002116581783  # هذا يستخدم للتحقق من الاشتراك
-CHANNEL_USERNAME = "x04ou"  # اسم المستخدم العام للقناة (بدون @)
+# قائمة أسماء القنوات أو المجموعات (usernames)
+CHANNELS = ['@x04ou', '@EHIEX', '@sszxl']
 
-# التحقق من الاشتراك
-def is_user_subscribed(user_id):
-    url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={CHANNEL_ID}&user_id={user_id}"
+# جلب user_id من username
+async def get_user_id(username):
     try:
-        response = requests.get(url).json()
-        print("Response:", response)
+        user = await ABH(GetFullUser(username))
+        return user.user.id
+    except Exception as e:
+        print(f"❌ خطأ في جلب ID للمستخدم @{username}: {e}")
+        return None
 
-        if response.get("ok"):
-            status = response["result"]["status"]
-            print(f"User status: {status}")
-            return status in ["member", "administrator", "creator"]
-        else:
-            print(f"Failed to get user status. Response: {response}")
+# التحقق من الاشتراك في كل القنوات
+def is_user_subscribed(user_id):
+    for channel in CHANNELS:
+        url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={channel}&user_id={user_id}"
+        try:
+            response = requests.get(url).json()
+            print(f"📡 التحقق من: {channel} | النتيجة: {response}")
+            if not response.get("ok") or response["result"]["status"] not in ["member", "administrator", "creator"]:
+                return False
+        except requests.exceptions.RequestException as e:
+            print(f"❌ خطأ في الاتصال بـ Telegram API: {e}")
             return False
-    except requests.exceptions.RequestException as e:
-        print(f"Error making request: {e}")
-        return False
+    return True
 
-# الرد على الرسائل الخاصة
+# معالج الرسائل الخاصة
 @ABH.on(events.NewMessage(incoming=True))
 async def handler(event):
     if not event.is_private:
         return
 
-    user_id = event.sender_id
+    sender = await event.get_sender()
+    username = sender.username
+
+    if not username:
+        await event.respond("⚠️ يجب أن يكون لديك اسم مستخدم @username للاستمرار.")
+        return
+
+    user_id = await get_user_id(username)
+    if not user_id:
+        await event.respond("❌ حدث خطأ أثناء التحقق من هويتك. حاول لاحقًا.")
+        return
+
     if not is_user_subscribed(user_id):
-        channel_link = f"https://t.me/{CHANNEL_USERNAME}"
+        buttons = [Button.url("📌 اضغط للاشتراك", f"https://t.me/{ch.strip('@')}") for ch in CHANNELS]
         await event.respond(
-            f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{channel_link}",
-            buttons=[Button.url("اضغط هنا للاشتراك", channel_link)]
+            "⚠️ للاستخدام الكامل، يرجى الاشتراك في جميع القنوات التالية:",
+            buttons=buttons
         )
         await event.delete()
         return
 
-    await event.respond("✅ مرحباً بك، أنت مشترك ويمكنك استخدام البوت.")
+    await event.respond("✅ مرحباً بك! أنت مشترك في جميع القنوات ويمكنك استخدام البوت.")
 
 # تشغيل البوت
 ABH.run_until_disconnected()
