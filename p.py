@@ -23,15 +23,14 @@ async def get_user_id(username):
         print(f"❌ خطأ في جلب ID للمستخدم @{username}: {e}")
         return None
 
-# التحقق من الاشتراك في كل القنوات واحدة تلو الأخرى
-def check_subscription_one_by_one(user_id):
+# التحقق من الاشتراك في القنوات واحدة تلو الأخرى
+def check_subscription(user_id):
     for channel in CHANNELS:
         url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={channel}&user_id={user_id}"
         try:
             response = requests.get(url).json()
-            print(f"📡 التحقق من: {channel} | النتيجة: {response}")
             if not response.get("ok") or response["result"]["status"] not in ["member", "administrator", "creator"]:
-                return channel  # يرجع اسم القناة التي لم يشترك بها
+                return channel  # يرجع القناة التي لم يشترك فيها
         except requests.exceptions.RequestException as e:
             print(f"❌ خطأ في الاتصال بـ Telegram API: {e}")
             return channel
@@ -55,7 +54,7 @@ async def handler(event):
         await event.respond("❌ حدث خطأ أثناء التحقق من هويتك. حاول لاحقًا.")
         return
 
-    not_subscribed_channel = check_subscription_one_by_one(user_id)
+    not_subscribed_channel = check_subscription(user_id)
     if not_subscribed_channel:
         channel_link = f"https://t.me/{not_subscribed_channel.strip('@')}"
         await event.respond(
