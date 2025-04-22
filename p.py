@@ -18,7 +18,7 @@ CHANNELS = ['@x04ou', '@EHIEX', '@sszxl']
 async def get_user_id(username):
     try:
         user = await ABH(GetFullUserRequest(username))
-        return user.user.id
+        return user.user.id  # الوصول إلى ID المستخدم بشكل صحيح
     except Exception as e:
         print(f"❌ خطأ في جلب ID للمستخدم @{username}: {e}")
         return None
