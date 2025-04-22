@@ -9,7 +9,7 @@ client = TelegramClient(session_name, api_id, api_hash)
 @client.on(events.NewMessage(pattern='ازعاج'))
 async def auto_react(event):
     TARGET_USER_ID = event.sender_id
-    x = event.pattern_match.group(1)
+    x = event.pattern_match.group(0)
     if event.sender_id == TARGET_USER_ID:
         try:
             await client(SendReactionRequest(
