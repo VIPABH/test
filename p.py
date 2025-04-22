@@ -29,10 +29,8 @@ async def handler(event):
     user_id = event.sender_id
     if not is_user_subscribed(user_id):
         await event.respond(
-            f"لطفاً مع البوت يجب ان تكون مشترك بالقناة",
-            buttons=[Button.url("اضغط هنا للاشتراك", الرابط)]
+            f"👇لطفاً يجب ان تكون مشترك بالقناة",
+            buttons=[Button.url("القناة", الرابط)]
         )
-        await event.delete()
         return
-    await event.respond("✅ مرحباً بك، أنت مشترك ويمكنك استخدام البوت.")
 ABH.run_until_disconnected()
