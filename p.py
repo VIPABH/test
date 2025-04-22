@@ -24,7 +24,7 @@ async def is_user_subscribed(user_id):
 # مراقبة الرسائل الخاصة فقط
 @ABH.on(events.NewMessage(incoming=True))
 async def handler(event):
-    if event.is_private:
+    if not event.is_private:
         return
 
     user_id = event.sender_id
