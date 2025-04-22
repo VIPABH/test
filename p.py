@@ -14,7 +14,7 @@ def is_user_subscribed(user_id):
     url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={CHANNEL_ID}&user_id={user_id}"
     try:
         response = requests.get(url).json()
-        print("Response:", response)
+        # print("Response:", response)
         if response.get("ok"):
             status = response["result"]["status"]
             print(f"User status: {status}")
