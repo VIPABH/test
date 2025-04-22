@@ -14,9 +14,9 @@ ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 CHANNEL_ID = -1002116581783
 CHANNEL_USERNAME = "x04ou"
 
-# دالة check للتحقق من الاشتراك
-def check(user_id):
-    url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={CHANNEL_ID}&user_id={user_id}"
+# دالة check للتحقق من الاشتراك في القناة باستخدام CHANNEL_USERNAME كوسيط
+def check(user_id, channel_username):
+    url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id=@{channel_username}&user_id={user_id}"
     try:
         response = requests.get(url).json()
         if response.get("ok"):
@@ -37,8 +37,8 @@ async def handler(event):
 
     user_id = event.sender_id
 
-    # التحقق من الاشتراك في القناة
-    if not check(user_id):
+    # التحقق من الاشتراك في القناة باستخدام CHANNEL_USERNAME كوسيط
+    if not check(user_id, CHANNEL_USERNAME):
         channel_link = f"https://t.me/{CHANNEL_USERNAME}"
         await event.respond(
             f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{channel_link}",
