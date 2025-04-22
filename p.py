@@ -14,17 +14,20 @@ DEFAULT_EMOJI = os.getenv("DEFAULT_REACT", "🍓")  # يمكنك تغييره م
 
 client = TelegramClient(session_name, api_id, api_hash)
 
-@client.on(events.NewMessage())
+@client.on(events.NewMessage(pattern="ازعاج"))
 async def auto_react(event):
     # التأكد أن المرسل هو الشخص المطلوب
     if event.sender_id == TARGET_USER_ID:
         try:
+            # يمكن التفاعل مع عدة رموز تعبيرية
+            emoji_1 = "🍓"
+            emoji_2 = "🍌"
             await client(SendReactionRequest(
                 peer=event.chat_id,
                 msg_id=event.id,
-                reaction=[ReactionEmoji(emoticon=DEFAULT_EMOJI)]
+                reaction=[ReactionEmoji(emoticon=emoji_1), ReactionEmoji(emoticon=emoji_2)]
             ))
-            print(f"Reacted to message {event.id} from target user.")
+            print(f"Reacted to message {event.id} from target user with emojis {emoji_1} and {emoji_2}.")
         except Exception as e:
             print(f"فشل التفاعل مع الرسالة {event.id}: {e}")
 
