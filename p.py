@@ -15,8 +15,9 @@ CHANNEL_ID = 'x04ou'  # يمكن أن يكون اسم القناة أو الـ c
 async def is_user_subscribed(user_id):
     try:
         # نحاول الحصول على حالة العضوية للمستخدم في القناة
-        member = await ABH.get_participant(CHANNEL_ID, user_id)
-        return True  # إذا تم العثور على المستخدم كعضو، فإن المستخدم مشترك
+        member = await ABH.get_chat_member(CHANNEL_ID, user_id)
+        # إذا كانت حالة العضوية في القناة، فإنه مشترك
+        return member.status in ["member", "administrator", "creator"]
     except ValueError:
         # إذا لم يتم العثور على المستخدم في القناة، يعاد False
         return False
