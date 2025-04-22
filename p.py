@@ -9,7 +9,7 @@ api_hash = os.getenv("API_HASH")
 session_name = "session"
 
 # آيدي المستخدم المستهدف
-TARGET_USER_ID = 7816663844  # يمكنك تغييره لمستخدم آخر
+TARGET_USER_ID = 6505528233  # يمكنك تغييره لمستخدم آخر
 DEFAULT_EMOJI = os.getenv("DEFAULT_REACT", "🍌")  # يمكنك تغييره من متغير بيئة
 
 client = TelegramClient(session_name, api_id, api_hash)
