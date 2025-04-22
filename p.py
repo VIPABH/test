@@ -1,6 +1,7 @@
 import os
 import requests
 from telethon import TelegramClient, events, Button
+from telethon.tl.functions.users import GetFullUser
 
 # تحميل المتغيرات من البيئة
 api_id = os.getenv('API_ID')
@@ -13,12 +14,21 @@ ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 # قائمة القنوات بالترتيب
 CHANNELS = ['@x04ou', '@EHIEX', '@sszxl']
 
-# التحقق من اشتراك المستخدم في قناة معينة
-def check_subscription(user_id, channel_username):
-    url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={channel_username}&user_id={user_id}"
+# جلب user_id من username
+async def get_user_id(username):
+    try:
+        user = await ABH(GetFullUser(username))
+        return user.user.id
+    except Exception as e:
+        print(f"❌ خطأ في جلب ID للمستخدم @{username}: {e}")
+        return None
+
+# التحقق من الاشتراك في قناة واحدة
+def is_user_subscribed_to_channel(user_id, channel):
+    url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={channel}&user_id={user_id}"
     try:
         response = requests.get(url).json()
-        print(f"📡 التحقق من: {channel_username} | النتيجة: {response}")
+        print(f"📡 التحقق من: {channel} | النتيجة: {response}")
         if response.get("ok") and response["result"]["status"] in ["member", "administrator", "creator"]:
             return True
         return False
@@ -32,19 +42,29 @@ async def handler(event):
     if not event.is_private:
         return
 
-    user_id = event.sender_id
+    sender = await event.get_sender()
+    username = sender.username
 
-    # التحقق من كل قناة بالتسلسل
+    if not username:
+        await event.respond("⚠️ يجب أن يكون لديك اسم مستخدم @username للاستمرار.")
+        return
+
+    user_id = await get_user_id(username)
+    if not user_id:
+        await event.respond("❌ حدث خطأ أثناء التحقق من هويتك. حاول لاحقًا.")
+        return
+
+    # التحقق تدريجيًا من القنوات واحدة تلو الأخرى
     for channel in CHANNELS:
-        if not check_subscription(user_id, channel):
+        if not is_user_subscribed_to_channel(user_id, channel):
             await event.respond(
-                f"📌 للاستخدام الكامل، يرجى أولاً الاشتراك في القناة التالية:\n{channel}",
-                buttons=[Button.url("اضغط للاشتراك", f"https://t.me/{channel.strip('@')}")]
+                f"⚠️ للاستخدام الكامل، يجب عليك أولاً الاشتراك في القناة التالية:\n{channel}",
+                buttons=[Button.url("📌 اضغط للاشتراك", f"https://t.me/{channel.strip('@')}")]
             )
             await event.delete()
             return
 
-    # إذا كان مشتركًا في جميع القنوات
+    # إذا كان مشتركًا في كل القنوات
     await event.respond("✅ مرحباً بك! أنت مشترك في جميع القنوات ويمكنك استخدام البوت.")
 
 # تشغيل البوت
