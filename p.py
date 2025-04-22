@@ -9,17 +9,17 @@ bot_token = os.getenv('BOT_TOKEN')
 
 # إنشاء العميل (البوت)
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-CHANNEL_ID = 'x04ou'  # يمكن أن يكون اسم القناة أو الـ chat_id (احرص على أنه صحيح)
+CHANNEL_ID = 'x04ou'  # تأكد من أن هذا هو ID القناة أو اسمها الصحيح (مثلاً '@channel_username')
 
 # دالة التحقق من الاشتراك في القناة باستخدام Telethon
 async def is_user_subscribed(user_id):
     try:
-        # نحاول الحصول على حالة العضوية للمستخدم في القناة
-        participant = await ABH.get_participant(CHANNEL_ID, user_id)
-        # إذا كانت حالة العضوية في القناة، فإنه مشترك
+        # محاولة الحصول على حالة العضوية للمستخدم في القناة
+        participant = await ABH.get_chat_member(CHANNEL_ID, user_id)
+        # إذا كانت حالة العضوية "عضو"، "مشرف" أو "مالك"، فهو مشترك
         return participant.status in ["member", "administrator", "creator"]
     except ValueError:
-        # إذا لم يتم العثور على المستخدم في القناة، يعاد False
+        # إذا لم يتم العثور على المستخدم في القناة، يرجع False
         return False
 
 # مراقبة الرسائل الخاصة فقط
