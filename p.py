@@ -18,7 +18,6 @@ CHANNELS = [
 ]
 
 # التحقق من الاشتراك في القناة
-# التحقق من الاشتراك في القناة
 def is_user_subscribed(user_id, channel_id):
     url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={channel_id}&user_id={user_id}"
     try:
@@ -35,6 +34,7 @@ def is_user_subscribed(user_id, channel_id):
     except requests.exceptions.RequestException as e:
         print(f"Error making request: {e}")
         return False
+
 @ABH.on(events.NewMessage(incoming=True))
 async def handler(event):
     if not event.is_private:
