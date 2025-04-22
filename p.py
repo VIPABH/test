@@ -1,70 +1,53 @@
 import os
 import requests
 from telethon import TelegramClient, events, Button
-from telethon.tl.functions.users import GetFullUserRequest
 
 # تحميل المتغيرات من البيئة
 api_id = os.getenv('API_ID')
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
-# إنشاء العميل (البوت)
+# إعداد البوت
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
-# قائمة أسماء القنوات أو المجموعات (usernames)
-CHANNELS = ['@x04ou', '@EHIEX', '@sszxl']
+CHANNEL_ID = -1002116581783  # هذا يستخدم للتحقق من الاشتراك
+CHANNEL_USERNAME = "x04ou"  # اسم المستخدم العام للقناة (بدون @)
 
-# جلب user_id من username
-async def get_user_id(username):
+# التحقق من الاشتراك
+def is_user_subscribed(user_id):
+    url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={CHANNEL_ID}&user_id={user_id}"
     try:
-        user_full = await ABH(GetFullUserRequest(username))  # الحصول على التفاصيل الكاملة
-        return user_full.user.id  # الوصول إلى الـ user من الكائن المسترجع
-    except Exception as e:
-        print(f"❌ خطأ في جلب ID للمستخدم @{username}: {e}")
-        return None
+        response = requests.get(url).json()
+        print("Response:", response)
 
-# التحقق من الاشتراك في القنوات واحدة تلو الأخرى
-def check_subscription(user_id):
-    for channel in CHANNELS:
-        url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={channel}&user_id={user_id}"
-        try:
-            response = requests.get(url).json()
-            if not response.get("ok") or response["result"]["status"] not in ["member", "administrator", "creator"]:
-                return channel  # يرجع القناة التي لم يشترك فيها
-        except requests.exceptions.RequestException as e:
-            print(f"❌ خطأ في الاتصال بـ Telegram API: {e}")
-            return channel
-    return None  # مشترك في الكل
+        if response.get("ok"):
+            status = response["result"]["status"]
+            print(f"User status: {status}")
+            return status in ["member", "administrator", "creator"]
+        else:
+            print(f"Failed to get user status. Response: {response}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"Error making request: {e}")
+        return False
 
-# معالج الرسائل الخاصة
+# الرد على الرسائل الخاصة
 @ABH.on(events.NewMessage(incoming=True))
 async def handler(event):
     if not event.is_private:
         return
 
-    sender = await event.get_sender()
-    username = sender.username
-
-    if not username:
-        await event.respond("⚠️ يجب أن يكون لديك اسم مستخدم @username للاستمرار.")
-        return
-
-    user_id = await get_user_id(username)
-    if not user_id:
-        await event.respond("❌ حدث خطأ أثناء التحقق من هويتك. حاول لاحقًا.")
-        return
-
-    not_subscribed_channel = check_subscription(user_id)
-    if not_subscribed_channel:
-        channel_link = f"https://t.me/{not_subscribed_channel.strip('@')}"
+    user_id = event.sender_id
+    if not is_user_subscribed(user_id):
+        channel_link = f"https://t.me/{CHANNEL_USERNAME}"
         await event.respond(
-            f"⚠️ للاستخدام الكامل، يرجى الاشتراك أولاً في القناة التالية:\n{not_subscribed_channel}",
-            buttons=[Button.url("📌 اضغط للاشتراك", channel_link)]
+            f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{channel_link}",
+            buttons=[Button.url("اضغط هنا للاشتراك", channel_link)]
         )
         await event.delete()
         return
 
-    await event.respond("✅ مرحباً بك! أنت مشترك في جميع القنوات ويمكنك استخدام البوت.")
+    await event.respond("✅ مرحباً بك، أنت مشترك ويمكنك استخدام البوت.")
 
 # تشغيل البوت
 ABH.run_until_disconnected()
