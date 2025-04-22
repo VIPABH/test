@@ -1,34 +1,44 @@
 import os
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telethon import TelegramClient, events
+from telethon.tl.functions.messages import SendReactionRequest
+from telethon.tl.types import ReactionEmoji
 
-# متغيرات البيئة
-BOT_TOKEN = os.getenv("BOT_TOKEN", "ضع_توكن_البوت")
+# إعداد الاتصال
+api_id = int(os.getenv("API_ID"))
+api_hash = os.getenv("API_HASH")
+session_name = "session"
 
-async def toggle_reactions(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message.chat.type in ["group", "supergroup"]:
-        await update.message.reply_text("هذا الأمر يعمل فقط في المجموعات.")
+# آيدي الشخص المسموح له استخدام الأمر
+AUTHORIZED_USER_ID = int(os.getenv("OWNER_ID", "123456789"))  # خزّنه كمتغير بيئة أو غيره يدويًا
+
+client = TelegramClient(session_name, api_id, api_hash)
+
+@client.on(events.NewMessage(pattern=r'^/react\s+(\S+)\s+(\d+)$'))
+async def handler(event):
+    # التحقق من المصرّح له
+    if event.sender_id != AUTHORIZED_USER_ID:
+        await event.reply("أنت غير مصرح لك باستخدام هذا الأمر.")
         return
 
-    if len(context.args) != 1 or context.args[0] not in ["on", "off"]:
-        await update.message.reply_text("يرجى استخدام الأمر بالشكل التالي:\n/reactions on أو /reactions off")
+    # فقط في المجموعات
+    if not event.is_group:
+        await event.reply("هذا الأمر يعمل فقط في المجموعات.")
         return
 
-    status = context.args[0]
+    # قراءة البيانات من الرسالة
+    emoji = event.pattern_match.group(1)
+    msg_id = int(event.pattern_match.group(2))
 
     try:
-        await context.bot.set_chat_available_reactions(
-            chat_id=update.message.chat_id,
-            available_reactions="all" if status == "on" else []
-        )
-        await update.message.reply_text(
-            "تم تفعيل التفاعلات." if status == "on" else "تم تعطيل التفاعلات."
-        )
+        await client(SendReactionRequest(
+            peer=event.chat_id,
+            msg_id=msg_id,
+            reaction=[ReactionEmoji(emoticon=emoji)]
+        ))
+        await event.reply(f"تم التفاعل مع الرسالة {msg_id} بـ {emoji}")
     except Exception as e:
-        await update.message.reply_text(f"حدث خطأ: {e}")
+        await event.reply(f"حدث خطأ أثناء التفاعل: {str(e)}")
 
-if __name__ == "__main__":
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("reactions", toggle_reactions))
-    print("Bot is running...")
-    app.run_polling()
+client.start()
+print("Userbot is running...")
+client.run_until_disconnected()
