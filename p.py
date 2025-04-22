@@ -9,7 +9,7 @@ bot_token = os.getenv('BOT_TOKEN')
 
 # إنشاء العميل (البوت)
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-CHANNEL_ID = 'x04ou'  # تأكد من أن هذا هو ID القناة أو اسمها الصحيح (مثلاً '@channel_username')
+CHANNEL_ID = -1002116581783  # تأكد من أن هذا هو ID القناة أو اسمها الصحيح (مثلاً '@channel_username')
 
 # دالة التحقق من الاشتراك في القناة باستخدام API الخاص بالبوت
 def is_user_subscribed(user_id):
