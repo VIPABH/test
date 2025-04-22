@@ -1,44 +1,34 @@
 import os
-from telethon import TelegramClient, events
-from telethon.tl.functions.channels import ToggleReactionsRequest
-from telethon.tl.types import ChatReactionsNone, ChatReactionsAll
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# إعدادات الاتصال
-api_id = int(os.getenv("API_ID", "123456"))  # ضع api_id أو خزنه كمتغير بيئة
-api_hash = os.getenv("API_HASH", "your_api_hash")
-session_name = "session"
+# متغيرات البيئة
+BOT_TOKEN = os.getenv("BOT_TOKEN", "ضع_توكن_البوت")
 
-# اسم المستخدم أو آيدي المجموعة
-group_username = os.getenv("GROUP_USERNAME", "your_group_username")
-
-# بدء الجلسة
-client = TelegramClient(session_name, api_id, api_hash)
-
-@client.on(events.NewMessage(pattern=r'^/reactions (on|off)$'))
-async def toggle_reactions(event):
-    if not event.is_group:
-        await event.reply("هذا الأمر متاح فقط في المجموعات.")
+async def toggle_reactions(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message.chat.type in ["group", "supergroup"]:
+        await update.message.reply_text("هذا الأمر يعمل فقط في المجموعات.")
         return
 
-    command = event.pattern_match.group(1)
-    group = await client.get_entity(group_username)
+    if len(context.args) != 1 or context.args[0] not in ["on", "off"]:
+        await update.message.reply_text("يرجى استخدام الأمر بالشكل التالي:\n/reactions on أو /reactions off")
+        return
 
-    if command == "off":
-        await client(ToggleReactionsRequest(
-            channel=group,
-            reactions=ChatReactionsNone()
-        ))
-        os.environ["REACTIONS_STATE"] = "off"
-        await event.reply("تم تعطيل التفاعلات.")
-    else:
-        await client(ToggleReactionsRequest(
-            channel=group,
-            reactions=ChatReactionsAll()
-        ))
-        os.environ["REACTIONS_STATE"] = "on"
-        await event.reply("تم تفعيل التفاعلات.")
+    status = context.args[0]
 
-# تشغيل الكلاينت
-client.start()
-print("Bot is running...")
-client.run_until_disconnected()
+    try:
+        await context.bot.set_chat_available_reactions(
+            chat_id=update.message.chat_id,
+            available_reactions="all" if status == "on" else []
+        )
+        await update.message.reply_text(
+            "تم تفعيل التفاعلات." if status == "on" else "تم تعطيل التفاعلات."
+        )
+    except Exception as e:
+        await update.message.reply_text(f"حدث خطأ: {e}")
+
+if __name__ == "__main__":
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("reactions", toggle_reactions))
+    print("Bot is running...")
+    app.run_polling()
