@@ -1,7 +1,7 @@
 import os
 import requests
 from telethon import TelegramClient, events, Button
-from telethon.tl.functions.users import GetFullUser
+from telethon.tl.functions.users import GetFullUserRequest
 
 # تحميل المتغيرات من البيئة
 api_id = os.getenv('API_ID')
@@ -11,30 +11,31 @@ bot_token = os.getenv('BOT_TOKEN')
 # إنشاء العميل (البوت)
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
-# قائمة القنوات بالترتيب
+# قائمة أسماء القنوات أو المجموعات (usernames)
 CHANNELS = ['@x04ou', '@EHIEX', '@sszxl']
 
 # جلب user_id من username
 async def get_user_id(username):
     try:
-        user = await ABH(GetFullUser(username))
+        user = await ABH(GetFullUserRequest(username))
         return user.user.id
     except Exception as e:
         print(f"❌ خطأ في جلب ID للمستخدم @{username}: {e}")
         return None
 
-# التحقق من الاشتراك في قناة واحدة
-def is_user_subscribed_to_channel(user_id, channel):
-    url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={channel}&user_id={user_id}"
-    try:
-        response = requests.get(url).json()
-        print(f"📡 التحقق من: {channel} | النتيجة: {response}")
-        if response.get("ok") and response["result"]["status"] in ["member", "administrator", "creator"]:
-            return True
-        return False
-    except requests.exceptions.RequestException as e:
-        print(f"❌ خطأ في الاتصال بـ Telegram API: {e}")
-        return False
+# التحقق من الاشتراك في كل القنوات واحدة تلو الأخرى
+def check_subscription_one_by_one(user_id):
+    for channel in CHANNELS:
+        url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={channel}&user_id={user_id}"
+        try:
+            response = requests.get(url).json()
+            print(f"📡 التحقق من: {channel} | النتيجة: {response}")
+            if not response.get("ok") or response["result"]["status"] not in ["member", "administrator", "creator"]:
+                return channel  # يرجع اسم القناة التي لم يشترك بها
+        except requests.exceptions.RequestException as e:
+            print(f"❌ خطأ في الاتصال بـ Telegram API: {e}")
+            return channel
+    return None  # مشترك في الكل
 
 # معالج الرسائل الخاصة
 @ABH.on(events.NewMessage(incoming=True))
@@ -54,17 +55,16 @@ async def handler(event):
         await event.respond("❌ حدث خطأ أثناء التحقق من هويتك. حاول لاحقًا.")
         return
 
-    # التحقق تدريجيًا من القنوات واحدة تلو الأخرى
-    for channel in CHANNELS:
-        if not is_user_subscribed_to_channel(user_id, channel):
-            await event.respond(
-                f"⚠️ للاستخدام الكامل، يجب عليك أولاً الاشتراك في القناة التالية:\n{channel}",
-                buttons=[Button.url("📌 اضغط للاشتراك", f"https://t.me/{channel.strip('@')}")]
-            )
-            await event.delete()
-            return
+    not_subscribed_channel = check_subscription_one_by_one(user_id)
+    if not_subscribed_channel:
+        channel_link = f"https://t.me/{not_subscribed_channel.strip('@')}"
+        await event.respond(
+            f"⚠️ للاستخدام الكامل، يرجى الاشتراك أولاً في القناة التالية:\n{not_subscribed_channel}",
+            buttons=[Button.url("📌 اضغط للاشتراك", channel_link)]
+        )
+        await event.delete()
+        return
 
-    # إذا كان مشتركًا في كل القنوات
     await event.respond("✅ مرحباً بك! أنت مشترك في جميع القنوات ويمكنك استخدام البوت.")
 
 # تشغيل البوت
