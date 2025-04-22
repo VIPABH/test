@@ -29,6 +29,7 @@ async def handler(event):
 
     user_id = event.sender_id
     if not is_user_subscribed(user_id):
+        # إذا لم يكن مشتركًا في القناة، أرسل رسالة اشتراك
         channel_link = f"https://t.me/{CHANNEL_ID.strip('@')}"
         await event.respond(
             f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{CHANNEL_ID}",
@@ -37,7 +38,8 @@ async def handler(event):
         await event.delete()
         return
 
+    # إذا كان مشتركًا بالفعل، يمكنه استخدام البوت
     await event.respond("✅ مرحباً بك، أنت مشترك ويمكنك استخدام البوت.")
 
 # تشغيل البوت
-ABH.run_until_disconnected()  # ينتظر حتى يتم قطع الاتصال
+ABH.run_until_disconnected()
