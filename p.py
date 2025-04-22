@@ -34,39 +34,23 @@ def check(user_id, channel_username):
 async def handler(event):
     if not event.is_private:
         return
-
+    channel_username = "EHIEX"
     user_id = event.sender_id
-
-    if not check(user_id, CHANNEL_USERNAME):
-        channel_link = f"https://t.me/{CHANNEL_USERNAME}"
+    if not check(user_id, channel_username):
+        channel_link = f"https://t.me/{channel_username}"
         await event.respond(
             f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{channel_link}",
             buttons=[Button.url("اضغط هنا للاشتراك", channel_link)]
         )
         return
-    CHANNEL_ID = -1001897025581
-    CHANNEL_USERNAME = "EHIEX"
+    channel_username = "sszxl"
     user_id = event.sender_id
-    if not check(user_id, CHANNEL_USERNAME):
-        channel_link = f"https://t.me/{CHANNEL_USERNAME}"
+    if not check(user_id, channel_username):
+        channel_link = f"https://t.me/{channel_username}"
         await event.respond(
             f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{channel_link}",
             buttons=[Button.url("اضغط هنا للاشتراك", channel_link)]
         )
         return
-    CHANNEL_ID = -1002055758177
-    CHANNEL_USERNAME = "sszxl"
-    user_id = event.sender_id
-    if not check(user_id, CHANNEL_USERNAME):
-        channel_link = f"https://t.me/{CHANNEL_USERNAME}"
-        await event.respond(
-            f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{channel_link}",
-            buttons=[Button.url("اضغط هنا للاشتراك", channel_link)]
-        )
-        return
-
-    # الرد على المستخدم إذا كان مشتركًا في القناة
     await event.respond("✅ مرحباً بك، أنت مشترك في القناة ويمكنك استخدام البوت.")
-
-# تشغيل البوت
 ABH.run_until_disconnected()
