@@ -1,60 +1,41 @@
+import os
 import requests
-import yt_dlp, os
-import telebot
-from io import BytesIO
+from dotenv import load_dotenv
+from telethon import TelegramClient, events, Button
 
-TOKEN = os.getenv('BOT_TOKEN', 'your_bot_token')
-API_KEY = 'AIzaSyDUicHGozWPYq-aUxcCYdKbmqk5Mj_IaXg'
-bot = telebot.TeleBot(TOKEN)
 
-@bot.message_handler(func=lambda message: message.chat.type in ['group', 'supergroup'] and any(key.lower() in message.text.lower() for key in ['yt', 'يوت', 'UT']))
-def search_and_download_audio(message):
-    search_query = message.text.lower()
-    for key in ['yt', 'يوت', 'ut']:
-        if key in search_query:
-            search_query = search_query.replace(key, '', 1).strip()
-            break
-
-    msg = bot.send_message(message.chat.id, "جاري التحميل ...", reply_to_message_id=message.message_id)
-
-    search_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={search_query}&key={API_KEY}"
-    
+api_id = os.getenv('API_ID')      
+api_hash = os.getenv('API_HASH')  
+bot_token = os.getenv('BOT_TOKEN')
+ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+CHANNEL_ID = 'x04ou'
+def is_user_subscribed(user_id):
+    url = f"https://api.telegram.org/ABH{bot_token}/getChatMember?chat_id={CHANNEL_ID}&user_id={user_id}"
+    response = requests.get(url).json()
     try:
-        response = requests.get(search_url)
-        response.raise_for_status()
+        status = response["result"]["status"]
+        return status in ["member", "administrator", "creator"]
+    except KeyError:
+        return False
 
-        data = response.json()
-        if 'items' in data:
-            video_id = data['items'][0]['id']['videoId']
-            video_url = f"https://www.youtube.com/watch?v={video_id}"
+# مراقبة الرسائل الخاصة فقط
+@ABH.on(events.NewMessage(incoming=True))
+async def handler(event):
+    if not event.is_private:
+        return
 
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'quiet': True,
-                'outtmpl': '-',
-                'extractaudio': True,
-            }
+    user_id = event.sender_id
+    if not is_user_subscribed(user_id):
+        channel_link = f"https://t.me/{CHANNEL_ID.strip('@')}"
+        await event.respond(
+            f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{CHANNEL_ID}",
+            buttons=[Button.url("اضغط هنا للاشتراك", channel_link)]
+        )
+        await event.delete()
+        return
 
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info_dict = ydl.extract_info(video_url, download=False)
-                audio_url = info_dict.get("url", None)
+    await event.respond("✅ مرحباً بك، أنت مشترك ويمكنك استخدام البوت.")
 
-                if audio_url:
-                    audio_data = requests.get(audio_url).content
-                    audio_file = BytesIO(audio_data)
-                    title = info_dict.get('title', 'Untitled')
-                    audio_file.name = f"{title}.mp3"
-                    bot.delete_message(message.chat.id, msg.message_id)
-                    bot.send_audio(message.chat.id, audio_file, caption=f"تم التحميل ✓: {title}", reply_to_message_id=message.message_id)
-                else:
-                    bot.delete_message(message.chat.id, msg.message_id)
-                    bot.send_message(message.chat.id, "فشل تحميل الصوت.")
-        else:
-            bot.delete_message(message.chat.id, msg.message_id)
-            bot.send_message(message.chat.id, "لم أتمكن من العثور على الفيديو.")
-    
-    except requests.exceptions.RequestException as e:
-        bot.delete_message(message.chat.id, msg.message_id)
-        bot.send_message(message.chat.id, f"حدث خطأ أثناء التواصل مع YouTube API: {e}")
-print('done')
-bot.polling(none_stop=True)
+# تشغيل البوت
+ABH.start()
+ABH.run_until_disconnected()
