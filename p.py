@@ -1,6 +1,6 @@
 import os
+import requests
 from telethon import TelegramClient, events, Button
-from telethon.errors import UserAlreadyParticipantError
 
 # تحميل المتغيرات من البيئة
 api_id = os.getenv('API_ID')      
@@ -11,15 +11,17 @@ bot_token = os.getenv('BOT_TOKEN')
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 CHANNEL_ID = 'x04ou'  # تأكد من أن هذا هو ID القناة أو اسمها الصحيح (مثلاً '@channel_username')
 
-# دالة التحقق من الاشتراك في القناة باستخدام Telethon
-async def is_user_subscribed(user_id):
+# دالة التحقق من الاشتراك في القناة باستخدام API الخاص بالبوت
+def is_user_subscribed(user_id):
+    url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={CHANNEL_ID}&user_id={user_id}"
+    response = requests.get(url).json()
+
     try:
-        # محاولة الحصول على حالة العضوية للمستخدم في القناة
-        participant = await ABH.get_chat_member(CHANNEL_ID, user_id)
+        status = response["result"]["status"]
         # إذا كانت حالة العضوية "عضو"، "مشرف" أو "مالك"، فهو مشترك
-        return participant.status in ["member", "administrator", "creator"]
-    except ValueError:
-        # إذا لم يتم العثور على المستخدم في القناة، يرجع False
+        return status in ["member", "administrator", "creator"]
+    except KeyError:
+        # إذا لم يتم العثور على المستخدم في القناة، يعاد False
         return False
 
 # مراقبة الرسائل الخاصة فقط
@@ -29,7 +31,7 @@ async def handler(event):
         return
 
     user_id = event.sender_id
-    if not await is_user_subscribed(user_id):
+    if not is_user_subscribed(user_id):
         # إذا لم يكن مشتركًا في القناة، أرسل رسالة اشتراك
         channel_link = f"https://t.me/{CHANNEL_ID.strip('@')}"
         await event.respond(
