@@ -40,5 +40,4 @@ async def handler(event):
     await event.respond("✅ مرحباً بك، أنت مشترك ويمكنك استخدام البوت.")
 
 # تشغيل البوت
-await ABH.start()  # يشغل البوت بشكل غير متزامن
 ABH.run_until_disconnected()  # ينتظر حتى يتم قطع الاتصال
