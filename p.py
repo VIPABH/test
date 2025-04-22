@@ -1,7 +1,6 @@
 import os
 import requests
 from telethon import TelegramClient, events, Button
-from telethon.tl.functions.users import GetFullUser
 
 # تحميل المتغيرات من البيئة
 api_id = os.getenv('API_ID')
@@ -11,19 +10,10 @@ bot_token = os.getenv('BOT_TOKEN')
 # إنشاء العميل (البوت)
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
-# قائمة أسماء القنوات أو المجموعات (usernames)
+# قائمة القنوات (بصيغة username أو ID رقمي)
 CHANNELS = ['@x04ou', '@EHIEX', '@sszxl']
 
-# جلب user_id من username
-async def get_user_id(username):
-    try:
-        user = await ABH(GetFullUser(username))
-        return user.user.id
-    except Exception as e:
-        print(f"❌ خطأ في جلب ID للمستخدم @{username}: {e}")
-        return None
-
-# التحقق من الاشتراك في كل القنوات
+# التحقق من الاشتراك في جميع القنوات
 def is_user_subscribed(user_id):
     for channel in CHANNELS:
         url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={channel}&user_id={user_id}"
@@ -43,17 +33,7 @@ async def handler(event):
     if not event.is_private:
         return
 
-    sender = await event.get_sender()
-    username = sender.username
-
-    if not username:
-        await event.respond("⚠️ يجب أن يكون لديك اسم مستخدم @username للاستمرار.")
-        return
-
-    user_id = await get_user_id(username)
-    if not user_id:
-        await event.respond("❌ حدث خطأ أثناء التحقق من هويتك. حاول لاحقًا.")
-        return
+    user_id = event.sender_id
 
     if not is_user_subscribed(user_id):
         buttons = [Button.url("📌 اضغط للاشتراك", f"https://t.me/{ch.strip('@')}") for ch in CHANNELS]
