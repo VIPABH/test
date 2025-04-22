@@ -13,8 +13,8 @@ ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 # قائمة القنوات التي سيتم التحقق من الاشتراك فيها
 CHANNELS = [
     {'channel_id': -1002116581783, 'channel_username': 'x04ou'},
-    {'channel_id': -1001234567890, 'channel_username': 'EHIEX'},
-    {'channel_id': -1009876543210, 'channel_username': 'sszxl'}
+    {'channel_id': -1001897025581, 'channel_username': 'EHIEX'},
+    {'channel_id': -1002055758177, 'channel_username': 'sszxl'}
 ]
 
 # التحقق من الاشتراك في القناة
