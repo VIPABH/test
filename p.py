@@ -16,6 +16,7 @@ client = TelegramClient(session_name, api_id, api_hash)
 
 # رمز تعبيري إضافي
 x = "🍌"
+a = "👎"
 
 @client.on(events.NewMessage())
 async def auto_react(event):
@@ -26,7 +27,7 @@ async def auto_react(event):
             await client(SendReactionRequest(
                 peer=event.chat_id,
                 msg_id=event.id,
-                reaction=[ReactionEmoji(emoticon=DEFAULT_EMOJI), ReactionEmoji(emoticon=x)]
+                reaction=[ReactionEmoji(emoticon=DEFAULT_EMOJI), ReactionEmoji(emoticon=x), ReactionEmoji(emoticon=a)]
             ))
             print(f"Reacted to message {event.id} from target user with emojis {DEFAULT_EMOJI} and {x}.")
         except Exception as e:
