@@ -9,7 +9,7 @@ api_hash = os.getenv("API_HASH")
 session_name = "session"
 
 # آيدي الشخص المسموح له استخدام الأمر
-AUTHORIZED_USER_ID = int(os.getenv("OWNER_ID", "123456789"))  # خزّنه كمتغير بيئة أو غيره يدويًا
+AUTHORIZED_USER_ID = int(os.getenv("OWNER_ID", "1910015590"))  # خزّنه كمتغير بيئة أو غيره يدويًا
 
 client = TelegramClient(session_name, api_id, api_hash)
 
