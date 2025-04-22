@@ -37,7 +37,7 @@ async def handler(event):
     user_id = event.sender_id
     if not is_user_subscribed(user_id):
         # إذا لم يكن مشتركًا في القناة، أرسل رسالة اشتراك
-        channel_link = f"https://t.me/{CHANNEL_ID.strip('@')}"
+        channel_link = f"https://t.me/{CHANNEL_ID}"
         await event.respond(
             f"📌 للمتابعة، يرجى الاشتراك أولاً في القناة:\n{channel_link}",
             buttons=[Button.url("اضغط هنا للاشتراك", channel_link)]
