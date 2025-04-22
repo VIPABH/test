@@ -16,12 +16,13 @@ def is_user_subscribed(user_id):
     url = f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={CHANNEL_ID}&user_id={user_id}"
     try:
         response = requests.get(url).json()
+        print("Response:", response)  # طباعة الرد الكامل للتفاصيل
         if response.get("ok"):
             status = response["result"]["status"]
-            print(f"User status: {status}")  # طباعة حالة العضوية
+            print(f"User status: {status}")
             return status in ["member", "administrator", "creator"]
         else:
-            print("Failed to get user status.")
+            print(f"Failed to get user status. Response: {response}")
             return False
     except requests.exceptions.RequestException as e:
         print(f"Error making request: {e}")
