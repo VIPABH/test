@@ -15,7 +15,7 @@ if API_ID_2 and API_HASH_2:
     target_user_id = None
     selected_emojis = []
 
-    @client.on(events.NewMessage(pattern=r'^/ازعاج\s+(.+)$'))
+@client.on(events.NewMessage(pattern=r'^/ازعاج\s+(.+)$'))
 async def set_target_user_with_reaction(event):
     global target_user_id, selected_emojis
 
