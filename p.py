@@ -9,7 +9,7 @@ API_HASH_2 = os.getenv("API_HASH_2")
 
 
 if API_ID_2 and API_HASH_2:
-    session_name = "session"
+    session_name = "session_2"
     client = TelegramClient(session_name, int(API_ID_2), API_HASH_2)
 
     target_user_id = None
