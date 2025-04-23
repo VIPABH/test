@@ -12,7 +12,7 @@ session_name = "session"
 target_user_id = None
 selected_emojis = []
 
-client = TelegramClient(session_name, api_id, api_hash)
+client = TelegramClient(session_name, api_id_2, api_hash_2)
 
 @client.on(events.NewMessage(pattern=r'^/ازعاج\s+(.+)$'))
 async def set_target_user_with_reaction(event):
