@@ -4,10 +4,10 @@ from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import ReactionEmoji
 
 # إعداد الاتصال
-api_id_3 = int(os.getenv("API_ID"))
-api_hash_3 = os.getenv("API_HASH")
+api_id = int(os.getenv("API_ID_2"))
+api_hash = os.getenv("API_HASH_2")
 session_name = "session"
-client = TelegramClient(session_name, api_id_3, api_hash_3)
+client = TelegramClient(session_name, api_id, api_hash)
 
 target_user_id = None
 selected_emojis = []
