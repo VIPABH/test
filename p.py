@@ -4,15 +4,14 @@ from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import ReactionEmoji
 
 # إعداد الاتصال
-api_id_2 = int(os.getenv("API_ID"))
-api_hash_2 = os.getenv("API_HASH")
+api_id_3 = int(os.getenv("API_ID"))
+api_hash_3 = os.getenv("API_HASH")
 session_name = "session"
+client = TelegramClient(session_name, api_id_3, api_hash_3)
 
-# متغيرات لتخزين المستخدم المستهدف والرموز التعبيرية
 target_user_id = None
 selected_emojis = []
 
-client = TelegramClient(session_name, api_id_2, api_hash_2)
 
 @client.on(events.NewMessage(pattern=r'^/ازعاج\s+(.+)$'))
 async def set_target_user_with_reaction(event):
