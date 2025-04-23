@@ -6,14 +6,10 @@ from telethon.tl.types import ReactionEmoji
 
 API_ID_3 = os.getenv("API_ID_6")
 API_HASH_3 = os.getenv("API_HASH_6")
-
-
-if API_ID_3 and API_HASH_3:
-    session_name = "session_6"
-    client = TelegramClient(session_name, int(API_ID_3), API_HASH_3)
-
-    target_user_id = None
-    selected_emojis = []
+session_name = "session_6"
+client = TelegramClient(session_name, int(API_ID_3), API_HASH_3)
+target_user_id = None
+selected_emojis = []
 
 @client.on(events.NewMessage(pattern=r'^/ازعاج\s+(.+)$'))
 async def set_target_user_with_reaction(event):
