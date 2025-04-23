@@ -7,7 +7,7 @@ from telethon.tl.types import ReactionEmoji
 API_ID_2 = int(os.getenv("API_ID_2"))
 API_HASH_2 = os.getenv("API_HASH_2")
 session_name = "session"
-client = TelegramClient(session_name, API_ID_2, api_hash)
+client = TelegramClient(session_name, API_ID_2, API_HASH_2)
 
 target_user_id = None
 selected_emojis = []
