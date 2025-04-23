@@ -4,12 +4,12 @@ from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import ReactionEmoji
 
 
-API_ID_3 = os.getenv("API_ID_4")
-API_HASH_3 = os.getenv("API_HASH_4")
+API_ID_3 = os.getenv("API_ID_5")
+API_HASH_3 = os.getenv("API_HASH_5")
 
 
 if API_ID_3 and API_HASH_3:
-    session_name = "session_4"
+    session_name = "session_5"
     client = TelegramClient(session_name, int(API_ID_3), API_HASH_3)
 
     target_user_id = None
