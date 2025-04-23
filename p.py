@@ -4,6 +4,10 @@ from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import ReactionEmoji
 import asyncio
 
+# تحقق من المتغيرات البيئية
+print("API_ID:", os.getenv("API_ID"))
+print("API_HASH:", os.getenv("API_HASH"))
+
 # إعداد الجلسات
 accounts = []
 session_configs = [
@@ -22,10 +26,11 @@ for conf in session_configs:
 target_user_id = None
 selected_emojis = []
 
-# الدالة التي ستشغل لكل حساب
+# دالة لبدء جميع الجلسات في نفس الوقت
 async def start_clients():
+    print("بدء الجلسات...")
     for client in accounts:
-        # عند وصول رسالة تحتوي على /ازعاج
+        # إضافة الأحداث لكل جلسة
         @client.on(events.NewMessage(pattern=r'^ازعاج\s+(.+)$'))
         async def set_target_user_with_reaction(event):
             global target_user_id, selected_emojis
@@ -39,7 +44,6 @@ async def start_clients():
             else:
                 await event.respond("\u2757 يجب الرد على رسالة المستخدم الذي تريد إزعاجه باستخدام الأمر: `ازعاج + \ud83c\udf53\ud83c\udf4c\u2728` (يمكنك وضع أكثر من رمز)")
 
-        # عند وصول رسالة تحتوي على /الغاء ازعاج
         @client.on(events.NewMessage(pattern=r'^الغاء ازعاج$'))
         async def cancel_auto_react(event):
             global target_user_id, selected_emojis
@@ -48,7 +52,6 @@ async def start_clients():
             await event.respond("\ud83d\udea9 تم إيقاف نمط الإزعاج. لن يتم التفاعل مع أي رسائل حالياً.")
             print("تم إلغاء نمط الإزعاج.")
 
-        # التفاعل التلقائي مع الرسائل
         @client.on(events.NewMessage())
         async def auto_react(event):
             if target_user_id and event.sender_id == target_user_id and selected_emojis:
