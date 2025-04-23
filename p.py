@@ -3,11 +3,11 @@ from telethon import TelegramClient, events
 from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import ReactionEmoji
 
-# التحقق من وجود المتغيرات البيئية
+
 API_ID_2 = os.getenv("API_ID_2")
 API_HASH_2 = os.getenv("API_HASH_2")
 
-# التأكد من أن المتغيرات موجودة
+
 if API_ID_2 and API_HASH_2:
     session_name = "session"
     client = TelegramClient(session_name, int(API_ID_2), API_HASH_2)
