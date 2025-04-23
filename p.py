@@ -4,8 +4,8 @@ from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import ReactionEmoji
 
 
-API_ID_2 = os.getenv("API_ID_3")
-API_HASH_2 = os.getenv("API_HASH_3")
+API_ID_3 = os.getenv("API_ID_3")
+API_HASH_3 = os.getenv("API_HASH_3")
 
 
 if API_ID_3 and API_HASH_3:
