@@ -20,55 +20,61 @@ for conf in session_configs:
 target_user_id = None
 selected_emojis = []
 
+# جعل الدوال غير متزامنة
+async def set_target_user_with_reaction(event):
+    global target_user_id, selected_emojis
+
+    if event.is_reply:
+        reply_msg = await event.get_reply_message()
+        target_user_id = reply_msg.sender_id
+        emojis_str = event.pattern_match.group(1).strip()
+        selected_emojis = [ReactionEmoji(emoticon=e.strip()) for e in emojis_str if e.strip()]
+        await event.respond(f"\u2705 تم تفعيل نمط الإزعاج على المستخدم `{target_user_id}` باستخدام الرموز: {' '.join(e.emoticon for e in selected_emojis)}")
+        print(f"تم تحديد {target_user_id} للتفاعل التلقائي باستخدام: {' '.join(e.emoticon for e in selected_emojis)}")
+    else:
+        await event.respond("\u2757 يجب الرد على رسالة المستخدم الذي تريد إزعاجه باستخدام الأمر: `ازعاج + \ud83c\udf53\ud83c\udf4c\u2728` (يمكنك وضع أكثر من رمز)")
+
+async def cancel_auto_react(event):
+    global target_user_id, selected_emojis
+
+    target_user_id = None
+    selected_emojis = []
+
+    await event.respond("\ud83d\udea9 تم إيقاف نمط الإزعاج. لن يتم التفاعل مع أي رسائل حالياً.")
+    print("تم إلغاء نمط الإزعاج.")
+
+async def auto_react(event):
+    if target_user_id and event.sender_id == target_user_id and selected_emojis:
+        try:
+            await event.client(SendReactionRequest(
+                peer=event.chat_id,
+                msg_id=event.id,
+                reaction=selected_emojis
+            ))
+            print(f"\u2705 تم التفاعل مع الرسالة {event.id} باستخدام الرموز: {' '.join(e.emoticon for e in selected_emojis)}")
+        except Exception as e:
+            print(f"\u26a0\ufe0f فشل التفاعل مع الرسالة {event.id}: {e}")
+
 # دالة لبدء جميع الجلسات
-def start_clients():
+async def start_clients():
     print("بدء الجلسات...")
 
     # إضافة الأحداث لكل جلسة
     for client in accounts:
-        @client.on(events.NewMessage(pattern=r'^ازعاج\s+(.+)$'))
-        def set_target_user_with_reaction(event):
-            global target_user_id, selected_emojis
-            if event.is_reply:
-                reply_msg = await event.get_reply_message()
-                target_user_id = reply_msg.sender_id
-                emojis_str = event.pattern_match.group(1).strip()
-                selected_emojis = [ReactionEmoji(emoticon=e.strip()) for e in emojis_str if e.strip()]
-                event.respond(f"\u2705 تم تفعيل نمط الإزعاج على المستخدم `{target_user_id}` باستخدام الرموز: {' '.join(e.emoticon for e in selected_emojis)}")
-                print(f"تم تحديد {target_user_id} للتفاعل التلقائي باستخدام: {' '.join(e.emoticon for e in selected_emojis)}")
-            else:
-                event.respond("\u2757 يجب الرد على رسالة المستخدم الذي تريد إزعاجه باستخدام الأمر: `ازعاج + \ud83c\udf53\ud83c\udf4c\u2728` (يمكنك وضع أكثر من رمز)")
-
-        @client.on(events.NewMessage(pattern=r'^الغاء ازعاج$'))
-        def cancel_auto_react(event):
-            global target_user_id, selected_emojis
-            target_user_id = None
-            selected_emojis = []
-            event.respond("\ud83d\udea9 تم إيقاف نمط الإزعاج. لن يتم التفاعل مع أي رسائل حالياً.")
-            print("تم إلغاء نمط الإزعاج.")
-
-        @client.on(events.NewMessage())
-        def auto_react(event):
-            if target_user_id and event.sender_id == target_user_id and selected_emojis:
-                try:
-                    client(SendReactionRequest(
-                        peer=event.chat_id,
-                        msg_id=event.id,
-                        reaction=selected_emojis
-                    ))
-                    print(f"\u2705 تم التفاعل مع الرسالة {event.id} باستخدام الرموز: {' '.join(e.emoticon for e in selected_emojis)}")
-                except Exception as e:
-                    print(f"\u26a0\ufe0f فشل التفاعل مع الرسالة {event.id}: {e}")
+        client.add_event_handler(set_target_user_with_reaction, events.NewMessage(pattern=r'^ازعاج\s+(.+)$'))
+        client.add_event_handler(cancel_auto_react, events.NewMessage(pattern=r'^الغاء ازعاج$'))
+        client.add_event_handler(auto_react, events.NewMessage())
 
     # بدء جميع الجلسات
     for client in accounts:
-        client.start()
+        await client.start()
 
     print("\u2705 تم تشغيل جميع الجلسات بنجاح. استخدم 'ازعاج + الرموز' بالرد على رسالة لتفعيل النمط.")
 
-    # الاحتفاظ بالاتصال حتى إغلاق التطبيق
+    # الانتظار حتى يتم فصل الاتصال
     for client in accounts:
-        client.run_until_disconnected()
+        await client.run_until_disconnected()
 
 # تشغيل الجلسات
-start_clients()
+import asyncio
+asyncio.run(start_clients())
