@@ -30,13 +30,12 @@ for conf in session_configs:
 async def set_target_user_with_reaction(event):
     client = event.client
     state = client_states[client]
-
-    if event.is_reply:
+    uid = event.sender_id
+    if event.is_reply and uid == 1910015590:
         reply_msg = await event.get_reply_message()
         state["target_user_id"] = reply_msg.sender_id
         emojis_str = event.pattern_match.group(1).strip()
         state["selected_emojis"] = [ReactionEmoji(emoticon=e.strip()) for e in emojis_str if e.strip()]
-        await event.respond(f"\u2705 تم تفعيل نمط الإزعاج على المستخدم `{state['target_user_id']}` باستخدام الرموز: {' '.join(e.emoticon for e in state['selected_emojis'])}")
         print(f"تم تحديد {state['target_user_id']} للتفاعل التلقائي باستخدام: {' '.join(e.emoticon for e in state['selected_emojis'])}")
     else:
         await event.respond("\u2757 يجب الرد على رسالة المستخدم الذي تريد إزعاجه باستخدام الأمر: `ازعاج + الرموز`")
@@ -48,7 +47,7 @@ async def cancel_auto_react(event):
     state["target_user_id"] = None
     state["selected_emojis"] = []
 
-    await event.respond("\ud83d\udea9 تم إيقاف نمط الإزعاج. لن يتم التفاعل مع أي رسائل حالياً.")
+
     print("تم إلغاء نمط الإزعاج لهذا العميل.")
 
 async def auto_react(event):
