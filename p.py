@@ -37,9 +37,6 @@ async def set_target_user_with_reaction(event):
         emojis_str = event.pattern_match.group(1).strip()
         state["selected_emojis"] = [ReactionEmoji(emoticon=e.strip()) for e in emojis_str if e.strip()]
         print(f"تم تحديد {state['target_user_id']} للتفاعل التلقائي باستخدام: {' '.join(e.emoticon for e in state['selected_emojis'])}")
-    else:
-        await event.respond("\u2757 يجب الرد على رسالة المستخدم الذي تريد إزعاجه باستخدام الأمر: `ازعاج + الرموز`")
-
 async def cancel_auto_react(event):
     client = event.client
     state = client_states[client]
