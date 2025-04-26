@@ -1,4 +1,3 @@
-import logging
 import os
 import requests
 import time
@@ -16,7 +15,6 @@ YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search'
 bot = telebot.TeleBot(bot_token)
 
 cooldown = {}
-logging.basicConfig(filename='errors.log', level=logging.ERROR, format='%(asctime)s - %(message)s')
 
 # ملف تخزين الأغاني
 SAVED_AUDIOS_FILE = 'saved_audios.json'
@@ -27,19 +25,6 @@ if os.path.exists(SAVED_AUDIOS_FILE):
         saved_audios = json.load(f)
 else:
     saved_audios = {}
-
-@bot.message_handler(commands=['start'])
-def start(message):
-    username = f"@{message.from_user.username}" if message.from_user.username else f"ID:{message.from_user.id}"
-    
-    welcome_message = f"مرحبًا {username}!\nأنا بوت يوتيوب، أقدر أساعدك في تحميل أغاني من يوتيوب وإرسالها لك مباشرة هنا.\n\nكل ما عليك هو كتابة 'يوت' أو 'yt' متبوعًا باسم الأغنية، وراح أرسل لك الملف الصوتي.\n\nلا تنسى تضيفني إلى مجموعاتك وتستفيد من الخدمة في كل مكان!"
-    
-    markup = types.InlineKeyboardMarkup()
-    button = types.InlineKeyboardButton("اضفني إلى مجموعاتك", url="https://t.me/YOUR_BOT_USERNAME")
-    markup.add(button)
-    
-    bot.send_message(message.chat.id, welcome_message, reply_markup=markup)
-
 @bot.message_handler(func=lambda message: message.text.lower().startswith(('يوت ', 'yt ')))
 def yt_handler(message):
     msg = message.text.lower()
@@ -106,7 +91,6 @@ def yt_handler(message):
         audio_data = requests.get(audio_api, timeout=60)
     except Exception as e:
         bot.reply_to(message, f"ما قدرت أتواصل ويا السيرفر. {e}")
-        logging.error(f"Download Error: {str(e)}")
         return
 
     if audio_data.status_code != 200:
