@@ -18,7 +18,6 @@ bot = telebot.TeleBot(bot_token)
 cooldown = {}
 logging.basicConfig(filename='errors.log', level=logging.ERROR, format='%(asctime)s - %(message)s')
 
-    save_database()
 
 def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
@@ -146,7 +145,7 @@ def yt_handler(message):
         'file_path': temp_file,
         'title': title
     }
-
+    save_database()
 
 print("جاري تشغيل البوت...")
 bot.polling(non_stop=True)
