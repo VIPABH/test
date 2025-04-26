@@ -1,4 +1,3 @@
-import logging
 import os
 import requests
 import time
@@ -14,7 +13,6 @@ bot_token = os.getenv('BOT_TOKEN')
 bot = telebot.TeleBot(bot_token)
 
 cooldown = {}
-logging.basicConfig(filename='errors.log', level=logging.ERROR, format='%(asctime)s - %(message)s')
 
 @bot.message_handler(func=lambda message: message.text.lower().startswith(('يوت ', 'yt ')))
 def yt_handler(message):
@@ -24,9 +22,8 @@ def yt_handler(message):
     if sender_id in cooldown and time.time() - cooldown[sender_id] < 10:
         return
     cooldown[sender_id] = time.time()
-
+    print(query)
     query = msg.split(" ", 1)[1]
-
     params = {
         'part': 'snippet',
         'q': query,
@@ -35,6 +32,7 @@ def yt_handler(message):
         'type': 'video'
     }
     r = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=10).json()
+    print(r.len)
 
     if 'items' not in r or len(r['items']) == 0:
         bot.reply_to(message, "ما لكيت شي لهالاسم.")
@@ -49,7 +47,6 @@ def yt_handler(message):
         audio_data = requests.get(audio_api, timeout=15)
     except Exception as e:
         bot.reply_to(message, f"ما قدرت أتواصل ويا السيرفر. {e}")
-        logging.error(f"Download Error: {str(e)}")
         return
 
     if audio_data.status_code != 200:
