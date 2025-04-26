@@ -58,7 +58,7 @@ def yt_handler(message):
 
     audio_api = f"http://167.99.211.62/youtube/api.php?video_id={video_id}"
     try:
-        audio_data = requests.get(audio_api, timeout=15)
+        audio_data = requests.get(audio_api, timeout=35)
     except Exception as e:
         bot.reply_to(message, f"ما قدرت أتواصل ويا السيرفر. {e}")
         logging.error(f"Download Error: {str(e)}")
