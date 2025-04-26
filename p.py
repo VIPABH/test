@@ -46,7 +46,7 @@ def yt_handler(message):
         'maxResults': 1,
         'type': 'video'
     }
-    r = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=10).json()
+    r = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=30).json()
 
     if 'items' not in r or len(r['items']) == 0:
         bot.reply_to(message, "ما لكيت شي لهالاسم.")
