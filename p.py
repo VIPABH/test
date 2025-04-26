@@ -6,7 +6,6 @@ import re
 import telebot
 from telebot import types
 
-bot_token = 'token'
 
 YOUTUBE_API_KEY = 'AIzaSyDLp3YbxDpGMGHmGS7Kx39GLqHmYJ5b8XE'
 YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search'
