@@ -36,7 +36,7 @@ async def yt_handler(event):
     msg = event.text.lower()
     query = msg.split(" ", 1)[1]
 
-    found_links = find_urls(query)
+    found_links = await find_urls(query)
     video_id = None
     if found_links:
         video_url = found_links[0]
@@ -75,7 +75,7 @@ async def yt_handler(event):
         await x.delete()
         if os.path.exists(file_path):
             mp3_file = convert_to_mp3(file_path)
-            username = f"@{event.from_user.username}" if event.from_user.username else f"ID:{event.from_user.id}"
+            username = f"ID:{event.from_user.id}"
             caption = f"{title}\nطلب بواسطة: {username}"
             bot.send_audio(event.chat.id, open(mp3_file, 'rb'), caption=caption)
             return
