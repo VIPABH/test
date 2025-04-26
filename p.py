@@ -48,10 +48,8 @@ def yt_handler(message):
     }
     r = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=10).json()
 
-    if 'items' not in r:
-        bot.reply_to(message, "1")
-    if len(r['items']) == 0:
-        bot.reply_to(message, "2")
+    if 'items' not in r or len(r['items']) == 0:
+        bot.reply_to(message, "ما لكيت شي لهالاسم.")
         return
 
     video_id = r['items'][0]['id']['videoId']
