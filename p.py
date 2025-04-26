@@ -1,38 +1,12 @@
 import os
-import requests
-import re
-import json
-from pydub import AudioSegment  # مكتبة لتحويل الصوت
-from telethon import TelegramClient, events
-from telethon.tl.types import InputPeerUser
-
+import aiohttp
+from mutagen.mp3 import MP3
+from telethon.tl.types import DocumentAttributeAudio
+from telethon import events, TelegramClient
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
 bot = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-YOUTUBE_API_KEY = 'AIzaSyDLp3YbxDpGMGHmGS7Kx39GLqHmYJ5b8XE'
-YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search'
-SAVED_AUDIOS_FILE = 'saved_audios.json'
-if os.path.exists(SAVED_AUDIOS_FILE):
-    with open(SAVED_AUDIOS_FILE, 'r') as f:
-        saved_audios = json.load(f)
-else:
-    saved_audios = {}
-
-async def convert_to_mp3(file_path):
-    mp3_path = file_path.rsplit('.', 1)[0] + '.mp3'
-    if not file_path.endswith('.mp3'):
-        audio = AudioSegment.from_file(file_path)
-        audio.export(mp3_path, format='mp3')
-        os.remove(file_path) 
-        return mp3_path
-    return file_path
-@bot.on(events.NewMessage)
-import os
-import aiohttp
-from mutagen.mp3 import MP3
-from telethon.tl.types import DocumentAttributeAudio
-from telethon import events
 
 async def download_file(url, filename):
     async with aiohttp.ClientSession() as session:
@@ -159,22 +133,3 @@ async def yt_handler(event):
 
     except Exception as e:
         await event.reply(f"❗ حصل خطأ غير متوقع: {str(e)}")
-    saved_audios[youtube_url] = {
-        'video_id': video_id,
-        'file_path': mp3_file,
-        'title': title
-    }
-    await save_database()
-
-def sanitize_filename(name):
-    return re.sub(r'[\\/*?:"<>|]', "", name)
-
-async def save_database():
-    with open(SAVED_AUDIOS_FILE, 'w') as f:
-        json.dump(saved_audios, f, indent=4, ensure_ascii=False)
-
-def find_urls(text):
-    url_regex = r"(https?://[^\s]+)"
-    return re.findall(url_regex, text)
-
-bot.run_until_disconnected()
