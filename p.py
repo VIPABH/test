@@ -60,7 +60,7 @@ def yt_handler(message):
     try:
         audio_data = requests.get(audio_api, timeout=15)
     except Exception as e:
-        bot.reply_to(message, "ما قدرت أتواصل ويا السيرفر.")
+        bot.reply_to(message, "ما قدرت أتواصل ويا السيرفر. {e}")
         logging.error(f"Download Error: {str(e)}")
         return
 
