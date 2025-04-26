@@ -115,7 +115,7 @@ async def yt_handler(event):
     # تحويل الملف إلى MP3 إذا كان تنسيقه مختلف
     mp3_file = await convert_to_mp3(temp_file)
     
-    await bot.send_audio(event.chat.id, open(mp3_file, 'rb'), caption=caption)
+    await event.bot.send_file(event.chat.id, open(mp3_file, 'rb'), caption=caption)
 
     # حفظ البيانات بالرابط
     saved_audios[youtube_url] = {
