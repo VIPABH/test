@@ -18,8 +18,18 @@ bot = telebot.TeleBot(bot_token)
 cooldown = {}
 logging.basicConfig(filename='errors.log', level=logging.ERROR, format='%(asctime)s - %(message)s')
 
-# ملف تخزين الأغاني
-SAVED_AUDIOS_FILE = 'saved_audios.json'
+    save_database()
+
+def sanitize_filename(name):
+    return re.sub(r'[\\/*?:"<>|]', "", name)
+
+def save_database():
+    with open(SAVED_AUDIOS_FILE, 'w') as f:
+        json.dump(saved_audios, f, indent=4, ensure_ascii=False)
+
+def find_urls(text):
+    url_regex = r"(https?://[^\s]+)"
+    return re.findall(url_regex, text)SAVED_AUDIOS_FILE = 'saved_audios.json'
 
 # تحميل قاعدة البيانات اذا موجودة
 if os.path.exists(SAVED_AUDIOS_FILE):
@@ -136,18 +146,7 @@ def yt_handler(message):
         'file_path': temp_file,
         'title': title
     }
-    save_database()
 
-def sanitize_filename(name):
-    return re.sub(r'[\\/*?:"<>|]', "", name)
-
-def save_database():
-    with open(SAVED_AUDIOS_FILE, 'w') as f:
-        json.dump(saved_audios, f, indent=4, ensure_ascii=False)
-
-def find_urls(text):
-    url_regex = r"(https?://[^\s]+)"
-    return re.findall(url_regex, text)
 
 print("جاري تشغيل البوت...")
 bot.polling(non_stop=True)
