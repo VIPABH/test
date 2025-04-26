@@ -10,7 +10,7 @@ ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 @ABH.on(events.NewMessage)
 async def replys(event):
     text = event.text
-    x = "ابن هاشم"
+    x = "ادونيس"
     if x in text:
         await event.reply("تفضل حبيبي")
     else:
