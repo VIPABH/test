@@ -15,9 +15,16 @@ bot = telebot.TeleBot(bot_token)
 
 cooldown = {}
 logging.basicConfig(filename='errors.log', level=logging.ERROR, format='%(asctime)s - %(message)s')
+
 @bot.message_handler(func=lambda message: message.text.lower().startswith(('يوت ', 'yt ')))
 def yt_handler(message):
     msg = message.text.lower()
+    sender_id = message.from_user.id
+
+    if sender_id in cooldown and time.time() - cooldown[sender_id] < 10:
+        return
+    cooldown[sender_id] = time.time()
+
     query = msg.split(" ", 1)[1]
 
     params = {
@@ -38,10 +45,17 @@ def yt_handler(message):
     safe_title = sanitize_filename(title)[:50]
 
     audio_api = f"http://167.99.211.62/youtube/api.php?video_id={video_id}"
-    audio_data = requests.get(audio_api, timeout=15)
+    try:
+        audio_data = requests.get(audio_api, timeout=15)
+    except Exception as e:
+        bot.reply_to(message, f"ما قدرت أتواصل ويا السيرفر. {e}")
+        logging.error(f"Download Error: {str(e)}")
+        return
+
     if audio_data.status_code != 200:
         bot.reply_to(message, "للأسف، ما قدرت أنزل الصوت. يمكن السيرفر فيه مشكلة.")
         return
+
     temp_file = f"{safe_title}.mp3"
     with open(temp_file, 'wb') as f:
         f.write(audio_data.content)
@@ -51,7 +65,10 @@ def yt_handler(message):
         bot.reply_to(message, "الملف أكبر من 40MB، ما أقدر أرسله.")
         return
 
-    bot.send_audio(message.chat.id, open(temp_file, 'rb'))
+    username = f"@{message.from_user.username}" if message.from_user.username else f"ID:{message.from_user.id}"
+    caption = f"{title}\nطلب بواسطة: {username}"
+
+    bot.send_audio(message.chat.id, open(temp_file, 'rb'), caption=caption)
     os.remove(temp_file)
 
 def sanitize_filename(name):
