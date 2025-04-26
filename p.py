@@ -17,8 +17,6 @@ bot = telebot.TeleBot(bot_token)
 
 cooldown = {}
 logging.basicConfig(filename='errors.log', level=logging.ERROR, format='%(asctime)s - %(message)s')
-
-
 def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
 
@@ -28,9 +26,9 @@ def save_database():
 
 def find_urls(text):
     url_regex = r"(https?://[^\s]+)"
-    return re.findall(url_regex, text)SAVED_AUDIOS_FILE = 'saved_audios.json'
+    return re.findall(url_regex, text)
+    SAVED_AUDIOS_FILE = 'saved_audios.json'
 
-# تحميل قاعدة البيانات اذا موجودة
 if os.path.exists(SAVED_AUDIOS_FILE):
     with open(SAVED_AUDIOS_FILE, 'r') as f:
         saved_audios = json.load(f)
