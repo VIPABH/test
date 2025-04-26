@@ -59,7 +59,8 @@ async def download_audio(event):
             event.chat_id, 
             audio, 
             caption='**[استمتع بالصوت]**(https://t.me/VIPABH_BOT)', 
-            reply_to=event.message.id
+            reply_to=event.message.id,
+            force_document=False  # التأكد من إرسال الملف كملف صوتي وليس مستند
         )
 
     os.remove(temp_file_path)  # حذف الملف بعد الإرسال
