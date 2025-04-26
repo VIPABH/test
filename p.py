@@ -4,17 +4,29 @@ import requests
 import time
 import re
 import telebot
+import json
+
 from telebot import types
 
+bot_token = os.getenv('BOT_TOKEN')
 
 YOUTUBE_API_KEY = 'AIzaSyDLp3YbxDpGMGHmGS7Kx39GLqHmYJ5b8XE'
 YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search'
 
-bot_token = os.getenv('BOT_TOKEN')
 bot = telebot.TeleBot(bot_token)
 
 cooldown = {}
 logging.basicConfig(filename='errors.log', level=logging.ERROR, format='%(asctime)s - %(message)s')
+
+# ملف تخزين الأغاني
+SAVED_AUDIOS_FILE = 'saved_audios.json'
+
+# تحميل قاعدة البيانات اذا موجودة
+if os.path.exists(SAVED_AUDIOS_FILE):
+    with open(SAVED_AUDIOS_FILE, 'r') as f:
+        saved_audios = json.load(f)
+else:
+    saved_audios = {}
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -39,28 +51,61 @@ def yt_handler(message):
 
     query = msg.split(" ", 1)[1]
 
-    params = {
-        'part': 'snippet',
-        'q': query,
-        'key': YOUTUBE_API_KEY,
-        'maxResults': 1,
-        'type': 'video'
-    }
-    r = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=10).json()
+    # بحث بالرابط لو المستخدم دخل رابط مباشر
+    found_links = find_urls(query)
+    video_id = None
+    if found_links:
+        video_url = found_links[0]
+        if 'youtu.be/' in video_url:
+            video_id = video_url.split('youtu.be/')[1]
+        elif 'youtube.com/watch?v=' in video_url:
+            video_id = video_url.split('v=')[1].split('&')[0]
 
-    if 'items' not in r or len(r['items']) > 0:
-        bot.reply_to(message, "ما لكيت شي لهالاسم.")
-        return
+    if not video_id:
+        # مو رابط، نبحث باليوتيوب
+        params = {
+            'part': 'snippet',
+            'q': query,
+            'key': YOUTUBE_API_KEY,
+            'maxResults': 1,
+            'type': 'video'
+        }
+        r = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=60).json()
 
-    video_id = r['items'][0]['id']['videoId']
-    title = r['items'][0]['snippet']['title']
+        if 'items' not in r or len(r['items']) == 0:
+            bot.reply_to(message, "ما لكيت شي لهالاسم.")
+            return
+
+        video_id = r['items'][0]['id']['videoId']
+        title = r['items'][0]['snippet']['title']
+
+        youtube_url = f"https://youtu.be/{video_id}"
+    else:
+        # من رابط مباشر
+        youtube_url = f"https://youtu.be/{video_id}"
+        title = query
+
+    # تحقق هل الرابط مخزون مسبقاً
+    if youtube_url in saved_audios:
+        file_path = saved_audios[youtube_url]['file_path']
+        title = saved_audios[youtube_url]['title']
+
+        if os.path.exists(file_path):
+            username = f"@{message.from_user.username}" if message.from_user.username else f"ID:{message.from_user.id}"
+            caption = f"{title}\nطلب بواسطة: {username}"
+            bot.send_audio(message.chat.id, open(file_path, 'rb'), caption=caption)
+            return
+        else:
+            del saved_audios[youtube_url]
+            save_database()
+
     safe_title = sanitize_filename(title)[:50]
-
     audio_api = f"http://167.99.211.62/youtube/api.php?video_id={video_id}"
+
     try:
-        audio_data = requests.get(audio_api, timeout=15)
+        audio_data = requests.get(audio_api, timeout=60)
     except Exception as e:
-        bot.reply_to(message, "ما قدرت أتواصل ويا السيرفر.")
+        bot.reply_to(message, f"ما قدرت أتواصل ويا السيرفر. {e}")
         logging.error(f"Download Error: {str(e)}")
         return
 
@@ -68,11 +113,14 @@ def yt_handler(message):
         bot.reply_to(message, "للأسف، ما قدرت أنزل الصوت. يمكن السيرفر فيه مشكلة.")
         return
 
-    temp_file = f"{safe_title}.mp3"
+    if not os.path.exists('downloads'):
+        os.makedirs('downloads')
+
+    temp_file = f"downloads/{safe_title}"
     with open(temp_file, 'wb') as f:
         f.write(audio_data.content)
 
-    if os.path.getsize(temp_file) > 40 * 1024 * 1024:
+    if os.path.getsize(temp_file) > 80 * 1024 * 1024:
         os.remove(temp_file)
         bot.reply_to(message, "الملف أكبر من 40MB، ما أقدر أرسله.")
         return
@@ -81,10 +129,25 @@ def yt_handler(message):
     caption = f"{title}\nطلب بواسطة: {username}"
 
     bot.send_audio(message.chat.id, open(temp_file, 'rb'), caption=caption)
-    os.remove(temp_file)
+
+    # حفظ البيانات بالرابط
+    saved_audios[youtube_url] = {
+        'video_id': video_id,
+        'file_path': temp_file,
+        'title': title
+    }
+    save_database()
 
 def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
+
+def save_database():
+    with open(SAVED_AUDIOS_FILE, 'w') as f:
+        json.dump(saved_audios, f, indent=4, ensure_ascii=False)
+
+def find_urls(text):
+    url_regex = r"(https?://[^\s]+)"
+    return re.findall(url_regex, text)
 
 print("جاري تشغيل البوت...")
 bot.polling(non_stop=True)
