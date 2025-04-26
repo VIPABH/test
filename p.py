@@ -52,6 +52,9 @@ async def download_audio(event):
         os.remove(temp_file_path)
         await event.reply("⚠️ الملف الصوتي أكبر من 40 ميغابايت، لا يمكن إرساله.")
         return
+
+    # إرسال الملف الصوتي
+    with open(temp_file_path, 'rb') as audio:
         await event.client.send_file(
             event.chat_id, 
             audio, 
@@ -59,7 +62,7 @@ async def download_audio(event):
             reply_to=event.message.id
         )
 
-    os.remove(temp_file_path)
+    os.remove(temp_file_path)  # حذف الملف بعد الإرسال
 
 def find_urls(text):
     url_regex = r"(https?://[^\s]+)"
