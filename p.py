@@ -74,7 +74,7 @@ async def yt_handler(event):
         title = saved_audios[youtube_url]['title']
         await x.delete()
         if os.path.exists(file_path):
-            mp3_file = convert_to_mp3(file_path)
+            mp3_file = await convert_to_mp3(file_path)
             username = f"ID:{event.from_user.id}"
             caption = f"{title}\nطلب بواسطة: {username}"
             bot.send_audio(event.chat.id, open(mp3_file, 'rb'), caption=caption)
