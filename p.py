@@ -13,24 +13,20 @@ bot = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 YOUTUBE_API_KEY = 'AIzaSyDLp3YbxDpGMGHmGS7Kx39GLqHmYJ5b8XE'
 YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search'
 SAVED_AUDIOS_FILE = 'saved_audios.json'
-
-# تحميل قاعدة البيانات اذا موجودة
 if os.path.exists(SAVED_AUDIOS_FILE):
     with open(SAVED_AUDIOS_FILE, 'r') as f:
         saved_audios = json.load(f)
 else:
     saved_audios = {}
 
-# تحويل التنسيق إلى MP3
 async def convert_to_mp3(file_path):
     mp3_path = file_path.rsplit('.', 1)[0] + '.mp3'
     if not file_path.endswith('.mp3'):
         audio = AudioSegment.from_file(file_path)
         audio.export(mp3_path, format='mp3')
-        os.remove(file_path)  # إزالة الملف الأصلي
+        os.remove(file_path) 
         return mp3_path
     return file_path
-
 @bot.on(events.NewMessage)
 async def yt_handler(event):
     uid = event.sender_id
@@ -46,7 +42,6 @@ async def yt_handler(event):
             video_id = video_url.split('youtu.be/')[1]
         elif 'youtube.com/watch?v=' in video_url:
             video_id = video_url.split('v=')[1].split('&')[0]
-
     if not video_id:
         params = {
             'part': 'snippet',
@@ -66,7 +61,6 @@ async def yt_handler(event):
 
         youtube_url = f"https://youtu.be/{video_id}"
     else:
-        # من رابط مباشر
         youtube_url = f"https://youtu.be/{video_id}"
         title = query
 
@@ -100,7 +94,7 @@ async def yt_handler(event):
     if not os.path.exists('downloads'):
         os.makedirs('downloads')
 
-    temp_file = f"downloads/{safe_title}.mp3"  # حفظ الملف كـ MP3
+    temp_file = f"downloads/{safe_title}.mp3"
     with open(temp_file, 'wb') as f:
         f.write(audio_data.content)
 
@@ -112,12 +106,10 @@ async def yt_handler(event):
     username = event.sender_id
     caption = f"{title}\nطلب بواسطة: {username}"
 
-    # تحويل الملف إلى MP3 إذا كان تنسيقه مختلف
     mp3_file = await convert_to_mp3(temp_file)
     
-    await event.bot.send_file(event.chat.id, open(mp3_file, 'rb'), caption=caption)
+    await bot.send_file(event.chat.id, open(mp3_file, 'rb'), caption=caption)
 
-    # حفظ البيانات بالرابط
     saved_audios[youtube_url] = {
         'video_id': video_id,
         'file_path': mp3_file,
