@@ -1,81 +1,90 @@
+import logging
 import os
-import asyncio
-from telethon import TelegramClient, events
-from telethon.tl.functions.messages import SendReactionRequest
-from telethon.tl.types import ReactionEmoji
+import requests
+import time
+import re
+import telebot
+from telebot import types
 
-accounts = []
-session_configs = [
-    {"session": "session", "api_id": int(os.getenv("API_ID")), "api_hash": os.getenv("API_HASH")},
-    {"session": "session_2", "api_id": int(os.getenv("API_ID_2")), "api_hash": os.getenv("API_HASH_2")},
-    {"session": "session_3", "api_id": int(os.getenv("API_ID_3")), "api_hash": os.getenv("API_HASH_3")},
-    {"session": "session_4", "api_id": int(os.getenv("API_ID_4")), "api_hash": os.getenv("API_HASH_4")},
-    {"session": "session_5", "api_id": int(os.getenv("API_ID_5")), "api_hash": os.getenv("API_HASH_5")},
-    {"session": "session_6", "api_id": int(os.getenv("API_ID_6")), "api_hash": os.getenv("API_HASH_6")},
-]
+BOT_TOKEN = 'BOT_TOKEN'
 
-# تخزين حالة كل عميل بشكل منفصل
-client_states = {}
+YOUTUBE_API_KEY = 'AIzaSyDLp3YbxDpGMGHmGS7Kx39GLqHmYJ5b8XE'
+YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search'
 
-# إنشاء الحسابات وتخزين الحالة الافتراضية
-for conf in session_configs:
-    client = TelegramClient(conf["session"], conf["api_id"], conf["api_hash"])
-    accounts.append(client)
-    client_states[client] = {
-        "target_user_id": None,
-        "selected_emojis": []
+bot = telebot.TeleBot(BOT_TOKEN)
+
+cooldown = {}
+logging.basicConfig(filename='errors.log', level=logging.ERROR, format='%(asctime)s - %(message)s')
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    username = f"@{message.from_user.username}" if message.from_user.username else f"ID:{message.from_user.id}"
+    
+    welcome_message = f"مرحبًا {username}!\nأنا بوت يوتيوب، أقدر أساعدك في تحميل أغاني من يوتيوب وإرسالها لك مباشرة هنا.\n\nكل ما عليك هو كتابة 'يوت' أو 'yt' متبوعًا باسم الأغنية، وراح أرسل لك الملف الصوتي.\n\nلا تنسى تضيفني إلى مجموعاتك وتستفيد من الخدمة في كل مكان!"
+    
+    markup = types.InlineKeyboardMarkup()
+    button = types.InlineKeyboardButton("اضفني إلى مجموعاتك", url="https://t.me/YOUR_BOT_USERNAME")
+    markup.add(button)
+    
+    bot.send_message(message.chat.id, welcome_message, reply_markup=markup)
+
+@bot.message_handler(func=lambda message: message.text.lower().startswith(('يوت ', 'yt ')))
+def yt_handler(message):
+    msg = message.text.lower()
+    sender_id = message.from_user.id
+
+    if sender_id in cooldown and time.time() - cooldown[sender_id] < 10:
+        return
+    cooldown[sender_id] = time.time()
+
+    query = msg.split(" ", 1)[1]
+
+    params = {
+        'part': 'snippet',
+        'q': query,
+        'key': YOUTUBE_API_KEY,
+        'maxResults': 1,
+        'type': 'video'
     }
+    r = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=10).json()
 
-# أوامر الإدارة
-async def set_target_user_with_reaction(event):
-    client = event.client
-    state = client_states[client]
-    uid = event.sender_id
-    if event.is_reply and uid == 1910015590:
-        reply_msg = await event.get_reply_message()
-        state["target_user_id"] = reply_msg.sender_id
-        emojis_str = event.pattern_match.group(1).strip()
-        state["selected_emojis"] = [ReactionEmoji(emoticon=e.strip()) for e in emojis_str if e.strip()]
-        print(f"تم تحديد {state['target_user_id']} للتفاعل التلقائي باستخدام: {' '.join(e.emoticon for e in state['selected_emojis'])}")
-async def cancel_auto_react(event):
-    client = event.client
-    state = client_states[client]
+    if 'items' not in r or len(r['items']) == 0:
+        bot.reply_to(message, "ما لكيت شي لهالاسم.")
+        return
 
-    state["target_user_id"] = None
-    state["selected_emojis"] = []
+    video_id = r['items'][0]['id']['videoId']
+    title = r['items'][0]['snippet']['title']
+    safe_title = sanitize_filename(title)[:50]
 
+    audio_api = f"http://167.99.211.62/youtube/api.php?video_id={video_id}"
+    try:
+        audio_data = requests.get(audio_api, timeout=15)
+    except Exception as e:
+        bot.reply_to(message, "ما قدرت أتواصل ويا السيرفر.")
+        logging.error(f"Download Error: {str(e)}")
+        return
 
-    print("تم إلغاء نمط الإزعاج لهذا العميل.")
+    if audio_data.status_code != 200:
+        bot.reply_to(message, "للأسف، ما قدرت أنزل الصوت. يمكن السيرفر فيه مشكلة.")
+        return
 
-async def auto_react(event):
-    client = event.client
-    state = client_states[client]
+    temp_file = f"{safe_title}.mp3"
+    with open(temp_file, 'wb') as f:
+        f.write(audio_data.content)
 
-    if state["target_user_id"] and event.sender_id == state["target_user_id"] and state["selected_emojis"]:
-        try:
-            await client(SendReactionRequest(
-                peer=event.chat_id,
-                msg_id=event.id,
-                reaction=state["selected_emojis"]
-            ))
-            print(f"\u2705 تم التفاعل مع الرسالة {event.id} باستخدام الرموز: {' '.join(e.emoticon for e in state['selected_emojis'])}")
-        except Exception as e:
-            print(f"\u26a0\ufe0f فشل التفاعل مع الرسالة {event.id}: {e}")
+    if os.path.getsize(temp_file) > 40 * 1024 * 1024:
+        os.remove(temp_file)
+        bot.reply_to(message, "الملف أكبر من 40MB، ما أقدر أرسله.")
+        return
 
-# بدء الجلسات
-async def start_clients():
-    print("بدء الجلسات...")
+    username = f"@{message.from_user.username}" if message.from_user.username else f"ID:{message.from_user.id}"
+    caption = f"{title}\nطلب بواسطة: {username}"
 
-    for client in accounts:
-        client.add_event_handler(set_target_user_with_reaction, events.NewMessage(pattern=r'^ازعاج\s+(.+)$'))
-        client.add_event_handler(cancel_auto_react, events.NewMessage(pattern=r'^الغاء ازعاج$'))
-        client.add_event_handler(auto_react, events.NewMessage())
+    bot.send_audio(message.chat.id, open(temp_file, 'rb'), caption=caption)
+    os.remove(temp_file)
 
-    for client in accounts:
-        await client.start()
+def sanitize_filename(name):
+    return re.sub(r'[\\/*?:"<>|]', "", name)
 
-    print("\u2705 تم تشغيل جميع الجلسات بنجاح.")
-    await asyncio.gather(*(client.run_until_disconnected() for client in accounts))
-
-# تشغيل الجلسات
-asyncio.run(start_clients())
+print("جاري تشغيل البوت...")
+bot.polling(non_stop=True)
