@@ -1,10 +1,10 @@
 import os
 import requests
-import time
 import re
 import json
 from pydub import AudioSegment  # مكتبة لتحويل الصوت
-from telethon import TelegramClient, events, Button
+from telethon import TelegramClient, events
+from telethon.tl.types import InputPeerUser
 
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
@@ -30,6 +30,7 @@ async def convert_to_mp3(file_path):
         os.remove(file_path)  # إزالة الملف الأصلي
         return mp3_path
     return file_path
+
 @bot.on(events.NewMessage)
 async def yt_handler(event):
     uid = event.sender_id
@@ -37,7 +38,7 @@ async def yt_handler(event):
     msg = event.text.lower()
     query = msg.split(" ", 1)[1]
 
-    found_links = await find_urls(query)
+    found_links = find_urls(query)
     video_id = None
     if found_links:
         video_url = found_links[0]
@@ -57,7 +58,7 @@ async def yt_handler(event):
         r = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=60).json()
 
         if 'items' not in r or len(r['items']) == 0:
-            bot.reply_to(event, "ما لكيت شي لهالاسم.")
+            await event.reply("ما لكيت شي لهالاسم.")
             return
 
         video_id = r['items'][0]['id']['videoId']
@@ -69,7 +70,6 @@ async def yt_handler(event):
         youtube_url = f"https://youtu.be/{video_id}"
         title = query
 
-    # تحقق هل الرابط مخزون مسبقاً
     if youtube_url in saved_audios:
         file_path = saved_audios[youtube_url]['file_path']
         title = saved_audios[youtube_url]['title']
@@ -78,23 +78,23 @@ async def yt_handler(event):
             mp3_file = await convert_to_mp3(file_path)
             username = f"ID:{uid}"
             caption = f"{title}\nطلب بواسطة: {username}"
-            bot.send_file(event.chat.id, open(mp3_file, 'rb'), caption=caption)
+            await bot.send_file(event.chat.id, open(mp3_file, 'rb'), caption=caption)
             return
         else:
             del saved_audios[youtube_url]
-            save_database()
+            await save_database()
 
-    safe_title = await sanitize_filename(title)[:50]
+    safe_title = sanitize_filename(title)[:50]
     audio_api = f"http://167.99.211.62/youtube/api.php?video_id={video_id}"
 
     try:
         audio_data = requests.get(audio_api, timeout=60)
     except Exception as e:
-        bot.reply_to(event, f"ما قدرت أتواصل ويا السيرفر. {e}")
+        await event.reply(f"ما قدرت أتواصل ويا السيرفر. {e}")
         return
 
     if audio_data.status_code != 200:
-        bot.reply_to(event, "للأسف، ما قدرت أنزل الصوت. يمكن السيرفر فيه مشكلة.")
+        await event.reply("للأسف، ما قدرت أنزل الصوت. يمكن السيرفر فيه مشكلة.")
         return
 
     if not os.path.exists('downloads'):
@@ -106,7 +106,7 @@ async def yt_handler(event):
 
     if os.path.getsize(temp_file) > 80 * 1024 * 1024:
         os.remove(temp_file)
-        bot.reply_to(event, "الملف أكبر من 40MB، ما أقدر أرسله.")
+        await event.reply("الملف أكبر من 40MB، ما أقدر أرسله.")
         return
 
     username = event.sender_id
@@ -115,7 +115,7 @@ async def yt_handler(event):
     # تحويل الملف إلى MP3 إذا كان تنسيقه مختلف
     mp3_file = await convert_to_mp3(temp_file)
     
-    bot.send_audio(event.chat.id, open(mp3_file, 'rb'), caption=caption)
+    await bot.send_audio(event.chat.id, open(mp3_file, 'rb'), caption=caption)
 
     # حفظ البيانات بالرابط
     saved_audios[youtube_url] = {
@@ -125,14 +125,14 @@ async def yt_handler(event):
     }
     await save_database()
 
-async def sanitize_filename(name):
+def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
 
 async def save_database():
     with open(SAVED_AUDIOS_FILE, 'w') as f:
         json.dump(saved_audios, f, indent=4, ensure_ascii=False)
 
-async def find_urls(text):
+def find_urls(text):
     url_regex = r"(https?://[^\s]+)"
     return re.findall(url_regex, text)
 
