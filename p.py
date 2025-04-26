@@ -55,7 +55,6 @@ def yt_handler(message):
     found_links = find_urls(query)
     video_id = None
     if found_links:
-        # رابط موجود مباشرة
         video_url = found_links[0]
         if 'youtu.be/' in video_url:
             video_id = video_url.split('youtu.be/')[1]
@@ -63,7 +62,7 @@ def yt_handler(message):
             video_id = video_url.split('v=')[1].split('&')[0]
 
     if not video_id:
-        # لا، مو رابط.. لازم بحث
+        # مو رابط، نبحث باليوتيوب
         params = {
             'part': 'snippet',
             'q': query,
@@ -79,13 +78,14 @@ def yt_handler(message):
 
         video_id = r['items'][0]['id']['videoId']
         title = r['items'][0]['snippet']['title']
+
+        youtube_url = f"https://youtu.be/{video_id}"
     else:
-        # عندنا video_id من الرابط
-        title = query  # اسم البحث الحالي
+        # من رابط مباشر
+        youtube_url = f"https://youtu.be/{video_id}"
+        title = query
 
-    youtube_url = f"https://youtu.be/{video_id}"
-
-    # تحقق اذا الرابط موجود بالمحفوظات
+    # تحقق هل الرابط مخزون مسبقاً
     if youtube_url in saved_audios:
         file_path = saved_audios[youtube_url]['file_path']
         title = saved_audios[youtube_url]['title']
@@ -96,11 +96,9 @@ def yt_handler(message):
             bot.send_audio(message.chat.id, open(file_path, 'rb'), caption=caption)
             return
         else:
-            # اذا الملف المحفوظ اختفى نحذفه من قاعدة البيانات
             del saved_audios[youtube_url]
             save_database()
 
-    # تحميل جديد اذا مو موجود
     safe_title = sanitize_filename(title)[:50]
     audio_api = f"http://167.99.211.62/youtube/api.php?video_id={video_id}"
 
@@ -118,7 +116,7 @@ def yt_handler(message):
     if not os.path.exists('downloads'):
         os.makedirs('downloads')
 
-    temp_file = f"downloads/{safe_title}.mp3"
+    temp_file = f"downloads/{safe_title}"
     with open(temp_file, 'wb') as f:
         f.write(audio_data.content)
 
@@ -148,10 +146,8 @@ def save_database():
         json.dump(saved_audios, f, indent=4, ensure_ascii=False)
 
 def find_urls(text):
-    # استخراج الروابط من النص
     url_regex = r"(https?://[^\s]+)"
     return re.findall(url_regex, text)
 
 print("جاري تشغيل البوت...")
 bot.polling(non_stop=True)
-
