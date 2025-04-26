@@ -83,7 +83,7 @@ async def yt_handler(event):
             del saved_audios[youtube_url]
             save_database()
 
-    safe_title = sanitize_filename(title)[:50]
+    safe_title = await sanitize_filename(title)[:50]
     audio_api = f"http://167.99.211.62/youtube/api.php?video_id={video_id}"
 
     try:
@@ -112,7 +112,7 @@ async def yt_handler(event):
     caption = f"{title}\nطلب بواسطة: {username}"
 
     # تحويل الملف إلى MP3 إذا كان تنسيقه مختلف
-    mp3_file = convert_to_mp3(temp_file)
+    mp3_file = await convert_to_mp3(temp_file)
     
     bot.send_audio(event.chat.id, open(mp3_file, 'rb'), caption=caption)
 
@@ -122,7 +122,7 @@ async def yt_handler(event):
         'file_path': mp3_file,
         'title': title
     }
-    save_database()
+    await save_database()
 
 async def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
