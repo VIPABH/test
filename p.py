@@ -48,14 +48,10 @@ async def download_audio(event):
     with open(temp_file_path, 'wb') as f:
         f.write(audio_response.content)
 
-    # تحقق من حجم الملف قبل إرساله (إذا كان أكبر من 40MB لا ترسله)
     if os.path.getsize(temp_file_path) > 40 * 1024 * 1024:
         os.remove(temp_file_path)
         await event.reply("⚠️ الملف الصوتي أكبر من 40 ميغابايت، لا يمكن إرساله.")
         return
-
-    # إرسال الملف الصوتي
-    with open(temp_file_path, 'rb') as audio:
         await event.client.send_file(
             event.chat_id, 
             audio, 
