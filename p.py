@@ -32,6 +32,7 @@ async def convert_to_mp3(file_path):
     return file_path
 @bot.on(events.NewMessage)
 async def yt_handler(event):
+    uid = event.sender_id
     x = await event.reply('جاري البحث')
     msg = event.text.lower()
     query = msg.split(" ", 1)[1]
@@ -75,7 +76,7 @@ async def yt_handler(event):
         await x.delete()
         if os.path.exists(file_path):
             mp3_file = await convert_to_mp3(file_path)
-            username = f"ID:{event.from_user.id}"
+            username = f"ID:{uid}"
             caption = f"{title}\nطلب بواسطة: {username}"
             bot.send_audio(event.chat.id, open(mp3_file, 'rb'), caption=caption)
             return
