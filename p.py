@@ -11,7 +11,7 @@ bot_token = 'token'
 YOUTUBE_API_KEY = 'AIzaSyDLp3YbxDpGMGHmGS7Kx39GLqHmYJ5b8XE'
 YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search'
 
-bot = telebot.TeleBot(bot_token)
+bot = telebot.TeleBot(BOT_TOKEN)
 
 cooldown = {}
 logging.basicConfig(filename='errors.log', level=logging.ERROR, format='%(asctime)s - %(message)s')
