@@ -47,4 +47,4 @@ def find_urls(text):
     url_regex = r"(https?://[^\s]+)"
     return re.findall(url_regex, text)
 print("✅ جاري تشغيل البوت...")
-ABH.polling(non_stop=True)
+ABH.run_until_disconnected()
