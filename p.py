@@ -135,5 +135,4 @@ def find_urls(text):
     url_regex = r"(https?://[^\s]+)"
     return re.findall(url_regex, text)
 
-print("جاري تشغيل البوت...")
-bot.polling(non_stop=True)
+bot.run_until_disconnected()
