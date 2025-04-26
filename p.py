@@ -6,12 +6,12 @@ import json
 from pydub import AudioSegment  # مكتبة لتحويل الصوت
 from telethon import TelegramClient, events, Button
 
-# إعدادات البوت
+api_id = os.getenv('API_ID')      
+api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
+bot = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 YOUTUBE_API_KEY = 'AIzaSyDLp3YbxDpGMGHmGS7Kx39GLqHmYJ5b8XE'
 YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search'
-
-# ملف تخزين الأغاني
 SAVED_AUDIOS_FILE = 'saved_audios.json'
 
 # تحميل قاعدة البيانات اذا موجودة
@@ -30,19 +30,11 @@ def convert_to_mp3(file_path):
         os.remove(file_path)  # إزالة الملف الأصلي
         return mp3_path
     return file_path
-
-@bot.message_handler(func=lambda message: message.text.lower().startswith(('يوت ', 'yt ')))
+@bot.on(events.NewMessage)
 def yt_handler(message):
     msg = message.text.lower()
-    sender_id = message.from_user.id
-
-    if sender_id in cooldown and time.time() - cooldown[sender_id] < 10:
-        return
-    cooldown[sender_id] = time.time()
-
     query = msg.split(" ", 1)[1]
 
-    # بحث بالرابط لو المستخدم دخل رابط مباشر
     found_links = find_urls(query)
     video_id = None
     if found_links:
@@ -53,7 +45,6 @@ def yt_handler(message):
             video_id = video_url.split('v=')[1].split('&')[0]
 
     if not video_id:
-        # مو رابط، نبحث باليوتيوب
         params = {
             'part': 'snippet',
             'q': query,
