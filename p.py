@@ -22,8 +22,8 @@ def yt_handler(message):
     if sender_id in cooldown and time.time() - cooldown[sender_id] < 10:
         return
     cooldown[sender_id] = time.time()
-    print(query)
     query = msg.split(" ", 1)[1]
+    print(query)
     params = {
         'part': 'snippet',
         'q': query,
