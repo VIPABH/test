@@ -1,9 +1,9 @@
+import os
 from telethon import TelegramClient, events
 from telethon.tl.functions.messages import SendReactionRequest
-from telethon.tl.types import ReactionEmoji
-import asyncio, os
+from asyncio import sleep 
 
-wffp = 1910015590
+wffp = 1910015590  # معرف المستخدم المستهدف
 accounts = []
 session_configs = [
     {"session": "session_1", "api_id": int(os.getenv("API_ID")), "api_hash": os.getenv("API_HASH")},
@@ -31,8 +31,9 @@ for client in accounts:
             reply_msg = await event.get_reply_message()
             target_user_id = reply_msg.sender_id
             emojis_str = event.pattern_match.group(1).strip()
-            selected_emojis = [ReactionEmoji(emoticon=e.strip()) for e in emojis_str if e.strip()]
-            print(f"تم تحديد {target_user_id} للتفاعل التلقائي باستخدام: {' '.join(e.emoticon for e in selected_emojis)}")
+            # تحويل الرموز التعبيرية إلى قائمة من الأحرف
+            selected_emojis = [e.strip() for e in emojis_str if e.strip()]
+            print(f"تم تحديد {target_user_id} للتفاعل التلقائي باستخدام: {' '.join(selected_emojis)}")
 
     @client.on(events.NewMessage(pattern=r'^الغاء ازعاج$'))
     async def cancel_auto_react(event):
@@ -45,23 +46,23 @@ for client in accounts:
     async def auto_react(event):
         if target_user_id and event.sender_id == target_user_id and selected_emojis:
             try:
-                # التفاعل مباشرة بدون التحقق من التفاعلات
-                await client(SendReactionRequest(
-                    peer=event.chat_id,
-                    msg_id=event.id,
-                    reaction=selected_emojis[0]  # تفاعل مع أول رمز تعبيري
-                ))
-                print(f"\u2705 تم التفاعل مع الرسالة {event.id} باستخدام الرموز: {' '.join(e.emoticon for e in selected_emojis)}")
+                for emoji in selected_emojis:
+                    await client(SendReactionRequest(
+                        peer=event.chat_id,
+                        msg_id=event.id,
+                        reaction=emoji  # التفاعل مع الرسالة باستخدام الرموز
+                    ))
+                    print(f"\u2705 تم التفاعل مع الرسالة {event.id} باستخدام الرموز: {emoji}")
+                    await sleep(5)  # تأخير بين التفاعلات
             except Exception as e:
                 print(f"\u26a0\ufe0f فشل التفاعل مع الرسالة {event.id}: {e}")
 
-# بدء جميع الجلسات
+# بدء الجلسات
 for client in accounts:
     client.start()
 
 print("\u2705 تم تشغيل جميع الجلسات بنجاح. استخدم 'ازعاج + الرموز' بالرد على رسالة لتفعيل النمط.")
 
-# تشغيل حلقة الأحداث
 from asyncio import get_event_loop, gather
 loop = get_event_loop()
 loop.run_until_complete(gather(*[client.run_until_disconnected() for client in accounts]))
