@@ -19,27 +19,23 @@ for conf in session_configs:
     accounts.append(TelegramClient(conf["session"], conf["api_id"], conf["api_hash"]))
 
 target_user_id = None
-selected_emojis = []
+selected_emojis = ['🍌']  # تعيين التفاعل التلقائي بـ "موز" فقط
 
 # إضافة الأحداث للعملاء
 for client in accounts:
     @client.on(events.NewMessage(pattern=r'^ازعاج\s+(.+)$'))
     async def set_target_user_with_reaction(event):
-        global target_user_id, selected_emojis
+        global target_user_id
         uid = event.sender_id
         if event.is_reply and uid == wffp:
             reply_msg = await event.get_reply_message()
             target_user_id = reply_msg.sender_id
-            emojis_str = event.pattern_match.group(1).strip()
-            # تحويل الرموز التعبيرية إلى قائمة نصية من الرموز التعبيرية
-            selected_emojis = [e.strip() for e in emojis_str.split() if e.strip()]
-            print(f"تم تحديد {target_user_id} للتفاعل التلقائي باستخدام: {' '.join(selected_emojis)}")
+            print(f"تم تحديد {target_user_id} للتفاعل التلقائي باستخدام: 🍌")
 
     @client.on(events.NewMessage(pattern=r'^الغاء ازعاج$'))
     async def cancel_auto_react(event):
-        global target_user_id, selected_emojis
+        global target_user_id
         target_user_id = None
-        selected_emojis = []
         print("تم إلغاء نمط الإزعاج.")
 
     @client.on(events.NewMessage())
