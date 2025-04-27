@@ -2,6 +2,8 @@ import os
 from telethon import TelegramClient, events
 from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import ReactionEmoji
+from asyncio import sleep
+
 accounts = []
 session_configs = [
     {"session": "session_1", "api_id": int(os.getenv("API_ID")), "api_hash": os.getenv("API_HASH")},
@@ -11,10 +13,13 @@ session_configs = [
     {"session": "session_5", "api_id": int(os.getenv("API_ID_5")), "api_hash": os.getenv("API_HASH_5")},
     {"session": "session_6", "api_id": int(os.getenv("API_ID_6")), "api_hash": os.getenv("API_HASH_6")},
 ]
+
 for conf in session_configs:
     accounts.append(TelegramClient(conf["session"], conf["api_id"], conf["api_hash"]))
+
 target_user_id = None
 selected_emojis = []
+
 for client in accounts:
     @client.on(events.NewMessage(pattern=r'^ازعاج\s+(.+)$'))
     async def set_target_user_with_reaction(event):
@@ -43,6 +48,10 @@ for client in accounts:
     async def auto_react(event):
         if target_user_id and event.sender_id == target_user_id and selected_emojis:
             try:
+                # تأخير التفاعل لمدة ثانيتين بين كل تفاعل
+                await sleep(2)
+                
+                # إرسال التفاعل باستخدام الرموز المحددة
                 await client(SendReactionRequest(
                     peer=event.chat_id,
                     msg_id=event.id,
@@ -51,9 +60,14 @@ for client in accounts:
                 print(f"\u2705 تم التفاعل مع الرسالة {event.id} باستخدام الرموز: {' '.join(e.emoticon for e in selected_emojis)}")
             except Exception as e:
                 print(f"\u26a0\ufe0f فشل التفاعل مع الرسالة {event.id}: {e}")
+
+# تشغيل جميع الجلسات
 for client in accounts:
     client.start()
+
 print("\u2705 تم تشغيل جميع الجلسات بنجاح. استخدم 'ازعاج + الرموز' بالرد على رسالة لتفعيل النمط.")
+
+# تشغيل الحدث بشكل متزامن
 from asyncio import get_event_loop, gather
 loop = get_event_loop()
 loop.run_until_complete(gather(*[client.run_until_disconnected() for client in accounts]))
