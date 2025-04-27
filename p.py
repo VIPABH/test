@@ -1,7 +1,5 @@
-import os
 from telethon import TelegramClient, events
-from telethon.errors import FloodWaitError
-from telethon.tl.functions.messages import SendReactionRequest, GetMessageReactionsRequest
+from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import ReactionEmoji
 import asyncio
 
@@ -16,15 +14,14 @@ session_configs = [
     {"session": "session_6", "api_id": int(os.getenv("API_ID_6")), "api_hash": os.getenv("API_HASH_6")},
 ]
 
-# إنشاء قائمة من الجلسات
+# إعداد الجلسات
 for conf in session_configs:
     accounts.append(TelegramClient(conf["session"], conf["api_id"], conf["api_hash"]))
 
-# متغيرات لتخزين معلومات التفاعل
 target_user_id = None
 selected_emojis = []
 
-# دالة لتحديد المستخدم للتفاعل التلقائي
+# إضافة الأحداث للعملاء
 for client in accounts:
     @client.on(events.NewMessage(pattern=r'^ازعاج\s+(.+)$'))
     async def set_target_user_with_reaction(event):
@@ -37,7 +34,6 @@ for client in accounts:
             selected_emojis = [ReactionEmoji(emoticon=e.strip()) for e in emojis_str if e.strip()]
             print(f"تم تحديد {target_user_id} للتفاعل التلقائي باستخدام: {' '.join(e.emoticon for e in selected_emojis)}")
 
-    # دالة لإلغاء التفاعل التلقائي
     @client.on(events.NewMessage(pattern=r'^الغاء ازعاج$'))
     async def cancel_auto_react(event):
         global target_user_id, selected_emojis
@@ -45,30 +41,17 @@ for client in accounts:
         selected_emojis = []
         print("تم إلغاء نمط الإزعاج.")
 
-    # دالة للتفاعل التلقائي
     @client.on(events.NewMessage())
     async def auto_react(event):
         if target_user_id and event.sender_id == target_user_id and selected_emojis:
             try:
-                # التحقق من التفاعلات الحالية
-                message_reactions = await client(GetMessageReactionsRequest(
+                # التفاعل مباشرة بدون التحقق من التفاعلات
+                await client(SendReactionRequest(
                     peer=event.chat_id,
-                    msg_id=event.id
+                    msg_id=event.id,
+                    reaction=selected_emojis[0]  # تفاعل مع أول رمز تعبيري
                 ))
-                if len(message_reactions.reactions) < 20:  # افترض أن الحد الأقصى هو 20
-                    await client(SendReactionRequest(
-                        peer=event.chat_id,
-                        msg_id=event.id,
-                        reaction=selected_emojis[0]  # تفاعل مع أول رمز تعبيري
-                    ))
-                    print(f"\u2705 تم التفاعل مع الرسالة {event.id} باستخدام الرموز: {' '.join(e.emoticon for e in selected_emojis)}")
-                else:
-                    print(f"\u26a0\ufe0f فشل التفاعل مع الرسالة {event.id}: الحد الأقصى للرموز قد تم الوصول إليه.")
-            except FloodWaitError as e:
-                # في حالة انتظار لفترة معينة
-                print(f"انتظر {e.seconds} ثانية بسبب الحد الزمني للتفاعل.")
-                await asyncio.sleep(e.seconds)
-                await auto_react(event)  # حاول مرة أخرى بعد الانتظار
+                print(f"\u2705 تم التفاعل مع الرسالة {event.id} باستخدام الرموز: {' '.join(e.emoticon for e in selected_emojis)}")
             except Exception as e:
                 print(f"\u26a0\ufe0f فشل التفاعل مع الرسالة {event.id}: {e}")
 
@@ -78,7 +61,7 @@ for client in accounts:
 
 print("\u2705 تم تشغيل جميع الجلسات بنجاح. استخدم 'ازعاج + الرموز' بالرد على رسالة لتفعيل النمط.")
 
-# تشغيل جميع الجلسات بشكل متزامن
+# تشغيل حلقة الأحداث
 from asyncio import get_event_loop, gather
 loop = get_event_loop()
 loop.run_until_complete(gather(*[client.run_until_disconnected() for client in accounts]))
