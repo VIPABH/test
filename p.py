@@ -5,11 +5,11 @@ from telethon.tl.types import ReactionEmoji
 accounts = []
 session_configs = [
     {"session": "session_1", "api_id": int(os.getenv("API_ID")), "api_hash": os.getenv("API_HASH")},
-    # {"session": "session_2", "api_id": int(os.getenv("API_ID_2")), "api_hash": os.getenv("API_HASH_2")},
-    # {"session": "session_3", "api_id": int(os.getenv("API_ID_3")), "api_hash": os.getenv("API_HASH_3")},
-    # {"session": "session_4", "api_id": int(os.getenv("API_ID_4")), "api_hash": os.getenv("API_HASH_4")},
-    # {"session": "session_5", "api_id": int(os.getenv("API_ID_5")), "api_hash": os.getenv("API_HASH_5")},
-    # {"session": "session_6", "api_id": int(os.getenv("API_ID_6")), "api_hash": os.getenv("API_HASH_6")},
+    {"session": "session_2", "api_id": int(os.getenv("API_ID_2")), "api_hash": os.getenv("API_HASH_2")},
+    {"session": "session_3", "api_id": int(os.getenv("API_ID_3")), "api_hash": os.getenv("API_HASH_3")},
+    {"session": "session_4", "api_id": int(os.getenv("API_ID_4")), "api_hash": os.getenv("API_HASH_4")},
+    {"session": "session_5", "api_id": int(os.getenv("API_ID_5")), "api_hash": os.getenv("API_HASH_5")},
+    {"session": "session_6", "api_id": int(os.getenv("API_ID_6")), "api_hash": os.getenv("API_HASH_6")},
 ]
 for conf in session_configs:
     accounts.append(TelegramClient(conf["session"], conf["api_id"], conf["api_hash"]))
