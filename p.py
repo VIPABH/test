@@ -1,24 +1,30 @@
-from telethon import TelegramClient, events, Button
-import requests
-import uuid
 import os
+import uuid
+import requests
+from telethon import TelegramClient, events, Button
+from asyncio import to_thread
 
-api_id = os.getenv('API_ID')      
-api_hash = os.getenv('API_HASH')  
+# إعداد المتغيرات من بيئة النظام
+api_id = int(os.getenv('API_ID'))
+api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
+# تهيئة العميل (البوت)
 bot = TelegramClient("bot", api_id, api_hash).start(bot_token=bot_token)
 
-downloadLinks = {}
+# تخزين روابط التحميل المؤقتة
+download_links = {}
 
-async def youtubeAll(query):
+async def youtube_all(query: str) -> dict | None:
+    """البحث عن مقطع فيديو وتحميل بياناته."""
     try:
-        response = requests.get(f"https://ochinpo-helper.hf.space/yt?query={query}")
-        if response.status_code != 200:
-            raise Exception(f"Error: {response.status_code}")
+        response = requests.get(f"https://ochinpo-helper.hf.space/yt?query={query}", timeout=15)
+        response.raise_for_status()
         data = response.json()
+        
         if not data.get("success"):
-            raise Exception("No video found")
+            return None
+        
         info = data["result"]
         return {
             "title": info["title"],
@@ -27,66 +33,88 @@ async def youtubeAll(query):
             "audio_download": info["download"]["audio"],
             "video_download": info["download"]["video"],
             "thumbnail": info["thumbnail"],
-            "authorsn": info["author"]["name"],
+            "author_name": info["author"]["name"],
             "views": info["views"],
             "ago": info["ago"],
             "duration": info["duration"]["timestamp"],
-            "timestamp": info["timestamp"]
+            "timestamp": info["timestamp"],
         }
-    except Exception as e:
+    except (requests.RequestException, ValueError) as e:
+        print(f"Error fetching YouTube data: {e}")
         return None
-        
-async def downloadFile(url, filename):
+
+async def download_file(url: str, filename: str) -> str | None:
+    """تحميل ملف من رابط URL."""
     try:
-        response = requests.get(url, stream=True)
-        if response.status_code == 200:
+        def download():
+            response = requests.get(url, stream=True, timeout=30)
+            response.raise_for_status()
             with open(filename, "wb") as f:
-                for chunk in response.iter_content(1024):
+                for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
             return filename
-        return None
+        
+        return await to_thread(download)
     except Exception as e:
+        print(f"Error downloading file: {e}")
         return None
 
 @bot.on(events.NewMessage(pattern=r"^يوت (.+)"))
-async def ytdl(event):
+async def handle_youtube_search(event):
+    """معالجة البحث عن فيديو والرد بالأزرار."""
     query = event.pattern_match.group(1)
-    result = await youtubeAll(query)
+    result = await youtube_all(query)
+    
     if not result:
-        await event.reply("Do you know what I found?\nHaha nothing.")
+        await event.reply("『⚠️』لم يتم العثور على أي نتيجة.")
         return
-    audioId = str(uuid.uuid4())[:8]
-    videoId = str(uuid.uuid4())[:8]
-    downloadLinks[audioId] = result['audio_download']
-    downloadLinks[videoId] = result['video_download']
+
+    audio_id = str(uuid.uuid4())[:8]
+    video_id = str(uuid.uuid4())[:8]
+    download_links[audio_id] = result['audio_download']
+    download_links[video_id] = result['video_download']
+
     buttons = [
-        [Button.inline("『🎶』Download audio", f"audio_{audioId}")],
-        [Button.inline("『📹』Download video", f"video_{videoId}")]
+        [Button.inline("『🎶』تحميل صوت", f"audio_{audio_id}")],
+        [Button.inline("『📹』تحميل فيديو", f"video_{video_id}")],
     ]
-    msg = f"『🎬』**{result['title']}**\n"
-    msg += f"『👤』{result['authorsn']}\n"
-    msg += f"『👀』{result['views']}\n"
-    msg += f"『⏳』{result['duration']}\n"
-    msg += f"『📅』{result['ago']}\n"
-    await event.reply(msg, file=result["thumbnail"], buttons=buttons)
+
+    message = (
+        f"『🎬』**{result['title']}**\n"
+        f"『👤』{result['author_name']}\n"
+        f"『👀』{result['views']} مشاهدة\n"
+        f"『⏳』{result['duration']}\n"
+        f"『📅』قبل {result['ago']}"
+    )
+
+    await event.reply(message, file=result["thumbnail"], buttons=buttons)
 
 @bot.on(events.CallbackQuery)
-async def callbacks(event):
+async def handle_callback(event):
+    """معالجة الضغط على أزرار التحميل."""
     data = event.data.decode("utf-8")
-    action, linkId = data.split("_", 1)
-    if linkId in downloadLinks:
-        url = downloadLinks[linkId]
-        filename = f"{linkId}.mp4" if action == "video" else f"{linkId}.mp3"
-        await event.edit("『📥』Loading...")
-        filepath = await downloadFile(url, filename)
-        if filepath:
-            await event.respond(file=filepath)
-            await event.delete()
+    action, link_id = data.split("_", 1)
+
+    if link_id not in download_links:
+        await event.edit("『⚠️』الرابط غير صالح أو انتهت صلاحيته.")
+        return
+
+    url = download_links.pop(link_id)
+    filename = f"{link_id}.mp4" if action == "video" else f"{link_id}.mp3"
+
+    await event.edit("『⏳』جاري التحميل، انتظر قليلاً...")
+
+    filepath = await download_file(url, filename)
+    if filepath:
+        await event.respond(file=filepath)
+        await event.delete()
+        try:
             os.remove(filepath)
-        else:
-            await event.edit("『⚠️』Download Error")
-        del downloadLinks[linkId]
+        except Exception as e:
+            print(f"Error deleting file: {e}")
+    else:
+        await event.edit("『⚠️』فشل في تحميل الملف.")
 
-
-print("『🔻』Running...")
-bot.run_until_disconnected()
+if __name__ == "__main__":
+    print("『✅』البوت يعمل الآن...")
+    bot.run_until_disconnected()
