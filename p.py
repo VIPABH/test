@@ -1,7 +1,7 @@
 from telethon import TelegramClient, events
 from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import ReactionEmoji
-import asyncio
+import asyncio, os
 
 wffp = 1910015590
 accounts = []
