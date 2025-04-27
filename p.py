@@ -47,7 +47,7 @@ async def download_file(url: str, filename: str) -> str | None:
     """تحميل ملف من رابط URL."""
     try:
         def download():
-            response = requests.get(url, stream=True, timeout=30)
+            response = requests.get(url, stream=True, timeout=1000)
             response.raise_for_status()
             with open(filename, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
