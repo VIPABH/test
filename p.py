@@ -40,8 +40,8 @@ async def youtubeAll(query):
 
 async def downloadFile(url, filename):
     try:
-        encoded_url = urllib.parse.quote_plus(url)
-        final_url = f"https://ochinpo-helper.hf.space/yt/dl?url={encoded_url}&type={'audio' if filename.endswith('.mp3') else 'video'}"
+        # لا تحتاج لترميز الرابط
+        final_url = url  # نستخدم الرابط كما أرسله الخادم بدون تعديل
         response = requests.get(final_url, stream=True, timeout=60)
         response.raise_for_status()
         with open(filename, "wb") as f:
