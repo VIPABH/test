@@ -1,50 +1,59 @@
-import logging
 import os
-import requests
-import re
-from telethon import events, TelegramClient
-from mutagen.mp3 import MP3
-api_id = os.getenv('API_ID')      
-api_hash = os.getenv('API_HASH')  
-bot_token = os.getenv('BOT_TOKEN')
-ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
-@ABH.on(events.NewMessage(pattern='يوت'))
-async def download_audio(event):
-    msg = event.text.strip()
-    found_links = find_urls(msg)
-    if not found_links:        
-        await event.reply('ماكو هيج رابط')
-        return
-    youtube_url = found_links[0]
-    if 'youtu.be/' in youtube_url:
-        video_id = youtube_url.split('youtu.be/')[1].split('?')[0]
-    elif 'youtube.com/watch?v=' in youtube_url:
-        video_id = youtube_url.split('v=')[1].split('&')[0]
-    else:
-        await event.reply('خطأ رابط')
-        return
-    audio_api_url = f"http://167.99.211.62/youtube/api.php?video_id={video_id}"
-    try:
-        audio_response = requests.get(audio_api_url, timeout=60)
-        audio_response.raise_for_status()
-    except Exception as e:
-        logging.error(f"Download Audio Error: {str(e)}")
-        await event.reply(f'{e}')
-        return
-    if not os.path.exists('downloads'):
-        os.makedirs('downloads')
-    temp_file_path = f"downloads/{video_id}.mp3"
-    with open(temp_file_path, 'wb') as f:
-        f.write(audio_response.content)
-    with open(temp_file_path, 'rb') as audio:
-        await event.client.send_file(
-            event.chat_id, 
-            audio, 
-            caption='**[Enjoy dear]**(https://t.me/VIPABH_BOT)', 
-            reply_to=event.message.id)
-    os.remove(temp_file_path)
-def find_urls(text):
-    url_regex = r"(https?://[^\s]+)"
-    return re.findall(url_regex, text)
-print("✅ جاري تشغيل البوت...")
-ABH.run_until_disconnected()
+from telethon import TelegramClient, events
+from telethon.tl.functions.messages import SendReactionRequest
+from telethon.tl.types import ReactionEmoji
+accounts = []
+session_configs = [
+    {"session": "session_1", "api_id": int(os.getenv("API_ID")), "api_hash": os.getenv("API_HASH")},
+    {"session": "session_2", "api_id": int(os.getenv("API_ID_2")), "api_hash": os.getenv("API_HASH_2")},
+    {"session": "session_3", "api_id": int(os.getenv("API_ID_3")), "api_hash": os.getenv("API_HASH_3")},
+    {"session": "session_4", "api_id": int(os.getenv("API_ID_4")), "api_hash": os.getenv("API_HASH_4")},
+    {"session": "session_5", "api_id": int(os.getenv("API_ID_5")), "api_hash": os.getenv("API_HASH_5")},
+    {"session": "session_6", "api_id": int(os.getenv("API_ID_6")), "api_hash": os.getenv("API_HASH_6")},
+]
+for conf in session_configs:
+    accounts.append(TelegramClient(conf["session"], conf["api_id"], conf["api_hash"]))
+target_user_id = None
+selected_emojis = []
+for client in accounts:
+    @client.on(events.NewMessage(pattern=r'^ازعاج\s+(.+)$'))
+    async def set_target_user_with_reaction(event):
+        global target_user_id, selected_emojis
+        if event.is_reply:
+            reply_msg = await event.get_reply_message()
+            target_user_id = reply_msg.sender_id
+            emojis_str = event.pattern_match.group(1).strip()
+            selected_emojis = [ReactionEmoji(emoticon=e.strip()) for e in emojis_str if e.strip()]
+            await event.respond(f"\u2705 تم تفعيل نمط الإزعاج على المستخدم `{target_user_id}` باستخدام الرموز: {' '.join(e.emoticon for e in selected_emojis)}")
+            print(f"تم تحديد {target_user_id} للتفاعل التلقائي باستخدام: {' '.join(e.emoticon for e in selected_emojis)}")
+        else:
+            await event.respond("\u2757 يجب الرد على رسالة المستخدم الذي تريد إزعاجه باستخدام الأمر: `ازعاج + \ud83c\udf53\ud83c\udf4c\u2728` (يمكنك وضع أكثر من رمز)")
+
+    @client.on(events.NewMessage(pattern=r'^الغاء ازعاج$'))
+    async def cancel_auto_react(event):
+        global target_user_id, selected_emojis
+
+        target_user_id = None
+        selected_emojis = []
+
+        await event.respond("\ud83d\udea9 تم إيقاف نمط الإزعاج. لن يتم التفاعل مع أي رسائل حالياً.")
+        print("تم إلغاء نمط الإزعاج.")
+
+    @client.on(events.NewMessage())
+    async def auto_react(event):
+        if target_user_id and event.sender_id == target_user_id and selected_emojis:
+            try:
+                await client(SendReactionRequest(
+                    peer=event.chat_id,
+                    msg_id=event.id,
+                    reaction=selected_emojis
+                ))
+                print(f"\u2705 تم التفاعل مع الرسالة {event.id} باستخدام الرموز: {' '.join(e.emoticon for e in selected_emojis)}")
+            except Exception as e:
+                print(f"\u26a0\ufe0f فشل التفاعل مع الرسالة {event.id}: {e}")
+for client in accounts:
+    client.start()
+print("\u2705 تم تشغيل جميع الجلسات بنجاح. استخدم 'ازعاج + الرموز' بالرد على رسالة لتفعيل النمط.")
+from asyncio import get_event_loop, gather
+loop = get_event_loop()
+loop.run_until_complete(gather(*[client.run_until_disconnected() for client in accounts]))
