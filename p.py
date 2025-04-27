@@ -3,9 +3,9 @@ import requests
 import uuid
 import os
 
-api_id = 
-api_hash = ""
-bot_token = ""
+api_id = os.getenv('API_ID')      
+api_hash = os.getenv('API_HASH')  
+bot_token = os.getenv('BOT_TOKEN')
 
 bot = TelegramClient("bot", api_id, api_hash).start(bot_token=bot_token)
 
