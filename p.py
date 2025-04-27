@@ -18,7 +18,7 @@ download_links = {}
 async def youtube_all(query: str) -> dict | None:
     """البحث عن مقطع فيديو وتحميل بياناته."""
     try:
-        response = requests.get(f"https://ochinpo-helper.hf.space/yt?query={query}", timeout=15)
+        response = requests.get(f"https://ochinpo-helper.hf.space/yt?query={query}", timeout=100)
         response.raise_for_status()
         data = response.json()
         
