@@ -1,7 +1,6 @@
 import os
 from telethon import TelegramClient, events
 from telethon.tl.functions.messages import SendReactionRequest
-from telethon.tl.types import ReactionEmoji
 from asyncio import sleep  # استخدام sleep لتحديد التأخير بين التفاعلات
 
 wffp = 1910015590  # معرف المستخدم المستهدف
@@ -32,9 +31,9 @@ for client in accounts:
             reply_msg = await event.get_reply_message()
             target_user_id = reply_msg.sender_id
             emojis_str = event.pattern_match.group(1).strip()
-            # تحويل الرموز التعبيرية إلى قائمة من كائنات ReactionEmoji
-            selected_emojis = [ReactionEmoji(emoticon=e.strip()) for e in emojis_str.split() if e.strip()]
-            print(f"تم تحديد {target_user_id} للتفاعل التلقائي باستخدام: {' '.join(e.emoticon for e in selected_emojis)}")
+            # تحويل الرموز التعبيرية إلى قائمة نصية من الرموز التعبيرية
+            selected_emojis = [e.strip() for e in emojis_str.split() if e.strip()]
+            print(f"تم تحديد {target_user_id} للتفاعل التلقائي باستخدام: {' '.join(selected_emojis)}")
 
     @client.on(events.NewMessage(pattern=r'^الغاء ازعاج$'))
     async def cancel_auto_react(event):
@@ -48,13 +47,13 @@ for client in accounts:
         if target_user_id and event.sender_id == target_user_id and selected_emojis:
             try:
                 for emoji in selected_emojis:
-                    # إرسال التفاعل بشكل صحيح مع كل رسالة
+                    # إرسال التفاعل مع الرموز التعبيرية النصية مباشرة
                     await client(SendReactionRequest(
                         peer=event.chat_id,
                         msg_id=event.id,
-                        reaction=emoji  # التفاعل مع الرسالة باستخدام الرموز التعبيرية
+                        reaction=emoji  # التفاعل باستخدام الرموز التعبيرية النصية
                     ))
-                    print(f"\u2705 تم التفاعل مع الرسالة {event.id} باستخدام الرموز: {emoji.emoticon}")
+                    print(f"\u2705 تم التفاعل مع الرسالة {event.id} باستخدام: {emoji}")
                     await sleep(5)  # تأخير بين التفاعلات
             except Exception as e:
                 print(f"\u26a0\ufe0f فشل التفاعل مع الرسالة {event.id}: {e}")
