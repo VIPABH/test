@@ -21,8 +21,7 @@ for client in accounts:
     async def set_target_user_with_reaction(event):
         global target_user_id, selected_emojis
         uid = event.sender_id
-        if uid == wffp:
-        if event.is_reply:
+        if event.is_reply and uid == wffp:
             reply_msg = await event.get_reply_message()
             target_user_id = reply_msg.sender_id
             emojis_str = event.pattern_match.group(1).strip()
