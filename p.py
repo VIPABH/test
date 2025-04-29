@@ -33,7 +33,9 @@ def get_authenticated_service():
         else:
             flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
                 CLIENT_SECRETS_FILE, SCOPES)
-            credentials = flow.run_local_server(port=0)
+            # منع فتح المتصفح واستخدام رابط بدلاً من ذلك
+            flow.run_local_server(port=0, authorization_prompt_message="Please visit this URL: {url}")
+            credentials = flow.credentials
         
         # حفظ بيانات الاعتماد للاستخدام المستقبلي
         with open('token.json', 'w') as token:
