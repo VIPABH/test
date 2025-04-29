@@ -1,48 +1,23 @@
 import os
-from telethon import TelegramClient, events
-import yt_dlp
+import google_auth_oauthlib.flow
+import google.auth.transport.requests
+from googleapiclient.discovery import build
 
-api_id = os.getenv('API_ID')      
-api_hash = os.getenv('API_HASH')  
-bot_token = os.getenv('BOT_TOKEN')
-client = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+# تحديد معلومات OAuth
+CLIENT_SECRETS_FILE = "YOUR_CLIENT_SECRET_FILE.json"
+API_NAME = 'youtube'
+API_VERSION = 'v3'
+SCOPES = ['https://www.googleapis.com/auth/youtube.readonly']  # النطاقات التي تريد الوصول إليها
 
-# تأكد من أن مجلد التحميل موجود
-if not os.path.exists('downloads'):
-    os.makedirs('downloads')
+# إعداد OAuth
+def authenticate_youtube_oauth():
+    # تحميل البيانات
+    flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
+        CLIENT_SECRETS_FILE, SCOPES)
 
-# دالة لتحميل الفيديو باستخدام yt-dlp
-def download_video(video_url):
-    ydl_opts = {
-        'format': 'bestvideo+bestaudio/best',  # لتحميل أفضل فيديو وصوت
-        'outtmpl': 'downloads/%(title)s.%(ext)s',  # تحديد اسم مجلد التحميل
-        'noplaylist': True,  # لتجنب تحميل قوائم التشغيل
-    }
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(video_url, download=True)
-        video_file = ydl.prepare_filename(info)
-        return video_file  # إرجاع اسم الملف الذي تم تحميله
-
-# التعامل مع الرسائل الواردة
-@client.on(events.NewMessage(pattern='/فيديو'))
-async def video_handler(event):
-    try:
-        video_url = event.text.split(None, 1)[1]  # استخراج الرابط المرسل من الرسالة
-    except IndexError:
-        await event.reply("يرجى إرسال رابط فيديو مع الأمر.")
-        return
+    # عملية المصادقة
+    credentials = flow.run_local_server(port=8080)
     
-    try:
-        # تحميل الفيديو
-        video_file = download_video(video_url)
-        # إرسال الفيديو إلى المستخدم
-        await event.reply(file=video_file)
-        # حذف الملف بعد إرساله لتوفير المساحة
-        os.remove(video_file)
-    except Exception as e:
-        await event.reply(f'حدث خطأ أثناء تحميل الفيديو: {str(e)}')
-
-# تشغيل البوت
-if __name__ == "__main__":
-    client.run_until_disconnected()
+    # بناء الخدمة
+    youtube = build(API_NAME, API_VERSION, credentials=credentials)
+    return youtube
