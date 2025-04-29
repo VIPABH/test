@@ -1,110 +1,149 @@
-import os
-import google_auth_oauthlib.flow
-import googleapiclient.discovery
-import googleapiclient.errors
-import yt_dlp
-from google.auth.transport.requests import Request
-from telethon import TelegramClient, events
+"""
+<--------- This file programmed by Zaid  --------->
 
-# إعدادات Telegram
-api_id = os.getenv('API_ID')  # الحصول على API_ID من البيئة
-api_hash = os.getenv('API_HASH')  # الحصول على API_HASH من البيئة
-bot_token = os.getenv('BOT_TOKEN')  # الحصول على توكن البوت من البيئة
+<--------- TG Account https://t.me/zddda --------->
 
-client = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)  # إعداد البوت باستخدام Telethon
+<--------- TG Channel https://t.me/y88f8 --------->
+"""
+token = "7273443857:AAEBhijWwhDwY6W_ycKhHKy7YypHHN52I4Y"
+import akinator
+from pyrogram import Client, filters, idle
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton 
+users_demon = {}
 
-# إعدادات Google API
-CLIENT_SECRETS_FILE = "cookies.txt"  # مسار ملف Client Secret الذي حصلت عليه من Google Developer Console
-API_NAME = 'youtube'
-API_VERSION = 'v3'
-SCOPES = ['https://www.googleapis.com/auth/youtube.readonly']  # نطاق الوصول للمحتوى
+bot = Client(
+  'demon'+token.split(":")[0],
+  20464188, 
+ '91f0d1ea99e43f18d239c6c7af21c40f',
+  bot_token=token, in_memory=True
+)
+bot.start()
 
-# دالة للمصادقة والحصول على بيانات المستخدم
-def get_authenticated_service():
-    credentials = None
-    # إذا كان لدى المستخدم بيانات اعتماد محفوظة مسبقًا
-    if os.path.exists('token.json'):
-        credentials = google.auth.credentials.Credentials.from_authorized_user_file('token.json', SCOPES)
+botUsername=bot.me.username
+
+@bot.on_message(filters.text & filters.group)
+async def demon_game(c,m):
+    text = m.text
+    if text == "سكب ديمون":
+      if m.from_user.id in users_demon:
+        del users_demon[m.from_user.id]
+        return await m.reply("⇜ ابشر الغيت اللعبة")
+      else:
+        return await m.reply("⇜ مافيه لعبة ديمون شغالة")
     
-    # إذا كانت بيانات الاعتماد غير موجودة أو منتهية الصلاحية
-    if not credentials or not credentials.valid:
-        if credentials and credentials.expired and credentials.refresh_token:
-            credentials.refresh(Request())
-        else:
-            flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-                CLIENT_SECRETS_FILE, SCOPES)
-            # منع فتح المتصفح واستخدام رابط بدلاً من ذلك
-            flow.run_local_server(port=0, authorization_prompt_message="Please visit this URL: {url}")
-            credentials = flow.credentials
-        
-        # حفظ بيانات الاعتماد للاستخدام المستقبلي
-        with open('token.json', 'w') as token:
-            token.write(credentials.to_json())
-    
-    return googleapiclient.discovery.build(API_NAME, API_VERSION, credentials=credentials)
+    if text == 'ديمون':
+     if m.from_user.id in users_demon:
+        return await m.reply("⇜ في لعبة ديمون شغالة استخدم امر <code>سكب ديمون</code>")
+     else:
+        return await m.reply(f'''بوو 👻
+انا ديمون 🧛🏻‍♀️ اقدر اعرف مين الشخصية الي فبالك !
 
-# دالة لتحميل الفيديو باستخدام yt-dlp
-def download_video(video_url):
-    ydl_opts = {
-        'format': 'bestvideo+bestaudio/best',  # لتحميل أفضل فيديو وصوت
-        'outtmpl': 'downloads/%(title)s.%(ext)s',  # تحديد اسم مجلد التحميل
-        'noplaylist': True,  # لتجنب تحميل قوائم التشغيل
-    }
+- فكر بشخص واضغط بدء وجاوب على اسئلتي''',
+     reply_markup=InlineKeyboardMarkup (
+       [
+       [
+        InlineKeyboardButton ('بدء 🧛🏻‍♀️',callback_data=f'start_aki:{m.from_user.id}')
+       ]
+       ]
+     ))
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(video_url, download=True)
-        video_file = ydl.prepare_filename(info)
-        return video_file  # إرجاع اسم الملف الذي تم تحميله
-
-# دالة للبحث عن الفيديو على YouTube باستخدام API
-def search_video(query):
-    youtube = get_authenticated_service()  # الحصول على خدمة YouTube المعتمدة
-    request = youtube.search().list(
-        part="snippet",
-        q=query,
-        type="video"
-    )
-    response = request.execute()
-
-    if response['items']:
-        video_id = response['items'][0]['id']['videoId']
-        video_url = f"https://www.youtube.com/watch?v={video_id}"
-        return video_url
+@bot.on_callback_query(filters.regex('aki'))
+def akinatorHandler(c,m):
+   if m.data == f'start_aki:{m.from_user.id}':
+    rep = InlineKeyboardMarkup (
+         [[InlineKeyboardButton ('🧚‍♀️', url=f't.me/{botUsername}')]]
+       )
+    m.edit_message_text("⇜ جاري بدء اللعبة...",reply_markup=rep)
+    aki= akinator.Akinator()
+    q = aki.start_game(language="ar")
+    users_demon.update({m.from_user.id:[aki,q]})
+    return m.edit_message_text(users_demon[m.from_user.id][1],
+     reply_markup=InlineKeyboardMarkup (
+       [
+       [
+         InlineKeyboardButton ('لا', callback_data=f'aki_c:n++{m.from_user.id}'),
+         InlineKeyboardButton ('اي', callback_data=f'aki_c:y++{m.from_user.id}'),
+       ],
+       [
+        InlineKeyboardButton ('ممكن',callback_data=f'aki_c:p++{m.from_user.id}')
+       ]
+       ]
+     ))
+   if m.data == f'aki_c:n++{m.from_user.id}':
+    users_demon[m.from_user.id][1] = users_demon[m.from_user.id][0].answer("n")
+    if users_demon[m.from_user.id][0].progression >= 65:
+        users_demon[m.from_user.id][0].win()
+        str_to_send = users_demon[m.from_user.id][0].first_guess
+        m.message.delete()
+        rep = InlineKeyboardMarkup (
+         [[InlineKeyboardButton ('🧚‍♀️', url=f't.me/{botUsername}')]]
+         )
+        try: c.send_photo(m.message.chat.id,str_to_send['absolute_picture_path'],caption=f"{str_to_send['name']} - {str_to_send['description']}",reply_markup=rep)
+        except: c.send_message(m.message.chat.id,f"{str_to_send['name']} - {str_to_send['description']}",reply_markup=rep)
+        del users_demon[m.from_user.id]
     else:
-        return None
-
-# تحميل الفيديو عبر YouTube API
-def download_from_youtube(query):
-    video_url = search_video(query)
-    if video_url:
-        print(f"تم العثور على الفيديو: {video_url}")
-        video_file = download_video(video_url)
-        print(f"تم تحميل الفيديو: {video_file}")
-        return video_file
+        return m.edit_message_text(users_demon[m.from_user.id][1],
+     reply_markup=InlineKeyboardMarkup (
+       [
+       [
+         InlineKeyboardButton ('لا', callback_data=f'aki_c:n++{m.from_user.id}'),
+         InlineKeyboardButton ('اي', callback_data=f'aki_c:y++{m.from_user.id}'),
+       ],
+       [
+        InlineKeyboardButton ('ممكن',callback_data=f'aki_c:p++{m.from_user.id}')
+       ]
+       ]
+     ))
+   if m.data == f'aki_c:y++{m.from_user.id}':
+    users_demon[m.from_user.id][1] = users_demon[m.from_user.id][0].answer("y")
+    if users_demon[m.from_user.id][0].progression >= 65:
+        users_demon[m.from_user.id][0].win()
+        str_to_send = users_demon[m.from_user.id][0].first_guess
+        m.message.delete()
+        rep = InlineKeyboardMarkup (
+         [[InlineKeyboardButton ('🧚‍♀️', url=f't.me/{botUsername}')]]
+         )
+        try: c.send_photo(m.message.chat.id,str_to_send['absolute_picture_path'],caption=f"{str_to_send['name']} - {str_to_send['description']}",reply_markup=rep)
+        except: c.send_message(m.message.chat.id,f"{str_to_send['name']} - {str_to_send['description']}",reply_markup=rep)
+        del users_demon[m.from_user.id]
     else:
-        print("لم يتم العثور على الفيديو.")
-        return None
-
-# التعامل مع الرسائل الواردة في Telegram
-@client.on(events.NewMessage(pattern='/فيديو'))
-async def video_handler(event):
-    try:
-        video_query = event.text.split(None, 1)[1]  # استخراج استعلام الفيديو من الرسالة
-    except IndexError:
-        await event.reply("يرجى إرسال استعلام الفيديو مع الأمر.")
-        return
-
-    try:
-        # تحميل الفيديو
-        video_file = download_from_youtube(video_query)
-        if video_file:
-            await event.reply(file=video_file)  # إرسال الفيديو إلى المستخدم
-            os.remove(video_file)  # حذف الملف بعد إرساله لتوفير المساحة
-        else:
-            await event.reply("لم يتم العثور على الفيديو.")
-    except Exception as e:
-        await event.reply(f'حدث خطأ أثناء تحميل الفيديو: {str(e)}')
-
-# تشغيل البوت
-if __name__ == "__main__":
-    client.run_until_disconnected()  # يشغل البوت إلى أن يتم قطع الاتصال
+        return m.edit_message_text(users_demon[m.from_user.id][1],
+     reply_markup=InlineKeyboardMarkup (
+       [
+       [
+         InlineKeyboardButton ('لا', callback_data=f'aki_c:n++{m.from_user.id}'),
+         InlineKeyboardButton ('اي', callback_data=f'aki_c:y++{m.from_user.id}'),
+       ],
+       [
+        InlineKeyboardButton ('ممكن',callback_data=f'aki_c:p++{m.from_user.id}')
+       ]
+       ]
+     ))
+   if m.data == f'aki_c:p++{m.from_user.id}':
+    users_demon[m.from_user.id][1] = users_demon[m.from_user.id][0].answer("p")
+    if users_demon[m.from_user.id][0].progression >= 65:
+        users_demon[m.from_user.id][0].win()
+        str_to_send = users_demon[m.from_user.id][0].first_guess
+        m.message.delete()
+        rep = InlineKeyboardMarkup (
+         [[InlineKeyboardButton ('🧚‍♀️', url=f't.me/{botUsername}')]]
+         )
+        try: c.send_photo(m.message.chat.id,str_to_send['absolute_picture_path'],caption=f"{str_to_send['name']} - {str_to_send['description']}",reply_markup=rep)
+        except: c.send_message(m.message.chat.id,f"{str_to_send['name']} - {str_to_send['description']}",reply_markup=rep)
+        del users_demon[m.from_user.id]
+    else:
+        return m.edit_message_text(users_demon[m.from_user.id][1],
+     reply_markup=InlineKeyboardMarkup (
+       [
+       [
+         InlineKeyboardButton ('لا', callback_data=f'aki_c:n++{m.from_user.id}'),
+         InlineKeyboardButton ('اي', callback_data=f'aki_c:y++{m.from_user.id}'),
+       ],
+       [
+        InlineKeyboardButton ('ممكن',callback_data=f'aki_c:p++{m.from_user.id}')
+       ]
+       ]
+     ))
+     
+print ("ur bot started successfully")
+idle()
