@@ -1,13 +1,18 @@
-
-from pyrogram import Client, filters
-import yt_dlp
 import os
+from telethon import TelegramClient, events
+import yt_dlp
 
-# توكن البوت الذي تحصل عليه من BotFather
+# الحصول على توكن البوت من البيئة
 bot_token = os.getenv('BOT_TOKEN')
+if not bot_token:
+    raise ValueError("BOT_TOKEN is not set. Please define it in your environment variables.")
 
-# إعداد البوت باستخدام Pyrogram
-app = Client("my_bot", bot_token=bot_token)
+# إعداد البوت باستخدام Telethon
+client = TelegramClient('my_bot', api_id=YOUR_API_ID, api_hash=YOUR_API_HASH).start(bot_token=bot_token)
+
+# تأكد من أن مجلد التحميل موجود
+if not os.path.exists('downloads'):
+    os.makedirs('downloads')
 
 # دالة لتحميل الفيديو باستخدام yt-dlp
 def download_video(video_url):
@@ -23,19 +28,24 @@ def download_video(video_url):
         return video_file  # إرجاع اسم الملف الذي تم تحميله
 
 # التعامل مع الرسائل الواردة
-@app.on_message(filters.command("فيديو"))
-async def video_handler(client, message):
-    video_url = message.text.split(None, 1)[1]  # استخراج الرابط المرسل من الرسالة
+@client.on(events.NewMessage(pattern='/فيديو'))
+async def video_handler(event):
+    try:
+        video_url = event.text.split(None, 1)[1]  # استخراج الرابط المرسل من الرسالة
+    except IndexError:
+        await event.reply("يرجى إرسال رابط فيديو مع الأمر.")
+        return
+    
     try:
         # تحميل الفيديو
         video_file = download_video(video_url)
         # إرسال الفيديو إلى المستخدم
-        await message.reply_video(video_file)
+        await event.reply(file=video_file)
         # حذف الملف بعد إرساله لتوفير المساحة
         os.remove(video_file)
     except Exception as e:
-        await message.reply(f'حدث خطأ أثناء تحميل الفيديو: {str(e)}')
+        await event.reply(f'حدث خطأ أثناء تحميل الفيديو: {str(e)}')
 
 # تشغيل البوت
 if __name__ == "__main__":
-    app.run()
+    client.run_until_disconnected()
