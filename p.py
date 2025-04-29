@@ -2,13 +2,10 @@ import os
 from telethon import TelegramClient, events
 import yt_dlp
 
-# الحصول على توكن البوت من البيئة
+api_id = os.getenv('API_ID')      
+api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
-if not bot_token:
-    raise ValueError("BOT_TOKEN is not set. Please define it in your environment variables.")
-
-# إعداد البوت باستخدام Telethon
-client = TelegramClient('my_bot', api_id=YOUR_API_ID, api_hash=YOUR_API_HASH).start(bot_token=bot_token)
+client = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
 # تأكد من أن مجلد التحميل موجود
 if not os.path.exists('downloads'):
