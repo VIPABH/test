@@ -7,11 +7,11 @@ from google.auth.transport.requests import Request
 from telethon import TelegramClient, events
 
 # إعدادات Telegram
-api_id = os.getenv('API_ID')
-api_hash = os.getenv('API_HASH')
-bot_token = os.getenv('BOT_TOKEN')
+api_id = os.getenv('API_ID')  # الحصول على API_ID من البيئة
+api_hash = os.getenv('API_HASH')  # الحصول على API_HASH من البيئة
+bot_token = os.getenv('BOT_TOKEN')  # الحصول على توكن البوت من البيئة
 
-client = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+client = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)  # إعداد البوت باستخدام Telethon
 
 # إعدادات Google API
 CLIENT_SECRETS_FILE = "cookies.txt"  # مسار ملف Client Secret الذي حصلت عليه من Google Developer Console
@@ -58,7 +58,7 @@ def download_video(video_url):
 
 # دالة للبحث عن الفيديو على YouTube باستخدام API
 def search_video(query):
-    youtube = get_authenticated_service()
+    youtube = get_authenticated_service()  # الحصول على خدمة YouTube المعتمدة
     request = youtube.search().list(
         part="snippet",
         q=query,
@@ -107,4 +107,4 @@ async def video_handler(event):
 
 # تشغيل البوت
 if __name__ == "__main__":
-    client.run_until_disconnected()
+    client.run_until_disconnected()  # يشغل البوت إلى أن يتم قطع الاتصال
