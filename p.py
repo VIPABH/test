@@ -24,9 +24,6 @@ async def create_group(name, about):
 @ABH.on(events.NewMessage(pattern='/config'))
 async def config_vars(event):
     me = await ABH.get_me()
-    gidvar_value = None
-    hidvar_value = None
-
     # الخطوة 1: البحث في الرسائل المحفوظة (الخاص)
     async for msg in ABH.iter_messages(me.id):
         if not msg.text:
