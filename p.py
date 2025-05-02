@@ -43,4 +43,4 @@ async def config_vars(event):
 {hidvar_value or "❌ لم يتم العثور على القيمة"}
     '''
     await event.reply(response)
-ABH.run_until_disconnected()
+ABH.start()
