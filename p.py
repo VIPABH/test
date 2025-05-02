@@ -7,7 +7,7 @@ import os
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 
-ABH = TelegramClient('userbot', api_id, api_hash)
+ABH = TelegramClient('s', api_id, api_hash)
 
 # دالة إنشاء مجموعة جديدة
 async def create_group(name, about):
