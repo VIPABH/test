@@ -9,7 +9,7 @@ api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 
 # إنشاء الكلاينت
-ABH = TelegramClient('code', api_id, api_hash)
+ABH = TelegramClient('s', api_id, api_hash)
 
 @ABH.on(events.NewMessage(pattern='/config'))
 async def config_vars(event):
@@ -48,7 +48,6 @@ async def config_vars(event):
     '''
     await event.reply(response)
 
-# تشغيل العميل
 async def main():
     await ABH.start()
     print("البرنامج يعمل... اضغط Ctrl+C للإيقاف.")
