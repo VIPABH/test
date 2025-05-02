@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-from telethon.tl.functions.messages import CreateChatRequest, EditChatAboutRequest
+from telethon.tl.functions.channels import CreateChannelRequest
 import re
 import asyncio
 import os
@@ -9,22 +9,24 @@ api_hash = os.getenv('API_HASH')
 
 ABH = TelegramClient('s', api_id, api_hash)
 
-# دالة إنشاء مجموعة جديدة
+# دالة إنشاء سوبر كروب جديد
 async def create_group(name, about):
-    me = await ABH.get_me()
-    result = await ABH(CreateChatRequest(
-        users=[me.username],  # إضافة المستخدم لنفسه لإنشاء الكروب
-        title=name
+    result = await ABH(CreateChannelRequest(
+        title=name,
+        about=about,
+        megagroup=True  # لإنشاء سوبر كروب
     ))
     group = result.chats[0]
-    await ABH(EditChatAboutRequest(peer=group.id, about=about))
     return group.id, group.title
 
-# دالة رئيسية لأمر /config
+# أمر /config
 @ABH.on(events.NewMessage(pattern='/config'))
 async def config_vars(event):
     me = await ABH.get_me()
-    # الخطوة 1: البحث في الرسائل المحفوظة (الخاص)
+    gidvar_value = None
+    hidvar_value = None
+
+    # الخطوة 1: البحث في الرسائل المحفوظة
     async for msg in ABH.iter_messages(me.id):
         if not msg.text:
             continue
@@ -39,7 +41,7 @@ async def config_vars(event):
         if gidvar_value and hidvar_value:
             break
 
-    # الخطوة 2: إذا لم توجد الفارات، يتم إنشاء المجموعات
+    # الخطوة 2: إنشاء المجموعات إذا لم تكن موجودة
     newly_created = []
     if not gidvar_value:
         gidvar_value, gid_name = await create_group("مجموعة التخزين", "هذه المجموعة مخصصة لتخزين البيانات.")
@@ -49,7 +51,7 @@ async def config_vars(event):
         hidvar_value, hid_name = await create_group("مجموعة الإشعارات", "هذه المجموعة مخصصة للتنبيهات.")
         newly_created.append(("مجموعة الإشعارات", hidvar_value))
 
-    # الخطوة 3: إذا تم الإنشاء، نحفظ الفارات برسالة في الخاص
+    # الخطوة 3: حفظ الفارات الجديدة في الرسائل المحفوظة
     if newly_created:
         config_text = f'''#فارات السورس
 لا تحذف الرسالة للحفاظ على كروبات السورس
@@ -59,13 +61,13 @@ async def config_vars(event):
         '''
         await ABH.send_message(me.id, config_text)
 
-        # إرسال تقرير بالـ IDs إلى الخاص
+        # إرسال تقرير خاص
         ids_text = "تم إنشاء الكروبات التالية:\n\n"
         for title, gid in newly_created:
             ids_text += f"**{title}**\nID: `{gid}`\n\n"
         await ABH.send_message(me.id, ids_text)
 
-    # الخطوة 4: إرسال الرد النهائي لأمر /config
+    # الخطوة 4: الرد على أمر /config
     response = f'''#فارات السورس
 لا تحذف الرسالة للحفاظ على كروبات السورس
 
