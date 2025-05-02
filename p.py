@@ -8,29 +8,40 @@ bot_token = os.getenv('BOT_TOKEN')
 client = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
 
-# دالة لتنزيل الفيديو
-def download_video(url):
-    ydl_opts = {
-        'format': '229',  # اختر الجودة المناسبة، هنا اخترت 229
-        'outtmpl': 'downloads/%(title)s.%(ext)s',  # حفظ الفيديو في مجلد downloads
-    }
-    
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+import re
 
-@client.on(events.NewMessage(pattern='/download'))
-async def download_handler(event):
-    url = event.text.split(' ')[1]  # الحصول على رابط الفيديو بعد /download
-    await event.reply('جاري تنزيل الفيديو...')
-    
-    # تنزيل الفيديو باستخدام yt-dlp
-    download_video(url)
-    
-    # إرسال الفيديو المحمل إلى المستخدم
-    video_path = 'downloads/' + url.split('/')[-1] + '.mp4'  # مسار الفيديو المحمل
-    if os.path.exists(video_path):
-        await event.reply(file=video_path)
-    else:
-        await event.reply('حدث خطأ أثناء تحميل الفيديو.')
+@ABH.on(events.NewMessage(pattern='/config'))
+async def config_vars(event):
+    me = await ABH.get_me()
+    gidvar_value = None
+    hidvar_value = None
 
+    async for msg in ABH.iter_messages(me.id):
+        if not msg.text:
+            continue
+
+        # نستخدم regex لاستخراج القيم بعد gidvar: و hidvar:
+        gid_match = re.search(r'gidvar:\s*(.+)', msg.text, re.IGNORECASE)
+        hid_match = re.search(r'hidvar:\s*(.+)', msg.text, re.IGNORECASE)
+
+        if gid_match:
+            gidvar_value = gid_match.group(1).strip()
+
+        if hid_match:
+            hidvar_value = hid_match.group(1).strip()
+
+        # إذا وجدنا القيمتين، لا داعي لإكمال البحث
+        if gidvar_value and hidvar_value:
+            break
+
+    response = f'''#فارات السورس
+لا تحذف الرسالة للحفاظ على كروبات السورس
+
+مجموعة التخزين gidvar:
+{gidvar_value or "❌ لم يتم العثور على القيمة"}
+
+مجموعة الإشعارات hidvar:
+{hidvar_value or "❌ لم يتم العثور على القيمة"}
+    '''
+    await event.reply(response)
 client.run_until_disconnected()
