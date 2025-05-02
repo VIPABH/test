@@ -14,7 +14,7 @@ import re
 def reply_or_mention_or_id_only(func):
     async def wrapper(event):
         message = event.message
-        me = await ABH.get_my()
+        me = (await event.ABH.get_me()).id
 
         # جلب الآيدي واليوزر الخاصين بك
         my_id = me.id
