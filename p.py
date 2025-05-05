@@ -7,7 +7,7 @@ import os
 api_id = os.getenv('API_ID')      
 api_hash = os.getenv('API_HASH')  
 bot_token = os.getenv('BOT_TOKEN')
-ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+ABH = TelegramClient('code', api_id, api_hash)
 @ABH.on(events.NewMessage(outgoing=True))
 async def pin(event):
     await event.reply('Hello, this is a test message!')
@@ -15,4 +15,4 @@ async def pin(event):
 async def pin(event):
     await event.reply('Hello, !')
 
-ABH.run_until_disconnected()
+ABH.start()
