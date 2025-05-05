@@ -11,10 +11,7 @@ ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 @ABH.on(events.NewMessage(outgoing=True))
 async def pin(event):
     await event.reply('Hello, this is a test message!')
-@ABH.on(events.NewMessage(incoming=True))
-async def pin(event):
-    await event.reply('Hello, !')
-@ABH.on(events.NewMessage(func=lambda e: e.is_private))
+@ABH.on(events.NewMessage(func=lambda e: e.is_private, incoming=True))
 async def pin(event):
     await event.reply('Hello, !')
 
