@@ -3,7 +3,7 @@ import asyncio, os
 
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
-
+print(api_id)
 ABH = TelegramClient('code', api_id, api_hash)
 
 @ABH.on(events.NewMessage(outgoing=True))
