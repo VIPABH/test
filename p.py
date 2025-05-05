@@ -14,4 +14,8 @@ async def pin(event):
 @ABH.on(events.NewMessage(incoming=True))
 async def pin(event):
     await event.reply('Hello, !')
+@ABH.on(events.NewMessage(func=lambda e: e.is_private))
+async def pin(event):
+    await event.reply('Hello, !')
+
 ABH.run_until_disconnected()
