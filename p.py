@@ -14,4 +14,10 @@ async def handle_outgoing(event):
 async def handle_private(event):
     await event.reply('Hello!')
 
-await ABH.start()
+def main():
+    ABH.start()  # ستطلب الجلسة إدخال الرقم أول مرة فقط
+    print("UserBot is running...")
+    ABH.run_until_disconnected()
+
+if __name__ == '__main__':
+    main()
