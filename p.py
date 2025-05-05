@@ -10,6 +10,7 @@ async def group_save(event):
     uid = event.sender_id
     sender = await event.get_sender()
     print(sender)
+    print(sender.bot)
 def main():
     ABH.start()  # ستطلب الجلسة إدخال الرقم أول مرة فقط
     print("UserBot is running...")
