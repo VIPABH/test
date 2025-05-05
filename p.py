@@ -5,15 +5,11 @@ api_id = int(os.getenv('API_ID_6'))
 api_hash = os.getenv('API_HASH_6')
 print(api_id)
 ABH = TelegramClient('session_6', api_id, api_hash)
-
-@ABH.on(events.NewMessage(outgoing=True))
-async def handle_outgoing(event):
-    await event.reply('Hello, this is a test message!')
-
-@ABH.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
-async def handle_private(event):
-    await event.reply('Hello!')
-
+@ABH.on(events.NewMessage)
+async def group_save(event):
+    uid = event.sender_id
+    sender = await event.get_sender()
+    print(sender)
 def main():
     ABH.start()  # ستطلب الجلسة إدخال الرقم أول مرة فقط
     print("UserBot is running...")
