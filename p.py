@@ -18,12 +18,12 @@ async def assign_permissions(event):
         await event.reply("يرجى الرد على رسالة المستخدم الذي تريد رفعه.")
         return
 
-    # reply = await event.get_reply_message()
-    # sender_id = event.sender_id
-    # admin_sessions[sender_id] = {
-    #     "target_id": reply.sender_id,
-    #     "rights": ChatAdminRights()
-    # }
+    reply = await event.get_reply_message()
+    sender_id = event.sender_id
+    admin_sessions[sender_id] = {
+        "target_id": reply.sender_id,
+        "rights": ChatAdminRights()
+    }
 
     await event.reply(
         "اختر الصلاحيات التي تريد منحها للمستخدم:",
@@ -46,6 +46,10 @@ async def assign_permissions(event):
 @bot.on(events.CallbackQuery)
 async def callback_handler(event):
     sender = event.sender_id
+    session = admin_sessions.get(sender)
+    if not session:
+        await event.answer("انتهت الجلسة أو غير مصرح لك.", alert=True)
+        return
 
     data = event.data.decode("utf-8")
     chat = event.chat_id
@@ -100,10 +104,10 @@ async def callback_handler(event):
             )
 
         except Exception as e:
-            await event.edit(f"❌ حدث خطأ أثناء الرفع:\n{e}")
+            await event.edit(f"❌ حدث خطأ أثناn{e}")
         return
 
-    # rights = admin_sessions[sender]["rights"]
+    rights = session["rights"]
 
     if data == "edit":
         rights.change_info = True
@@ -146,22 +150,6 @@ async def change_nickname(event):
     admin_sessions[sender] = {"target_id": target_id}
     await event.respond("✏️ أرسل اللقب الجديد في رسالة عادية الآن.")
 
-# @bot.on(events.NewMessage(pattern=None))
-# async def receive_nickname(event):
-#     sender = event.sender_id
-#     chat = event.chat_id
-#     r = await event.get_reply_message()
-#     nickname = event.raw_text
-#     try:
-#         await bot(EditAdminRequest(
-#             channel=chat,
-#             user_id=r.id,
-#             admin_rights=ChatAdminRights(),  # لن يتم تغيير الصلاحيات، فقط اللقب
-#             rank=nickname
-#         ))
-#         await event.reply(f"✅ تم تغيير اللقب إلى: {nickname}")
-#     except Exception as e:
-#         await event.reply(f"❌ فشل في تغيير اللقب:\n{e}")
-#     admin_sessions.pop(sender, None)
+# يمكنك لاحقًا إعادة تفعيل دالة تغيير اللقب بإضافة handler مخصص لها.
 
 bot.run_until_disconnected()
