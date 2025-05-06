@@ -23,17 +23,21 @@ async def promote_user(event):
                 user_to_promote = replied_message.sender_id  # المستخدم الذي سيتم رفعه
                 # استخدام event.chat_id للحصول على معرف المجموعة التي جرى فيها الحدث
                 chat_id = event.chat_id
+
                 # رفع المستخدم مشرفًا في المجموعة
+                rights = ChatAdminRights(
+                    change_info=True,  # السماح بتغيير معلومات المجموعة
+                    ban_users=True,    # السماح بحظر المستخدمين
+                    delete_messages=True,  # السماح بحذف الرسائل
+                    invite_users=True,  # السماح بدعوة المستخدمين
+                    pin_messages=True  # السماح بتثبيت الرسائل
+                )
+
+                # تعديل صلاحيات المشرف
                 await bot(EditAdminRequest(
                     channel=chat_id,  # استخدام channel بدلاً من chat_id
                     user_id=user_to_promote,
-                    rights=ChatAdminRights(
-                        change_info=True,  # السماح بتغيير معلومات المجموعة
-                        ban_users=True,    # السماح بحظر المستخدمين
-                        delete_messages=True,  # السماح بحذف الرسائل
-                        invite_users=True,  # السماح بدعوة المستخدمين
-                        pin_messages=True  # السماح بتثبيت الرسائل
-                    )
+                    admin_rights=rights  # استخدام admin_rights بدلاً من rights
                 ))
                 await event.reply("تم رفع المستخدم مشرفًا بنجاح!")
             else:
