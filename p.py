@@ -10,24 +10,29 @@ bot_token = os.getenv('BOT_TOKEN')
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# معرف المستخدم المصرح له
+# تعريف المعرف المصرح له
 authorized_user_id = 1910015590
-
-# معرف القناة أو المجموعة التي سيتم رفع المشرف فيها
-chat_id = 'اسم_المجموعة_أو_رقم_المجموعة'
 
 # دالة لرفع المستخدم إلى مشرف
 async def promote_user(event):
     if event.sender_id == authorized_user_id:
         try:
-            # رفع المستخدم مشرفًا في المجموعة
-            await bot(EditAdminRequest(
-                chat_id=chat_id,
-                user_id=event.reply_to_msg_id.sender_id,  # المستخدم الذي سيتم رفعه
-                is_admin=True,
-                rights=ChatAdminRights(add_admins=True, invite_to_channel=True, change_info=True, ban_users=True)
-            ))
-            await event.reply("تم رفع المستخدم مشرفًا بنجاح!")
+            # التحقق من أن الرسالة تحتوي على رد
+            if event.is_reply:
+                replied_message = await event.get_reply_message()
+                user_to_promote = replied_message.sender_id  # المستخدم الذي سيتم رفعه
+                # استخدام event.chat_id للحصول على معرف المجموعة التي جرى فيها الحدث
+                chat_id = event.chat_id
+                # رفع المستخدم مشرفًا في المجموعة
+                await bot(EditAdminRequest(
+                    chat_id=chat_id,
+                    user_id=user_to_promote,
+                    is_admin=True,
+                    rights=ChatAdminRights(add_admins=True, invite_to_channel=True, change_info=True, ban_users=True)
+                ))
+                await event.reply("تم رفع المستخدم مشرفًا بنجاح!")
+            else:
+                await event.reply("يرجى الرد على المستخدم الذي تريد رفعه كـ مشرف.")
         except Exception as e:
             await event.reply(f"حدث خطأ أثناء رفع المستخدم: {e}")
 
@@ -36,10 +41,7 @@ async def promote_user(event):
 async def assign_permissions(event):
     # التحقق إذا كان المرسل هو المصرح له
     if event.sender_id == authorized_user_id:
-        if event.is_reply:  # إذا كان المرسل يرد على رسالة، سيتم رفع المستخدم الذي رد عليه
-            await promote_user(event)
-        else:
-            await event.reply("يرجى الرد على المستخدم الذي تريد رفعه كـ مشرف.")
+        await promote_user(event)
     else:
         await event.reply("أنت غير مخول لرفع مشرفين.")
 
