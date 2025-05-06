@@ -18,12 +18,12 @@ async def assign_permissions(event):
         await event.reply("يرجى الرد على رسالة المستخدم الذي تريد رفعه.")
         return
 
-    reply = await event.get_reply_message()
-    sender_id = event.sender_id
-    admin_sessions[sender_id] = {
-        "target_id": reply.sender_id,
-        "rights": ChatAdminRights()
-    }
+    # reply = await event.get_reply_message()
+    # sender_id = event.sender_id
+    # admin_sessions[sender_id] = {
+    #     "target_id": reply.sender_id,
+    #     "rights": ChatAdminRights()
+    # }
 
     await event.reply(
         "اختر الصلاحيات التي تريد منحها للمستخدم:",
@@ -46,9 +46,6 @@ async def assign_permissions(event):
 @bot.on(events.CallbackQuery)
 async def callback_handler(event):
     sender = event.sender_id
-    if sender not in admin_sessions:
-        await event.answer("انتهت الجلسة أو غير مصرح لك.", alert=True)
-        return
 
     data = event.data.decode("utf-8")
     chat = event.chat_id
