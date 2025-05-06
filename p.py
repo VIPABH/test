@@ -28,12 +28,9 @@ async def change_nickname(event):
 @bot.on(events.NewMessage(pattern="^رفع مشرف$"))
 async def assign_permissions(event):
     button = [
-        Button.inline("👎تغيير معلومات", data="change"),
-        Button.inline("👎حذف", data="delete"),
-        Button.inline("👎حظر", data="ban"),
-        Button.inline("👎دعوة", data="invite"),
-        Button.inline("👎ادارة القصص", data="story"),
-        Button.inline("👎ادارة المحادثات", data="video_call"),
+        Button.inline("👎تغيير معلومات", data="change"),        Button.inline("👎حذف", data="delete"),
+        Button.inline("👎حظر", data="ban"),        Button.inline("👎دعوة", data="invite"),
+        Button.inline("👎ادارة القصص", data="story"),        Button.inline("👎ادارة المحادثات", data="video_call"),
         Button.inline("👎اضافة مشرفين", data="add_admin"),
     ]
     # استخدم send_message بدلاً من reply
