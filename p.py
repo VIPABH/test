@@ -1,4 +1,4 @@
-from telethon import TelegramClient, events, Button
+from telethon import TelegramClient, events
 import os
 
 # إعدادات البوت
@@ -11,51 +11,35 @@ bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 # معرف المستخدم المصرح له
 authorized_user_id = 1910015590
 
-# صلاحيات المستخدم (قيد الاستخدام)
-permissions = {
-    'change': False,
-    'delete': False,
-    'ban': False,
-    'invite': False,
-    'story': False,
-    'video_call': False,
-    'add_admin': False
-}
+# معرف القناة أو المجموعة التي سيتم رفع المشرف فيها
+chat_id = 'اسم_المجموعة_أو_رقم_المجموعة'
 
-# دالة مشتركة لتحديث الصلاحيات
-async def set_permission(permission, event):
+# دالة لرفع المستخدم إلى مشرف
+async def promote_user(event):
     if event.sender_id == authorized_user_id:
-        permissions[permission] = True
-        await event.answer(f"تم تفعيل صلاحية: {permission}")
+        try:
+            # رفع المستخدم مشرفًا في المجموعة
+            await bot(EditAdminRequest(
+                chat_id=chat_id,
+                user_id=event.reply_to_msg_id.sender_id,  # المستخدم الذي سيتم رفعه
+                is_admin=True,
+                rights=ChatAdminRights(add_admins=True, invite_to_channel=True, change_info=True, ban_users=True)
+            ))
+            await event.reply("تم رفع المستخدم مشرفًا بنجاح!")
+        except Exception as e:
+            await event.reply(f"حدث خطأ أثناء رفع المستخدم: {e}")
 
-# Handler for "تغيير لقبي"
-@bot.on(events.NewMessage(pattern="^تغيير لقبي$"))
-async def change_nickname(event):
-    await event.reply("ارسل اللقب", buttons=Button.force_reply(selective=True))
-
-# Handler for "رفع مشرف"
+# Handler للرسائل
 @bot.on(events.NewMessage(pattern="^رفع مشرف$"))
 async def assign_permissions(event):
-    buttons = [
-        Button.inline("👎تغيير معلومات", data="change"),
-        Button.inline("👎حذف", data="delete"),
-        Button.inline("👎حظر", data="ban"),
-        Button.inline("👎دعوة", data="invite"),
-        Button.inline("👎ادارة القصص", data="story"),
-        Button.inline("👎ادارة المحادثات", data="video_call"),
-        Button.inline("👎اضافة مشرفين", data="add_admin"),
-    ]
-    await event.client.send_message(
-        event.chat_id,
-        "حدد الصلاحيات التي تريد تفعيلها:",
-        buttons=buttons
-    )
-
-# Callback handler for all buttons
-@bot.on(events.CallbackQuery(func=lambda call: call.data in permissions.keys()))
-async def handle_callback(event):
-    permission = event.data.decode("utf-8")  # استخراج البيانات من الزر
-    await set_permission(permission, event)
+    # التحقق إذا كان المرسل هو المصرح له
+    if event.sender_id == authorized_user_id:
+        if event.is_reply:  # إذا كان المرسل يرد على رسالة، سيتم رفع المستخدم الذي رد عليه
+            await promote_user(event)
+        else:
+            await event.reply("يرجى الرد على المستخدم الذي تريد رفعه كـ مشرف.")
+    else:
+        await event.reply("أنت غير مخول لرفع مشرفين.")
 
 # تشغيل البوت
 bot.run_until_disconnected()
