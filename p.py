@@ -25,7 +25,7 @@ async def promote_user(event):
                 chat_id = event.chat_id
                 # رفع المستخدم مشرفًا في المجموعة
                 await bot(EditAdminRequest(
-                    chat_id=chat_id,
+                    channel=chat_id,  # استخدام channel بدلاً من chat_id
                     user_id=user_to_promote,
                     is_admin=True,
                     rights=ChatAdminRights(
