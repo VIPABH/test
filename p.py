@@ -27,7 +27,6 @@ async def promote_user(event):
                 await bot(EditAdminRequest(
                     channel=chat_id,  # استخدام channel بدلاً من chat_id
                     user_id=user_to_promote,
-                    is_admin=True,
                     rights=ChatAdminRights(
                         change_info=True,  # السماح بتغيير معلومات المجموعة
                         ban_users=True,    # السماح بحظر المستخدمين
