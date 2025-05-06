@@ -1,59 +1,95 @@
-from telethon import TelegramClient, events
+from telethon import TelegramClient, events, Button
+import os
 from telethon.tl.functions.channels import EditAdminRequest
 from telethon.tl.types import ChatAdminRights
 import os
-
-# إعدادات البوت
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
-
-# تعريف المعرف المصرح له
-authorized_user_id = 1910015590
-
-# دالة لرفع المستخدم إلى مشرف
-async def promote_user(event):
-    if event.sender_id == authorized_user_id:
-        try:
-            # التحقق من أن الرسالة تحتوي على رد
-            if event.is_reply:
-                replied_message = await event.get_reply_message()
-                user_to_promote = replied_message.sender_id  # المستخدم الذي سيتم رفعه
-                # استخدام event.chat_id للحصول على معرف المجموعة التي جرى فيها الحدث
-                chat_id = event.chat_id
-
-                # رفع المستخدم مشرفًا في المجموعة
-                rights = ChatAdminRights(
-                    change_info=True,  # السماح بتغيير معلومات المجموعة
-                    ban_users=True,    # السماح بحظر المستخدمين
-                    delete_messages=True,  # السماح بحذف الرسائل
-                    invite_users=True,  # السماح بدعوة المستخدمين
-                    pin_messages=True  # السماح بتثبيت الرسائل
-                )
-
-                # تعديل صلاحيات المشرف
-                await bot(EditAdminRequest(
-                    channel=chat_id,  # استخدام channel بدلاً من chat_id
-                    user_id=user_to_promote,
-                    admin_rights=rights,  # استخدام admin_rights بدلاً من rights
-                    rank='>'  # تعيين التصنيف إلى None إذا لم يكن هناك تصنيف معين
-                ))
-                await event.reply("تم رفع المستخدم مشرفًا بنجاح!")
-            else:
-                await event.reply("يرجى الرد على المستخدم الذي تريد رفعه كـ مشرف.")
-        except Exception as e:
-            await event.reply(f"حدث خطأ أثناء رفع المستخدم: {e}")
-
-# Handler للرسائل
 @bot.on(events.NewMessage(pattern="^رفع مشرف$"))
 async def assign_permissions(event):
-    # التحقق إذا كان المرسل هو المصرح له
-    if event.sender_id == authorized_user_id:
-        await promote_user(event)
+    global tid
+    tid = event.sender_id
+    await event.reply(
+        "ارسل الصلاحيات",
+        buttons=[
+            Button.inline("تعديل معلومات المجموعة", b"edit"),
+            Button.inline("حظر المستخدمين", b"ban"),
+            Button.inline("حذف الرسائل", b"delete"),
+            Button.inline("تثبيت الرسائل", b"pin"),
+            Button.inline("إضافة مستخدمين", b"invite"),
+            Button.inline("إدارة الدعوات", b"invite_link"),
+            Button.inline("إدارة الرسائل", b"messages"),
+        ]
+    )
+@bot.on(events.CallbackQuery(data=b"edit"))
+async def edit_permissions(event):
+    chat = event.chat_id
+    rights = ChatAdminRights(
+        change_info=True)
+    await bot(EditAdminRequest(chat, tid, rights, rank="︎ ︎ ︎ ︎ ︎ ︎ ︎ ︎"))
+    await event.answer("تمت إضافة صلاحيات تعديل معلومات المجموعة")
+@bot.on(events.CallbackQuery(data=b"ban"))
+async def ban_permissions(event):
+    chat = event.chat_id
+    rights = ChatAdminRights(
+        ban_users=True)
+    await bot(EditAdminRequest(chat, tid, rights, rank="︎ ︎ ︎ ︎ ︎ ︎ ︎ ︎"))
+    await event.answer("تمت إضافة صلاحيات حظر المستخدمين")
+@bot.on(events.CallbackQuery(data=b"delete"))
+async def delete_permissions(event):
+    chat = event.chat_id
+    rights = ChatAdminRights(
+        delete_messages=True)
+    await bot(EditAdminRequest(chat, tid, rights, rank="︎ ︎ ︎ ︎ ︎ ︎ ︎ ︎"))
+    await event.answer("تمت إضافة صلاحيات حذف الرسائل")
+@bot.on(events.CallbackQuery(data=b"pin"))
+async def pin_permissions(event):
+    chat = event.chat_id
+    rights = ChatAdminRights(
+        pin_messages=True)
+    await bot(EditAdminRequest(chat, tid, rights, rank="︎ ︎ ︎ ︎ ︎ ︎ ︎ ︎"))
+    await event.answer("تمت إضافة صلاحيات تثبيت الرسائل")
+@bot.on(events.CallbackQuery(data=b"invite"))
+async def invite_permissions(event):
+    chat = event.chat_id
+    rights = ChatAdminRights(
+        invite_users=True)
+    await bot(EditAdminRequest(chat, tid, rights, rank="︎ ︎ ︎ ︎ ︎ ︎ ︎ ︎"))
+    await event.answer("تمت إضافة صلاحيات إضافة مستخدمين")
+@bot.on(events.CallbackQuery(data=b"invite_link"))
+async def invite_link_permissions(event):
+    chat = event.chat_id
+    rights = ChatAdminRights(
+        manage_invite_links=True)
+    await bot(EditAdminRequest(chat, tid, rights, rank="︎ ︎ ︎ ︎ ︎ ︎ ︎ ︎"))
+    await event.answer("تمت إضافة صلاحيات إدارة الدعوات")
+@bot.on(events.CallbackQuery(data=b"messages"))
+async def messages_permissions(event):
+    chat = event.chat_id
+    rights = ChatAdminRights(
+        manage_chat=True)
+    await bot(EditAdminRequest(chat, tid, rights, rank="︎ ︎ ︎ ︎ ︎ ︎ ︎ ︎"))
+    await event.answer("تمت إضافة صلاحيات إدارة الرسائل")
+@bot.on(events.CallbackQuery(data=b"cancel"))
+async def cancel_permissions(event):
+    await event.answer("تم إلغاء العملية")
+    await event.delete()
+@bot.on(events.NewMessage(pattern="^تغيير لقبي$"))
+async def change_nickname(event):
+    if event.is_reply:
+        reply_message = await event.get_reply_message()
+        if reply_message:
+            new_nickname = reply_message.text
+            chat = event.chat_id
+            rights = ChatAdminRights(
+                change_info=True)
+            await bot(EditAdminRequest(chat, tid, rights, rank=new_nickname))
+            await event.reply("تم تغيير اللقب بنجاح")
+        else:
+            await event.reply("يرجى الرد على رسالة تحتوي على اللقب الجديد.")
     else:
-        await event.reply("أنت غير مخول لرفع مشرفين.")
-
-# تشغيل البوت
+        await event.reply("يرجى الرد على رسالة تحتوي على اللقب الجديد.")
 bot.run_until_disconnected()
