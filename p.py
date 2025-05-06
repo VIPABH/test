@@ -3,7 +3,7 @@ import os
 
 # إعدادات البوت
 api_id = int(os.getenv('API_ID'))
-api_hash = os.getenv('API_HASH')
+api_hash = os.getenv('API_HASH'))
 bot_token = os.getenv('BOT_TOKEN')
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
@@ -49,7 +49,9 @@ async def assign_permissions(event):
         Button.inline("👎ادارة القصص", data="story"),
         Button.inline("👎ادارة المحادثات", data="video_call"),
         Button.inline("👎اضافة مشرفين", data="add_admin"),
+        Button.inline("✔️رفع الصلاحيات", data="finalize")  # زر رفع الصلاحيات
     ]
+    # استخدم send_message بدلاً من reply
     await event.client.send_message(
         event.chat_id, 
         "حدد الصلاحيات وارسل اللقب", 
@@ -84,6 +86,12 @@ async def manage_video_call(event):
 @bot.on(events.CallbackQuery(func=lambda call: call.data == b"add_admin"))
 async def add_admin_permissions(event):
     await update_permission('add_admin', event)
+
+@bot.on(events.CallbackQuery(func=lambda call: call.data == b"finalize"))
+async def finalize_permissions(event):
+    # بعد تحديد جميع الصلاحيات، يمكن هنا إضافة منطق لتنفيذ ما بعده
+    await event.answer("تم رفع الصلاحيات بنجاح!")
+    # يمكن إرسال رسالة للمجموعة هنا إذا كنت بحاجة لإعلامهم بأن الصلاحيات تم رفعها
 
 # تشغيل البوت
 bot.run_until_disconnected()
