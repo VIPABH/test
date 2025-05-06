@@ -103,7 +103,7 @@ async def callback_handler(event):
             await event.edit(f"❌ حدث خطأ أثناء الرفع:\n{e}")
         return
 
-    rights = admin_sessions[sender]["rights"]
+    # rights = admin_sessions[sender]["rights"]
 
     if data == "edit":
         rights.change_info = True
