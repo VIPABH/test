@@ -1,32 +1,20 @@
 from telethon import TelegramClient, events, Button
 import os
 
-api_id    = int(os.getenv('API_ID'))
-api_hash  = os.getenv('API_HASH')
+api_id = int(os.getenv('API_ID'))
+api_hash = os.getenv('API_HASH'))
 bot_token = os.getenv('BOT_TOKEN')
-
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
-
-# تعريف المتغيرات الخاصة بالصلاحيات
-permissions = {
-    'change': False,
-    'delete': False,
-    'ban': False,
-    'invite': False,
-    'story': False,
-    'video_call': False,
-    'add_admin': False
-}
 
 @bot.on(events.NewMessage(pattern="^تغيير لقبي$"))
 async def change(event):
-    await event.reply(
+    await event.message.reply(
         "ارسل اللقب",
         buttons=Button.force_reply(selective=True)
     )
 
-@bot.on(events.NewMessage(pattern="^رفع مشرف$"))
-async def assign_permissions(event):
+@bot.on(events.NewMessage(pattern="^.رفع مشرف$"))
+async def change(event):
     button = [
         Button.inline("👎تغيير معلومات", data="change"),
         Button.inline("👎حذف", data="delete"),
@@ -35,44 +23,75 @@ async def assign_permissions(event):
         Button.inline("👎ادارة القصص", data="story"),
         Button.inline("👎ادارة المحادثات", data="video_call"),
         Button.inline("👎اضافة مشرفين", data="add_admin"),
-        Button.inline("✅رفع العضو مشرف", data="promote_admin")  # الزر الجديد لرفع العضو مشرف
     ]
-    await event.reply(
+    await event.message.reply(
         "حدد الصلاحيات وارسل اللقب",
         buttons=button,
         reply_markup=Button.force_reply(selective=True)
     )
 
-@bot.on(events.CallbackQuery(func=lambda call: call.data in [b"change", b"delete", b"ban", b"invite", b"story", b"video_call", b"add_admin", b"promote_admin"]))
-async def handle_permissions(event):
-    # تعريف المعرّف الخاص بالمسؤول
+# Callback queries handling
+@bot.on(events.CallbackQuery(func=lambda call: call.data == b"change"))
+async def change(event):
+    global change
     wfffp = 1910015590
     uid = event.sender_id
     if not uid == wfffp:
         return
+    delete = True
 
-    action = event.data.decode()  # تحويل البايت إلى نص
-    if action != "promote_admin":
-        permissions[action] = not permissions[action]  # عكس القيمة (إذا كانت True تصبح False والعكس)
+@bot.on(events.CallbackQuery(func=lambda call: call.data == b"delete"))
+async def change(event):
+    global delete
+    wfffp = 1910015590
+    uid = event.sender_id
+    if not uid == wfffp:
+        return
+    change = True
 
-    # تعديل الرسالة بناءً على حالة الزر
-    new_text = "تم تحديث الصلاحيات:\n"
-    for perm, status in permissions.items():
-        new_text += f"{perm}: {'👍' if status else '👎'}\n"
+@bot.on(events.CallbackQuery(func=lambda call: call.data == b"ban"))
+async def change(event):
+    global ban
+    wfffp = 1910015590
+    uid = event.sender_id
+    if not uid == wfffp:
+        return
+    ban = True
 
-    if action == "promote_admin":
-        # تحقق من تفعيل صلاحية "إضافة مشرفين" قبل رفع العضو مشرفًا
-        if permissions['add_admin']:
-            # رفع العضو مشرفًا
-            try:
-                target_user = event.sender
-                await bot.edit_admin(event.chat_id, target_user, is_admin=True)
-                new_text += "\nتم رفع العضو مشرفًا بنجاح!"
-            except Exception as e:
-                new_text += f"\nفشل رفع العضو مشرفًا: {str(e)}"
+@bot.on(events.CallbackQuery(func=lambda call: call.data == b"invite"))
+async def change(event):
+    global invite
+    wfffp = 1910015590
+    uid = event.sender_id
+    if not uid == wfffp:
+        return
+    invite = True
 
-    # تعديل الرسالة مع الأزرار
-    await event.edit(new_text, buttons=event.message.buttons)
+@bot.on(events.CallbackQuery(func=lambda call: call.data == b"story"))
+async def change(event):
+    global story
+    wfffp = 1910015590
+    uid = event.sender_id
+    if not uid == wfffp:
+        return
+    story = True
 
-# تشغيل البوت
+@bot.on(events.CallbackQuery(func=lambda call: call.data == b"video_call"))
+async def change(event):
+    global video_call
+    wfffp = 1910015590
+    uid = event.sender_id
+    if not uid == wfffp:
+        return
+    video_call = True
+
+@bot.on(events.CallbackQuery(func=lambda call: call.data == b"add_admin"))
+async def change(event):
+    global add_admin
+    wfffp = 1910015590
+    uid = event.sender_id
+    if not uid == wfffp:
+        return
+    add_admin = True
+
 bot.run_until_disconnected()
