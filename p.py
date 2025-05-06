@@ -36,10 +36,12 @@ async def assign_permissions(event):
         Button.inline("👎ادارة المحادثات", data="video_call"),
         Button.inline("👎اضافة مشرفين", data="add_admin"),
     ]
-    await event.reply(
-        "حدد الصلاحيات وارسل اللقب",
-        buttons=button,
-        reply_markup=Button.force_reply(selective=True)
+    # استخدم send_message بدلاً من reply
+    await event.client.send_message(
+        event.chat_id,  # نفس الـ chat_id المستخدم في الحدث
+        "حدد الصلاحيات وارسل اللقب",  # النص الذي سيظهر في الرسالة
+        buttons=button,  # الأزرار المدمجة
+        reply_markup=Button.force_reply(selective=True)  # مربع الرد
     )
 # Callback handlers for different actions
 @bot.on(events.CallbackQuery(func=lambda call: call.data == b"change"))
