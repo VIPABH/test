@@ -1,20 +1,12 @@
-from telethon import TelegramClient, events
-import asyncio, os
-
-api_id = int(os.getenv('API_ID_6'))
-api_hash = os.getenv('API_HASH_6')
-print(api_id)
-ABH = TelegramClient('session_6', api_id, api_hash)
-@ABH.on(events.NewMessage)
-async def group_save(event):
-    uid = event.sender_id
-    sender = await event.get_sender()
-    print(sender)
-    print(sender.bot)
-def main():
-    ABH.start()  # ستطلب الجلسة إدخال الرقم أول مرة فقط
-    print("UserBot is running...")
-    ABH.run_until_disconnected()
-
-if __name__ == '__main__':
-    main()
+from telethon.tl.types import ForceReply
+from telethon import TelegramClient, events 
+api_id = os.getenv('API_ID')      
+api_hash = os.getenv('API_HASH')  
+bot_token = os.getenv('BOT_TOKEN')
+ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+@ABH.on(events.NewMessage(pattern="^رفع مشرف.$"))
+async def promote(event):
+    await event.reply(
+        "ارسل الصلاحيات",
+        reply_markup=ForceReply(selective=True)
+    )
