@@ -41,7 +41,7 @@ async def assign_permissions(event):
         event.chat_id,  # نفس الـ chat_id المستخدم في الحدث
         "حدد الصلاحيات وارسل اللقب",  # النص الذي سيظهر في الرسالة
         buttons=button,  # الأزرار المدمجة
-        reply_markup=Button.force_reply(selective=True)  # مربع الرد
+        # reply_markup=Button.force_reply(selective=True)  # مربع الرد
     )
 # Callback handlers for different actions
 @bot.on(events.CallbackQuery(func=lambda call: call.data == b"change"))
