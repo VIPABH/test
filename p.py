@@ -7,6 +7,15 @@ bot_token = os.getenv('BOT_TOKEN')
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
+# تعريف المتغيرات العامة
+change = False
+delete = False
+ban = False
+invite = False
+story = False
+video_call = False
+add_admin = False
+
 # Handler for "تغيير لقبي"
 @bot.on(events.NewMessage(pattern="^تغيير لقبي$"))
 async def change_nickname(event):
