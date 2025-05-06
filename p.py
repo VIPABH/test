@@ -1,4 +1,6 @@
 from telethon import TelegramClient, events
+from telethon.tl.functions.channels import EditAdminRequest
+from telethon.tl.types import ChatAdminRights
 import os
 
 # إعدادات البوت
