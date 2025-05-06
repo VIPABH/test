@@ -153,12 +153,12 @@ async def change_nickname(event):
 async def receive_nickname(event):
     sender = event.sender_id
     chat = event.chat_id
-    target_id = admin_sessions[sender]["target_id"]
+    r = await event.get_reply_message()
     nickname = event.raw_text
     try:
         await bot(EditAdminRequest(
             channel=chat,
-            user_id=target_id,
+            user_id=r.id,
             admin_rights=ChatAdminRights(),  # لن يتم تغيير الصلاحيات، فقط اللقب
             rank=nickname
         ))
