@@ -10,3 +10,4 @@ async def promote(event):
         "ارسل الصلاحيات",
         reply_markup=ForceReply(selective=True)
     )
+ABH.run_until_disconnected()
