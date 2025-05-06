@@ -37,7 +37,8 @@ async def promote_user(event):
                 await bot(EditAdminRequest(
                     channel=chat_id,  # استخدام channel بدلاً من chat_id
                     user_id=user_to_promote,
-                    admin_rights=rights  # استخدام admin_rights بدلاً من rights
+                    admin_rights=rights,  # استخدام admin_rights بدلاً من rights
+                    rank='>'  # تعيين التصنيف إلى None إذا لم يكن هناك تصنيف معين
                 ))
                 await event.reply("تم رفع المستخدم مشرفًا بنجاح!")
             else:
