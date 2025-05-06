@@ -9,58 +9,47 @@ bot_token = os.getenv('BOT_TOKEN')
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# تخزين الجلسات المؤقتة لكل مستخدم يطلب رفع مشرف
+# تخزين مؤقت لصلاحيات المستخدم
 admin_sessions = {}
 
 @bot.on(events.NewMessage(pattern="^رفع مشرف$"))
 async def assign_permissions(event):
-    sender = event.sender_id
-
     if not event.is_reply:
         await event.reply("يرجى الرد على رسالة المستخدم الذي تريد رفعه.")
         return
 
     reply = await event.get_reply_message()
-    target_user = reply.sender_id
-
-    # تهيئة الجلسة
-    admin_sessions[sender] = {
-        "target_id": target_user,
+    sender_id = event.sender_id
+    admin_sessions[sender_id] = {
+        "target_id": reply.sender_id,
         "rights": ChatAdminRights()
     }
 
     await event.reply(
-        "اختر الصلاحيات التي تريد منحها ثم اضغط على تنفيذ:",
+        "اختر الصلاحيات التي تريد منحها للمستخدم:",
         buttons=[
-            [Button.inline("تعديل المعلومات", b"edit")],
-            [Button.inline("حظر المستخدمين", b"ban")],
-            [Button.inline("حذف الرسائل", b"delete")],
-            [Button.inline("تثبيت الرسائل", b"pin")],
-            [Button.inline("دعوة مستخدمين", b"invite")],
-            [Button.inline("إدارة الدعوات", b"invite_link")],
-            [Button.inline("إدارة الرسائل", b"messages")],
-            [Button.inline("✅ تنفيذ الرفع", b"promote")],
-            [Button.inline("❌ إلغاء", b"cancel")],
+            [Button.inline("🛠️ تعديل معلومات", b"edit"),
+             Button.inline("🔨 حظر المستخدمين", b"ban")],
+            [Button.inline("🗑️ حذف الرسائل", b"delete"),
+             Button.inline("📌 تثبيت الرسائل", b"pin")],
+            [Button.inline("➕ دعوة مستخدمين", b"invite"),
+             Button.inline("🔗 إدارة الدعوات", b"invite_link")],
+            [Button.inline("💬 إدارة الرسائل", b"messages"),
+             Button.inline("📚 إدارة الستوري", b"stories")],
+            [Button.inline("✅ تنفيذ", b"promote"),
+             Button.inline("❌ إلغاء", b"cancel")]
         ]
     )
 
-# تحديث صلاحيات مؤقتة في الجلسة
-def update_rights(user_id, **kwargs):
-    if user_id in admin_sessions:
-        rights = admin_sessions[user_id]['rights']
-        for k, v in kwargs.items():
-            setattr(rights, k, v)
-
-# تعامل مع ضغط الأزرار
 @bot.on(events.CallbackQuery)
 async def callback_handler(event):
     sender = event.sender_id
-    chat = event.chat_id
-    data = event.data.decode()
-
     if sender not in admin_sessions:
-        await event.answer("يرجى بدء العملية من خلال أمر 'رفع مشرف'.")
+        await event.answer("انتهت الجلسة أو غير مصرح لك.", alert=True)
         return
+
+    data = event.data.decode("utf-8")
+    chat = event.chat_id
 
     if data == "cancel":
         admin_sessions.pop(sender, None)
@@ -69,52 +58,72 @@ async def callback_handler(event):
 
     if data == "promote":
         session = admin_sessions.pop(sender)
+        rights = session['rights']
+        target_id = session['target_id']
+
         try:
             await bot(EditAdminRequest(
                 channel=chat,
-                user_id=session['target_id'],
-                admin_rights=session['rights'],
+                user_id=target_id,
+                admin_rights=rights,
                 rank="مشرف"
             ))
-            await event.edit("✅ تم رفع المستخدم مشرفًا بنجاح.")
+
+            # وصف الصلاحيات
+            granted_rights = []
+
+            if rights.change_info:
+                granted_rights.append("تعديل معلومات المجموعة")
+            if rights.ban_users:
+                granted_rights.append("حظر المستخدمين")
+            if rights.delete_messages:
+                granted_rights.append("حذف الرسائل")
+            if rights.pin_messages:
+                granted_rights.append("تثبيت الرسائل")
+            if rights.invite_users:
+                granted_rights.append("دعوة مستخدمين")
+            if rights.manage_invite_links:
+                granted_rights.append("إدارة الدعوات")
+            if rights.manage_chat:
+                granted_rights.append("إدارة الرسائل")
+            if any([rights.post_stories, rights.edit_stories, rights.delete_stories]):
+                granted_rights.append("إدارة الستوري")
+
+            desc = "\n• " + "\n• ".join(granted_rights) if granted_rights else "بدون صلاحيات مذكورة"
+            await event.edit(f"✅ تم رفع المستخدم مشرفًا بالصلاحيات التالية:\n{desc}")
+
         except Exception as e:
-            await event.edit(f"حدث خطأ: {e}")
+            await event.edit(f"❌ حدث خطأ أثناء الرفع:\n{e}")
         return
 
-    # تحديث الحقوق حسب الزر
-    permission_map = {
-        "edit": {"change_info": True},
-        "ban": {"ban_users": True},
-        "delete": {"delete_messages": True},
-        "pin": {"pin_messages": True},
-        "invite": {"invite_users": True},
-        "invite_link": {"manage_invite_links": True},
-        "messages": {"manage_chat": True},
-    }
+    # تعديل الصلاحيات بناءً على الأزرار
+    rights = admin_sessions[sender]["rights"]
 
-    if data in permission_map:
-        update_rights(sender, **permission_map[data])
-        await event.answer("✅ تمت إضافة الصلاحية.")
-
-@bot.on(events.NewMessage(pattern="^تغيير لقبي$"))
-async def change_nickname(event):
-    if not event.is_reply:
-        await event.reply("يرجى الرد على رسالة تحتوي على اللقب الجديد.")
-        return
-
-    reply = await event.get_reply_message()
-    new_rank = reply.text
-    chat = event.chat_id
-
-    try:
-        await bot(EditAdminRequest(
-            channel=chat,
-            user_id=event.sender_id,
-            admin_rights=ChatAdminRights(),  # لا تغيّر الصلاحيات
-            rank=new_rank
-        ))
-        await event.reply("✅ تم تغيير اللقب بنجاح.")
-    except Exception as e:
-        await event.reply(f"حدث خطأ: {e}")
+    if data == "edit":
+        rights.change_info = True
+        await event.answer("✔️ تم تفعيل: تعديل معلومات المجموعة")
+    elif data == "ban":
+        rights.ban_users = True
+        await event.answer("✔️ تم تفعيل: حظر المستخدمين")
+    elif data == "delete":
+        rights.delete_messages = True
+        await event.answer("✔️ تم تفعيل: حذف الرسائل")
+    elif data == "pin":
+        rights.pin_messages = True
+        await event.answer("✔️ تم تفعيل: تثبيت الرسائل")
+    elif data == "invite":
+        rights.invite_users = True
+        await event.answer("✔️ تم تفعيل: دعوة مستخدمين")
+    elif data == "invite_link":
+        rights.manage_invite_links = True
+        await event.answer("✔️ تم تفعيل: إدارة الدعوات")
+    elif data == "messages":
+        rights.manage_chat = True
+        await event.answer("✔️ تم تفعيل: إدارة الرسائل")
+    elif data == "stories":
+        rights.post_stories = True
+        rights.edit_stories = True
+        rights.delete_stories = True
+        await event.answer("✔️ تم تفعيل: إدارة الستوري")
 
 bot.run_until_disconnected()
