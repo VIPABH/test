@@ -39,9 +39,8 @@ async def assign_permissions(event):
     await event.reply(
         "حدد الصلاحيات وارسل اللقب",
         buttons=button,
-        buttons=Button.force_reply(selective=True)
+        reply_markup=Button.force_reply(selective=True)
     )
-
 # Callback handlers for different actions
 @bot.on(events.CallbackQuery(func=lambda call: call.data == b"change"))
 async def change_info(event):
