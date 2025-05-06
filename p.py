@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-from telethon.tl.custom import ForceReply  # استيراد ForceReply من telethon.tl.custom
+from telethon.tl.types import ForceReply  # تأكد من استيراد ForceReply بشكل صحيح
 import os
 
 # إعدادات البوت
@@ -16,7 +16,7 @@ async def promote(event):
     # إرسال رسالة للمستخدم تطلب منه إرسال الصلاحيات
     await event.reply(
         "ارسل الصلاحيات",
-        reply_markup=ForceReply(selective=True)  # استخدام ForceReply من telethon.tl.custom
+        reply_markup=ForceReply(selective=True)  # استخدام ForceReply بشكل صحيح
     )
 
 # تشغيل العميل
