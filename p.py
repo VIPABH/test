@@ -29,11 +29,11 @@ async def promote_user(event):
                     user_id=user_to_promote,
                     is_admin=True,
                     rights=ChatAdminRights(
-                        change_info=True, 
-                        ban_users=True, 
-                        delete_messages=True, 
-                        invite_to_channel=True,  # هذه المعلمة غير صحيحة وستتسبب في خطأ
-                        pin_messages=True
+                        change_info=True,  # السماح بتغيير معلومات المجموعة
+                        ban_users=True,    # السماح بحظر المستخدمين
+                        delete_messages=True,  # السماح بحذف الرسائل
+                        invite_users=True,  # السماح بدعوة المستخدمين
+                        pin_messages=True  # السماح بتثبيت الرسائل
                     )
                 ))
                 await event.reply("تم رفع المستخدم مشرفًا بنجاح!")
