@@ -89,9 +89,36 @@ async def add_admin_permissions(event):
 
 @bot.on(events.CallbackQuery(func=lambda call: call.data == b"finalize"))
 async def finalize_permissions(event):
-    # بعد تحديد جميع الصلاحيات، يمكن هنا إضافة منطق لتنفيذ ما بعده
-    await event.answer("تم رفع الصلاحيات بنجاح!")
-    # يمكن إرسال رسالة للمجموعة هنا إذا كنت بحاجة لإعلامهم بأن الصلاحيات تم رفعها
+    if event.sender_id == authorized_user_id:
+        # رفع الصلاحيات: تعيين المستخدم مشرفًا في المجموعة
+        try:
+            # الحصول على صلاحيات المستخدم في المجموعة
+            permissions = {
+                "change": True,  # مثال على تفعيل صلاحيات
+                "delete": True,
+                "ban": True,
+                "invite": True,
+                "story": True,
+                "video_call": True,
+                "add_admin": True
+            }
 
-# تشغيل البوت
+            # تحديث صلاحيات المستخدم
+            await event.client.edit_permissions(
+                event.chat_id, 
+                event.sender_id, 
+                is_admin=True,  # تحديد الصلاحية كمشرف
+                change_info=permissions['change'],  # تحديد صلاحيات محددة
+                ban_users=permissions['ban'],
+                invite_to_group=permissions['invite'],
+                manage_call=permissions['video_call'],
+                manage_stories=permissions['story'],
+                add_admins=permissions['add_admin']
+            )
+
+            await event.answer("تم رفع الصلاحيات بنجاح!")
+        except Exception as e:
+            await event.answer(f"حدث خطأ: {str(e)}")
+    else:
+        await event.answer("أنت غير مصرح لك بإجراء هذا الأمر.")
 bot.run_until_disconnected()
