@@ -39,7 +39,7 @@ async def assign_permissions(event):
     await event.reply(
         "حدد الصلاحيات وارسل اللقب",
         buttons=button,
-        reply_markup=Button.force_reply(selective=True)
+        buttons=Button.force_reply(selective=True)
     )
 
 # Callback handlers for different actions
