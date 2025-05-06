@@ -152,20 +152,19 @@ async def change_nickname(event):
 @bot.on(events.NewMessage(pattern=None))
 async def receive_nickname(event):
     sender = event.sender_id
-    if sender in admin_sessions and "target_id" in admin_sessions[sender]:
-        chat = event.chat_id
-        target_id = admin_sessions[sender]["target_id"]
-        nickname = event.raw_text
-        try:
-            await bot(EditAdminRequest(
-                channel=chat,
-                user_id=target_id,
-                admin_rights=ChatAdminRights(),  # لن يتم تغيير الصلاحيات، فقط اللقب
-                rank=nickname
-            ))
-            await event.reply(f"✅ تم تغيير اللقب إلى: {nickname}")
-        except Exception as e:
-            await event.reply(f"❌ فشل في تغيير اللقب:\n{e}")
-        admin_sessions.pop(sender, None)
+    chat = event.chat_id
+    target_id = admin_sessions[sender]["target_id"]
+    nickname = event.raw_text
+    try:
+        await bot(EditAdminRequest(
+            channel=chat,
+            user_id=target_id,
+            admin_rights=ChatAdminRights(),  # لن يتم تغيير الصلاحيات، فقط اللقب
+            rank=nickname
+        ))
+        await event.reply(f"✅ تم تغيير اللقب إلى: {nickname}")
+    except Exception as e:
+        await event.reply(f"❌ فشل في تغيير اللقب:\n{e}")
+    admin_sessions.pop(sender, None)
 
 bot.run_until_disconnected()
