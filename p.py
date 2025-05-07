@@ -1,9 +1,5 @@
 from telethon import TelegramClient, events
-import os
-import random
-import time
-import requests
-import uuid
+import os, random, time
 
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
@@ -14,19 +10,7 @@ ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 questions_and_answers_q = [
     {"question": "https://t.me/LANBOT2/90", "answer": "محمد صلاح"}
 ]
-
 states = {}
-
-def download_image(url):
-    """تحميل الصورة من الرابط إلى ملف محلي"""
-    file_name = f"/tmp/{uuid.uuid4().hex}.jpg"
-    try:
-        response = requests.get(url)
-        with open(file_name, 'wb') as f:
-            f.write(response.content)
-        return file_name
-    except Exception:
-        return None
 
 @ABH.on(events.NewMessage(pattern='/start'))
 async def quest(event):
@@ -39,14 +23,17 @@ async def quest(event):
         "start_time": time.time()
     }
 
-    # تحميل الصورة من الرابط الموجود في السؤال
-    file_name = download_image(quest['question'])
-    if file_name:
-        # إرسال السؤال مع الصورة المحمّلة
+    # تحميل الصورة عبر ABH.download
+    link = quest['question']
+    try:
+        # تحميل الرابط (الصورة) إلى ملف محلي
+        downloaded_file = await ABH.download_media(link, file="downloaded_image.jpg")
+        
+        # إرسال الصورة بعد التحميل
         await event.reply(f"السؤال: من هو اللاعب الذي تم تصويره؟")
-        await ABH.send_file(event.chat_id, file_name, caption="إليك الصورة!")
-        os.remove(file_name)  # حذف الصورة بعد الإرسال
-    else:
+        await ABH.send_file(event.chat_id, downloaded_file, caption="إليك الصورة!")
+
+    except Exception as e:
         await event.reply("❌ فشل في تحميل الصورة.")
 
 @ABH.on(events.NewMessage)
