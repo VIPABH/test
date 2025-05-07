@@ -1,4 +1,4 @@
-from telethon import events
+from telethon import events, TelegramClient
 from telethon.tl.types import InputPeerPhotoFileLocation
 import asyncio, os
 api_id = int(os.getenv('API_ID'))
