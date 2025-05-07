@@ -13,53 +13,42 @@ football = [
     {
         "answer": "الميعوف",
         "caption": "شنو اسم الاعب ؟",
-        "channel": "LANBOT2",  # اسم القناة بدون @
-        "message_id": 52       # رقم الرسالة داخل القناة
+        "channel": "LANBOT2",
+        "message_id": 52
     }
 ]
 
-# دالة تطبيع النص العربي
+# دالة لتنظيف النصوص العربية
 def normalize_arabic(text):
-    text = re.sub(r'[ًٌٍَُِّْـ]', '', text)
-    text = text.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
-    text = text.replace("ة", "ه")
-    return text.strip()
+    return re.sub(r'[ًٌٍَُِّْـ]', '', text.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا").replace("ة", "ه")).strip()
 
 @client.on(events.NewMessage(pattern='/quiz'))
 async def send_quiz(event):
+    # جلب السؤال والجواب
     question = football[0]
 
-    # تحميل الرسالة التي تحتوي على الصورة من القناة
     try:
         msg = await client.get_messages(question['channel'], ids=question['message_id'])
-    except Exception as e:
-        await event.respond("❌ حدث خطأ أثناء تحميل الصورة.")
+        if not msg or not msg.media:
+            raise ValueError("لا توجد وسائط.")
+    except Exception:
+        await event.respond("❌ لم أتمكن من تحميل السؤال أو الصورة.")
         return
 
-    if not msg or not msg.media:
-        await event.respond("❌ لم أتمكن من العثور على الوسائط.")
-        return
+    # إرسال الصورة مع التسمية
+    await client.send_file(event.chat_id, file=msg.media, caption=question['caption'])
 
-    # إرسال الصورة للمستخدم
-    await client.send_file(
-        event.chat_id,
-        file=msg.media,
-        caption=question['caption']
-    )
-
-    # انتظار الإجابة
+    # الانتظار لجواب المستخدم
     try:
         response = await client.wait_for(
-            events.NewMessage(
-                chats=event.chat_id,
-                from_users=event.sender_id
-            ),
+            events.NewMessage(chats=event.chat_id, from_users=event.sender_id),
             timeout=30
         )
     except asyncio.TimeoutError:
         await event.respond("⌛ انتهى الوقت، ما جاوبت.")
         return
 
+    # التحقق من الإجابة
     user_answer = normalize_arabic(response.text)
     correct_answer = normalize_arabic(question['answer'])
 
