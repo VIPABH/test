@@ -13,12 +13,12 @@ football = [
     {
         "answer": "الميعوف",
         "caption": "شنو اسم الاعب ؟",
-        "channel": "LANBOT2",  # اسم القناة بدون @
-        "message_id": 52       # رقم الرسالة داخل القناة
+        "channel": "LANBOT2",  # بدون @
+        "message_id": 52
     }
 ]
 
-# دالة تطبيع النص العربي
+# تطبيع النص العربي
 def normalize_arabic(text):
     text = re.sub(r'[ًٌٍَُِّْـ]', '', text)
     text = text.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
@@ -29,37 +29,32 @@ def normalize_arabic(text):
 async def send_quiz(event):
     question = football[0]
 
-    # تحميل الرسالة التي تحتوي على الصورة من القناة
     try:
         msg = await client.get_messages(question['channel'], ids=question['message_id'])
-    except Exception as e:
-        await event.respond("❌ حدث خطأ أثناء تحميل الصورة.")
+    except Exception:
+        await event.respond("❌ فشل في تحميل الصورة.")
         return
 
     if not msg or not msg.media:
-        await event.respond("❌ لم أتمكن من العثور على الوسائط.")
+        await event.respond("❌ لا توجد صورة في الرسالة المطلوبة.")
         return
 
-    # إرسال الصورة للمستخدم
+    # إرسال الصورة والسؤال
     await client.send_file(
         event.chat_id,
         file=msg.media,
         caption=question['caption']
     )
 
-    # انتظار الإجابة
+    # بدء محادثة وانتظار رد المستخدم
     try:
-        response = await client.wait_for(
-            events.NewMessage(
-                chats=event.chat_id,
-                from_users=event.sender_id
-            ),
-            timeout=30
-        )
+        async with client.conversation(event.chat_id, timeout=30) as conv:
+            response = await conv.get_response()
     except asyncio.TimeoutError:
         await event.respond("⌛ انتهى الوقت، ما جاوبت.")
         return
 
+    # التحقق من الإجابة
     user_answer = normalize_arabic(response.text)
     correct_answer = normalize_arabic(question['answer'])
 
