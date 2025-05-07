@@ -44,3 +44,5 @@ async def send_quiz(event):
         await response.reply("✅ إجابة صحيحة!")
     else:
         await response.reply(f"❌ خطأ! الجواب الصحيح هو: {question['answer']}")
+
+client.run_until_disconnected()
