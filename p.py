@@ -1,66 +1,48 @@
 from telethon import TelegramClient, events
-import os
-import asyncio
-import re
-
+import os, random, time
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
+ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-client = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
-
-football = [
-    {
-        "answer": "الميعوف",
-        "caption": "شنو اسم الاعب ؟",
-        "channel": "LANBOT2",  # بدون @
-        "message_id": 52
-    }
+questions_and_answers_q = [
+    {"question": "https://t.me/LANBOT2/90", "answer": "محمد صلاح"}
 ]
-
-# تطبيع النص العربي
-def normalize_arabic(text):
-    text = re.sub(r'[ًٌٍَُِّْـ]', '', text)
-    text = text.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
-    text = text.replace("ة", "ه")
-    return text.strip()
-
-@client.on(events.NewMessage(pattern='/quiz'))
-async def send_quiz(event):
-    question = football[0]
-
-    try:
-        msg = await client.get_messages(question['channel'], ids=question['message_id'])
-    except Exception:
-        await event.respond("❌ فشل في تحميل الصورة.")
+states = {}
+@ABH.on(events.NewMessage(pattern='/start'))
+async def quest(event):
+    """بدء السؤال العشوائي"""
+    user_id = event.sender_id
+    quest = random.choice(questions_and_answers_q)
+    states[user_id] = {
+        "question": quest,
+        "waiting_for_answer": True,
+        "start_time": time.time()
+    }
+    await event.reply(f"{quest['question']}")
+@ABH.on(events.NewMessage)
+async def check_quist(event):
+    if not event.text:
         return
-
-    if not msg or not msg.media:
-        await event.respond("❌ لا توجد صورة في الرسالة المطلوبة.")
-        return
-
-    # إرسال الصورة والسؤال
-    await client.send_file(
-        event.chat_id,
-        file=msg.media,
-        caption=question['caption']
-    )
-
-    # بدء محادثة وانتظار رد المستخدم
-    try:
-        async with client.conversation(event.chat_id, timeout=30) as conv:
-            response = await conv.get_response()
-    except asyncio.TimeoutError:
-        await event.respond("⌛ انتهى الوقت، ما جاوبت.")
-        return
-
-    # التحقق من الإجابة
-    user_answer = normalize_arabic(response.text)
-    correct_answer = normalize_arabic(question['answer'])
-
-    if user_answer == correct_answer:
-        await response.reply("✅ إجابة صحيحة!")
-    else:
-        await response.reply(f"❌ خطأ! الجواب الصحيح هو: {question['answer']}")
-
-client.run_until_disconnected()
+    user_id = event.sender_id
+    usermessage = event.text.strip()
+    gid = event.chat_id
+    if user_id in states and states[user_id].get("waiting_for_answer"):
+        question_q = states[user_id].get("question", {})
+        answers_q = question_q.get('answer', [])
+        start_time = states[user_id].get("start_time")
+        current_time = time.time()
+        time_passed = current_time - start_time
+        if time_passed > 60:
+            del states[user_id]
+            return
+        if usermessage in answers_q:
+            p = random.randint(50, 500)
+            # add_points(user_id, gid, points, amount=p)
+            await event.reply(
+                "هلا هلا طبوا الشيعة 🫡 \n ربحت (`{p}`) \n فلوسك ↢ {points[str(user_id)][str(gid)]['points']}"
+            )
+            del states[user_id]
+        else:
+            pass
+ABH.run_until_disconnected()
