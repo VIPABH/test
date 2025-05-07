@@ -42,7 +42,7 @@ async def quest(event):
     # تحميل الصورة من الرابط الموجود في السؤال
     file_name = download_image(quest['question'])
     if file_name:
-        # إرسال السؤال والصورة
+        # إرسال السؤال مع الصورة المحمّلة
         await event.reply(f"السؤال: من هو اللاعب الذي تم تصويره؟")
         await ABH.send_file(event.chat_id, file_name, caption="إليك الصورة!")
         os.remove(file_name)  # حذف الصورة بعد الإرسال
