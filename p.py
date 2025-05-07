@@ -5,7 +5,7 @@ from pyrogram import Client, filters
 from yt_dlp import YoutubeDL
 def install_library(library_name):
     try:
-        import(library_name)
+import(library_name)
         print(f"✅ مكتبة {library_name} مثبتة.")
         return True
     except ImportError:
