@@ -51,4 +51,4 @@ async def send_quiz(event):
     else:
         await response.reply(f"❌ خطأ! الجواب الصحيح هو: {question['answer']}")
 
-bot.run_until_disconnected()
+client.run_until_disconnected()
