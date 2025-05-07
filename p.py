@@ -11,7 +11,6 @@ questions_and_answers_q = [
 states = {}
 @ABH.on(events.NewMessage(pattern='/start'))
 async def quest(event):
-    """بدء السؤال العشوائي"""
     user_id = event.sender_id
     quest = random.choice(questions_and_answers_q)
     states[user_id] = {
@@ -19,7 +18,12 @@ async def quest(event):
         "waiting_for_answer": True,
         "start_time": time.time()
     }
+    await ABH.download_media(quest['question'], file='media')
     await event.reply(f"{quest['question']}")
+    await ABH.send_file(
+        user_id,
+        'media',
+    )
 @ABH.on(events.NewMessage)
 async def check_quist(event):
     if not event.text:
