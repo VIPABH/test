@@ -3,53 +3,6 @@ import asyncio
 import shutil
 from pyrogram import Client, filters
 from yt_dlp import YoutubeDL
-def install_library(library_name):
-    try:
-import(library_name)
-        print(f"✅ مكتبة {library_name} مثبتة.")
-        return True
-    except ImportError:
-        print(f"🔄 جاري تثبيت مكتبة {library_name}...")
-        os.system(f"pip install {library_name}")
-        try:
-            import(library_name)
-            print(f"✅ تم تثبيت مكتبة {library_name} بنجاح.")
-            return True
-        except ImportError:
-            print(f"❌ فشل تثبيت مكتبة {library_name}. يرجى المحاولة مرة أخرى.")
-            return False
-
-print("ℹ️ التحقق من مكتبة TgCrypto لتسريع Pyrogram...")
-if not install_library("telethon"):
-    print("⚠️ لم يتم تثبيت TgCrypto. قد يكون Pyrogram أبطأ. للمزيد: https://docs.pyrogram.org/topics/speedups")
-if install_library("pyrogram"):
-    from pyrogram import Client, filters
-else:
-    exit()
-
-if install_library("yt_dlp"):
-    from yt_dlp import YoutubeDL
-else:
-    exit()
-
-def check_ffmpeg():
-    if shutil.which("ffmpeg") and shutil.which("ffprobe"):
-        print("✅ تم العثور على ffmpeg و ffprobe.")
-        return True
-    else:
-        print("⚠️ لم يتم العثور على ffmpeg أو ffprobe.")
-        print("   يرجى تثبيتهما لكي يتمكن البوت من تحويل الصوت إلى MP3.")
-        print("   يمكنك تثبيتهما باستخدام:")
-        print("   - على Linux (Debian/Ubuntu): sudo apt update && sudo apt install ffmpeg")
-        print("   - على Linux (Fedora/CentOS): sudo dnf install ffmpeg")
-        print("   - على macOS: brew install ffmpeg")
-        print("   - على Windows: يمكنك تنزيلهما من موقع ffmpeg وإضافتهما إلى PATH.")
-        print("   للمزيد: https://github.com/yt-dlp/yt-dlp#dependencies")
-        return False
-
-if not check_ffmpeg():
-    exit()
-
 API_ID = os.environ.get("API_ID")
 API_HASH = os.environ.get("API_HASH")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
