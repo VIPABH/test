@@ -1,7 +1,6 @@
 from telethon import TelegramClient, events
 import os
 import asyncio
-import re
 
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
@@ -17,10 +16,6 @@ football = [
         "message_id": 52
     }
 ]
-
-# دالة لتنظيف النصوص العربية
-def normalize_arabic(text):
-    return re.sub(r'[ًٌٍَُِّْـ]', '', text.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا").replace("ة", "ه")).strip()
 
 @client.on(events.NewMessage(pattern='/quiz'))
 async def send_quiz(event):
@@ -38,19 +33,12 @@ async def send_quiz(event):
     # إرسال الصورة مع التسمية
     await client.send_file(event.chat_id, file=msg.media, caption=question['caption'])
 
-    # الانتظار لجواب المستخدم
-    try:
-        response = await client.wait_for(
-            events.NewMessage(chats=event.chat_id, from_users=event.sender_id),
-            timeout=30
-        )
-    except asyncio.TimeoutError:
-        await event.respond("⌛ انتهى الوقت، ما جاوبت.")
-        return
+    # انتظار الجواب من المستخدم
+    response = await client.send_message(event.chat_id, "يرجى إرسال الإجابة!")
 
     # التحقق من الإجابة
-    user_answer = normalize_arabic(response.text)
-    correct_answer = normalize_arabic(question['answer'])
+    user_answer = event.text.strip()
+    correct_answer = question['answer']
 
     if user_answer == correct_answer:
         await response.reply("✅ إجابة صحيحة!")
