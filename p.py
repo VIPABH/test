@@ -29,7 +29,7 @@ final = Client("youtube_audio_bot", api_id=API_ID, api_hash=API_HASH, bot_token=
 async def start(client, message):
     await message.reply("مرحباً! أرسل:\n\nيوت + اسم الأغنية")
 
-@final.on_message(filters.regex(r"^يوت (.+)"))
+@final.on_message(filters.regex(r"^(يوت|yt) (.+)"))
 async def download_audio(client, message):
     query = message.text.split(" ", 1)[1]
     # wait_message = await message.reply("⏳ جاري البحث عن وتحميل الصوت... 🎧")
