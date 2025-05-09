@@ -38,7 +38,9 @@ async def handle_whisper(event):
     if not reply:
         await event.respond("❗ يجب الرد على رسالة الشخص الذي تريد أن تهمس له.")
         return
+    
     whisper_id = str(uuid.uuid4())[:6]
+    print(whisper_id)
     whisper_links[whisper_id] = {
         "from": event.sender_id,
         "to": reply.sender_id,
@@ -60,12 +62,9 @@ async def handle_whisper(event):
 async def start_with_param(event):
     whisper_id = event.pattern_match.group(1)
     data = whisper_links.get(whisper_id)
-
     if not data:
         await event.respond("⚠️ الرابط غير صالح أو انتهت صلاحيته.")
         return
-
-    # التأكد أن المستخدم المرسل هو المخول (to أو from)
     if event.sender_id != data['to'] and event.sender_id != data['from']:
         await event.respond("⚠️ لا تملك صلاحية عرض هذه الهمسة.")
         return
@@ -101,11 +100,9 @@ async def forward_whisper(event):
     data = whisper_links.get(whisper_id)
     if not data:
         return
-
     msg = event.message
     button = Button.url("فتح الهمسة", url=f"https://t.me/Hauehshbot?start={whisper_id}")
 
-    # إعلام القروب أو الدردشة أن هنالك همسة جديدة
     await client.send_message(
         data['chat_id'],
         f"📨 تم إرسال همسة جديدة من {event.sender.first_name}",
