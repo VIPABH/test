@@ -69,23 +69,32 @@ async def handle_whisper(event):
         f"📢 هناك همسة جديدة:\n👤 من: {from_user.first_name}\n👤 إلى: {to_user.first_name}\n\n↘️ اضغط على الزر لبدء إرسال همستك:",
         buttons=[button]
     )
-
-# تنفيذ /start تلقائيًا داخل الخاص بعد الضغط على الزر
 @client.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(event):
     whisper_id = event.pattern_match.group(1)
     data = whisper_links.get(whisper_id)
+    
     if data:
         user_sessions[event.sender_id] = whisper_id
         target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
         sender = await event.get_sender()
 
-        # إرسال رسالة ترحيب + إعادة تأكيد الاستعداد لاستقبال الهمسة
-        await event.respond(f"✉️ أهلاً {sender.first_name}، أرسل الآن همستك إلى {target_name}.")
+        # التحقق إذا كان هناك همسة مخزنة (نص أو وسائط) وإرسالها
+        if 'text' in data:
+            await event.respond(f"✉️ أهلاً {sender.first_name}، إليك الهمسة التالية لإرسالها إلى {target_name}:\n\n{data['text']}")
+        elif 'media' in data:
+            media_data = data['media']
+            try:
+                await client.send_file(event.sender_id, media_data['file_id'], caption=media_data['caption'])
+                await event.respond(f"✉️ أهلاً {sender.first_name}، إليك الهمسة التالية لإرسالها إلى {target_name}.")
+            except Exception as e:
+                await event.respond("⚠️ حدث خطأ أثناء إرسال الهمسة.")
+        else:
+            await event.respond(f"✉️ أهلاً {sender.first_name}، أرسل الآن همستك إلى {target_name}.")
+
     else:
         await event.respond("⚠️ الرابط غير صالح أو انتهت صلاحيته.")
 
-# استقبال همسة في الخاص
 @client.on(events.NewMessage)
 async def forward_whisper(event):
     if not event.is_private or (event.text and event.text.startswith('/')):
@@ -93,17 +102,32 @@ async def forward_whisper(event):
 
     sender_id = event.sender_id
     whisper_id = user_sessions.get(sender_id)
-    print(whisper_id)
     if not whisper_id:
         return
 
     data = whisper_links.get(whisper_id)
     if not data:
         return
-    v = event.message
-    b = Button.url(">", url=f"https://t.me/Hauehshbot?start={whisper_id}")
-    await client.send_message(data['chat_id'], 'همسة', buttons=[b])
-    await client.forward_messages(data["to"], v)
+
+    msg = event.message
+
+    # إرسال زر إلى المحادثة الأصلية
+    button = Button.url("✉️ فتح الهمسة", url=f"https://t.me/Hauehshbot?start={whisper_id}")
+    await client.send_message(data['chat_id'], f"📨 تم إرسال همسة جديدة من {event.sender.first_name}", buttons=[button])
+
+    # حفظ محتوى الرسالة داخل whisper_links
+    if msg.media:
+        whisper_links[whisper_id]['media'] = {
+            'file_id': msg.file.id,
+            'caption': msg.text or ""
+        }
+    elif msg.text:
+        whisper_links[whisper_id]['text'] = msg.text
+
+    save_whispers()
+
+    # إعادة توجيه الرسالة إلى المستقبل
+    await client.forward_messages(data["to"], msg)
     await event.respond("✅ تم إرسال همستك بنجاح.")
 
     sender = await event.get_sender()
@@ -114,8 +138,10 @@ async def forward_whisper(event):
         "to_id": data["to"],
         "uuid": whisper_id
     })
-    await asyncio.sleep(30)
+
     save_sent_log()
+
+    # تنظيف البيانات
     user_sessions.pop(sender_id, None)
     whisper_links.pop(whisper_id, None)
     user_targets.pop(whisper_id, None)
