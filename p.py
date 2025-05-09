@@ -37,7 +37,7 @@ async def handle_whisper(event):
     x = await event.get_sender() 
     chat = event.chat_id
     reply = await event.get_reply_message()
-    t = reply.first_name
+    t = reply.sender.first_name
     if not reply:
         await event.respond("يجب الرد على رسالة الشخص الذي تريد أن تهمس له.")
         return
