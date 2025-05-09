@@ -1,7 +1,7 @@
 from telethon import TelegramClient, events, Button
 import uuid
 import json
-import os
+import os, asyncio  
 
 # إعدادات العميل
 api_id = int(os.getenv("API_ID"))
