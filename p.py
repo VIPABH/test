@@ -33,9 +33,8 @@ async def start(client, message):
 async def download_audio(client, message):
     query = message.text.split(" ", 1)[1]
     # wait_message = await message.reply("⏳ جاري البحث عن وتحميل الصوت... 🎧")
-
+    x = 0
     ydl = YoutubeDL(YDL_OPTIONS)
-    # try:
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
     if 'entries' in info and len(info['entries']) > 0:
         info = info['entries'][0]
@@ -47,7 +46,12 @@ async def download_audio(client, message):
             performer=info.get("uploader"),
             reply_to_message_id=message.id  
         )
-        # await wait_message.delete()
+        x += 1
+        await client.send_message(
+            chat_id=message.chat.id,
+            text=str(x),
+            protect_content=True  # تمنع التحويل والنسخ
+    )        # await wait_message.delete()
         os.remove(file_path)
     # else:
         # await wait_message.edit("🚫 لم يتم العثور على نتائج للبحث.")
