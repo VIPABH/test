@@ -61,7 +61,7 @@ async def start_with_param(event):
     whisper_id = event.pattern_match.group(1)
     print(f' 1   {whisper_id}')
     data = whisper_links.get(whisper_id)
-    print(f' 1   {data}')
+    print(f' 2   {data}')
     if not data:
         await event.respond("⚠️ الرابط غير صالح أو انتهت صلاحيته.")
         return
@@ -79,18 +79,15 @@ async def start_with_param(event):
 
     elif 'media' in data:
         media_data = data['media']
-        try:
-            await client.send_file(
-                event.sender_id,
-                media_data['file_id'],
-                caption=media_data.get("caption", "")
-            )
-            await event.respond(
-                f"✉️ أهلاً {sender.first_name}، إليك الهمسة التالية لإرسالها إلى {target_name}."
-            )
-        except Exception as e:
-            print(f"خطأ أثناء إرسال الملف: {e}")
-            await event.respond("⚠️ حدث خطأ أثناء إرسال الهمسة.")
+        await client.send_file(
+            event.sender_id,
+            media_data['file_id'],
+            caption=media_data.get("caption", "")
+        )
+        await event.respond(
+            f"✉️ أهلاً {sender.first_name}، إليك الهمسة التالية لإرسالها إلى {target_name}."
+        )
+        await event.respond("⚠️ حدث خطأ أثناء إرسال الهمسة.")
     else:
         # لا يوجد أي محتوى محفوظ، فقط فتح الجلسة
         await event.respond(
