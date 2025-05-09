@@ -101,6 +101,8 @@ async def forward_whisper(event):
     if not data:
         return
     v = event.message
+    b = Button.url(">", url=f"https://t.me/Hauehshbot?start={whisper_id}")
+    await client.send_message(data['chat_id'], 'همسة', buttons=[b])
     await client.forward_messages(data["to"], v)
     await event.respond("✅ تم إرسال همستك بنجاح.")
 
