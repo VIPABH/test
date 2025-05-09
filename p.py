@@ -142,8 +142,8 @@ async def forward_whisper(event):
         "uuid": whisper_id
     })
     save_sent_log()
-    user_sessions.pop(sender_id, None)
-    whisper_links.pop(whisper_id, None)  # حذف الرابط فقط، دون حذف media/text
-    user_targets.pop(whisper_id, None)
-    save_whispers()
+    # user_sessions.pop(sender_id, None)
+    # whisper_links.pop(whisper_id, None)  # حذف الرابط فقط، دون حذف media/text
+    # user_targets.pop(whisper_id, None)
+    # save_whispers()
 client.run_until_disconnected()
