@@ -70,17 +70,11 @@ async def forward_whisper(event):
         if data:
             button = Button.url("اضغط هنا لكتابة همستك", url=f"https://t.me/Hauehshbot?start={whisper_id}")
             await client.send_message(chat, f'همسه مديا مرسلة من ( {x.first_name} ) الى ( {t.first_name} )', buttons=[button])
-            await client.forward_messages(data["to"], event.message)
             await event.respond("تم إرسال همستك.")
-            entry = {
-                "event_id": event.id,
-                "sender_id": sender_id,
-                "whisper_id": whisper_id
-            }
-            sent_whispers.append(entry)
-            save_sent_log()
-            del user_sessions[sender_id]
-            whisper_links.pop(whisper_id, None)
-            save_whispers()
+@client.on(events.NewMessage(pattern=r'/start (\w+)'))
+async def t(event):
+    whisper_id = event.pattern_match.group(1)
+    data = whisper_links.get(whisper_id)
+    await client.forward_messages(data["to"], event.message)
 
 client.run_until_disconnected()
