@@ -56,7 +56,7 @@ async def start_with_param(event):
     if whisper_id in whisper_links:
         user_sessions[event.sender_id] = whisper_id
         x = event.sender.first_name
-        await event.respond(f"اهلا {x} ارسل رسالة ل ارسالها ل {t}")
+        await event.respond(f"اهلا {x.first_name} ارسل رسالة ل ارسالها ل {t.first_name}")
     else:
         await event.respond("الرابط غير صالح أو انتهت صلاحيته.")
 @client.on(events.NewMessage)
