@@ -100,9 +100,8 @@ async def forward_whisper(event):
     data = whisper_links.get(whisper_id)
     if not data:
         return
-
-    # إرسال الهمسة للطرف الآخر
-    await client.forward_messages(data["to"], event.message)
+    v = event.message
+    await client.forward_messages(data["to"], v)
     await event.respond("✅ تم إرسال همستك بنجاح.")
 
     # حفظ السجل
