@@ -60,9 +60,7 @@ async def handle_whisper(event):
 @client.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(event):
     whisper_id = event.pattern_match.group(1)
-    print(f'whisper_id \n {whisper_id}')
     data = whisper_links.get(whisper_id)
-    print(f'data \n {data}')
     if not data:
         await event.respond("⚠️ الرابط غير صالح أو انتهت صلاحيته.")
         return
@@ -72,7 +70,6 @@ async def start_with_param(event):
     target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
     sender = await event.get_sender()
 
-    # التحقق من وجود رسالة نصية محفوظة
     if 'text' in data:
         await event.respond(
             f"✉️ أهلاً {sender.first_name}، إليك الهمسة التالية لإرسالها إلى {target_name}:\n\n{data['text']}"
