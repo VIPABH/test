@@ -33,7 +33,7 @@ def save_sent_log():
 user_sessions = {}
 @client.on(events.NewMessage(pattern='اهمس'))
 async def handle_whisper(event):
-    global chat, t, w, x
+    global chat, t, w, x, t
     x = await event.get_sender() 
     chat = event.chat_id
     reply = await event.get_reply_message()
