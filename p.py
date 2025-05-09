@@ -3,19 +3,15 @@ import uuid
 import json
 import os
 
-# بيانات الدخول من المتغيرات البيئية
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
 
-# إنشاء العميل
 client = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 
-# ملفات التخزين
 whispers_file = 'whispers.json'
 sent_log_file = 'sent_whispers.json'
 
-# تحميل بيانات الهمسات
 if os.path.exists(whispers_file):
     try:
         with open(whispers_file, 'r') as f:
@@ -25,7 +21,6 @@ if os.path.exists(whispers_file):
 else:
     whisper_links = {}
 
-# تحميل سجل الإرسال
 if os.path.exists(sent_log_file):
     try:
         with open(sent_log_file, 'r') as f:
@@ -35,7 +30,6 @@ if os.path.exists(sent_log_file):
 else:
     sent_whispers = []
 
-# دوال الحفظ
 def save_whispers():
     with open(whispers_file, 'w') as f:
         json.dump(whisper_links, f)
@@ -44,11 +38,10 @@ def save_sent_log():
     with open(sent_log_file, 'w') as f:
         json.dump(sent_whispers, f, ensure_ascii=False, indent=2)
 
-# تخزين الجلسات المؤقتة
 user_sessions = {}
 user_targets = {}
 
-# أمر اهمس
+# أمر "اهمس"
 @client.on(events.NewMessage(pattern='اهمس'))
 async def handle_whisper(event):
     reply = await event.get_reply_message()
@@ -64,15 +57,21 @@ async def handle_whisper(event):
     }
     save_whispers()
 
-    # حفظ اسم المرسل إليه
+    from_user = await event.get_sender()
+    to_user = await reply.get_sender()
+
     user_targets[whisper_id] = {
-        "name": reply.sender.first_name
+        "name": to_user.first_name
     }
 
-    button = Button.url("اضغط هنا لكتابة همستك", url=f"https://t.me/Hauehshbot?start={whisper_id}")
-    await event.respond("✅ اضغط للمتابعة", buttons=[button])
+    # إرسال زر التنبيه في المجموعة
+    button = Button.url("✉️ اضغط هنا لإرسال همستك", url=f"https://t.me/Hauehshbot?start={whisper_id}")
+    await event.respond(
+        f"📢 هناك همسة جديدة:\n👤 من: {from_user.first_name}\n👤 إلى: {to_user.first_name}\n\n↘️ اضغط على الزر لبدء إرسال همستك:",
+        buttons=[button]
+    )
 
-# عند الضغط على الرابط
+# تنفيذ /start تلقائيًا داخل الخاص بعد الضغط على الزر
 @client.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(event):
     whisper_id = event.pattern_match.group(1)
@@ -81,11 +80,13 @@ async def start_with_param(event):
         user_sessions[event.sender_id] = whisper_id
         target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
         sender = await event.get_sender()
-        await event.respond(f"✉️ أهلاً ({sender.first_name})، ارسل رسالتك لإرسالها إلى {target_name}.")
+
+        # إرسال رسالة ترحيب + إعادة تأكيد الاستعداد لاستقبال الهمسة
+        await event.respond(f"✉️ أهلاً {sender.first_name}، أرسل الآن همستك إلى {target_name}.")
     else:
         await event.respond("⚠️ الرابط غير صالح أو انتهت صلاحيته.")
 
-# استقبال الهمسة
+# استقبال همسة في الخاص
 @client.on(events.NewMessage)
 async def forward_whisper(event):
     if not event.is_private or (event.text and event.text.startswith('/')):
@@ -100,11 +101,11 @@ async def forward_whisper(event):
     if not data:
         return
 
-    # إرسال الهمسة
+    # إرسال الهمسة للطرف الآخر
     await client.forward_messages(data["to"], event.message)
-    await event.respond("✅ تم إرسال همستك.")
+    await event.respond("✅ تم إرسال همستك بنجاح.")
 
-    # تسجيل معلومات الهمسة
+    # حفظ السجل
     sender = await event.get_sender()
     sent_whispers.append({
         "event_id": event.id,
@@ -115,9 +116,8 @@ async def forward_whisper(event):
     })
     save_sent_log()
 
-    # حذف الجلسة
+    # تنظيف البيانات
     user_sessions.pop(sender_id, None)
     whisper_links.pop(whisper_id, None)
     user_targets.pop(whisper_id, None)
     save_whispers()
-client.run_until_disconnected()
