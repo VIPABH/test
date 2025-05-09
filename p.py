@@ -60,13 +60,13 @@ async def handle_whisper(event):
 @client.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(event):
     whisper_id = event.pattern_match.group(1)
+    print(whisper_id)
     data = whisper_links.get(whisper_id)
-
+    print(data)
     if not data:
         await event.respond("⚠️ الرابط غير صالح أو انتهت صلاحيته.")
         return
 
-    # تسجيل الجلسة للمستخدم الحالي
     user_sessions[event.sender_id] = whisper_id
 
     # تحديد اسم المستقبل أو "الشخص"
@@ -79,7 +79,6 @@ async def start_with_param(event):
             f"✉️ أهلاً {sender.first_name}، إليك الهمسة التالية لإرسالها إلى {target_name}:\n\n{data['text']}"
         )
 
-    # التحقق من وجود ملف محفوظ
     elif 'media' in data:
         media_data = data['media']
         try:
