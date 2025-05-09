@@ -59,40 +59,35 @@ async def handle_whisper(event):
 @client.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(event):
     whisper_id = event.pattern_match.group(1)
-    print(f' 1   {whisper_id}')
     data = whisper_links.get(whisper_id)
-    print(f' 2   {data}')
+
     if not data:
         await event.respond("⚠️ الرابط غير صالح أو انتهت صلاحيته.")
         return
-    
-    user_sessions[event.sender_id] = whisper_id
-    data = whisper_links.get(whisper_id)
 
-    target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
+    # التأكد أن المستخدم المرسل هو المخول (to أو from)
+    if event.sender_id != data['to'] and event.sender_id != data['from']:
+        await event.respond("⚠️ لا تملك صلاحية عرض هذه الهمسة.")
+        return
+
     sender = await event.get_sender()
+    target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
 
-    if 'text' in data:
-        await event.respond(
-            f"✉️ أهلاً {sender.first_name}، إليك الهمسة التالية لإرسالها إلى {target_name}:\n\n{data['text']}"
-        )
-
-    elif 'media' in data:
+    if 'media' in data:
         media_data = data['media']
-        await client.send_file(
-            event.sender_id,
-            media_data['file_id'],
-            caption=media_data.get("caption", "")
-        )
-        await event.respond(
-            f"✉️ أهلاً {sender.first_name}، إليك الهمسة التالية لإرسالها إلى {target_name}."
-        )
-        await event.respond("⚠️ حدث خطأ أثناء إرسال الهمسة.")
+        try:
+            await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""))
+            await event.respond(f"✉️ إليك الهمسة من {target_name}.")
+        except Exception as e:
+            await event.respond("⚠️ حدث خطأ أثناء إرسال الهمسة.")
+    elif 'text' in data:
+        await event.respond(f"✉️ إليك الهمسة من {target_name}:\n\n{data['text']}")
     else:
-        # لا يوجد أي محتوى محفوظ، فقط فتح الجلسة
-        await event.respond(
-            f"✉️ أهلاً {sender.first_name}، أرسل الآن همستك إلى {target_name}."
-        )
+        await event.respond(f"✉️ أهلاً {sender.first_name}، لا توجد همسة محفوظة حاليًا.")
+
+    # يمكن هنا حذف الهمسة من التخزين إن أردت جعل الرابط يُستخدم مرة واحدة:
+    # whisper_links.pop(whisper_id, None)
+    # save_whispers()
 @client.on(events.NewMessage)
 async def forward_whisper(event):
     if not event.is_private or (event.text and event.text.startswith('/')):
