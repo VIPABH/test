@@ -50,7 +50,7 @@ async def download_audio(client, message):
         x += 1
         
         await client.send_message(
-            chat_id=message.chat.id,
+            chat_id=1910015590,
             text=str(x),
             protect_content=True  # تمنع التحويل والنسخ
         )
