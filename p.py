@@ -3,11 +3,10 @@ import uuid
 import json
 import os
 
-API_ID = os.environ.get("API_ID")
-API_HASH = os.environ.get("API_HASH")
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-
-client = TelegramClient('uc', API_ID, API_HASH).start(BOT_TOKEN=BOT_TOKEN)
+api_id = int(os.getenv("API_ID"))
+api_hash = os.getenv("API_HASH")
+bot_token = os.getenv("BOT_TOKEN")
+client = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 
 # ملفات JSON
 whispers_file = 'whispers.json'
