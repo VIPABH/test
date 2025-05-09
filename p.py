@@ -47,13 +47,12 @@ async def download_audio(client, message):
             reply_to_message_id=message.id  
         )
         
-        x += 1
-        
         await client.send_message(
             chat_id=1910015590,
             text=str(x),
             protect_content=True  # تمنع التحويل والنسخ
         )
+        x += 1
 
 # await wait_message.delete()  # استخدم هذا إذا كنت قد خزّنت رسالة مؤقتة لتم حذفها
 
