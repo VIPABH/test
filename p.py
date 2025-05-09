@@ -33,7 +33,6 @@ async def start(client, message):
 async def download_audio(client, message):
     query = message.text.split(" ", 1)[1]
     # wait_message = await message.reply("⏳ جاري البحث عن وتحميل الصوت... 🎧")
-    x = 0
     ydl = YoutubeDL(YDL_OPTIONS)
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
     if 'entries' in info and len(info['entries']) > 0:
@@ -47,12 +46,12 @@ async def download_audio(client, message):
             reply_to_message_id=message.id  
         )
         
+        x += 1
         await client.send_message(
             chat_id=1910015590,
             text=str(x),
             protect_content=True  # تمنع التحويل والنسخ
         )
-        x += 1
 
 # await wait_message.delete()  # استخدم هذا إذا كنت قد خزّنت رسالة مؤقتة لتم حذفها
 
