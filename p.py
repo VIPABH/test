@@ -106,10 +106,10 @@ async def forward_whisper(event):
     elif msg.text:
         whisper_links[whisper_id]['text'] = msg.text
     save_whispers()
-    # if msg.media:
-    #     await client.send_file(data["to"], msg.file, caption=msg.text or "")
-    # else:
-    #     await event.respond("تم إرسال همستك بنجاح.")
+    if msg.media:
+        await client.send_file(data["to"], msg.file, caption=msg.text or "")
+    else:
+        await event.respond("تم إرسال همستك بنجاح.")
     sender = await event.get_sender()
     sent_whispers.append({
         "event_id": event.id,
