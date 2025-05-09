@@ -114,7 +114,7 @@ async def forward_whisper(event):
         "to_id": data["to"],
         "uuid": whisper_id
     })
-    await asyncio.sleep(5)
+    await asyncio.sleep(30)
     save_sent_log()
     user_sessions.pop(sender_id, None)
     whisper_links.pop(whisper_id, None)
