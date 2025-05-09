@@ -121,3 +121,4 @@ async def forward_whisper(event):
     whisper_links.pop(whisper_id, None)
     user_targets.pop(whisper_id, None)
     save_whispers()
+client.run_until_disconnected()
