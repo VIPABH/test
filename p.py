@@ -73,25 +73,24 @@ async def handle_whisper(event):
 async def start_with_param(event):
     whisper_id = event.pattern_match.group(1)
     data = whisper_links.get(whisper_id)
-    
+
     if data:
         user_sessions[event.sender_id] = whisper_id
         target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
         sender = await event.get_sender()
 
-        # التحقق إذا كان هناك همسة مخزنة (نص أو وسائط) وإرسالها
+        # التحقق إذا كانت هناك همسة مخزنة (نص أو وسائط)
         if 'text' in data:
             await event.respond(f"✉️ أهلاً {sender.first_name}، إليك الهمسة التالية لإرسالها إلى {target_name}:\n\n{data['text']}")
         elif 'media' in data:
             media_data = data['media']
             try:
-                await client.send_file(event.sender_id, media_data['file_id'], caption=media_data['caption'])
+                await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""))
                 await event.respond(f"✉️ أهلاً {sender.first_name}، إليك الهمسة التالية لإرسالها إلى {target_name}.")
             except Exception as e:
                 await event.respond("⚠️ حدث خطأ أثناء إرسال الهمسة.")
         else:
             await event.respond(f"✉️ أهلاً {sender.first_name}، أرسل الآن همستك إلى {target_name}.")
-
     else:
         await event.respond("⚠️ الرابط غير صالح أو انتهت صلاحيته.")
 
