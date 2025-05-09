@@ -57,7 +57,7 @@ async def download_audio(client, message):
 
 # await wait_message.delete()  # استخدم هذا إذا كنت قد خزّنت رسالة مؤقتة لتم حذفها
 
-os.remove(file_path)  # حذف الملف بعد الإرسال
+# os.remove(file_path)  # حذف الملف بعد الإرسال
     # else:
         # await wait_message.edit("🚫 لم يتم العثور على نتائج للبحث.")
 # except Exception as e:
