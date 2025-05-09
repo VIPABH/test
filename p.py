@@ -1,66 +1,102 @@
+from telethon import TelegramClient, events, Button
+import uuid
+import json
 import os
-import asyncio
-import shutil
-from pyrogram import Client, filters
-from yt_dlp import YoutubeDL
+
 API_ID = os.environ.get("API_ID")
 API_HASH = os.environ.get("API_HASH")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-if not os.path.exists("downloads"):
-    os.makedirs("downloads")
+client = TelegramClient('uc', API_ID, API_HASH).start(BOT_TOKEN=BOT_TOKEN)
 
-YDL_OPTIONS = {
-    'format': 'bestaudio/best[abr<=160]',  
-    'outtmpl': 'downloads/%(title)s.%(ext)s',
-    'noplaylist': True,
-    'quiet': True,
-    'cookiefile': 'cookies.txt',
-    'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '128',  
-    }],
-}
+# ملفات JSON
+whispers_file = 'whispers.json'
+sent_log_file = 'sent_whispers.json'
 
-final = Client("youtube_audio_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+# تحميل بيانات الهمسات
+if os.path.exists(whispers_file):
+    try:
+        with open(whispers_file, 'r') as f:
+            whisper_links = json.load(f)
+    except json.JSONDecodeError:
+        whisper_links = {}
+else:
+    whisper_links = {}
 
-@final.on_message(filters.command("start"))
-async def start(client, message):
-    await message.reply("مرحباً! أرسل:\n\nيوت + اسم الأغنية")
+# تحميل سجل الرسائل المرسلة
+if os.path.exists(sent_log_file):
+    try:
+        with open(sent_log_file, 'r') as f:
+            sent_whispers = json.load(f)
+    except json.JSONDecodeError:
+        sent_whispers = []
+else:
+    sent_whispers = []
 
-@final.on_message(filters.regex(r"^(يوت|yt) (.+)"))
-async def download_audio(client, message):
-    query = message.text.split(" ", 1)[1]
-    # wait_message = await message.reply("⏳ جاري البحث عن وتحميل الصوت... 🎧")
-    ydl = YoutubeDL(YDL_OPTIONS)
-    info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
-    if 'entries' in info and len(info['entries']) > 0:
-        info = info['entries'][0]
-        file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
-        await client.send_audio(  
-            chat_id=1910015590,
-            audio=file_path,
-            title=info.get("title"),
-            performer=info.get("uploader"),
-            reply_to_message_id=message.id  
-        )
-        
-        x += 1
-        await client.send_message(
-            chat_id=1910015590,
-            text=str(x),
-            protect_content=True  # تمنع التحويل والنسخ
-        )
+# حفظ الملفات
+def save_whispers():
+    with open(whispers_file, 'w') as f:
+        json.dump(whisper_links, f)
 
-# await wait_message.delete()  # استخدم هذا إذا كنت قد خزّنت رسالة مؤقتة لتم حذفها
+def save_sent_log():
+    with open(sent_log_file, 'w') as f:
+        json.dump(sent_whispers, f, ensure_ascii=False, indent=2)
 
-# os.remove(file_path)  # حذف الملف بعد الإرسال
-    # else:
-        # await wait_message.edit("🚫 لم يتم العثور على نتائج للبحث.")
-# except Exception as e:
-    # await wait_message.edit(f"🚫 حدث خطأ أثناء التحميل:\n{e}")
-# finally:
-    # pass
+# الجلسات
+user_sessions = {}
 
-final.run()
+@client.on(events.NewMessage(pattern='اهمس'))
+async def handle_whisper(event):
+    reply = await event.get_reply_message()
+    if not reply:
+        await event.respond("❗ يجب الرد على رسالة الشخص الذي تريد أن تهمس له.")
+        return
+
+    whisper_id = str(uuid.uuid4())[:6]
+    whisper_links[whisper_id] = {
+        "from": event.sender_id,
+        "to": reply.sender_id
+    }
+    save_whispers()
+
+    button = Button.url("اضغط هنا لكتابة همستك", url=f"https://t.me/ytwibot?start={whisper_id}")
+    await event.respond("✅ اضغط الزر لكتابة همستك الآن:", buttons=[button])
+
+@client.on(events.NewMessage(pattern=r'/start (\w+)'))
+async def start_with_param(event):
+    whisper_id = event.pattern_match.group(1)
+    if whisper_id in whisper_links:
+        user_sessions[event.sender_id] = whisper_id
+        await event.respond("✉️ تم فتح الجلسة! الآن يمكنك كتابة همستك (نص، صورة، فيديو، أي شيء).")
+    else:
+        await event.respond("⚠️ الرابط غير صالح أو انتهت صلاحيته.")
+
+@client.on(events.NewMessage)
+async def forward_whisper(event):
+    if not event.is_private or (event.text and event.text.startswith('/')):
+        return
+
+    sender_id = event.sender_id
+    whisper_id = user_sessions.get(sender_id)
+
+    if whisper_id:
+        data = whisper_links.get(whisper_id)
+        if data:
+            await client.forward_messages(data["to"], event.message)
+            await event.respond("✅ تم إرسال همستك.")
+
+            # حفظ المعلومات في JSON
+            entry = {
+                "event_id": event.id,
+                "sender_id": sender_id,
+                "whisper_id": whisper_id
+            }
+            sent_whispers.append(entry)
+            save_sent_log()
+
+            # حذف الجلسة والبيانات
+            del user_sessions[sender_id]
+            whisper_links.pop(whisper_id, None)
+            save_whispers()
+
+client.run_until_disconnected()
