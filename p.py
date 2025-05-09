@@ -67,7 +67,7 @@ async def start_with_param(event):
         return
     
     user_sessions[event.sender_id] = whisper_id
-    data = whisper_links.get(user_sessions)
+    data = whisper_links.get(whisper_id)
 
     target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
     sender = await event.get_sender()
