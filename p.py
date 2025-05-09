@@ -51,7 +51,7 @@ async def handle_whisper(event):
     user_targets[whisper_id] = {
         "name": to_user.first_name
     }
-    print(whisper_id)
+    print(f'whisper_id 1 \n {whisper_id}')
     button = Button.url("✉️ اضغط هنا لإرسال همستك", url=f"https://t.me/Hauehshbot?start={whisper_id}")
     await event.respond(
         f"📢 هناك همسة جديدة:\n👤 من: {from_user.first_name}\n👤 إلى: {to_user.first_name}\n\n↘️ اضغط على الزر لبدء إرسال همستك:",
@@ -60,16 +60,15 @@ async def handle_whisper(event):
 @client.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(event):
     whisper_id = event.pattern_match.group(1)
-    print(whisper_id)
+    print(f'whisper_id \n {whisper_id}')
     data = whisper_links.get(whisper_id)
-    print(data)
+    print(f'data \n {data}')
     if not data:
         await event.respond("⚠️ الرابط غير صالح أو انتهت صلاحيته.")
         return
-
+    
     user_sessions[event.sender_id] = whisper_id
 
-    # تحديد اسم المستقبل أو "الشخص"
     target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
     sender = await event.get_sender()
 
