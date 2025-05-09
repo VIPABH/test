@@ -63,8 +63,7 @@ async def handle_whisper(event):
     user_targets[whisper_id] = {
         "name": to_user.first_name
     }
-
-    # إرسال زر التنبيه في المجموعة
+    print(whisper_id)
     button = Button.url("✉️ اضغط هنا لإرسال همستك", url=f"https://t.me/Hauehshbot?start={whisper_id}")
     await event.respond(
         f"📢 هناك همسة جديدة:\n👤 من: {from_user.first_name}\n👤 إلى: {to_user.first_name}\n\n↘️ اضغط على الزر لبدء إرسال همستك:",
@@ -94,6 +93,7 @@ async def forward_whisper(event):
 
     sender_id = event.sender_id
     whisper_id = user_sessions.get(sender_id)
+    print(whisper_id)
     if not whisper_id:
         return
 
