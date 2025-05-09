@@ -58,7 +58,7 @@ async def handle_whisper(event):
     }
     save_whispers()
 
-    button = Button.url("اضغط هنا لكتابة همستك", url=f"https://t.me/ytwibot?start={whisper_id}")
+    button = Button.url("اضغط هنا لكتابة همستك", url=f"https://t.me/Hauehshbot?start={whisper_id}")
     await event.respond("✅ اضغط الزر لكتابة همستك الآن:", buttons=[button])
 
 @client.on(events.NewMessage(pattern=r'/start (\w+)'))
