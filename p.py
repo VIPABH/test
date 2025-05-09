@@ -1,7 +1,7 @@
 from telethon import TelegramClient, events, Button
 import uuid
 import json
-import os
+import os, asyncio
 
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
@@ -106,7 +106,6 @@ async def forward_whisper(event):
     await client.forward_messages(data["to"], v)
     await event.respond("✅ تم إرسال همستك بنجاح.")
 
-    # حفظ السجل
     sender = await event.get_sender()
     sent_whispers.append({
         "event_id": event.id,
@@ -115,9 +114,8 @@ async def forward_whisper(event):
         "to_id": data["to"],
         "uuid": whisper_id
     })
+    await asyncio.sleep(5)
     save_sent_log()
-
-    # تنظيف البيانات
     user_sessions.pop(sender_id, None)
     whisper_links.pop(whisper_id, None)
     user_targets.pop(whisper_id, None)
