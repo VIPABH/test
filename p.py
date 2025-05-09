@@ -58,35 +58,27 @@ async def handle_whisper(event):
         f"📢 هناك همسة جديدة:\n👤 من: {from_user.first_name}\n👤 إلى: {to_user.first_name}\n\n↘️ اضغط على الزر لبدء إرسال همستك:",
         buttons=[button]
     )
-@client.on(events.NewMessage(pattern=r'/start (\w+)'))
-async def start_with_param(event):
-    whisper_id = event.pattern_match.group(1)
+# استقبال همسة في الخاص
+@client.on(events.NewMessage)
+async def forward_whisper(event):
+    if not event.is_private or (event.text and event.text.startswith('/')):
+        return
+
+    sender_id = event.sender_id
+    whisper_id = user_sessions.get(sender_id)
+    print(whisper_id)
+    if not whisper_id:
+        return
+
     data = whisper_links.get(whisper_id)
     if not data:
-        await event.respond("⚠️ الرابط غير صالح أو انتهت صلاحيته.")
         return
-    if event.sender_id != data['to'] and event.sender_id != data['from']:
-        await event.respond("⚠️ لا تملك صلاحية عرض هذه الهمسة.")
-        return
+    v = event.message
+    b = Button.url(">", url=f"https://t.me/Hauehshbot?start={whisper_id}")
+    await client.send_message(data['chat_id'], 'همسة', buttons=[b])
+    await client.forward_messages(data["to"], v)
+    await event.respond("✅ تم إرسال همستك بنجاح.")
 
-    sender = await event.get_sender()
-    target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
-
-    if 'media' in data:
-        media_data = data['media']
-        try:
-            await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""))
-            await event.respond(f"✉️ إليك الهمسة من {target_name}.")
-        except Exception as e:
-            await event.respond("⚠️ حدث خطأ أثناء إرسال الهمسة.")
-    elif 'text' in data:
-        await event.respond(f"✉️ إليك الهمسة من {target_name}:\n\n{data['text']}")
-    else:
-        await event.respond(f"✉️ أهلاً {sender.first_name}، لا توجد همسة محفوظة حاليًا.")
-
-    # يمكن هنا حذف الهمسة من التخزين إن أردت جعل الرابط يُستخدم مرة واحدة:
-    # whisper_links.pop(whisper_id, None)
-    # save_whispers()
 @client.on(events.NewMessage)
 async def forward_whisper(event):
     if not event.is_private or (event.text and event.text.startswith('/')):
