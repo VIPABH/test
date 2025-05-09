@@ -46,13 +46,18 @@ async def download_audio(client, message):
             performer=info.get("uploader"),
             reply_to_message_id=message.id  
         )
+        
         x += 1
+        
         await client.send_message(
             chat_id=message.chat.id,
             text=str(x),
             protect_content=True  # تمنع التحويل والنسخ
-    )        # await wait_message.delete()
-        os.remove(file_path)
+        )
+
+# await wait_message.delete()  # استخدم هذا إذا كنت قد خزّنت رسالة مؤقتة لتم حذفها
+
+os.remove(file_path)  # حذف الملف بعد الإرسال
     # else:
         # await wait_message.edit("🚫 لم يتم العثور على نتائج للبحث.")
 # except Exception as e:
