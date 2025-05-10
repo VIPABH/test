@@ -42,12 +42,13 @@ user_sessions = {}
 user_targets = {}
 
 # المتغير l الذي يتحكم في ما إذا كان سيتم السماح بإرسال الرسائل
-l = False  # هذه القيمة تحدد ما إذا كان من الممكن إرسال همسات جديدة
+l = {}  # قاموس لتخزين حالة الهمسات لكل مستخدم
 
 @client.on(events.NewMessage(pattern='اهمس'))
 async def handle_whisper(event):
     global l
-    if l:  # إذا تم إرسال همسة من قبل، لا تسمح بإرسال همسات جديدة
+    sender_id = event.sender_id
+    if sender_id in l and l[sender_id]:  # إذا كان المستخدم قد أرسل همسة مسبقًا
         await event.respond("تم إرسال همسة واحدة بالفعل، لا يمكنك إرسال المزيد.")
         return
 
@@ -63,21 +64,21 @@ async def handle_whisper(event):
         "chat_id": event.chat_id
     }
     save_whispers()
-    
+
     from_user = await event.get_sender()
     to_user = await reply.get_sender()
 
     user_targets[whisper_id] = {
         "name": to_user.first_name
     }
-    
+
     button = Button.url("اضغط هنا للبدء", url=f"https://t.me/Hauehshbot?start={whisper_id}")
     await event.respond(
         f'همسة مرسلة من {from_user.first_name} الى {to_user.first_name}',
         buttons=[button]
     )
-    
-    l = True  # بعد إرسال أول همسة، نُغير l ليمنع إرسال المزيد من الرسائل
+
+    l[sender_id] = True  # بعد إرسال أول همسة، نُغير l للسماح للمستخدم بإرسال رسالة واحدة فقط
 
 @client.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(event):
@@ -114,18 +115,21 @@ async def start_with_param(event):
 @client.on(events.NewMessage(incoming=True))
 async def forward_whisper(event):
     global l
-    if not event.is_private or not l or (event.text and event.text.startswith('/')):
+    if not event.is_private or (event.text and event.text.startswith('/')):
         return
 
     sender_id = event.sender_id
+    if sender_id not in l or not l[sender_id]:  # التأكد من أنه لم يتم إرسال همسة سابقة
+        return
+
     whisper_id = user_sessions.get(sender_id)
     if not whisper_id:
         return
-    
+
     data = whisper_links.get(whisper_id)
     if not data:
         return
-    
+
     msg = event.message
     b = Button.url("فتح الهمسة", url=f"https://t.me/Hauehshbot?start={whisper_id}")
 
@@ -145,7 +149,7 @@ async def forward_whisper(event):
         }
     elif msg.text:
         whisper_links[whisper_id]['text'] = msg.text
-    
+
     save_whispers()
 
     if msg.media:
@@ -153,7 +157,7 @@ async def forward_whisper(event):
         await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""), protect_content=True)
     else:
         await event.respond("تم إرسال همستك بنجاح.")
-    
+
     sender = await event.get_sender()
     sent_whispers.append({
         "event_id": event.id,
@@ -163,5 +167,7 @@ async def forward_whisper(event):
         "uuid": whisper_id
     })
     save_sent_log()
+
+    l[sender_id] = False  # بعد إرسال الهمسة، نغلق إمكانية إرسال همسات إضافية
 
 client.run_until_disconnected()
