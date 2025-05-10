@@ -83,9 +83,10 @@ async def start_with_param(event):
     else:
         await event.respond(f" أهلاً {sender.first_name}، ارسل كلام الهمسة او ميديا.")
     user_sessions[event.sender_id] = whisper_id
+l = False
 @client.on(events.NewMessage)
 async def forward_whisper(event):
-    if not event.is_private or (event.text and event.text.startswith('/')):
+    if not event.is_private or l:
         return
     sender_id = event.sender_id
     whisper_id = user_sessions.get(sender_id)
@@ -94,6 +95,7 @@ async def forward_whisper(event):
     data = whisper_links.get(whisper_id)
     if not data:
         return
+    l = True
     msg = event.message
     b = Button.url("فتح الهمسة", url=f"https://t.me/Hauehshbot?start={whisper_id}")
     data = whisper_links.get(whisper_id)
@@ -117,6 +119,7 @@ async def forward_whisper(event):
         await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""), protect_content=True)
     else:
         await event.respond("تم ارسال الهمسة")
+        l = False
     sender = await event.get_sender()
     sent_whispers.append({
         "event_id": event.id,
