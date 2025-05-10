@@ -79,7 +79,7 @@ async def start_with_param(event):
         except Exception:
             await event.respond(" حدث خطأ أثناء إرسال الهمسة.")
     elif 'text' in data:
-        await event.respond({data['text']})
+            await event.respond(data['text'])
     else:
         await event.respond(f" أهلاً {sender.first_name}، ارسل كلام الهمسة او ميديا.")
     user_sessions[event.sender_id] = whisper_id
