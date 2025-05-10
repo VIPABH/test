@@ -88,7 +88,7 @@ async def start_with_param(event):
 @client.on(events.NewMessage(incoming=True))
 async def forward_whisper(event):
     global l
-    l = False
+    l = True
     if not event.is_private or not l or (event.text and event.text.startswith('/')):
         return
     sender_id = event.sender_id
