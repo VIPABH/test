@@ -87,7 +87,7 @@ async def start_with_param(event):
 async def forward_whisper(event):
     global l
     l = False
-    if not event.is_private or l or (event.text and event.text.startswith('/')):
+    if not event.is_private or not l or (event.text and event.text.startswith('/')):
         return
     sender_id = event.sender_id
     whisper_id = user_sessions.get(sender_id)
@@ -101,25 +101,28 @@ async def forward_whisper(event):
     data = whisper_links.get(whisper_id)
     from_name = data.get("from_name", "مجهول")
     to_name = data.get("to_name", "مجهول")
+    l = True
     await client.send_message(
         data['chat_id'],
         f'همسة مرسله من ( {from_name} ) الى ( {to_name} )',
         buttons = [b]
     )
-    l = False
     if msg.media:
         whisper_links[whisper_id]['media'] = {
             'file_id': msg.file.id,
             'caption': msg.text or ""
         }
-    elif msg.text:
+        l = False
+    elif msg.text and l:
         whisper_links[whisper_id]['text'] = msg.text
     save_whispers()
     if msg.media:
+        l = True
         media_data = whisper_links[whisper_id]['media']
         await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""), protect_content=True)
         l = False
     else:
+        l = True
         await event.respond("تم ارسال الهمسة")
         l = False
     sender = await event.get_sender()
