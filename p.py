@@ -71,8 +71,7 @@ async def start_with_param(event):
     if 'media' in data:
         media_data = data['media']
         try:
-            await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""))
-            await event.respond(f" إليك الهمسة من {target_name}.")
+            await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""), protected_content=True)
         except Exception:
             await event.respond(" حدث خطأ أثناء إرسال الهمسة.")
     elif 'text' in data:
