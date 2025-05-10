@@ -88,20 +88,26 @@ async def start_with_param(event):
 async def forward_whisper(event):
     if not event.is_private or (event.text and event.text.startswith('/')):
         return
+
     sender_id = event.sender_id
     whisper_id = user_sessions.get(sender_id)
     if not whisper_id:
         return
+
     data = whisper_links.get(whisper_id)
     if not data:
         return
+
     msg = event.message
     button = Button.url("فتح الهمسة", url=f"https://t.me/Hauehshbot?start={whisper_id}")
+
     await client.send_message(
         data['chat_id'],
-        f"تم إرسال همسة جديدة من {event.sender.first_name}",
+        f"📨 تم إرسال همسة جديدة من {event.sender.first_name}",
         buttons=[button]
     )
+
+    # تخزين محتوى الهمسة
     if msg.media:
         whisper_links[whisper_id]['media'] = {
             'file_id': msg.file.id,
@@ -109,11 +115,17 @@ async def forward_whisper(event):
         }
     elif msg.text:
         whisper_links[whisper_id]['text'] = msg.text
+
     save_whispers()
+
+    # إرسال تأكيد إلى المرسل
     if msg.media:
-        await client.send_file(event.sender_id, data['file_id'], caption=data.get("caption", ""), protect_content=True)
+        media_data = whisper_links[whisper_id]['media']
+        await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""), protect_content=True)
     else:
-        await event.respond("تم إرسال همستك بنجاح.")
+        await event.respond("✅ تم إرسال همستك بنجاح.")
+
+    # حفظ السجل
     sender = await event.get_sender()
     sent_whispers.append({
         "event_id": event.id,
