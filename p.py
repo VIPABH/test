@@ -80,7 +80,11 @@ async def start_with_param(event):
         except Exception:
             await event.respond(" حدث خطأ أثناء إرسال الهمسة.")
     elif 'text' in data:
-        await event.respond(f" إليك الهمسة من {target_name}:\n\n{data['text']}")
+        await client.send_message(
+            event.chat_id,  # يرسل إلى القناة أو المجموعة الفائقة (بدلاً من إرسال الرد في المحادثة الخاصة)
+            f"{data['text']}",
+            protect_content=True
+)
     else:
         await event.respond(f" أهلاً {sender.first_name}، لا توجد همسة محفوظة حاليًا.")
     user_sessions[event.sender_id] = whisper_id
