@@ -58,6 +58,7 @@ async def handle_whisper(event):
     )
 @client.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(event):
+    global l
     whisper_id = event.pattern_match.group(1)
     data = whisper_links.get(whisper_id)
     if not data:
@@ -82,6 +83,7 @@ async def start_with_param(event):
             await event.respond(data['text'])
     else:
         await event.respond(f" أهلاً {sender.first_name}، ارسل كلام الهمسة او ميديا.")
+        l = True
     user_sessions[event.sender_id] = whisper_id
 @client.on(events.NewMessage(incoming=True))
 async def forward_whisper(event):
