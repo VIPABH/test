@@ -34,14 +34,14 @@ user_sessions = {}
 l = {}
 @client.on(events.NewMessage(pattern='اهمس'))
 async def handle_whisper(event):
-    global l
+    global l, m1, reply
     sender_id = event.sender_id
     if sender_id in l and l[sender_id]:
-        await event.reply("تم إرسال همسة واحدة بالفعل، لا يمكنك إرسال المزيد.")
+        await event.reply("هيييي ماتكدر تسوي همستين بوقت واحد")
         return
     reply = await event.get_reply_message()
     if not reply:
-        await event.reply("يجب الرد على رسالة الشخص الذي تريد أن تهمس له.")
+        await event.reply("صديقي الامر هاذ ميشتغل اذا مو رد")
         return
     whisper_id = str(uuid.uuid4())[:6]
     from_user = await event.get_sender()
@@ -55,7 +55,7 @@ async def handle_whisper(event):
     }
     save_whispers()
     button = Button.url("اضغط هنا للبدء", url=f"https://t.me/{(await client.get_me()).username}?start={whisper_id}")
-    await event.reply(
+    m1 = await event.reply(
         f'همسة مرسلة من {from_user.first_name} إلى {to_user.first_name}',
         buttons=[button]
     )
@@ -84,7 +84,7 @@ async def start_with_param(event):
     user_sessions[event.sender_id] = whisper_id
 @client.on(events.NewMessage(incoming=True))
 async def forward_whisper(event):
-    global l
+    global l, m2
     if not event.is_private or (event.text and event.text.startswith('/')):
         return
     sender_id = event.sender_id
@@ -100,7 +100,7 @@ async def forward_whisper(event):
     b = Button.url("فتح الهمسة", url=f"https://t.me/{(await client.get_me()).username}?start={whisper_id}")
     from_name = data.get("from_name", "مجهول")
     to_name = data.get("to_name", "مجهول")
-    await client.send_message(
+    m2 = await client.send_message(
         data['chat_id'],
         f'همسة مرسلة من ({from_name}) إلى ({to_name})',
         buttons=[b]
@@ -112,9 +112,9 @@ async def forward_whisper(event):
         whisper_links[whisper_id]['text'] = msg.text
     save_whispers()
     if msg.media:
-        await event.reply("تم إرسال همستك (وسائط) بنجاح.")
+        await event.reply("تم إرسال همسة ميديا بنجاح.")
     else:
-        await event.reply("تم إرسال همستك (نص) بنجاح.")
+        await event.reply("تم إرسال همسة بنجاح.")
     sender = await event.get_sender()
     sent_whispers.append({
         "event_id": event.id,
