@@ -123,8 +123,8 @@ async def forward_whisper(event):
         )
     else:
         await event.respond("⚠️ لا يوجد ملف مرفق في البيانات.")
-    else:
-        await event.respond("تم إرسال همستك بنجاح.")
+    # else:
+    #     await event.respond("تم إرسال همستك بنجاح.")
     sender = await event.get_sender()
     sent_whispers.append({
         "event_id": event.id,
