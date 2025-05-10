@@ -1,137 +1,66 @@
-from telethon import TelegramClient, events, Button
-import uuid
-import json
-import os, asyncio
-api_id = int(os.getenv("API_ID"))
-api_hash = os.getenv("API_HASH")
-bot_token = os.getenv("BOT_TOKEN")
-client = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
-whispers_file = 'whispers.json'
-sent_log_file = 'sent_whispers.json'
-if os.path.exists(whispers_file):
-    try:
-        with open(whispers_file, 'r') as f:
-            whisper_links = json.load(f)
-    except json.JSONDecodeError:
-        whisper_links = {}
-else:
-    whisper_links = {}
+import os
+import asyncio
+import shutil
+from pyrogram import Client, filters
+from yt_dlp import YoutubeDL
+API_ID = os.environ.get("API_ID")
+API_HASH = os.environ.get("API_HASH")
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-if os.path.exists(sent_log_file):
-    try:
-        with open(sent_log_file, 'r') as f:
-            sent_whispers = json.load(f)
-    except json.JSONDecodeError:
-        sent_whispers = []
-else:
-    sent_whispers = []
-def save_whispers():
-    with open(whispers_file, 'w') as f:
-        json.dump(whisper_links, f)
-def save_sent_log():
-    with open(sent_log_file, 'w') as f:
-        json.dump(sent_whispers, f, ensure_ascii=False, indent=2)
-user_sessions = {}
-user_targets = {}
-@client.on(events.NewMessage(pattern='اهمس'))
-async def handle_whisper(event):
-    reply = await event.get_reply_message()
-    if not reply:
-        await event.respond("❗ يجب الرد على رسالة الشخص الذي تريد أن تهمس له.")
-        return
-    whisper_id = str(uuid.uuid4())[:6]
-    whisper_links[whisper_id] = {
-        "from": event.sender_id,
-        "to": reply.sender_id,
-        "chat_id": event.chat_id
-    }
-    save_whispers()
-    from_user = await event.get_sender()
-    to_user = await reply.get_sender()
-    user_targets[whisper_id] = {
-        "name": to_user.first_name
-    }
-    button = Button.url("✉️ اضغط هنا لإرسال همستك", url=f"https://t.me/Hauehshbot?start={whisper_id}")
-    await event.respond(
-        f"📢 هناك همسة جديدة:\n👤 من: {from_user.first_name}\n👤 إلى: {to_user.first_name}\n\n↘️ اضغط على الزر لبدء إرسال همستك:",
-        buttons=[button]
-    )
-@client.on(events.NewMessage(pattern=r'/start (\w+)'))
-async def start_with_param(event):
-    whisper_id = event.pattern_match.group(1)
-    data = whisper_links.get(whisper_id)
-    if not data:
-        await event.respond(" الرابط غير صالح أو انتهت صلاحيته.")
-        return
-    if event.sender_id != data['to'] and event.sender_id != data['from']:
-        await event.respond(" لا تملك صلاحية عرض هذه الهمسة.")
-        return
-    sender = await event.get_sender()
-    target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
-    if 'media' in data:
-        media_data = data['media']
-        try:
-            await client.send_file(
-                event.sender_id,
-                media_data['file_id'],
-                caption=media_data.get("caption", ""),
-                protect_content=True  # ✅ تعمل الآن في الخاص والمجموعات والقنوات
-            )
-        except Exception:
-            await event.respond(" حدث خطأ أثناء إرسال الهمسة.")
-    elif 'text' in data:
-        await client.send_message(
-            event.chat_id,  # يرسل إلى القناة أو المجموعة الفائقة (بدلاً من إرسال الرد في المحادثة الخاصة)
-            f"{data['text']}",
-            protect_content=True
-)
-    # else:
-    #     await event.respond(f" أهلاً {sender.first_name}، لا توجد همسة محفوظة حاليًا.")
-    # user_sessions[event.sender_id] = whisper_id
-@client.on(events.NewMessage)
-async def forward_whisper(event):
-    if not event.is_private or (event.text and event.text.startswith('/')):
-        return
-    sender_id = event.sender_id
-    whisper_id = user_sessions.get(sender_id)
-    if not whisper_id:
-        return
-    data = whisper_links.get(whisper_id)
-    if not data:
-        return
-    msg = event.message
-    button = Button.url("فتح الهمسة", url=f"https://t.me/Hauehshbot?start={whisper_id}")
-    await client.send_message(
-        data['chat_id'],
-        f"تم إرسال همسة جديدة من {event.sender.first_name}",
-        buttons=[button]
-    )
-    if msg.media:
-        whisper_links[whisper_id]['media'] = {
-            'file_id': msg.file.id,
-            'caption': msg.text or ""
-        }
-    elif msg.text:
-        whisper_links[whisper_id]['text'] = msg.text
-    save_whispers()
-    if msg.media:
-        await client.send_file(
-            event.chat_id,  # القناة أو المجموعة الفائقة
-            data['file_id'],  # معرف الملف أو الرابط
-            caption=f"{data['text']}",  # النص التوضيحي
-            protect_content=True  # حماية المحتوى من النسخ أو التحويل
+if not os.path.exists("downloads"):
+    os.makedirs("downloads")
+
+YDL_OPTIONS = {
+    'format': 'bestaudio/best[abr<=160]',  
+    'outtmpl': 'downloads/%(title)s.%(ext)s',
+    'noplaylist': True,
+    'quiet': True,
+    'cookiefile': 'cookies.txt',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '128',  
+    }],
+}
+
+final = Client("youtube_audio_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+@final.on_message(filters.command("start"))
+async def start(client, message):
+    await message.reply("مرحباً! أرسل:\n\nيوت + اسم الأغنية")
+
+@final.on_message(filters.regex(r"^(يوت|yt) (.+)"))
+async def download_audio(client, message):
+    query = message.text.split(" ", 1)[1]
+    # wait_message = await message.reply("⏳ جاري البحث عن وتحميل الصوت... 🎧")
+    ydl = YoutubeDL(YDL_OPTIONS)
+    info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
+    if 'entries' in info and len(info['entries']) > 0:
+        info = info['entries'][0]
+        file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
+        await client.send_audio(  
+            chat_id=1910015590,
+            audio=file_path,
+            title=info.get("title"),
+            performer=info.get("uploader"),
+            reply_to_message_id=message.id  
         )
-    else:
-        await event.respond("⚠️ لا يوجد ملف مرفق في البيانات.")
+        
+        x += 1
+        await client.send_message(
+            chat_id=1910015590,
+            text=str(x),
+            protect_content=True  # تمنع التحويل والنسخ
+        )
+
+# await wait_message.delete()  # استخدم هذا إذا كنت قد خزّنت رسالة مؤقتة لتم حذفها
+
+# os.remove(file_path)  # حذف الملف بعد الإرسال
     # else:
-    #     await event.respond("تم إرسال همستك بنجاح.")
-    sender = await event.get_sender()
-    sent_whispers.append({
-        "event_id": event.id,
-        "sender_id": sender.id,
-        "sender_name": sender.first_name,
-        "to_id": data["to"],
-        "uuid": whisper_id
-    })
-    save_sent_log()
-client.run_until_disconnected()
+        # await wait_message.edit("🚫 لم يتم العثور على نتائج للبحث.")
+# except Exception as e:
+    # await wait_message.edit(f"🚫 حدث خطأ أثناء التحميل:\n{e}")
+# finally:
+    # pass
+
+final.run()
