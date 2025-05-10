@@ -11,7 +11,6 @@ client = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 whispers_file = 'whispers.json'
 sent_log_file = 'sent_whispers.json'
 
-# تحميل البيانات من الملفات
 if os.path.exists(whispers_file):
     try:
         with open(whispers_file, 'r') as f:
@@ -32,7 +31,7 @@ else:
 
 def save_whispers():
     with open(whispers_file, 'w') as f:
-        json.dump(whisper_links, f)
+        json.dump(whisper_links, f, ensure_ascii=False, indent=2)
 
 def save_sent_log():
     with open(sent_log_file, 'w') as f:
@@ -40,15 +39,14 @@ def save_sent_log():
 
 user_sessions = {}
 user_targets = {}
-
-# المتغير l الذي يتحكم في ما إذا كان سيتم السماح بإرسال الرسائل
-l = {}  # قاموس لتخزين حالة الهمسات لكل مستخدم
+l = {}
 
 @client.on(events.NewMessage(pattern='اهمس'))
 async def handle_whisper(event):
     global l
     sender_id = event.sender_id
-    if sender_id in l and l[sender_id]:  # إذا كان المستخدم قد أرسل همسة مسبقًا
+
+    if sender_id in l and l[sender_id]:
         await event.respond("تم إرسال همسة واحدة بالفعل، لا يمكنك إرسال المزيد.")
         return
 
@@ -58,15 +56,17 @@ async def handle_whisper(event):
         return
 
     whisper_id = str(uuid.uuid4())[:6]
+    from_user = await event.get_sender()
+    to_user = await reply.get_sender()
+
     whisper_links[whisper_id] = {
         "from": event.sender_id,
         "to": reply.sender_id,
-        "chat_id": event.chat_id
+        "chat_id": event.chat_id,
+        "from_name": from_user.first_name or "بدون اسم",
+        "to_name": to_user.first_name or "بدون اسم"
     }
     save_whispers()
-
-    from_user = await event.get_sender()
-    to_user = await reply.get_sender()
 
     user_targets[whisper_id] = {
         "name": to_user.first_name
@@ -78,7 +78,7 @@ async def handle_whisper(event):
         buttons=[button]
     )
 
-    l[sender_id] = True  # بعد إرسال أول همسة، نُغير l للسماح للمستخدم بإرسال رسالة واحدة فقط
+    l[sender_id] = True
 
 @client.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(event):
@@ -119,7 +119,7 @@ async def forward_whisper(event):
         return
 
     sender_id = event.sender_id
-    if sender_id not in l or not l[sender_id]:  # التأكد من أنه لم يتم إرسال همسة سابقة
+    if sender_id not in l or not l[sender_id]:
         return
 
     whisper_id = user_sessions.get(sender_id)
@@ -167,7 +167,6 @@ async def forward_whisper(event):
         "uuid": whisper_id
     })
     save_sent_log()
-
-    l[sender_id] = False  # بعد إرسال الهمسة، نغلق إمكانية إرسال همسات إضافية
+    l[sender_id] = False
 
 client.run_until_disconnected()
