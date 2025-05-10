@@ -121,8 +121,8 @@ async def forward_whisper(event):
             caption=f"{data['text']}",  # النص التوضيحي
             protect_content=True  # حماية المحتوى من النسخ أو التحويل
         )
-else:
-    await event.respond("⚠️ لا يوجد ملف مرفق في البيانات.")
+    else:
+        await event.respond("⚠️ لا يوجد ملف مرفق في البيانات.")
     else:
         await event.respond("تم إرسال همستك بنجاح.")
     sender = await event.get_sender()
