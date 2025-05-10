@@ -1,7 +1,7 @@
 from telethon import TelegramClient, events, Button
 import uuid
 import json
-import os, asyncio
+import os
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
@@ -37,7 +37,7 @@ user_targets = {}
 async def handle_whisper(event):
     reply = await event.get_reply_message()
     if not reply:
-        await event.respond("❗ يجب الرد على رسالة الشخص الذي تريد أن تهمس له.")
+        await event.respond("يجب الرد على رسالة الشخص الذي تريد أن تهمس له.")
         return
     whisper_id = str(uuid.uuid4())[:6]
     whisper_links[whisper_id] = {
@@ -51,9 +51,9 @@ async def handle_whisper(event):
     user_targets[whisper_id] = {
         "name": to_user.first_name
     }
-    button = Button.url("✉️ اضغط هنا لإرسال همستك", url=f"https://t.me/Hauehshbot?start={whisper_id}")
+    button = Button.url("اضغط هنا للبدء", url=f"https://t.me/Hauehshbot?start={whisper_id}")
     await event.respond(
-        f"📢 هناك همسة جديدة:\n👤 من: {from_user.first_name}\n👤 إلى: {to_user.first_name}\n\n↘️ اضغط على الزر لبدء إرسال همستك:",
+        f'همسة مرسله من {from_user.first_name} الى {to_user.first_name}',
         buttons=[button]
     )
 @client.on(events.NewMessage(pattern=r'/start (\w+)'))
@@ -61,13 +61,12 @@ async def start_with_param(event):
     whisper_id = event.pattern_match.group(1)
     data = whisper_links.get(whisper_id)
     if not data:
-        await event.respond(" الرابط غير صالح أو انتهت صلاحيته.")
+        await event.respond(" الهمسة غير موجوده في التخزين😔")
         return
     if event.sender_id != data['to'] and event.sender_id != data['from']:
-        await event.respond(" لا تملك صلاحية عرض هذه الهمسة.")
+        await event.respond("ماتكدر تشوف الهمسه💔")
         return
     sender = await event.get_sender()
-    target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
     if 'media' in data:
         media_data = data['media']
         try:
@@ -80,34 +79,29 @@ async def start_with_param(event):
         except Exception:
             await event.respond(" حدث خطأ أثناء إرسال الهمسة.")
     elif 'text' in data:
-        await event.respond(f" إليك الهمسة من {target_name}:\n\n{data['text']}")
+        await event.respond({data['text']})
     else:
-        await event.respond(f" أهلاً {sender.first_name}، لا توجد همسة محفوظة حاليًا.")
+        await event.respond(f" أهلاً {sender.first_name}، ارسل كلام الهمسة او ميديا.")
     user_sessions[event.sender_id] = whisper_id
 @client.on(events.NewMessage)
 async def forward_whisper(event):
     if not event.is_private or (event.text and event.text.startswith('/')):
         return
-
     sender_id = event.sender_id
     whisper_id = user_sessions.get(sender_id)
     if not whisper_id:
         return
-
     data = whisper_links.get(whisper_id)
     if not data:
         return
-
     msg = event.message
-    button = Button.url("فتح الهمسة", url=f"https://t.me/Hauehshbot?start={whisper_id}")
-
+    b = Button.url("فتح الهمسة", url=f"https://t.me/Hauehshbot?start={whisper_id}")
+    target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
     await client.send_message(
         data['chat_id'],
-        f"📨 تم إرسال همسة جديدة من {event.sender.first_name}",
-        buttons=[button]
+        f"همسة مرسلة من {sent_whispers['sender_name']} الى {target_name} {event.sender.first_name}",
+        buttons = [b]
     )
-
-    # تخزين محتوى الهمسة
     if msg.media:
         whisper_links[whisper_id]['media'] = {
             'file_id': msg.file.id,
@@ -115,17 +109,12 @@ async def forward_whisper(event):
         }
     elif msg.text:
         whisper_links[whisper_id]['text'] = msg.text
-
     save_whispers()
-
-    # إرسال تأكيد إلى المرسل
     if msg.media:
         media_data = whisper_links[whisper_id]['media']
         await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""), protect_content=True)
     else:
-        await event.respond("✅ تم إرسال همستك بنجاح.")
-
-    # حفظ السجل
+        await event.respond("تم ارسال الهمسة")
     sender = await event.get_sender()
     sent_whispers.append({
         "event_id": event.id,
