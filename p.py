@@ -41,8 +41,8 @@ def save_sent_log():
 user_sessions = {}
 user_targets = {}
 
-# متغير l لتفعيل وتعطيل الرسائل
-l = False
+# المتغير l الذي يتحكم في ما إذا كان سيتم السماح بإرسال الرسائل
+l = False  # هذه القيمة تحدد ما إذا كان من الممكن إرسال همسات جديدة
 
 @client.on(events.NewMessage(pattern='اهمس'))
 async def handle_whisper(event):
@@ -73,7 +73,7 @@ async def handle_whisper(event):
     
     button = Button.url("اضغط هنا للبدء", url=f"https://t.me/Hauehshbot?start={whisper_id}")
     await event.respond(
-        f'همسة مرسله من {from_user.first_name} الى {to_user.first_name}',
+        f'همسة مرسلة من {from_user.first_name} الى {to_user.first_name}',
         buttons=[button]
     )
     
@@ -113,7 +113,8 @@ async def start_with_param(event):
 
 @client.on(events.NewMessage(incoming=True))
 async def forward_whisper(event):
-    if not event.is_private or (event.text and event.text.startswith('/')) or not l:
+    global l
+    if not event.is_private or not l or (event.text and event.text.startswith('/')):
         return
 
     sender_id = event.sender_id
