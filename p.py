@@ -91,6 +91,7 @@ async def forward_whisper(event):
     l = True
     if not event.is_private or not l or (event.text and event.text.startswith('/')):
         return
+    l = False
     sender_id = event.sender_id
     whisper_id = user_sessions.get(sender_id)
     if not whisper_id:
