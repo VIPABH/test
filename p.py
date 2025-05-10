@@ -87,7 +87,7 @@ async def start_with_param(event):
 async def forward_whisper(event):
     global l
     l = False
-    if not event.is_private or l:
+    if not event.is_private or l or (event.text and event.text.startswith('/')):
         return
     sender_id = event.sender_id
     whisper_id = user_sessions.get(sender_id)
