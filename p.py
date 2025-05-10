@@ -80,13 +80,11 @@ async def start_with_param(event):
         except Exception:
             await event.respond(" حدث خطأ أثناء إرسال الهمسة.")
     elif 'text' in data:
-        await client.send_file(
-            event.chat_id,  # القناة أو المجموعة الفائقة
-            data['file_id'],  # معرف الملف أو الرابط
-            caption=f"{data['text']}",  # النص التوضيحي
-            protect_content=True  # حماية المحتوى من النسخ أو التحويل
-        )
-
+        await client.send_message(
+            event.chat_id,  # يرسل إلى القناة أو المجموعة الفائقة (بدلاً من إرسال الرد في المحادثة الخاصة)
+            f"{data['text']}",
+            protect_content=True
+)
     else:
         await event.respond(f" أهلاً {sender.first_name}، لا توجد همسة محفوظة حاليًا.")
     user_sessions[event.sender_id] = whisper_id
@@ -117,7 +115,14 @@ async def forward_whisper(event):
         whisper_links[whisper_id]['text'] = msg.text
     save_whispers()
     if msg.media:
-        await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""), protect_content=True)
+        await client.send_file(
+            event.chat_id,  # القناة أو المجموعة الفائقة
+            data['file_id'],  # معرف الملف أو الرابط
+            caption=f"{data['text']}",  # النص التوضيحي
+            protect_content=True  # حماية المحتوى من النسخ أو التحويل
+        )
+else:
+    await event.respond("⚠️ لا يوجد ملف مرفق في البيانات.")
     else:
         await event.respond("تم إرسال همستك بنجاح.")
     sender = await event.get_sender()
