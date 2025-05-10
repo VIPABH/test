@@ -83,7 +83,7 @@ async def start_with_param(event):
     else:
         await event.respond(f" أهلاً {sender.first_name}، ارسل كلام الهمسة او ميديا.")
     user_sessions[event.sender_id] = whisper_id
-@client.on(events.NewMessage)
+@client.on(events.NewMessage(incoming=True))
 async def forward_whisper(event):
     global l
     l = False
