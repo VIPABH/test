@@ -96,10 +96,12 @@ async def forward_whisper(event):
         return
     msg = event.message
     b = Button.url("فتح الهمسة", url=f"https://t.me/Hauehshbot?start={whisper_id}")
-    target_name = user_targets.get(whisper_id, {}).get("name", "الشخص")
+    data = whisper_links.get(whisper_id)
+    from_name = data.get("from_name", "مجهول")
+    to_name = data.get("to_name", "مجهول")
     await client.send_message(
         data['chat_id'],
-        f"همسة مرسلة من {sent_whispers['sender_name']} الى {target_name} {event.sender.first_name}",
+        f'همسة مرسله من ( {from_name} ) الى ( {to_name} )',
         buttons = [b]
     )
     if msg.media:
