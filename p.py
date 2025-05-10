@@ -85,9 +85,9 @@ async def start_with_param(event):
             f"{data['text']}",
             protect_content=True
 )
-    else:
-        await event.respond(f" أهلاً {sender.first_name}، لا توجد همسة محفوظة حاليًا.")
-    user_sessions[event.sender_id] = whisper_id
+    # else:
+    #     await event.respond(f" أهلاً {sender.first_name}، لا توجد همسة محفوظة حاليًا.")
+    # user_sessions[event.sender_id] = whisper_id
 @client.on(events.NewMessage)
 async def forward_whisper(event):
     if not event.is_private or (event.text and event.text.startswith('/')):
