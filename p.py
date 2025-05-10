@@ -106,6 +106,7 @@ async def forward_whisper(event):
         f'همسة مرسله من ( {from_name} ) الى ( {to_name} )',
         buttons = [b]
     )
+    l = False
     if msg.media:
         whisper_links[whisper_id]['media'] = {
             'file_id': msg.file.id,
@@ -117,8 +118,10 @@ async def forward_whisper(event):
     if msg.media:
         media_data = whisper_links[whisper_id]['media']
         await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""), protect_content=True)
+        l = False
     else:
         await event.respond("تم ارسال الهمسة")
+        l = False
     sender = await event.get_sender()
     sent_whispers.append({
         "event_id": event.id,
