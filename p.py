@@ -111,7 +111,7 @@ async def forward_whisper(event):
         whisper_links[whisper_id]['text'] = msg.text
     save_whispers()
     if msg.media:
-        await client.send_file(event.sender_id, media_data['file_id'], caption=media_data.get("caption", ""), protect_content=True)
+        await client.send_file(event.sender_id, data['file_id'], caption=data.get("caption", ""), protect_content=True)
     else:
         await event.respond("تم إرسال همستك بنجاح.")
     sender = await event.get_sender()
