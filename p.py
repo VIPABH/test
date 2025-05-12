@@ -1,34 +1,36 @@
 import os
 from telethon import TelegramClient, events
 
-# جلب متغيرات البيئة
+# جلب المتغيرات البيئية
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
 
-# إنشاء العميل
+# إعداد العميل
 ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 
-# قيم الفوز الثابتة لكل لعبة
+# القيم التي تعتبر فوز في الألعاب
 WIN_VALUES = {
-    "🎲": 6,
-    "🎯": 6,
-    "🏀": 5,
-    "⚽": 5,
-    "🎳": 6,
-    "🎰": 64
+    "🎲": 6,    # نرد
+    "🎯": 6,    # سهم
+    "🏀": 5,    # سلة
+    "⚽": 5,    # كرة
+    "🎳": 6,    # بولينغ
+    "🎰": 64    # سلوت ماشين
 }
 
 @ABH.on(events.NewMessage(pattern='🎲|🎯|🏀|⚽|🎳|🎰'))
 async def telegramgames(event):
+    # تحقق من وجود تفاعل نرد
     if not event.message.dice:
+        print("لا توجد رسالة تحتوي على تفاعل نرد.")
         return
 
     dice = event.message.dice
     emoji = dice.emoticon
     value = dice.value
 
-    # تحقق دقيق من الفوز حسب القيمة الفائزة
+    # تحقق إذا كانت القيمة مساوية للقيمة الفائزة
     win = value == WIN_VALUES.get(emoji, -1)
 
     if win:
@@ -38,5 +40,6 @@ async def telegramgames(event):
 
 # بدء العميل
 if __name__ == "__main__":
+    print("بدء العميل...")
     ABH.start()
     ABH.run_until_disconnected()
