@@ -1,12 +1,9 @@
-import os
 from telethon import TelegramClient, events
-
+import os
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
-
 ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
-
 WIN_VALUES = {
     "🎲": 6,
     "🎯": 6,
@@ -15,26 +12,21 @@ WIN_VALUES = {
     "🎳": 6,
     "🎰": 64
 }
-
-@ABH.on(events.NewMessage(pattern=r'.*'))  # pattern عام
+@ABH.on(events.NewMessage(pattern=r'.*'))
 async def telegramgames(event):
     if not event.message.dice:
         return
     a = event.text
     print(a)
-
     dice = event.message.dice
     emoji = dice.emoticon
     value = dice.value
-    print(f"📥 تلقينا لعبة: {emoji} | القيمة: {value}")  # للمتابعة في الطرفية
-
+    print(f"📥 تلقينا لعبة: {emoji} | القيمة: {value}")
     win = value == WIN_VALUES.get(emoji, -1)
-
     if win:
         await event.reply(f"🎉 مبروك! فزت في لعبة {emoji}\n🔢 النتيجة: `{value}`")
     else:
         await event.reply(f"💔 للأسف، لم تفز في لعبة {emoji}\n🔢 النتيجة: `{value}`")
-
 if __name__ == "__main__":
     print("✅ بدأ البوت بنجاح ...")
     ABH.run_until_disconnected()
