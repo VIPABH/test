@@ -16,7 +16,7 @@ WIN_VALUES = {
     "🎰": 64
 }
 
-@ABH.on(events.NewMessage(pattern='🎲|🎯|🏀|⚽|🎳|🎰'))
+@ABH.on(events.NewMessage(pattern=r'.*'))  # pattern عام
 async def telegramgames(event):
     a = event.text
     print(a)
