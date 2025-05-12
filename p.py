@@ -18,10 +18,10 @@ WIN_VALUES = {
 
 @ABH.on(events.NewMessage(pattern=r'.*'))  # pattern عام
 async def telegramgames(event):
-    a = event.text
-    print(a)
     if not event.message.dice:
         return
+    a = event.text
+    print(a)
 
     dice = event.message.dice
     emoji = dice.emoticon
