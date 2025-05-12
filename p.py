@@ -1,19 +1,9 @@
 import os
 from telethon import TelegramClient, events
-from dotenv import load_dotenv
-
-# تحميل متغيرات البيئة من .env (اختياري)
-load_dotenv()
-
-# جلب المتغيرات من بيئة النظام
-API_ID = int(os.environ.get("API_ID"))
-API_HASH = os.environ.get("API_HASH")
-SESSION_NAME = os.environ.get("SESSION_NAME", "session")
-
-# إنشاء كائن TelegramClient
-ABH = TelegramClient(SESSION_NAME, API_ID, API_HASH)
-
-# القيم التي تعتبر فوزًا في الألعاب
+api_id = int(os.getenv("API_ID"))
+api_hash = os.getenv("API_HASH")
+bot_token = os.getenv("BOT_TOKEN")
+ABH = TelegramClient("code", api_id, api_hash).start(bot_token=bot_token)
 WIN_VALUES = {
     "🎲": 6,    # نرد
     "🎯": 6,    # سهم
