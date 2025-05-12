@@ -25,8 +25,6 @@ WIN_VALUES = {
 
 @ABH.on(events.NewMessage(pattern='🎲|🎯|🏀|⚽|🎳|🎰'))
 async def telegramgames(event):
-    if not event.message.dice:
-        return
 
     dice = event.message.dice
     emoji = dice.emoticon
