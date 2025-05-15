@@ -1,6 +1,9 @@
-import os, json, logging, requests
 from telethon import TelegramClient, events
+import requests, json, os, asyncio
+
 AI_SECRET = "AIChatPowerBrain123@2024"
+
+# استخدام thread لتسريع المعالجة
 def ask_ai(q):
     try:
         url = "https://powerbrainai.com/app/backend/api/api.php"
@@ -18,30 +21,37 @@ def ask_ai(q):
                 {"role": "user", "content": q}
             ]
         }
-        res = requests.post(url, headers=headers, data=json.dumps(data), timeout=30)
+        res = requests.post(url, headers=headers, data=json.dumps(data), timeout=20)
         if res.status_code == 200:
             return res.json().get("data", "ماكو رد واضح من الذكاء.")
         else:
             return "صار خطأ بالسيرفر، جرب بعدين."
     except Exception as e:
-        logger.exception("AI Error")
-        return f"خطأ: {e}"
+        return f"⚠️ خطأ: {e}"
 
+# إعداد Telethon
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
-if not all([api_id, api_hash, bot_token]):
-    raise ValueError("تأكد من ضبط المتغيرات البيئية: API_ID, API_HASH, BOT_TOKEN")
+
 client = TelegramClient('bot_session', api_id, api_hash).start(bot_token=bot_token)
-@client.on(events.NewMessage(pattern=r"^(?:/|!|#)?مخفي*(.*)"))
+
+# أمر ذكاء
+@client.on(events.NewMessage(pattern=r"^ذكاء\s*(.*)"))
 async def ai_handler(event):
     user_q = event.pattern_match.group(1).strip()
     if not user_q:
+        await event.reply("📝 اكتب سؤالك بعد كلمة 'ذكاء'.")
         return
-    if len(user_q) > 1000:
-        await event.reply("السؤال طويل جدًا، اختصره شوية 🙏.")
-        return
-    response = ask_ai(user_q)
-    await event.reply(response)
+
+    # إرسال إشعار فوري للمستخدم
+    thinking_msg = await event.reply("🤔 جاري التفكير...")
+
+    # تشغيل الاستعلام في thread منفصل
+    response = await asyncio.to_thread(ask_ai, user_q)
+
+    # تعديل الرد المؤقت بالرد النهائي
+    await thinking_msg.edit(response)
+
 print("✅ البوت يعمل الآن.")
 client.run_until_disconnected()
