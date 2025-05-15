@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-import requests, json
+import requests, json, os
 
 AI_SECRET = "AIChatPowerBrain123@2024"
 
