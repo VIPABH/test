@@ -23,8 +23,8 @@ async def assign_permissions(event):
         "target_id": reply.sender_id,
         "rights": ChatAdminRights()
     }
-    buttons=[
-        [Button.inline("🛠️ manage_call", b"manage_call"),
+    buttons = [
+        [Button.inline("🛠️ manage_call", b"manage_call")],
         [Button.inline("🛠️ تعديل معلومات", b"edit"),
          Button.inline("🔨 حظر المستخدمين", b"ban")],
         [Button.inline("🗑️ حذف الرسائل", b"delete"),
@@ -37,7 +37,7 @@ async def assign_permissions(event):
          Button.inline("👤 تعيين مشرفين", b"add_admins")],
         [Button.inline("✅ تنفيذ", b"promote"),
          Button.inline("❌ إلغاء", b"cancel")]
-        ]]
+    ]
 
     await event.reply(
         "اختر الصلاحيات التي تريد منحها للمستخدم:",
