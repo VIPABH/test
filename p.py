@@ -35,7 +35,7 @@ async def assign_permissions(event):
              Button.inline("✅ تنفيذ", b"promote")],
             [Button.inline("❌ إلغاء", b"cancel")]
         ]
-
+    )
 @bot.on(events.NewMessage(pattern="^ت$"))
 async def demote_admin(event):
     if not event.is_reply:
