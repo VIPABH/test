@@ -31,6 +31,8 @@ async def assign_permissions(event):
              Button.inline("📌 تثبيت الرسائل", b"pin")],
             [Button.inline("➕ دعوة مستخدمين", b"invite"),
              Button.inline("👤 تعيين مشرفين", b"add_admins")],
+             Button.inline("👤 دعوه", b"invite_users")],
+             Button.inline("👤 manage_call", b"manage_call")],
             [Button.inline("✅ تنفيذ", b"promote"),
              Button.inline("❌ إلغاء", b"cancel")]
         ]
@@ -61,7 +63,11 @@ async def callback_handler(event):
                 rank="مشرف"
             ))
             granted_rights = []
-            if rights.change_info:
+            if rights.invite_users:
+                granted_rights.append("invite_users")
+            if rights.ban_users:
+                granted_rights.append("manage_call")
+            if rights.manage_call:
                 granted_rights.append("تعديل معلومات المجموعة")
             if rights.ban_users:
                 granted_rights.append("حظر المستخدمين")
