@@ -37,7 +37,7 @@ async def assign_permissions(event):
          Button.inline("👤 تعيين مشرفين", b"add_admins")],
         [Button.inline("✅ تنفيذ", b"promote"),
          Button.inline("❌ إلغاء", b"cancel")]
-        ]
+        ]]
 
     await event.reply(
         "اختر الصلاحيات التي تريد منحها للمستخدم:",
