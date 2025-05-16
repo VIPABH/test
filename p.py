@@ -4,7 +4,7 @@ from telethon.tl.types import ChatAdminRights
 import os
 
 api_id = int(os.getenv('API_ID'))
-api_hash = os.getenv('API_HASH'))
+api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
