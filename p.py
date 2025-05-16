@@ -24,8 +24,6 @@ async def assign_permissions(event):
         "rights": ChatAdminRights()
     }
 
-    await event.reply(
-        "اختر الصلاحيات التي تريد منحها للمستخدم:",
         buttons=[
             [Button.inline("🛠️ manage_call", b"manage_call"),
             [Button.inline("🛠️ تعديل معلومات", b"edit"),
@@ -41,8 +39,11 @@ async def assign_permissions(event):
             [Button.inline("✅ تنفيذ", b"promote"),
              Button.inline("❌ إلغاء", b"cancel")]
         ]
-    )
 
+    await event.reply(
+        "اختر الصلاحيات التي تريد منحها للمستخدم:",
+            Button=buttons
+    )
 @bot.on(events.CallbackQuery)
 async def callback_handler(event):
     sender = event.sender_id
