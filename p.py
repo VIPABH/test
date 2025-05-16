@@ -88,6 +88,12 @@ async def callback_handler(event):
             await event.edit(f"❌ حدث خطأ أثناء الترقية:\n{e}")
         return
     rights = session["rights"]
+    if data == "manage_call":
+        rights.manage_call = True
+        await event.answer("✔️ تم تفعيل: manage_call")
+    elif data == "invite_users":
+        rights.invite_users = True
+        await event.answer("✔️ تم تفعيل: invite_users")
     if data == "edit":
         rights.change_info = True
         await event.answer("✔️ تم تفعيل: تعديل معلومات المجموعة")
