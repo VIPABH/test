@@ -19,10 +19,24 @@ async def assign_permissions(event):
 
     reply = await event.get_reply_message()
     sender_id = event.sender_id
+
     admin_sessions[sender_id] = {
         "target_id": reply.sender_id,
-        "rights": ChatAdminRights()
+        "rights": ChatAdminRights(
+            change_info=False,
+            post_messages=False,
+            edit_messages=False,
+            delete_messages=False,
+            ban_users=False,
+            invite_users=False,
+            pin_messages=False,
+            add_admins=False,
+            anonymous=False,
+            manage_call=False  # الصحيح وليس manage_calls
+        )
     }
+
+    await event.reply("تم حفظ المستخدم. يمكنك الآن اختيار الصلاحيات.")
 
     await event.reply(
         "اختر الصلاحيات التي تريد منحها للمستخدم:",
