@@ -21,10 +21,7 @@ async def assign_permissions(event):
     
     # تفعيل صلاحيات الاتصال وإدارة القصص تلقائيًا عند بدء الجلسة
     rights = ChatAdminRights(
-        manage_chat=True,
-        post_stories=True,
-        edit_stories=True,
-        delete_stories=True
+        manage_chat=True
     )
     
     admin_sessions[sender_id] = {
