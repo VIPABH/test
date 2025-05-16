@@ -31,13 +31,12 @@ async def assign_permissions(event):
              Button.inline("📌 تثبيت الرسائل", b"pin")],
             [Button.inline("➕ دعوة مستخدمين", b"invite"),
              Button.inline("👤 تعيين مشرفين", b"add_admins")],
-             Button.inline("👤 دعوه", b"invite_users")],
-             Button.inline("👤 manage_call", b"manage_call")],
+            [Button.inline("👤 دعوة", b"invite_users"),
+             Button.inline("📞 صلاحيات الاتصال", b"manage_call")],
             [Button.inline("✅ تنفيذ", b"promote"),
              Button.inline("❌ إلغاء", b"cancel")]
         ]
     )
-
 @bot.on(events.CallbackQuery)
 async def callback_handler(event):
     sender = event.sender_id
