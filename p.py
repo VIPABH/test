@@ -9,21 +9,19 @@ bot_token = os.getenv('BOT_TOKEN')
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-admin_sessions = {1910015590, 1910015590}
+admin_sessions = {}
 
-@bot.on(events.NewMessage(pattern="^رفع مشرف$"))
+@bot.on(events.NewMessage(pattern="^ر$"))
 async def assign_permissions(event):
     if not event.is_reply:
         await event.reply("يرجى الرد على رسالة المستخدم الذي تريد رفعه.")
         return
-
     reply = await event.get_reply_message()
     sender_id = event.sender_id
     admin_sessions[sender_id] = {
         "target_id": reply.sender_id,
         "rights": ChatAdminRights()
     }
-
     await event.reply(
         "اختر الصلاحيات التي تريد منحها للمستخدم:",
         buttons=[
@@ -42,6 +40,24 @@ async def assign_permissions(event):
         ]
     )
 
+@bot.on(events.NewMessage(pattern="^ت$"))
+async def demote_admin(event):
+    if not event.is_reply:
+        await event.reply("يرجى الرد على رسالة المستخدم الذي تريد تنزيله.")
+        return
+    reply = await event.get_reply_message()
+    target_id = reply.sender_id
+    try:
+        await bot(EditAdminRequest(
+            channel=event.chat_id,
+            user_id=target_id,
+            admin_rights=ChatAdminRights(),  # جميع الصلاحيات False
+            rank=""
+        ))
+        await event.reply("✅ تم تنزيل المستخدم من الإدارة بنجاح.")
+    except Exception as e:
+        await event.reply(f"❌ فشل التنزيل:\n{e}")
+
 @bot.on(events.CallbackQuery)
 async def callback_handler(event):
     sender = event.sender_id
@@ -49,20 +65,16 @@ async def callback_handler(event):
     if not session:
         await event.answer("انتهت الجلسة أو غير مصرح لك.", alert=True)
         return
-
     data = event.data.decode("utf-8")
     chat = event.chat_id
-
     if data == "cancel":
         admin_sessions.pop(sender, None)
         await event.edit("❌ تم إلغاء العملية.")
         return
-
     if data == "promote":
         session = admin_sessions.pop(sender)
         rights = session['rights']
         target_id = session['target_id']
-
         try:
             await bot(EditAdminRequest(
                 channel=chat,
@@ -70,9 +82,7 @@ async def callback_handler(event):
                 admin_rights=rights,
                 rank="مشرف"
             ))
-
             granted_rights = []
-
             if rights.change_info:
                 granted_rights.append("تعديل معلومات المجموعة")
             if rights.ban_users:
@@ -93,20 +103,15 @@ async def callback_handler(event):
                 granted_rights.append("صلاحيات الاتصال")
             if rights.add_admins:
                 granted_rights.append("تعيين مشرفين")
-
             desc = "\n• " + "\n• ".join(granted_rights) if granted_rights else "بدون صلاحيات مذكورة"
-
             await event.edit(
                 f"✅ تم رفع المستخدم مشرفًا بالصلاحيات التالية:\n{desc}",
                 buttons=[Button.inline("✏️ تغيير اللقب", f"change_nick:{target_id}".encode())]
             )
-
         except Exception as e:
-            await event.edit(f"❌ حدث خطأ أثناn{e}")
+            await event.edit(f"❌ حدث خطأ أثناء الترقية:\n{e}")
         return
-
     rights = session["rights"]
-
     if data == "edit":
         rights.change_info = True
         await event.answer("✔️ تم تفعيل: تعديل معلومات المجموعة")
@@ -144,10 +149,7 @@ async def callback_handler(event):
 async def change_nickname(event):
     target_id = int(event.pattern_match.group(1))
     sender = event.sender_id
-
     admin_sessions[sender] = {"target_id": target_id}
     await event.respond("✏️ أرسل اللقب الجديد في رسالة عادية الآن.")
-
-# يمكنك لاحقًا إعادة تفعيل دالة تغيير اللقب بإضافة handler مخصص لها.
 
 bot.run_until_disconnected()
