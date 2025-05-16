@@ -31,14 +31,20 @@ buttons_layout = [
 async def assign_permissions(event):
     if not event.is_reply:
         return await event.reply("يرجى الرد على رسالة المستخدم الذي تريد رفعه.")
-    
+
     reply = await event.get_reply_message()
     admin_sessions[event.sender_id] = {
         "target_id": reply.sender_id,
         "rights": ChatAdminRights()
     }
 
-    buttons = [[Button.inline(f"✔️ {rights_map[b][1]}", b.encode()) for b in row] for row in buttons_layout]
+    def make_label(key):
+        if key in rights_map:
+            return f"✔️ {rights_map[key][1]}"
+        return "✅ تنفيذ" if key == "promote" else "❌ إلغاء"
+
+    buttons = [[Button.inline(make_label(b), b.encode()) for b in row] for row in buttons_layout]
+
     await event.reply("اختر الصلاحيات التي تريد منحها للمستخدم:", buttons=buttons)
 
 @bot.on(events.CallbackQuery)
