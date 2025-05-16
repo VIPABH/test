@@ -23,21 +23,20 @@ async def assign_permissions(event):
         "target_id": reply.sender_id,
         "rights": ChatAdminRights()
     }
-
-        buttons=[
-            [Button.inline("🛠️ manage_call", b"manage_call"),
-            [Button.inline("🛠️ تعديل معلومات", b"edit"),
-             Button.inline("🔨 حظر المستخدمين", b"ban")],
-            [Button.inline("🗑️ حذف الرسائل", b"delete"),
-             Button.inline("📌 تثبيت الرسائل", b"pin")],
-            [Button.inline("➕ دعوة مستخدمين", b"invite"),
-             Button.inline("🔗 إدارة الدعوات", b"invite_link")],
-            [Button.inline("💬 إدارة الرسائل", b"messages"),
-             Button.inline("📚 إدارة الستوري", b"stories")],
-            [Button.inline("📞 صلاحيات الاتصال", b"calls"),
-             Button.inline("👤 تعيين مشرفين", b"add_admins")],
-            [Button.inline("✅ تنفيذ", b"promote"),
-             Button.inline("❌ إلغاء", b"cancel")]
+    buttons=[
+        [Button.inline("🛠️ manage_call", b"manage_call"),
+        [Button.inline("🛠️ تعديل معلومات", b"edit"),
+         Button.inline("🔨 حظر المستخدمين", b"ban")],
+        [Button.inline("🗑️ حذف الرسائل", b"delete"),
+         Button.inline("📌 تثبيت الرسائل", b"pin")],
+        [Button.inline("➕ دعوة مستخدمين", b"invite"),
+         Button.inline("🔗 إدارة الدعوات", b"invite_link")],
+        [Button.inline("💬 إدارة الرسائل", b"messages"),
+         Button.inline("📚 إدارة الستوري", b"stories")],
+        [Button.inline("📞 صلاحيات الاتصال", b"calls"),
+         Button.inline("👤 تعيين مشرفين", b"add_admins")],
+        [Button.inline("✅ تنفيذ", b"promote"),
+         Button.inline("❌ إلغاء", b"cancel")]
         ]
 
     await event.reply(
