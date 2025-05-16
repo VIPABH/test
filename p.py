@@ -1,53 +1,153 @@
-from telethon import TelegramClient, events
-import requests, json, os, asyncio
+from telethon import TelegramClient, events, Button
+from telethon.tl.functions.channels import EditAdminRequest
+from telethon.tl.types import ChatAdminRights
+import os
 
-AI_SECRET = "AIChatPowerBrain123@2024"
-
-def ask_ai(q):
-    try:
-        url = "https://powerbrainai.com/app/backend/api/api.php"
-        headers = {
-            "User-Agent": "Dart/3.3 (dart:io)",
-            "Accept-Encoding": "gzip",
-            "content-type": "application/json; charset=utf-8"
-        }
-        data = {
-            "action": "send_message",
-            "model": "gpt-4o-mini",
-            "secret_token": AI_SECRET,
-            "messages": [
-                {"role": "system", "content": "ساعد باللهجة العراقية وكن ذكي وودود"},
-                {"role": "user", "content": q}
-            ]
-        }
-        res = requests.post(url, headers=headers, data=json.dumps(data), timeout=20)
-        if res.status_code == 200:
-            return res.json().get("data", "ماكو رد واضح من الذكاء.")
-        else:
-            return "❌ صار خطأ بالسيرفر، جرب بعدين."
-    except Exception as e:
-        return f"⚠️ خطأ: {e}"
-
-# إعداد Telethon
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
-client = TelegramClient('bot_session', api_id, api_hash).start(bot_token=bot_token)
+bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-@client.on(events.NewMessage(pattern=r"^ذكاء\s*(.*)"))
-async def ai_handler(event):
-    user_q = event.pattern_match.group(1).strip()
-    if not user_q:
-        await event.reply("📝 اكتب سؤالك بعد كلمة 'ذكاء'.")
+admin_sessions = {1910015590, 1910015590}
+
+@bot.on(events.NewMessage(pattern="^رفع مشرف$"))
+async def assign_permissions(event):
+    if not event.is_reply:
+        await event.reply("يرجى الرد على رسالة المستخدم الذي تريد رفعه.")
         return
 
-    # إظهار حالة "يكتب الآن" بشكل متواصل لحد ما يجي الجواب
-    async with event.client.action(event.chat_id, 'typing'):
-        response = await asyncio.to_thread(ask_ai, user_q)
+    reply = await event.get_reply_message()
+    sender_id = event.sender_id
+    admin_sessions[sender_id] = {
+        "target_id": reply.sender_id,
+        "rights": ChatAdminRights()
+    }
 
-    # إرسال الرد بعد انتهاء حالة الكتابة
-    await event.reply(response)
+    await event.reply(
+        "اختر الصلاحيات التي تريد منحها للمستخدم:",
+        buttons=[
+            [Button.inline("🛠️ تعديل معلومات", b"edit"),
+             Button.inline("🔨 حظر المستخدمين", b"ban")],
+            [Button.inline("🗑️ حذف الرسائل", b"delete"),
+             Button.inline("📌 تثبيت الرسائل", b"pin")],
+            [Button.inline("➕ دعوة مستخدمين", b"invite"),
+             Button.inline("🔗 إدارة الدعوات", b"invite_link")],
+            [Button.inline("💬 إدارة الرسائل", b"messages"),
+             Button.inline("📚 إدارة الستوري", b"stories")],
+            [Button.inline("📞 صلاحيات الاتصال", b"calls"),
+             Button.inline("👤 تعيين مشرفين", b"add_admins")],
+            [Button.inline("✅ تنفيذ", b"promote"),
+             Button.inline("❌ إلغاء", b"cancel")]
+        ]
+    )
 
-print("✅ البوت يعمل الآن.")
-client.run_until_disconnected()
+@bot.on(events.CallbackQuery)
+async def callback_handler(event):
+    sender = event.sender_id
+    session = admin_sessions.get(sender)
+    if not session:
+        await event.answer("انتهت الجلسة أو غير مصرح لك.", alert=True)
+        return
+
+    data = event.data.decode("utf-8")
+    chat = event.chat_id
+
+    if data == "cancel":
+        admin_sessions.pop(sender, None)
+        await event.edit("❌ تم إلغاء العملية.")
+        return
+
+    if data == "promote":
+        session = admin_sessions.pop(sender)
+        rights = session['rights']
+        target_id = session['target_id']
+
+        try:
+            await bot(EditAdminRequest(
+                channel=chat,
+                user_id=target_id,
+                admin_rights=rights,
+                rank="مشرف"
+            ))
+
+            granted_rights = []
+
+            if rights.change_info:
+                granted_rights.append("تعديل معلومات المجموعة")
+            if rights.ban_users:
+                granted_rights.append("حظر المستخدمين")
+            if rights.delete_messages:
+                granted_rights.append("حذف الرسائل")
+            if rights.pin_messages:
+                granted_rights.append("تثبيت الرسائل")
+            if rights.invite_users:
+                granted_rights.append("دعوة مستخدمين")
+            if rights.manage_invite_links:
+                granted_rights.append("إدارة الدعوات")
+            if rights.manage_chat:
+                granted_rights.append("إدارة الرسائل")
+            if any([rights.post_stories, rights.edit_stories, rights.delete_stories]):
+                granted_rights.append("إدارة الستوري")
+            if rights.manage_calls:
+                granted_rights.append("صلاحيات الاتصال")
+            if rights.add_admins:
+                granted_rights.append("تعيين مشرفين")
+
+            desc = "\n• " + "\n• ".join(granted_rights) if granted_rights else "بدون صلاحيات مذكورة"
+
+            await event.edit(
+                f"✅ تم رفع المستخدم مشرفًا بالصلاحيات التالية:\n{desc}",
+                buttons=[Button.inline("✏️ تغيير اللقب", f"change_nick:{target_id}".encode())]
+            )
+
+        except Exception as e:
+            await event.edit(f"❌ حدث خطأ أثناn{e}")
+        return
+
+    rights = session["rights"]
+
+    if data == "edit":
+        rights.change_info = True
+        await event.answer("✔️ تم تفعيل: تعديل معلومات المجموعة")
+    elif data == "ban":
+        rights.ban_users = True
+        await event.answer("✔️ تم تفعيل: حظر المستخدمين")
+    elif data == "delete":
+        rights.delete_messages = True
+        await event.answer("✔️ تم تفعيل: حذف الرسائل")
+    elif data == "pin":
+        rights.pin_messages = True
+        await event.answer("✔️ تم تفعيل: تثبيت الرسائل")
+    elif data == "invite":
+        rights.invite_users = True
+        await event.answer("✔️ تم تفعيل: دعوة مستخدمين")
+    elif data == "invite_link":
+        rights.manage_invite_links = True
+        await event.answer("✔️ تم تفعيل: إدارة الدعوات")
+    elif data == "messages":
+        rights.manage_chat = True
+        await event.answer("✔️ تم تفعيل: إدارة الرسائل")
+    elif data == "stories":
+        rights.post_stories = True
+        rights.edit_stories = True
+        rights.delete_stories = True
+        await event.answer("✔️ تم تفعيل: إدارة الستوري")
+    elif data == "calls":
+        rights.manage_calls = True
+        await event.answer("✔️ تم تفعيل: صلاحيات الاتصال")
+    elif data == "add_admins":
+        rights.add_admins = True
+        await event.answer("✔️ تم تفعيل: تعيين مشرفين")
+
+@bot.on(events.CallbackQuery(pattern=b"change_nick:(\\d+)"))
+async def change_nickname(event):
+    target_id = int(event.pattern_match.group(1))
+    sender = event.sender_id
+
+    admin_sessions[sender] = {"target_id": target_id}
+    await event.respond("✏️ أرسل اللقب الجديد في رسالة عادية الآن.")
+
+# يمكنك لاحقًا إعادة تفعيل دالة تغيير اللقب بإضافة handler مخصص لها.
+
+bot.run_until_disconnected()
