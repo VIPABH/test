@@ -9,7 +9,7 @@ bot_token = os.getenv('BOT_TOKEN')
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-admin_sessions = {1910015590, 1910015590}
+admin_sessions = {1910015590}
 
 @bot.on(events.NewMessage(pattern="^ر$"))
 async def assign_permissions(event):
