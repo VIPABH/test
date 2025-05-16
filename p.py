@@ -75,11 +75,6 @@ async def raise_permissions(event):
         invite_users = current_rights.invite_users or new_rights.invite_users,
         pin_messages = current_rights.pin_messages or new_rights.pin_messages,
         add_admins = current_rights.add_admins or new_rights.add_admins,
-        manage_invite_links = getattr(current_rights, 'manage_invite_links', False) or getattr(new_rights, 'manage_invite_links', False),
-        post_stories = getattr(current_rights, 'post_stories', False) or getattr(new_rights, 'post_stories', False),
-        edit_stories = getattr(current_rights, 'edit_stories', False) or getattr(new_rights, 'edit_stories', False),
-        delete_stories = getattr(current_rights, 'delete_stories', False) or getattr(new_rights, 'delete_stories', False),
-        manage_call = getattr(current_rights, 'manage_call', False) or getattr(new_rights, 'manage_call', False),
     )
 
     try:
