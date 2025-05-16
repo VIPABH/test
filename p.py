@@ -41,7 +41,7 @@ async def assign_permissions(event):
 
     await event.reply(
         "اختر الصلاحيات التي تريد منحها للمستخدم:",
-            Button=buttons
+        buttons=buttons
     )
 @bot.on(events.CallbackQuery)
 async def callback_handler(event):
