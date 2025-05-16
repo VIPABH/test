@@ -4,7 +4,7 @@ from telethon.tl.types import ChatAdminRights
 import os
 
 api_id = int(os.getenv('API_ID'))
-api_hash = os.getenv('API_HASH')
+api_hash = os.getenv('API_HASH'))
 bot_token = os.getenv('BOT_TOKEN')
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
@@ -31,12 +31,13 @@ async def assign_permissions(event):
              Button.inline("📌 تثبيت الرسائل", b"pin")],
             [Button.inline("➕ دعوة مستخدمين", b"invite"),
              Button.inline("👤 تعيين مشرفين", b"add_admins")],
-            [Button.inline("👤 دعوة", b"invite_users"),
-             Button.inline("📞 صلاحيات الاتصال", b"manage_call")],
+            [Button.inline("👤 إدارة الدعوات", b"manage_invite_links"),
+             Button.inline("📞 صلاحيات الاتصال", b"manage_calls")],
             [Button.inline("✅ تنفيذ", b"promote"),
              Button.inline("❌ إلغاء", b"cancel")]
         ]
     )
+
 @bot.on(events.CallbackQuery)
 async def callback_handler(event):
     sender = event.sender_id
@@ -44,12 +45,15 @@ async def callback_handler(event):
     if not session:
         await event.answer("انتهت الجلسة أو غير مصرح لك.", alert=True)
         return
+
     data = event.data.decode("utf-8")
     chat = event.chat_id
+
     if data == "cancel":
         admin_sessions.pop(sender, None)
         await event.edit("❌ تم إلغاء العملية.")
         return
+
     if data == "promote":
         session = admin_sessions.pop(sender)
         rights = session['rights']
@@ -61,12 +65,9 @@ async def callback_handler(event):
                 admin_rights=rights,
                 rank="مشرف"
             ))
+
             granted_rights = []
-            if rights.invite_users:
-                granted_rights.append("invite_users")
-            if rights.ban_users:
-                granted_rights.append("manage_call")
-            if rights.manage_call:
+            if rights.change_info:
                 granted_rights.append("تعديل معلومات المجموعة")
             if rights.ban_users:
                 granted_rights.append("حظر المستخدمين")
@@ -76,9 +77,15 @@ async def callback_handler(event):
                 granted_rights.append("تثبيت الرسائل")
             if rights.invite_users:
                 granted_rights.append("دعوة مستخدمين")
+            if rights.manage_invite_links:
+                granted_rights.append("إدارة الدعوات")
+            if rights.manage_calls:
+                granted_rights.append("صلاحيات الاتصال")
             if rights.add_admins:
                 granted_rights.append("تعيين مشرفين")
+
             desc = "\n• " + "\n• ".join(granted_rights) if granted_rights else "بدون صلاحيات مذكورة"
+
             await event.edit(
                 f"✅ تم رفع المستخدم مشرفًا بالصلاحيات التالية:\n{desc}",
                 buttons=[Button.inline("✏️ تغيير اللقب", f"change_nick:{target_id}".encode())]
@@ -86,13 +93,9 @@ async def callback_handler(event):
         except Exception as e:
             await event.edit(f"❌ حدث خطأ أثناء الترقية:\n{e}")
         return
+
     rights = session["rights"]
-    if data == "manage_call":
-        rights.manage_call = True
-        await event.answer("✔️ تم تفعيل: manage_call")
-    elif data == "invite_users":
-        rights.invite_users = True
-        await event.answer("✔️ تم تفعيل: invite_users")
+
     if data == "edit":
         rights.change_info = True
         await event.answer("✔️ تم تفعيل: تعديل معلومات المجموعة")
@@ -108,6 +111,12 @@ async def callback_handler(event):
     elif data == "invite":
         rights.invite_users = True
         await event.answer("✔️ تم تفعيل: دعوة مستخدمين")
+    elif data == "manage_invite_links":
+        rights.manage_invite_links = True
+        await event.answer("✔️ تم تفعيل: إدارة الدعوات")
+    elif data == "manage_calls":
+        rights.manage_calls = True
+        await event.answer("✔️ تم تفعيل: صلاحيات الاتصال")
     elif data == "add_admins":
         rights.add_admins = True
         await event.answer("✔️ تم تفعيل: تعيين مشرفين")
