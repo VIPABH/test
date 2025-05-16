@@ -11,20 +11,6 @@ bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 admin_sessions = {}
 
-# قاموس الصلاحيات
-rights_map = {
-    "edit": ("تعديل معلومات المجموعة", "change_info"),
-    "ban": ("حظر المستخدمين", "ban_users"),
-    "delete": ("حذف الرسائل", "delete_messages"),
-    "pin": ("تثبيت الرسائل", "pin_messages"),
-    "invite": ("دعوة مستخدمين", "invite_users"),
-    "invite_link": ("إدارة الدعوات", "manage_invite_links"),
-    "messages": ("إدارة الرسائل", "manage_chat"),
-    "stories": ("إدارة الستوري", ["post_stories", "edit_stories", "delete_stories"]),
-    "calls": ("صلاحيات الاتصال", "manage_call"),
-    "add_admins": ("تعيين مشرفين", "add_admins")
-}
-
 @bot.on(events.NewMessage(pattern="^ر$"))
 async def assign_permissions(event):
     if not event.is_reply:
@@ -37,8 +23,8 @@ async def assign_permissions(event):
         "target_id": reply.sender_id,
         "rights": ChatAdminRights()
     }
-
     buttons = [
+        [Button.inline("🛠️ manage_call", b"manage_call")],
         [Button.inline("🛠️ تعديل معلومات", b"edit"),
          Button.inline("🔨 حظر المستخدمين", b"ban")],
         [Button.inline("🗑️ حذف الرسائل", b"delete"),
@@ -57,7 +43,6 @@ async def assign_permissions(event):
         "اختر الصلاحيات التي تريد منحها للمستخدم:",
         buttons=buttons
     )
-
 @bot.on(events.CallbackQuery)
 async def callback_handler(event):
     sender = event.sender_id
@@ -95,20 +80,14 @@ async def callback_handler(event):
             if rights.delete_messages:
                 granted_rights.append("حذف الرسائل")
             if rights.pin_messages:
+                granted_rights.append("manage_call")
+            if rights.manage_call:
                 granted_rights.append("تثبيت الرسائل")
             if rights.invite_users:
                 granted_rights.append("دعوة مستخدمين")
-            if rights.manage_invite_links:
-                granted_rights.append("إدارة الدعوات")
-            if rights.manage_chat:
-                granted_rights.append("إدارة الرسائل")
-            if any([
-                getattr(rights, "post_stories", False),
-                getattr(rights, "edit_stories", False),
-                getattr(rights, "delete_stories", False)
-            ]):
+            if any([getattr(rights, "post_stories", False), getattr(rights, "edit_stories", False), getattr(rights, "delete_stories", False)]):
                 granted_rights.append("إدارة الستوري")
-            if getattr(rights, "manage_call", False):
+            if getattr(rights, "manage_call", False):  # الاسم الصحيح
                 granted_rights.append("صلاحيات الاتصال")
             if rights.add_admins:
                 granted_rights.append("تعيين مشرفين")
@@ -121,19 +100,46 @@ async def callback_handler(event):
             )
 
         except Exception as e:
-            await event.edit(f"❌ حدث خطأ أثناء تنفيذ الأمر:\n{e}")
+            await event.edit(f"❌ حدث خطأ أثناn{e}")
         return
 
-    # التعامل مع الأزرار لتفعيل الصلاحيات
-    if data in rights_map:
-        desc, attr = rights_map[data]
-        rights = session["rights"]
-        if isinstance(attr, list):
-            for a in attr:
-                setattr(rights, a, True)
-        else:
-            setattr(rights, attr, True)
-        await event.answer(f"✔️ تم تفعيل: {desc}")
+    rights = session["rights"]
+
+    if data == "edit":
+        rights.manage_call = True
+        await event.answer("✔️ تم تفعيل: manage_call")
+    if data == "edit":
+        rights.change_info = True
+        await event.answer("✔️ تم تفعيل: تعديل معلومات المجموعة")
+    elif data == "ban":
+        rights.ban_users = True
+        await event.answer("✔️ تم تفعيل: حظر المستخدمين")
+    elif data == "delete":
+        rights.delete_messages = True
+        await event.answer("✔️ تم تفعيل: حذف الرسائل")
+    elif data == "pin":
+        rights.pin_messages = True
+        await event.answer("✔️ تم تفعيل: تثبيت الرسائل")
+    elif data == "invite":
+        rights.invite_users = True
+        await event.answer("✔️ تم تفعيل: دعوة مستخدمين")
+    elif data == "invite_link":
+        rights.manage_invite_links = True
+        await event.answer("✔️ تم تفعيل: إدارة الدعوات")
+    elif data == "messages":
+        rights.manage_chat = True
+        await event.answer("✔️ تم تفعيل: إدارة الرسائل")
+    elif data == "stories":
+        rights.post_stories = True
+        rights.edit_stories = True
+        rights.delete_stories = True
+        await event.answer("✔️ تم تفعيل: إدارة الستوري")
+    elif data == "calls":
+        rights.manage_calls = True
+        await event.answer("✔️ تم تفعيل: صلاحيات الاتصال")
+    elif data == "add_admins":
+        rights.add_admins = True
+        await event.answer("✔️ تم تفعيل: تعيين مشرفين")
 
 @bot.on(events.CallbackQuery(pattern=b"change_nick:(\\d+)"))
 async def change_nickname(event):
@@ -142,5 +148,6 @@ async def change_nickname(event):
 
     admin_sessions[sender] = {"target_id": target_id}
     await event.respond("✏️ أرسل اللقب الجديد في رسالة عادية الآن.")
+
 
 bot.run_until_disconnected()
