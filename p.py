@@ -8,7 +8,6 @@ api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
-
 admin_sessions = {}
 
 @bot.on(events.NewMessage(pattern="^ر$"))
@@ -31,12 +30,11 @@ async def assign_permissions(event):
              Button.inline("📌 تثبيت الرسائل", b"pin")],
             [Button.inline("➕ دعوة مستخدمين", b"invite"),
              Button.inline("🔗 إدارة الدعوات", b"invite_link")],
-            [Button.inline("💬 إدارة الرسائل", b"messages"),
-             Button.inline("📚 إدارة الستوري", b"stories")],
-            [Button.inline("📞 صلاحيات الاتصال", b"calls"),
-             Button.inline("👤 تعيين مشرفين", b"add_admins")],
-            [Button.inline("✅ تنفيذ", b"promote"),
-             Button.inline("❌ إلغاء", b"cancel")]
+            [Button.inline("📚 إدارة الستوري", b"stories"),
+             Button.inline("📞 صلاحيات الاتصال", b"calls")],
+            [Button.inline("👤 تعيين مشرفين", b"add_admins"),
+             Button.inline("✅ تنفيذ", b"promote")],
+            [Button.inline("❌ إلغاء", b"cancel")]
         ]
     )
 
@@ -95,8 +93,6 @@ async def callback_handler(event):
                 granted_rights.append("دعوة مستخدمين")
             if rights.manage_invite_links:
                 granted_rights.append("إدارة الدعوات")
-            if rights.manage_chat:
-                granted_rights.append("إدارة الرسائل")
             if any([rights.post_stories, rights.edit_stories, rights.delete_stories]):
                 granted_rights.append("إدارة الستوري")
             if rights.manage_calls:
@@ -130,9 +126,6 @@ async def callback_handler(event):
     elif data == "invite_link":
         rights.manage_invite_links = True
         await event.answer("✔️ تم تفعيل: إدارة الدعوات")
-    elif data == "messages":
-        rights.manage_chat = True
-        await event.answer("✔️ تم تفعيل: إدارة الرسائل")
     elif data == "stories":
         rights.post_stories = True
         rights.edit_stories = True
