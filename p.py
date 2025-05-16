@@ -1,14 +1,14 @@
 from telethon import TelegramClient, events, errors, functions
-from telethon.tl.functions.channels import EditAdminRequest
+from telethon.tl.functions.channels import EditAdminRequest, GetParticipantRequest
 from telethon.tl.types import ChatAdminRights
 import os
+
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
 client = TelegramClient("bot", api_id, api_hash).start(bot_token=bot_token)
 
-# دالة لتحويل قائمة أرقام الصلاحيات إلى صلاحيات مشرف مركبة
 def get_admin_rights_from_numbers(numbers: str) -> ChatAdminRights:
     return ChatAdminRights(
         change_info = '5' in numbers,
@@ -27,12 +27,16 @@ async def raise_permissions(event):
         await event.reply("الرجاء الرد على رسالة المستخدم الذي تريد رفعه ومنحه الصلاحيات.")
         return
 
+    chat = await event.get_chat()
+    sender = await event.get_sender()
+    replied_msg = await event.get_reply_message()
+    user_to_promote = replied_msg.sender_id
+
+    # التحقق من صلاحيات المرسل لرفع مشرفين
     try:
-        chat = await event.get_chat()
-        sender = await event.get_sender()
-        participant = await client(functions.channels.GetParticipantRequest(
+        participant = await client(GetParticipantRequest(
             channel=chat,
-            participant=sender
+            participant=sender.id
         ))
         admin_rights = getattr(participant.participant, 'admin_rights', None)
         if admin_rights is None or not admin_rights.add_admins:
@@ -48,18 +52,44 @@ async def raise_permissions(event):
             await event.reply("الرجاء استخدام أرقام صلاحيات من 1 إلى 7 فقط.")
             return
 
-    rights = get_admin_rights_from_numbers(numbers)
-    replied_msg = await event.get_reply_message()
-    user_to_promote = replied_msg.from_id
+    new_rights = get_admin_rights_from_numbers(numbers)
+
+    # جلب صلاحيات المستخدم الحالي (إن كان مشرف)
+    try:
+        participant_to_promote = await client(GetParticipantRequest(
+            channel=chat,
+            participant=user_to_promote
+        ))
+        current_rights = getattr(participant_to_promote.participant, 'admin_rights', ChatAdminRights())
+    except errors.RPCError:
+        # إذا لم يكن مشرفًا سابقًا نعتبر الصلاحيات فارغة
+        current_rights = ChatAdminRights()
+
+    # دمج الصلاحيات القديمة مع الجديدة (إضافة فقط)
+    merged_rights = ChatAdminRights(
+        change_info = current_rights.change_info or new_rights.change_info,
+        post_messages = current_rights.post_messages or new_rights.post_messages,
+        edit_messages = current_rights.edit_messages or new_rights.edit_messages,
+        delete_messages = current_rights.delete_messages or new_rights.delete_messages,
+        ban_users = current_rights.ban_users or new_rights.ban_users,
+        invite_users = current_rights.invite_users or new_rights.invite_users,
+        pin_messages = current_rights.pin_messages or new_rights.pin_messages,
+        add_admins = current_rights.add_admins or new_rights.add_admins,
+        manage_invite_links = getattr(current_rights, 'manage_invite_links', False) or getattr(new_rights, 'manage_invite_links', False),
+        post_stories = getattr(current_rights, 'post_stories', False) or getattr(new_rights, 'post_stories', False),
+        edit_stories = getattr(current_rights, 'edit_stories', False) or getattr(new_rights, 'edit_stories', False),
+        delete_stories = getattr(current_rights, 'delete_stories', False) or getattr(new_rights, 'delete_stories', False),
+        manage_call = getattr(current_rights, 'manage_call', False) or getattr(new_rights, 'manage_call', False),
+    )
 
     try:
         await client(EditAdminRequest(
             channel=chat,
             user_id=user_to_promote,
-            admin_rights=rights,
+            admin_rights=merged_rights,
             rank="مشرف"
         ))
-        await event.reply(f"تم رفع المستخدم ومنحه الصلاحيات: {', '.join(numbers)} بنجاح.")
+        await event.reply(f"تم رفع المستخدم ومنحه الصلاحيات: {', '.join(numbers)} مع الحفاظ على الصلاحيات السابقة.")
     except errors.RPCError as e:
         await event.reply(f"فشل في رفع المشرف: {str(e)}")
 
