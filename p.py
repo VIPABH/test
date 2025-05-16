@@ -28,15 +28,13 @@ async def assign_permissions(event):
              Button.inline("🔨 حظر المستخدمين", b"ban")],
             [Button.inline("🗑️ حذف الرسائل", b"delete"),
              Button.inline("📌 تثبيت الرسائل", b"pin")],
-            [Button.inline("➕ دعوة مستخدمين", b"invite"),
-             Button.inline("🔗 إدارة الدعوات", b"invite_link")],
+            [Button.inline("➕ دعوة مستخدمين", b"invite")],
             [Button.inline("📚 إدارة الستوري", b"stories"),
              Button.inline("📞 صلاحيات الاتصال", b"calls")],
             [Button.inline("👤 تعيين مشرفين", b"add_admins"),
              Button.inline("✅ تنفيذ", b"promote")],
             [Button.inline("❌ إلغاء", b"cancel")]
         ]
-    )
 
 @bot.on(events.NewMessage(pattern="^ت$"))
 async def demote_admin(event):
