@@ -18,9 +18,18 @@ async def assign_permissions(event):
         return
     reply = await event.get_reply_message()
     sender_id = event.sender_id
+    
+    # تفعيل صلاحيات الاتصال وإدارة القصص تلقائيًا عند بدء الجلسة
+    rights = ChatAdminRights(
+        manage_calls=True,
+        post_stories=True,
+        edit_stories=True,
+        delete_stories=True
+    )
+    
     admin_sessions[sender_id] = {
         "target_id": reply.sender_id,
-        "rights": ChatAdminRights()
+        "rights": rights
     }
     await event.reply(
         "اختر الصلاحيات التي تريد منحها للمستخدم:",
@@ -31,8 +40,7 @@ async def assign_permissions(event):
              Button.inline("📌 تثبيت الرسائل", b"pin")],
             [Button.inline("➕ دعوة مستخدمين", b"invite"),
              Button.inline("👤 تعيين مشرفين", b"add_admins")],
-            [Button.inline("👤 إدارة الدعوات", b"manage_invite_links"),
-             Button.inline("📞 صلاحيات الاتصال", b"manage_calls")],
+            [Button.inline("👤 إدارة الدعوات", b"manage_invite_links")],
             [Button.inline("✅ تنفيذ", b"promote"),
              Button.inline("❌ إلغاء", b"cancel")]
         ]
@@ -79,11 +87,10 @@ async def callback_handler(event):
                 granted_rights.append("دعوة مستخدمين")
             if rights.manage_invite_links:
                 granted_rights.append("إدارة الدعوات")
-            if rights.manage_calls:
-                granted_rights.append("صلاحيات الاتصال")
             if rights.add_admins:
                 granted_rights.append("تعيين مشرفين")
 
+            # صلاحيات الاتصال وإدارة القصص لا تُذكر في الرسالة
             desc = "\n• " + "\n• ".join(granted_rights) if granted_rights else "بدون صلاحيات مذكورة"
 
             await event.edit(
@@ -114,9 +121,6 @@ async def callback_handler(event):
     elif data == "manage_invite_links":
         rights.manage_invite_links = True
         await event.answer("✔️ تم تفعيل: إدارة الدعوات")
-    elif data == "manage_calls":
-        rights.manage_calls = True
-        await event.answer("✔️ تم تفعيل: صلاحيات الاتصال")
     elif data == "add_admins":
         rights.add_admins = True
         await event.answer("✔️ تم تفعيل: تعيين مشرفين")
