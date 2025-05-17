@@ -16,11 +16,12 @@ client = TelegramClient(SESSION, API_ID, API_HASH)
 async def report_messages():
     await client.start()
     me = await client.get_me()
-    await client.send_message("me", f"📣تم البدء}")
+    await client.send_message("me", "📣 تم البدء")
 
     try:
         target = await client.get_entity(TARGET_USERNAME)
         success = 0
+        fail = 0
 
         for msg_id in TARGET_MSG_IDS:
             try:
@@ -34,10 +35,15 @@ async def report_messages():
                 success += 1
                 await asyncio.sleep(0.5)
             except Exception as e:
-                print(f"❌ فشل في الرسالة {msg_id}: {e}")
+                print(f"❌ فشل في البلاغ على الرسالة {msg_id}: {e}")
+                fail += 1
         
-        me = await client.get_me()
-        await client.send_message("me", f"📣 تم إرسال {success} بلاغات بسبب (معلومات شخصية) على @{TARGET_USERNAME}.\nحسابك: {me.id}")
+        await client.send_message(
+            "me",
+            f"📣 تم إرسال {success} بلاغات بنجاح بسبب (معلومات شخصية) على @{TARGET_USERNAME}.\n"
+            f"❌ فشل في إرسال {fail} بلاغ."
+            f"\nحسابك: {me.id}"
+        )
 
     finally:
         await client.disconnect()
