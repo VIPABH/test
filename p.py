@@ -1,91 +1,46 @@
-from telethon import TelegramClient, events, errors, functions
-from telethon.tl.functions.channels import EditAdminRequest, GetParticipantRequest
-from telethon.tl.types import ChatAdminRights
 import os
+import asyncio
+from telethon import TelegramClient
+from telethon.tl.functions.messages import ReportRequest
+from telethon.tl.types import InputReportReasonPersonalDetails
 
-api_id = int(os.getenv('API_ID'))
-api_hash = os.getenv('API_HASH')
-bot_token = os.getenv('BOT_TOKEN')
+API_ID = int(os.getenv("API_ID"))
+API_HASH = os.getenv("API_HASH")
+SESSION = os.getenv("SESSION_NAME") or "user"
 
-client = TelegramClient("bot", api_id, api_hash).start(bot_token=bot_token)
+TARGET_USERNAME = "kasmalshatbust"
+TARGET_MSG_IDS = [41, 47, 73]
 
-def get_admin_rights_from_numbers(numbers: str) -> ChatAdminRights:
-    return ChatAdminRights(
-        change_info = '5' in numbers,
-        post_messages = '7' in numbers,
-        edit_messages = '6' in numbers,
-        delete_messages = '1' in numbers,
-        ban_users = '2' in numbers,
-        invite_users = '3' in numbers,
-        pin_messages = '4' in numbers,
-        add_admins = False,
-    )
+client = TelegramClient(SESSION, API_ID, API_HASH)
 
-@client.on(events.NewMessage(pattern=r'^رفع (\d+)$'))
-async def raise_permissions(event):
-    if not event.is_reply:
-        await event.reply("الرجاء الرد على رسالة المستخدم الذي تريد رفعه ومنحه الصلاحيات.")
-        return
-
-    chat = await event.get_chat()
-    sender = await event.get_sender()
-    replied_msg = await event.get_reply_message()
-    user_to_promote = replied_msg.sender_id
-
-    # التحقق من صلاحيات المرسل لرفع مشرفين
-    try:
-        participant = await client(GetParticipantRequest(
-            channel=chat,
-            participant=sender.id
-        ))
-        admin_rights = getattr(participant.participant, 'admin_rights', None)
-        if admin_rights is None or not admin_rights.add_admins:
-            await event.reply("ليس لديك صلاحية رفع مشرفين.")
-            return
-    except errors.RPCError:
-        await event.reply("حدث خطأ أثناء التحقق من الصلاحيات.")
-        return
-
-    numbers = event.pattern_match.group(1)
-    for ch in numbers:
-        if ch not in '1234567':
-            await event.reply("الرجاء استخدام أرقام صلاحيات من 1 إلى 7 فقط.")
-            return
-
-    new_rights = get_admin_rights_from_numbers(numbers)
-
-    # جلب صلاحيات المستخدم الحالي (إن كان مشرف)
-    try:
-        participant_to_promote = await client(GetParticipantRequest(
-            channel=chat,
-            participant=user_to_promote
-        ))
-        current_rights = getattr(participant_to_promote.participant, 'admin_rights', ChatAdminRights())
-    except errors.RPCError:
-        # إذا لم يكن مشرفًا سابقًا نعتبر الصلاحيات فارغة
-        current_rights = ChatAdminRights()
-
-    # دمج الصلاحيات القديمة مع الجديدة (إضافة فقط)
-    merged_rights = ChatAdminRights(
-        change_info = current_rights.change_info or new_rights.change_info,
-        post_messages = current_rights.post_messages or new_rights.post_messages,
-        edit_messages = current_rights.edit_messages or new_rights.edit_messages,
-        delete_messages = current_rights.delete_messages or new_rights.delete_messages,
-        ban_users = current_rights.ban_users or new_rights.ban_users,
-        invite_users = current_rights.invite_users or new_rights.invite_users,
-        pin_messages = current_rights.pin_messages or new_rights.pin_messages,
-        add_admins = current_rights.add_admins or new_rights.add_admins,
-    )
+async def report_messages():
+    await client.start()
+    me = await client.get_me()
+    await client.send_message("me", f"📣تم البدء}")
 
     try:
-        await client(EditAdminRequest(
-            channel=chat,
-            user_id=user_to_promote,
-            admin_rights=merged_rights,
-            rank="مشرف"
-        ))
-        await event.reply(f"تم رفع المستخدم ومنحه الصلاحيات: {', '.join(numbers)} مع الحفاظ على الصلاحيات السابقة.")
-    except errors.RPCError as e:
-        await event.reply(f"فشل في رفع المشرف: {str(e)}")
+        target = await client.get_entity(TARGET_USERNAME)
+        success = 0
 
-client.run_until_disconnected()
+        for msg_id in TARGET_MSG_IDS:
+            try:
+                await client(ReportRequest(
+                    peer=target,
+                    id=[msg_id],
+                    reason=InputReportReasonPersonalDetails(),
+                    message=f"انتهاك معلومات شخصية في الرسالة {msg_id}"
+                ))
+                print(f"✅ تم التبليغ عن الرسالة {msg_id}")
+                success += 1
+                await asyncio.sleep(0.5)
+            except Exception as e:
+                print(f"❌ فشل في الرسالة {msg_id}: {e}")
+        
+        me = await client.get_me()
+        await client.send_message("me", f"📣 تم إرسال {success} بلاغات بسبب (معلومات شخصية) على @{TARGET_USERNAME}.\nحسابك: {me.id}")
+
+    finally:
+        await client.disconnect()
+
+if __name__ == "__main__":
+    asyncio.run(report_messages())
