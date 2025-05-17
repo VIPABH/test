@@ -1,9 +1,10 @@
 from telethon import TelegramClient, events
 import random, os
+SESSION = 'session'
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
-SESSION = 'session'
-bot = TelegramClient(SESSION, API_ID, API_HASH)
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+bot = TelegramClient('bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 CHANNEL_USERNAME = 'theholyqouran'
 x = {
     ('سورة الفاتحة',): '1',
