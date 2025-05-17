@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-import random
+import random, os
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 SESSION = 'session'
