@@ -5,8 +5,8 @@ API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = TelegramClient('bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
-CHANNEL_USERNAME = 'theholyqouran'
-x = {
+CHANNEL = 'theholyqouran'
+suras = {
     ('سورة الفاتحة',): '1',
     ('سورة البقرة',): '2',
     ('سورة آل عمران', 'سورة ال عمران'): '3',
@@ -122,25 +122,23 @@ x = {
     ('سورة الفلق',): '113',
     ('سورة الناس',): '114',
 }
-all_suras = [(names[0], number) for names, number in x.items()]
+all_suras = [(names[0], number) for names, number in suras.items()]
 @bot.on(events.NewMessage)
 async def handler(event):
-    msg = event.raw_text.strip()
-    if msg in ["قران", "قرآن"]:
-        name, number = random.choice(all_suras)
-        try:
-            await bot.send_message(event.chat_id, f"📖 سورة عشوائية: {name}")
-            await bot.forward_messages(event.chat_id, messages=number, from_peer=CHANNEL_USERNAME)
-        except Exception as e:
-            await event.respond("⚠️ حدث خطأ أثناء جلب السورة العشوائية.")
+    text = event.raw_text.strip()    
+    if text.lower() in ['قرآن', 'قران']:
+        num = random.randint(1, 114)
+        await bot.send_message(
+            event.chat_id,
+            f"🔀 سورة عشوائية:\nhttps://t.me/{CHANNEL}/{num}"
+        )
         return
-    for names, number in x.items():
-        if msg in names:
-            try:
-                await bot.send_message(event.chat_id, f"📖 السورة: {msg}")
-                await bot.forward_messages(event.chat_id, messages=number, from_peer=CHANNEL_USERNAME)
-            except Exception as e:
-                await event.respond("⚠️ حدث خطأ أثناء إرسال السورة.")
+    for names, num in suras.items():
+        if text in names:
+            await bot.send_message(
+                event.chat_id,
+                f"📖 تم العثور على: {text}\nرابط السورة:\nhttps://t.me/{CHANNEL}/{num}"
+            )
             return
-    await event.respond("❗ لم يتم العثور على السورة.")
+    await event.reply("❌ لم يتم العثور على السورة.")
 bot.run_until_disconnected()
