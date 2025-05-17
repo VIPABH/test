@@ -1,15 +1,10 @@
-import random
 from telethon import TelegramClient, events
-
+import random
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
-SESSION = 'session'  # اسم ملف الجلسة
-
+SESSION = 'session'
 bot = TelegramClient(SESSION, API_ID, API_HASH)
-CHANNEL_USERNAME = 'theholyqouran'  # قناة الملفات
-
-
-# قاموس السور
+CHANNEL_USERNAME = 'theholyqouran'
 x = {
     ('سورة الفاتحة',): '1',
     ('سورة البقرة',): '2',
@@ -126,14 +121,10 @@ x = {
     ('سورة الفلق',): '113',
     ('سورة الناس',): '114',
 }
-# قائمة لجميع السور (للسحب العشوائي)
 all_suras = [(names[0], number) for names, number in x.items()]
-
 @bot.on(events.NewMessage)
 async def handler(event):
     msg = event.raw_text.strip()
-
-    # حالة: قرآن عشوائي
     if msg in ["قران", "قرآن"]:
         name, number = random.choice(all_suras)
         try:
@@ -142,8 +133,6 @@ async def handler(event):
         except Exception as e:
             await event.respond("⚠️ حدث خطأ أثناء جلب السورة العشوائية.")
         return
-
-    # حالة: البحث بالاسم
     for names, number in x.items():
         if msg in names:
             try:
@@ -152,8 +141,5 @@ async def handler(event):
             except Exception as e:
                 await event.respond("⚠️ حدث خطأ أثناء إرسال السورة.")
             return
-
-    # إذا لم تُعرف السورة
     await event.respond("❗ لم يتم العثور على السورة.")
-
 bot.run_until_disconnected()
