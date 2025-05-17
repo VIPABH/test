@@ -6,7 +6,7 @@ from telethon.tl.types import InputReportReasonPersonalDetails
 
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
-SESSION = "user"
+SESSION = 'session'
 
 TARGET_USERNAME = "kasmalshatbust"
 TARGET_MSG_IDS = [41, 47, 73]
