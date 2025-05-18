@@ -128,18 +128,18 @@ async def handler(event):
     text = event.raw_text.strip()    
     if text.lower() in ['قرآن', 'قران']:
         num = random.randint(1, 114) + 1
-        await bot.send_message(
+        await bot.send_file(
             event.chat_id,
-            f"🔀 سورة عشوائية:\nhttps://t.me/{CHANNEL}/{num}"
+            f'https://t.me/{CHANNEL}/{num}'
         )
         return
     for names, num in suras.items():
         if text in names:
             num_int = int(num)
             link_id = num_int + 1
-            await bot.send_message(
+            await bot.send_file(
                 event.chat_id,
-                f"📖 تم العثور على: {text}\nرابط السورة:\nhttps://t.me/{CHANNEL}/{link_id}"
+            f'https://t.me/{CHANNEL}/{num}'
             )
             return
     await event.reply("❌ لم يتم العثور على السورة.")
