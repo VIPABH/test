@@ -128,12 +128,17 @@ async def handler(event):
     text = event.raw_text.strip()    
     if text.lower() in ['قرآن', 'قران']:
         num = random.randint(1, 114) + 1
-        await bot.forward_messages(
-            event.chat_id,
-            messages=num,
-            from_peer='theholyqouran',
-            reply_to=event.id  # رد على الرسالة الأصلية
-        )
+        message = await bot.get_messages('theholyqouran', ids=num)
+
+        if message and message.media:
+            await bot.send_file(
+                event.chat_id,
+                file=message.media,
+                caption=f"📖 سورة عشوائية:\nرابط السورة:\nhttps://t.me/theholyqouran/{num}",
+                reply_to=event.id
+            )
+    else:
+        await event.reply("عذرًا، لم أتمكن من جلب الملف المطلوب.")
 
         return
     for names, num in suras.items():
@@ -142,7 +147,9 @@ async def handler(event):
             link_id = num_int + 1
             await bot.send_file(
                 event.chat_id,
-            f'https://t.me/{CHANNEL}/{num}'
+                file=message.media,
+                caption=f"📖 سورة عشوائية:\nرابط السورة:\nhttps://t.me/theholyqouran/{link_id}",
+                reply_to=event.id
             )
             return
     await event.reply("❌ لم يتم العثور على السورة.")
