@@ -130,9 +130,10 @@ async def handler(event):
         num = random.randint(1, 114) + 1
         await bot.forward_messages(
             event.chat_id,
-            messages=num,  # رقم المنشور
-            from_peer='theholyqouran'
-)
+            messages=num,
+            from_peer='theholyqouran',
+            reply_to=event.id  # رد على الرسالة الأصلية
+        )
 
         return
     for names, num in suras.items():
