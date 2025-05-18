@@ -128,10 +128,12 @@ async def handler(event):
     text = event.raw_text.strip()    
     if text.lower() in ['قرآن', 'قران']:
         num = random.randint(1, 114) + 1
-        await bot.send_file(
+        await bot.forward_messages(
             event.chat_id,
-            f'https://t.me/{CHANNEL}/{num}'
-        )
+            messages=num,  # رقم المنشور
+            from_peer='theholyqouran'
+)
+
         return
     for names, num in suras.items():
         if text in names:
