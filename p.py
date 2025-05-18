@@ -152,5 +152,4 @@ async def handler(event):
                 reply_to=event.id
             )
             return
-    await event.reply("❌ لم يتم العثور على السورة.")
 bot.run_until_disconnected()
