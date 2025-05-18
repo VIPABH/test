@@ -122,34 +122,47 @@ suras = {
     ('سورة الفلق',): '113',
     ('سورة الناس',): '114',
 }
-all_suras = [(names[0], number) for names, number in suras.items()]
 @bot.on(events.NewMessage)
 async def handler(event):
-    text = event.raw_text.strip()    
+    text = event.raw_text.strip()
+
+    # حالة السورة العشوائية
     if text.lower() in ['قرآن', 'قران']:
-        num = random.randint(1, 114) + 1
-        message = await bot.get_messages('theholyqouran', ids=num)
-
-        if message and message.media:
-            await bot.send_file(
-                event.chat_id,
-                file=message.media,
-                caption=f"📖 سورة عشوائية:\nرابط السورة:\nhttps://t.me/theholyqouran/{num}",
-                reply_to=event.id
-            )
-    else:
-        await event.reply("عذرًا، لم أتمكن من جلب الملف المطلوب.")
-
+        sura_number = random.randint(1, 114)
+        try:
+            message = await bot.get_messages('theholyqouran', ids=sura_number + 1)
+            if message and message.media:
+                await bot.send_file(
+                    event.chat_id,
+                    file=message.media,
+                    caption=f"📖 سورة عشوائية:\nرابط السورة:\nhttps://t.me/theholyqouran/{sura_number + 1}",
+                    reply_to=event.id
+                )
+            else:
+                await event.reply("عذرًا، لم أتمكن من جلب السورة العشوائية.")
+        except Exception as e:
+            await event.reply(f"حدث خطأ أثناء جلب السورة العشوائية: {e}")
         return
+
+    # حالة البحث عن اسم السورة
     for names, num in suras.items():
         if text in names:
-            num_int = int(num)
-            link_id = num_int + 1
-            await bot.send_file(
-                event.chat_id,
-                file=message.media,
-                caption=f"📖 سورة عشوائية:\nرابط السورة:\nhttps://t.me/theholyqouran/{link_id}",
-                reply_to=event.id
-            )
+            try:
+                link_id = int(num) + 1
+                message = await bot.get_messages('theholyqouran', ids=link_id)
+                if message and message.media:
+                    await bot.send_file(
+                        event.chat_id,
+                        file=message.media,
+                        caption=f"📖 سورة {text}:\nرابط السورة:\nhttps://t.me/theholyqouran/{link_id}",
+                        reply_to=event.id
+                    )
+                else:
+                    await event.reply("عذرًا، لم أتمكن من العثور على السورة المطلوبة.")
+            except Exception as e:
+                await event.reply(f"حدث خطأ أثناء جلب السورة: {e}")
             return
+
+    # في حال لم يتم التعرف على المدخلات
+    await event.reply("الرجاء كتابة اسم سورة صحيحة أو كلمة (قرآن) للحصول على سورة عشوائية.")
 bot.run_until_disconnected()
