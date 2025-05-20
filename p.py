@@ -20,7 +20,7 @@ async def handler(event):
 
     # استخراج اليوزرات الإضافية
     usernames_list = [u.username for u in s.usernames] if hasattr(s, "usernames") and s.usernames else []
-    us = ', '.join(usernames_list) if usernames_list else 'لا توجد'
+    us = ', '.join([f"@{u}" for u in usernames_list]) if usernames_list else 'لا توجد'
 
     # تحديد اليوزر الرئيسي
     main_username = s.username or (usernames_list[0] if usernames_list else None)
