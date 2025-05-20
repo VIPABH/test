@@ -21,10 +21,9 @@ async def handler(event):
 
     # إعداد النص النهائي
     await event.reply(
-        f"رقمك: {s.phone if hasattr(s, 'phone') and s.phone else '🚫 غير متاح'}\n"
         f"اهلا {s.first_name or 'مستخدم'}\n"
-        f"يوزرك: @{main_username}" if main_username else "يوزرك: None\n"
+        f"رقمك: {s.phone if hasattr(s, 'phone') and s.phone else '🚫 غير متاح'}\n"
+        f"يوزرك: @{main_username}\n" if main_username else "يوزرك: None\n"
         f"يوزراتك الإضافية: {', '.join(usernames_list) if usernames_list else 'لا توجد'}"
     )
-
 ABH.run_until_disconnected()
