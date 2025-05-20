@@ -14,7 +14,7 @@ async def handler(event):
     await event.reply(f"`@{u}` @{u}")
 @ABH.on(events.NewMessage(pattern="^يوزره|يوزرة|اليوزر$"))
 async def handler(event):
-    r = event.get_reply_message()
+    r = await event.get_reply_message()
     s = await r.get_sender()
     u = s.username
     await event.reply(f"`@{u}` @{u}")
