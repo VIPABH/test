@@ -7,6 +7,16 @@ API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 ABH = TelegramClient(SESSION, API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+from telethon import TelegramClient, events
+import os
+
+SESSION='session'
+API_ID=int(os.getenv("API_ID"))
+API_HASH=os.getenv("API_HASH")
+BOT_TOKEN=os.getenv("BOT_TOKEN")
+
+ABH=TelegramClient(SESSION,API_ID,API_HASH).start(bot_token=BOT_TOKEN)
+
 @ABH.on(events.NewMessage(pattern="^يوزري$"))
 async def handler(event):
  s=await event.get_sender()
@@ -19,4 +29,6 @@ async def handler(event):
  s=await r.get_sender()
  u=s.username or (list(dict.fromkeys(s.usernames))[0] if getattr(s,"usernames",None) else None)
  await event.reply(f"`@{u}` @{u}" if u else "ليس لديه يوزر")
+
+ABH.run_until_disconnected()
 ABH.run_until_disconnected()
