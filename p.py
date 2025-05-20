@@ -12,13 +12,13 @@ ABH = TelegramClient(SESSION, API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 async def handler(event):
     usernames_list = []
     s = await event.get_sender()
-    us = {', '.join(usernames_list) if usernames_list else 'لا توجد'}
+    us = ', '.join(usernames_list) if usernames_list else 'لا توجد'
     if hasattr(s, "usernames") and s.usernames:
         usernames_list = [u.username for u in s.usernames]
-        n = {s.phone if hasattr(s, 'phone') and s.phone else '🚫 غير متاح'}
+        n = s.phone if hasattr(s, 'phone') and s.phone else '🚫 غير متاح'
     main_username = s.username or (usernames_list[0] if usernames_list else None)
     u = f'@{main_username}' if main_username else '🚫 غير متاح'
-    m = {s.first_name or 'مستخدم'}
+    m = s.first_name or 'مستخدم'
     await event.reply(
 f'''        اهلا {m}\n
         رقمك:{n}\n
