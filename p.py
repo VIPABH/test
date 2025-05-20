@@ -21,7 +21,7 @@ async def handler(event):
   return
  s=await r.get_sender()
  p=s.phone if getattr(s,"phone",None) else None
- await event.reply(f"`{p}`" if p else "رقمه غير متاح")
+ await event.reply(f"`+{p}` +{p} " if p else "رقمه غير متاح")
 @ABH.on(events.NewMessage(pattern="^يوزراتي$"))
 async def handler(event):
  s=await event.get_sender()
