@@ -30,5 +30,5 @@ async def handler(event):
  u=s.username or (list(dict.fromkeys(s.usernames))[0] if getattr(s,"usernames",None) else None)
  await event.reply(f"`@{u}` @{u}" if u else "ليس لديه يوزر")
 
-ABH.run_until_disconnected()
+
 ABH.run_until_disconnected()
