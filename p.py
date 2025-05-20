@@ -11,14 +11,17 @@ ABH=TelegramClient(SESSION,API_ID,API_HASH).start(bot_token=BOT_TOKEN)
 @ABH.on(events.NewMessage(pattern="^يوزري$"))
 async def handler(event):
  s=await event.get_sender()
- u=s.username or (list(dict.fromkeys(s.usernames))[0] if getattr(s,"usernames",None) else None)
+ u=s.username or (list(dict.fromkeys([x.username for x in s.usernames]))[0] if getattr(s,"usernames",None) else None)
  await event.reply(f"`@{u}` @{u}" if u else "ليس لديك يوزر")
 
 @ABH.on(events.NewMessage(pattern="^يوزره|يوزرة|اليوزر$"))
 async def handler(event):
  r=await event.get_reply_message()
+ if not r:
+  await event.reply("يجب الرد على رسالة المستخدم")
+  return
  s=await r.get_sender()
- u=s.username or (list(dict.fromkeys(s.usernames))[0] if getattr(s,"usernames",None) else None)
+ u=s.username or (list(dict.fromkeys([x.username for x in s.usernames]))[0] if getattr(s,"usernames",None) else None)
  await event.reply(f"`@{u}` @{u}" if u else "ليس لديه يوزر")
 
 ABH.run_until_disconnected()
