@@ -11,5 +11,11 @@ ABH = TelegramClient(SESSION, API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 async def handler(event):
     s = await event.get_sender()
     u = s.username
-    await event.reply(f"`{u}` {u}")
+    await event.reply(f"`@{u}` @{u}")
+@ABH.on(events.NewMessage(pattern="^يوزره|يوزرة|اليوزر$"))
+async def handler(event):
+    r = event.get_reply_message()
+    s = await r.get_sender()
+    u = s.username
+    await event.reply(f"`@{u}` @{u}")
 ABH.run_until_disconnected()
