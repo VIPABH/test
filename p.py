@@ -7,7 +7,21 @@ API_HASH=os.getenv("API_HASH")
 BOT_TOKEN=os.getenv("BOT_TOKEN")
 
 ABH=TelegramClient(SESSION,API_ID,API_HASH).start(bot_token=BOT_TOKEN)
+@ABH.on(events.NewMessage(pattern="^رقمي$"))
+async def handler(event):
+ s=await event.get_sender()
+ p=s.phone if getattr(s,"phone",None) else None
+ await event.reply(f"`{p}`" if p else "رقمك غير متاح")
 
+@ABH.on(events.NewMessage(pattern="^رقمة|رقمه$"))
+async def handler(event):
+ r=await event.get_reply_message()
+ if not r:
+  await event.reply("يجب الرد على رسالة المستخدم")
+  return
+ s=await r.get_sender()
+ p=s.phone if getattr(s,"phone",None) else None
+ await event.reply(f"`{p}`" if p else "رقمه غير متاح")
 @ABH.on(events.NewMessage(pattern="^يوزراتي$"))
 async def handler(event):
  s=await event.get_sender()
