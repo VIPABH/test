@@ -11,20 +11,19 @@ ABH = TelegramClient(SESSION, API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 @ABH.on(events.NewMessage)
 async def handler(event):
     s = await event.get_sender()
-
+    us = {', '.join(usernames_list) if usernames_list else 'لا توجد'}
     usernames_list = []
     if hasattr(s, "usernames") and s.usernames:
         usernames_list = [u.username for u in s.usernames]
-
-    # تحديد اليوزر الأساسي: إما s.username أو أول يوزر من قائمة usernames
+        n = {s.phone if hasattr(s, 'phone') and s.phone else '🚫 غير متاح'}
     main_username = s.username or (usernames_list[0] if usernames_list else None)
-
-    # إعداد النص النهائي
+    u = f'@{main_username}' if main_username else '🚫 غير متاح'
+    m = {s.first_name or 'مستخدم'}
     await event.reply(
-f'''        اهلا {s.first_name or 'مستخدم'}\n
-        رقمك: {s.phone if hasattr(s, 'phone') and s.phone else '🚫 غير متاح'}\n
-        يوزرك: @{main_username}\n" if main_username else "يوزرك: None\n
-        يوزراتك الإضافية: {', '.join(usernames_list) if usernames_list else 'لا توجد'}
+f'''        اهلا {m}\n
+        رقمك:{n}\n
+        يوزرك: {u}\n
+        يوزراتك الإضافية: {us}
 '''    )
 
 
