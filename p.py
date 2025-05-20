@@ -10,9 +10,9 @@ ABH = TelegramClient(SESSION, API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 @ABH.on(events.NewMessage)
 async def handler(event):
+    usernames_list = []
     s = await event.get_sender()
     us = {', '.join(usernames_list) if usernames_list else 'لا توجد'}
-    usernames_list = []
     if hasattr(s, "usernames") and s.usernames:
         usernames_list = [u.username for u in s.usernames]
         n = {s.phone if hasattr(s, 'phone') and s.phone else '🚫 غير متاح'}
