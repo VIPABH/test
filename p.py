@@ -11,7 +11,7 @@ ABH=TelegramClient(SESSION,API_ID,API_HASH).start(bot_token=BOT_TOKEN)
 async def handler(event):
  s=await event.get_sender()
  p=s.phone if getattr(s,"phone",None) else None
- await event.reply(f"`{p}`" if p else "رقمك غير متاح")
+ await event.reply(f"`+{p}` +{p} " if p else "رقمك غير متاح")
 
 @ABH.on(events.NewMessage(pattern="^رقمة|رقمه$"))
 async def handler(event):
