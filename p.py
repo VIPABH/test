@@ -25,7 +25,7 @@ async def start(event):
         await event.reply(
             f"👋 أهلاً {ment}\n تم بدء لعبة القاتل والمقتول.\n للانضمام اضغط 👇",
             buttons=[
-                [Button.inline("انضم", url=f"https://t.me/{(await ABH.get_me()).username}?start={join_num}")],
+                [Button.url("انضم", url=f"https://t.me/{(await ABH.get_me()).username}?start={join_num}")],
                 [Button.inline("قائمة اللاعبين", b"players")]
             ]
         )
