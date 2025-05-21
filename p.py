@@ -12,7 +12,7 @@ async def injoin(event):
     uid = event.pattern_match.group(1)
     chat_id = join_links.get(uid)
     if chat_id is None:
-        return await event.reply("❌ هذا الرابط غير صالح أو انتهت صلاحيته.")
+        return await event.reply(" هذا الزر غير صالح أو انتهت صلاحيته.")
     await join(event, chat_id)
 @ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
@@ -22,7 +22,7 @@ async def unified_handler(event):
     command = event.raw_text.strip().lower()
     if command == '/killamorder':
         if chat_id in games:
-            return await event.reply("⚠️ هناك لعبة جارية بالفعل.")
+            return await event.reply(" هناك لعبة جارية بالفعل.")
         games[chat_id] = {
             "owner": sender.id,
             "players": set([sender.id])
@@ -30,7 +30,7 @@ async def unified_handler(event):
         return await start(event, chat_id)    
     elif command == '/players':
         if chat_id not in games:
-            return await event.reply("❌ لم تبدأ أي لعبة بعد.")
+            return await event.reply(" لم تبدأ أي لعبة بعد.")
         return await players(event)
 async def start(event, chat_id):
     global games, join_links
@@ -42,8 +42,7 @@ async def start(event, chat_id):
     await event.reply(
         f"👋 أهلاً {ment}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
         buttons=[
-            [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")],
-            [Button.inline("قائمة اللاعبين", b"players")]
+            [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]
         ]
     )
 async def join(event, chat_id):
@@ -51,11 +50,11 @@ async def join(event, chat_id):
     sender = await event.get_sender()
     ment = await mention(event, sender)
     if chat_id not in games:
-        return await event.reply("❌ لم تبدأ أي لعبة في المجموعة بعد.")
+        return await event.reply(" لم تبدأ أي لعبة في المجموعة بعد.")
     if sender.id in games[chat_id]["players"]:
         return await event.reply(f"{ment} أنت بالفعل مشارك في اللعبة.")
     games[chat_id]["players"].add(sender.id)
-    await event.reply(f"✅ تم انضمام {ment} إلى اللعبة في المجموعة.")
+    await event.reply(f"تم انضمام {ment} إلى اللعبة في المجموعة.")
 async def players(event):
     global games
     if not event.is_group:
@@ -75,13 +74,13 @@ async def players(event):
     players_text = "\n".join(players_list) if players_list else "لا يوجد لاعبين حالياً."
     await event.reply(f"👥 قائمة اللاعبين:\n{players_text}", parse_mode="md")
 used_go = set()
-@ABH.on(events.NewMessage(pattern='/go'))
+@ABH.on(events.NewMessage(pattern='^تم$'))
 async def go(event):
     chat_id = event.chat_id
     if chat_id not in games or len(games[chat_id]["players"]) < 2:
-        return await event.reply("❌ تحتاج على الأقل لاعبين اثنين.")
+        return await event.reply(" تحتاج على الأقل لاعبين اثنين.")
     if chat_id in used_go:
-        return await event.reply("⛔ تم بالفعل بدء جولة القتل. انتظر حتى تنتهي.")
+        return await event.reply(" تم بالفعل بدء جولة القتل. انتظر حتى تنتهي.")
     used_go.add(chat_id)
     await assign_killer(chat_id)
 async def assign_killer(chat_id):
@@ -103,6 +102,7 @@ async def assign_killer(chat_id):
         await asyncio.sleep(30)
         if chat_id in games and games[chat_id].get("killer") == killer_id:
             await ABH.send_message(chat_id, "⌛ انتهى الوقت! سيتم تعيين قاتل جديد.")
+            await asyncio.sleep(3)
             await assign_killer(chat_id)
     asyncio.create_task(killer_timeout())
 @ABH.on(events.CallbackQuery(data=b"kill"))
@@ -110,7 +110,7 @@ async def handle_kill(event):
     chat_id = event.chat_id
     sender_id = event.sender_id
     if chat_id not in games or sender_id != games[chat_id].get("killer"):
-        return await event.answer("❌ هذا الزر ليس لك.", alert=True)
+        return await event.answer(" هذا الزر ليس لك.", alert=True)
     players = list(games[chat_id]["players"])
     if len(players) <= 1:
         return
@@ -138,7 +138,7 @@ async def handle_select(event):
     chat_id = event.chat_id
     sender_id = event.sender_id
     if chat_id not in games or sender_id != games[chat_id].get("killer"):
-        return await event.answer("❌ هذا الزر ليس لك.", alert=True)
+        return await event.answer(" هذا الزر ليس لك.", alert=True)
     players = list(games[chat_id]["players"])
     players.remove(sender_id)
     buttons = [
@@ -148,17 +148,17 @@ async def handle_select(event):
         ) for player in players
     ]
     button_rows = [buttons[i:i+2] for i in range(0, len(buttons), 2)]
-    await event.edit("🎯 اختر الضحية:", buttons=button_rows)
+    await event.edit(" اختر الضحية:", buttons=button_rows)
 @ABH.on(events.CallbackQuery(pattern=b"kill_"))
 async def handle_select_kill(event):
     chat_id = event.chat_id
     sender_id = event.sender_id
     if chat_id not in games or sender_id != games[chat_id].get("killer"):
-        return await event.answer("❌ هذا الزر ليس لك.", alert=True)
+        return await event.answer(" هذا الزر ليس لك.", alert=True)
     data = event.data.decode()
     target_id = int(data.split("_")[1])
     if target_id not in games[chat_id]["players"]:
-        return await event.answer("❌ هذا اللاعب غير موجود.", alert=True)
+        return await event.answer(" هذا اللاعب غير موجود.", alert=True)
     games[chat_id]["players"].remove(target_id)
     target = await ABH.get_entity(target_id)
     killer = await ABH.get_entity(sender_id)
@@ -175,4 +175,14 @@ async def handle_select_kill(event):
         return
     await asyncio.sleep(5)
     await assign_killer(chat_id)
+@ABH.on(events.NewMessage(pattern=r'^رست$'))
+async def reset_handler(event):
+    global games, join_links
+    chat_id = event.chat_id
+    if chat_id not in games:
+        del games[chat_id]
+    for key in list(join_links):
+        if join_links[key] == chat_id:
+            del join_links[key]
+    await event.reply("✅ تم إعادة ضبط اللعبة ومسح جميع بيانات المجموعة بنجاح.")
 ABH.run_until_disconnected()
