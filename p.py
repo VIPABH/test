@@ -1,73 +1,39 @@
 from telethon import TelegramClient, events
-import os 
-from Resources import mention
-
-SESSION='session'
-API_ID=int(os.getenv("API_ID"))
-API_HASH=os.getenv("API_HASH")
-BOT_TOKEN=os.getenv("BOT_TOKEN")
-ABH=TelegramClient(SESSION,API_ID,API_HASH).start(bot_token=BOT_TOKEN)
-@ABH.one(events.NewMessage(pattern="^اسمي$"))
-async def myname(event):
- s = await event.get_sender()
- name = await mention(event, s)
- await event.reply(name)
-@ABH.one(events.NewMessage(pattern="^اسمه|اسمة$"))
-async def myname(event):
- r = await event.get_reply_message()
- s = await r.get_sender()
- name = await mention(event, s)
- await event.reply(name)
-@ABH.on(events.NewMessage(pattern="^رقمي$"))
-async def handler(event):
- s=await event.get_sender()
- p=s.phone if getattr(s,"phone",None) else None
- await event.reply(f"`+{p}` +{p} " if p else "رقمك غير متاح")
-
-@ABH.on(events.NewMessage(pattern="^رقمة|رقمه$"))
-async def handler(event):
- r=await event.get_reply_message()
- if not r:
-  await event.reply("يجب الرد على رسالة المستخدم")
-  return
- s=await r.get_sender()
- p=s.phone if getattr(s,"phone",None) else None
- await event.reply(f"`+{p}` +{p} " if p else "رقمه غير متاح")
-@ABH.on(events.NewMessage(pattern="^يوزراتي$"))
-async def handler(event):
- s=await event.get_sender()
- usernames=[x.username for x in s.usernames] if getattr(s,"usernames",None) else []
- if s.username: usernames.insert(0, s.username)
- usernames=list(dict.fromkeys(usernames))
- utext="\n".join(f"@{u}" for u in usernames)
- await event.reply(utext if usernames else "ليس لديك أي يوزرات NFT")
-
-@ABH.on(events.NewMessage(pattern="^يوزراته$"))
-async def handler(event):
- r=await event.get_reply_message()
- if not r:
-  await event.reply("يجب الرد على رسالة المستخدم")
-  return
- s=await r.get_sender()
- usernames=[x.username for x in s.usernames] if getattr(s,"usernames",None) else []
- if s.username: usernames.insert(0, s.username)
- usernames=list(dict.fromkeys(usernames))
- utext="\n".join(f"@{u}" for u in usernames)
- await event.reply(utext if usernames else "ليس لديه أي يوزرات NFT")
-@ABH.on(events.NewMessage(pattern="^يوزري$"))
-async def handler(event):
- s=await event.get_sender()
- u=s.username or (list(dict.fromkeys([x.username for x in s.usernames]))[0] if getattr(s,"usernames",None) else None)
- await event.reply(f"`@{u}` @{u}" if u else "ليس لديك يوزر")
-
-@ABH.on(events.NewMessage(pattern="^يوزره|يوزرة|اليوزر$"))
-async def handler(event):
- r=await event.get_reply_message()
- if not r:
-  await event.reply("يجب الرد على رسالة المستخدم")
-  return
- s=await r.get_sender()
- u=s.username or (list(dict.fromkeys([x.username for x in s.usernames]))[0] if getattr(s,"usernames",None) else None)
- await event.reply(f"`@{u}` @{u}" if u else "ليس لديه يوزر")
-
+from Resources import mention #type: ignore
+import asyncio, os
+api_id = os.environ.get('API_ID')
+api_hash = os.environ.get('API_HASH')
+bot_token = os.environ.get('BOT_TOKEN')
+ABH = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
+games = {}
+@ABH.on(events.NewMessage(pattern='/start'))
+async def start(event):
+    global games
+    chat_id = event.chat_id
+    sender = await event.get_sender()
+    ment = await mention(event, sender)
+    if chat_id in games:
+        await event.reply("⚠️ هنالك لعبة جارية بالفعل.\n⏳ انتظر حتى تنتهي اللعبة.")
+    else:
+        games[chat_id] = {
+            "owner": sender.id,
+            "players": set([sender.id])
+        }
+        await event.reply(
+            f"👋 أهلاً {ment}\n✅ تم بدء لعبة القاتل والمقتول.\n🎮 أرسل /join للانضمام إلى اللعبة.",
+            parse_mode="md"
+        )
+@ABH.on(events.NewMessage(pattern='/join'))
+async def join(event):
+    global games
+    chat = await event.get_chat()
+    sender = await event.get_sender()
+    ment = await mention(event, sender)
+    if chat.id not in games:
+        return
+    if sender.id in games[chat.id]["players"]:
+        await event.reply(f" {ment} أنت بالفعل مشارك في اللعبة.", parse_mode="md")
+        return
+    games[chat.id]["players"].add(sender.id)
+    await event.reply(f"✅ تم انضمام {ment} إلى اللعبة.", parse_mode="md")
 ABH.run_until_disconnected()
