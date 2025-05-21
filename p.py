@@ -54,22 +54,24 @@ async def injoin(event):
     uidj = event.pattern_match.group(1)
     await join(event)
 @ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
+@ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
     global games
     chat_id = event.chat_id
     sender = await event.get_sender()
-    if chat_id in games:
-        await event.reply("هنالك لعبة جارية بالفعل.\n انتظر حتى تنتهي اللعبة.")
-    else:
+    command = event.raw_text.strip().lower()
+    if command == '/killamorder':
+        if chat_id in games:
+            return await event.reply("⚠️ هناك لعبة جارية بالفعل.\n🕹️ انتظر حتى تنتهي.")
         games[chat_id] = {
             "owner": sender.id,
             "players": set([sender.id])
         }
-    command = event.raw_text.strip().lower()
-    if command == '/killamorder':
-        await start(event)
+        return await start(event)
     elif command == '/players':
-        await players(event)
+        if chat_id not in games:
+            return await event.reply("❌ لم تبدأ أي لعبة بعد.")
+        return await players(event)
 used_go = set()
 @ABH.on(events.NewMessage(pattern='/go'))
 async def go(event):
