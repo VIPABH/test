@@ -162,40 +162,30 @@ async def handle_select(event):
 
     players = list(games[chat_id]["players"])
     players.remove(sender_id)
-
-    # تكوين أزرار الضحايا
     buttons = [
         Button.inline(
-            f"قتل {await mention(None, await ABH.get_entity(player))}",
+            f"🔪 قتل {(await ABH.get_entity(player)).first_name}",
             data=f"kill_{player}".encode()
         ) for player in players
     ]
-
-    await event.edit("🎯 اختر الضحية:", buttons=buttons)
-
-# تنفيذ القتل اليدوي عند اختيار لاعب من القائمة
+    button_rows = [buttons[i:i+2] for i in range(0, len(buttons), 2)]
+    await event.edit("🎯 اختر الضحية:", buttons=button_rows)
 @ABH.on(events.CallbackQuery(pattern=b"kill_"))
 async def handle_select_kill(event):
     chat_id = event.chat_id
     sender_id = event.sender_id
-
     if chat_id not in games or sender_id != games[chat_id].get("killer"):
         return await event.answer("❌ هذا الزر ليس لك.", alert=True)
-
     data = event.data.decode()
     target_id = int(data.split("_")[1])
-
     if target_id not in games[chat_id]["players"]:
         return await event.answer("❌ هذا اللاعب غير موجود.", alert=True)
-
     games[chat_id]["players"].remove(target_id)
     target = await ABH.get_entity(target_id)
     killer = await ABH.get_entity(sender_id)
     killer_ment = await mention(None, killer)
     target_ment = await mention(None, target)
-
-    await event.edit(f"🗡️ {killer_ment} اختار وقتل {target_ment}!")
-
+    await event.edit(f"🗡️ {killer_ment} اختار وقتل ↤ {target_ment}!")
     if len(games[chat_id]["players"]) == 1:
         winner_id = list(games[chat_id]["players"])[0]
         games.pop(chat_id)
@@ -204,8 +194,6 @@ async def handle_select_kill(event):
         winner_ment = await mention(None, winner)
         await ABH.send_message(chat_id, f"🏆 {winner_ment} هو الفائز الأخير! 🎉")
         return
-
     await asyncio.sleep(5)
     await assign_killer(chat_id)
-
 ABH.run_until_disconnected()
