@@ -39,17 +39,16 @@ async def start(event):
             [Button.inline("قائمة اللاعبين", b"players")]
         ]
     )
-async def join(event):
+async def join(event, chat_id):
     global games
-    chat_id = event.chat_id
     sender = await event.get_sender()
     ment = await mention(event, sender)
-    if chat_id not in games and not event.is_private:
-        return await event.reply("❌ لم تبدأ أي لعبة بعد. أرسل /killAmorder لبدء اللعبة.")
+    if chat_id not in games:
+        return await event.reply("❌ لم تبدأ أي لعبة في المجموعة بعد.")
     if sender.id in games[chat_id]["players"]:
-        return await event.reply(f"{ment} أنت بالفعل مشارك في اللعبة.", parse_mode="md")
+        return await event.reply(f"{ment} أنت بالفعل مشارك في اللعبة.")
     games[chat_id]["players"].add(sender.id)
-    await event.reply(f"✅ تم انضمام {ment} إلى اللعبة.", parse_mode="md")
+    await event.reply(f"✅ تم انضمام {ment} إلى اللعبة في المجموعة.")
 async def players(event):
     global games
     if not event.is_group:
