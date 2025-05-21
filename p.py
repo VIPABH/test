@@ -1,6 +1,6 @@
 from telethon import TelegramClient, events
 from Resources import mention #type: ignore
-import asyncio, os
+import asyncio, os, random
 api_id = os.environ.get('API_ID')
 api_hash = os.environ.get('API_HASH')
 bot_token = os.environ.get('BOT_TOKEN')
@@ -70,4 +70,32 @@ async def unified_handler(event):
         await join(event)
     elif command == '/players':
         await players(event)
+async def kill(event):
+    global games
+    chat_id = event.chat_id
+    sender = await event.get_sender()
+    ment = await mention(event, sender)
+    if chat_id not in games:
+        await event.reply("❌ لم تبدأ أي لعبة بعد. أرسل /start أولاً.")
+        return
+    players = list(games[chat_id]["players"])
+    if len(players) < 2:
+        await event.reply("❌ لا يوجد لاعبون كافون للقتل.")
+        return
+    target_id = sender.id
+    while target_id == sender.id:
+        target_id = random.choice(players)
+    target = await ABH.get_entity(target_id)
+    target_mention = await mention(event, target)
+    games[chat_id]["players"].remove(target_id)
+    await event.reply(
+        f"🔫 {ment} أطلق النار على {target_mention}!\n💀 تم إقصاؤه من اللعبة.",
+        parse_mode="md"
+    )
+    if len(games[chat_id]["players"]) == 1:
+        winner_id = list(games[chat_id]["players"])[0]
+        winner = await ABH.get_entity(winner_id)
+        winner_mention = await mention(event, winner)
+        await event.reply(f"🏆 {winner_mention} هو الفائز! 🎉")
+        del games[chat_id]
 ABH.run_until_disconnected()
