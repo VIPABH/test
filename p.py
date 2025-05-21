@@ -9,6 +9,9 @@ games = {}
 @ABH.on(events.NewMessage(pattern='/start'))
 async def start(event):
     global games
+    if not event.is_group:
+        await event.reply("❌ هذه اللعبة مخصصة للمجموعات فقط.")
+        return
     chat_id = event.chat_id
     sender = await event.get_sender()
     ment = await mention(event, sender)
@@ -26,13 +29,17 @@ async def start(event):
 @ABH.on(events.NewMessage(pattern='/join'))
 async def join(event):
     global games
+    if not event.is_group:
+        await event.reply("❌ هذه اللعبة مخصصة للمجموعات فقط.")
+        return
     chat = await event.get_chat()
     sender = await event.get_sender()
     ment = await mention(event, sender)
     if chat.id not in games:
+        await event.reply("❌ لم تبدأ أي لعبة بعد. أرسل /start لبدء اللعبة.")
         return
     if sender.id in games[chat.id]["players"]:
-        await event.reply(f" {ment} أنت بالفعل مشارك في اللعبة.", parse_mode="md")
+        await event.reply(f"✅ {ment} أنت بالفعل مشارك في اللعبة.", parse_mode="md")
         return
     games[chat.id]["players"].add(sender.id)
     await event.reply(f"✅ تم انضمام {ment} إلى اللعبة.", parse_mode="md")
