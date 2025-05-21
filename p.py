@@ -34,11 +34,9 @@ async def join(event):
 async def players(event):
     global games
     if not event.is_group:
-        await event.reply(" هذه اللعبة مخصصة للمجموعات فقط.")
         return
     chat_id = event.chat_id
     if chat_id not in games:
-        await event.reply(" لم تبدأ أي لعبة بعد. أرسل /killAmorder لبدء اللعبة.")
         return
     player_ids = games[chat_id]["players"]
     players_list = []
