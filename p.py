@@ -101,7 +101,7 @@ async def assign_killer(chat_id):
     async def killer_timeout():
         await asyncio.sleep(30)
         if chat_id in games and games[chat_id].get("killer") == killer_id:
-            await ABH.send_message(chat_id, "⌛ انتهى الوقت! سيتم تعيين قاتل جديد.")
+            await ABH.send_message(chat_id, " انتهى الوقت! سيتم تعيين قاتل جديد.")
             await asyncio.sleep(3)
             await assign_killer(chat_id)
     asyncio.create_task(killer_timeout())
@@ -122,7 +122,7 @@ async def handle_kill(event):
     killer = await ABH.get_entity(sender_id)
     killer_ment = await mention(None, killer)
     target_ment = await mention(None, target)
-    await event.edit(f"🔫 {killer_ment} قتل {target_ment}!")
+    await event.edit(f"🔫 {killer_ment} قتل ⇠ {target_ment}!")
     if len(games[chat_id]["players"]) == 1:
         winner_id = list(games[chat_id]["players"])[0]
         games.pop(chat_id)
@@ -175,14 +175,4 @@ async def handle_select_kill(event):
         return
     await asyncio.sleep(5)
     await assign_killer(chat_id)
-@ABH.on(events.NewMessage(pattern=r'^رست$'))
-async def reset_handler(event):
-    global games, join_links
-    chat_id = event.chat_id
-    if chat_id not in games:
-        del games[chat_id]
-    for key in list(join_links):
-        if join_links[key] == chat_id:
-            del join_links[key]
-    await event.reply("✅ تم إعادة ضبط اللعبة ومسح جميع بيانات المجموعة بنجاح.")
 ABH.run_until_disconnected()
