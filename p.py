@@ -62,7 +62,6 @@ async def players(event):
     players_text = "\n".join(players_list) if players_list else "لا يوجد لاعبين حالياً."
     await event.reply(f"👥 قائمة اللاعبين:\n{players_text}", parse_mode="md")
 @ABH.on(events.NewMessage(pattern='/start|/join|/players'))
-@ABH.on(events.NewMessage(pattern='/start|/join|/players'))
 async def unified_handler(event):
     command = event.raw_text.split()[0].lower()
     if command == '/start':
