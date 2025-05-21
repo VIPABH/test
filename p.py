@@ -62,7 +62,7 @@ async def unified_handler(event):
     command = event.raw_text.strip().lower()
     if command == '/killamorder':
         if chat_id in games:
-            return await event.reply("⚠️ هناك لعبة جارية بالفعل.\n🕹️ انتظر حتى تنتهي.")
+            return #await event.reply("⚠️ هناك لعبة جارية بالفعل.\n🕹️ انتظر حتى تنتهي.")
         games[chat_id] = {
             "owner": sender.id,
             "players": set([sender.id])
