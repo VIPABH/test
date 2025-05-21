@@ -8,32 +8,18 @@ ABH = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token
 games = {}
 async def start(event):
     global games
-    if not event.is_group:
-        await event.reply(" هذه اللعبة مخصصة للمجموعات فقط.")
-        return
-    chat_id = event.chat_id
     sender = await event.get_sender()
     ment = await mention(event, sender)
-    if chat_id in games:
-        await event.reply("هنالك لعبة جارية بالفعل.\n انتظر حتى تنتهي اللعبة.")
-    else:
-        games[chat_id] = {
-            "owner": sender.id,
-            "players": set([sender.id])
-        }
-        join_num = str(uuid.uuid4())[:6]
-        await event.reply(
-            f"👋 أهلاً {ment}\n تم بدء لعبة القاتل والمقتول.\n للانضمام اضغط 👇",
-            buttons=[
-                [Button.url("انضم", url=f"https://t.me/{(await ABH.get_me()).username}?start={join_num}")],
-                [Button.inline("قائمة اللاعبين", b"players")]
-            ]
+    join_num = str(uuid.uuid4())[:6]
+    await event.reply(
+        f"👋 أهلاً {ment}\n تم بدء لعبة القاتل والمقتول.\n للانضمام اضغط 👇",
+        buttons=[
+            [Button.url("انضم", url=f"https://t.me/{(await ABH.get_me()).username}?start={join_num}")],
+            [Button.inline("قائمة اللاعبين", b"players")]
+        ]
         )
 async def join(event):
     global games
-    if not event.is_group:
-        await event.reply("هذه اللعبة مخصصة للمجموعات فقط.")
-        return
     chat_id = event.chat_id
     sender = await event.get_sender()
     ment = await mention(event, sender)
@@ -71,6 +57,16 @@ async def injoin(event):
     await join(event)
 @ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
+    global games
+    chat_id = event.chat_id
+    sender = await event.get_sender()
+    if chat_id in games:
+        await event.reply("هنالك لعبة جارية بالفعل.\n انتظر حتى تنتهي اللعبة.")
+    else:
+        games[chat_id] = {
+            "owner": sender.id,
+            "players": set([sender.id])
+        }
     command = event.raw_text.strip().lower()
     if command == '/killamorder':
         await start(event)
