@@ -99,7 +99,7 @@ async def handle_kill(event):
         games.pop(chat_id)
         win_entity = await ABH.get_entity(winner)
         win_ment = await mention(None, win_entity)
-        return await event.edit(f"🏆 الفائز هو {win_ment}!")
+        return await event.edit(f" الفائز هو {killer_ment} \n قتل الكل وفاز")
     target_id = sender_id
     while target_id == sender_id:
         target_id = random.choice(players)
