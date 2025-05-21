@@ -30,12 +30,12 @@ async def start(event):
 @ABH.on(events.NewMessage(pattern='/join'))
 async def join(event):
     global games
-    chat = await event.get_chat()
+    chat = event.chat_id
     sender = await event.get_sender()
     ment = await mention(event, sender)
-    # if chat.id not in games:
-    #     await event.reply("❌ لم تبدأ أي لعبة بعد. أرسل /start لبدء اللعبة.")
-    #     return
+    if chat.id not in games:
+        await event.reply("❌ لم تبدأ أي لعبة بعد. أرسل /start لبدء اللعبة.")
+        return
     if sender.id in games[chat.id]["players"]:
         await event.reply(f"✅ {ment} أنت بالفعل مشارك في اللعبة.", parse_mode="md")
         return
