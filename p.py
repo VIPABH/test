@@ -47,4 +47,21 @@ async def join(event):
 
     games[chat_id]["players"].add(sender.id)
     await event.reply(f"✅ تم انضمام {ment} إلى اللعبة.", parse_mode="md")
+ABH.on(events.NewMessage(pattern='/players'))
+async def players(event):
+    global games
+    if not event.is_group:
+        await event.reply("❌ هذه اللعبة مخصصة للمجموعات فقط.")
+        return
+
+    chat_id = event.chat_id
+    sender = await event.get_sender()
+    ment = await mention(event, sender)
+
+    if chat_id not in games:
+        await event.reply("❌ لم تبدأ أي لعبة بعد. أرسل /start لبدء اللعبة.")
+        return
+
+    players_list = "\n".join([f"• {mention(event, player)}" for player in games[chat_id]["players"]])
+    await event.reply(f"👥 قائمة اللاعبين:\n{players_list}", parse_mode="md")
 ABH.run_until_disconnected()
