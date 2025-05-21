@@ -69,13 +69,11 @@ async def players(event):
 async def injoin(event):
     uidj = event.pattern_match.group(1)
     await join(event)
-@ABH.on(events.NewMessage(pattern='/killAmorder|/players'))
+@ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
-    command = event.raw_text.split()[0].lower()
-    if command == '/killAmorder':
+    command = event.raw_text.strip().lower()
+    if command == '/killamorder':
         await start(event)
-    # elif command == '/join':
-    #     await join(event)
     elif command == '/players':
         await players(event)
 used_go = set()
