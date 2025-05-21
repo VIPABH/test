@@ -6,9 +6,14 @@ api_hash = os.environ.get('API_HASH')
 bot_token = os.environ.get('BOT_TOKEN')
 ABH = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
 games = {}
+join_links = {}
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def injoin(event):
-    await join(event)
+    uid = event.pattern_match.group(1)
+    chat_id = join_links.get(uid)
+    if chat_id is None:
+        return await event.reply("❌ هذا الرابط غير صالح أو انتهت صلاحيته.")
+    await join(event, chat_id)
 @ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
     global games
@@ -22,20 +27,22 @@ async def unified_handler(event):
             "owner": sender.id,
             "players": set([sender.id])
         }
-        return await start(event)
+        return await start(event, chat_id)    
     elif command == '/players':
         if chat_id not in games:
             return await event.reply("❌ لم تبدأ أي لعبة بعد.")
         return await players(event)
-async def start(event):
-    global games
+async def start(event, chat_id):
+    global games, join_links
     sender = await event.get_sender()
     ment = await mention(event, sender)
     join_num = str(uuid.uuid4())[:6]
+    join_links[join_num] = chat_id
+    bot_username = (await ABH.get_me()).username
     await event.reply(
         f"👋 أهلاً {ment}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
         buttons=[
-            [Button.url("انضم", url=f"https://t.me/{(await ABH.get_me()).username}?start={join_num}")],
+            [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")],
             [Button.inline("قائمة اللاعبين", b"players")]
         ]
     )
