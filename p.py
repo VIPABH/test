@@ -70,30 +70,50 @@ async def unified_handler(event):
         await join(event)
     elif command == '/players':
         await players(event)
+used_go = set()
+
 @ABH.on(events.NewMessage(pattern='/go'))
 async def go(event):
     chat_id = event.chat_id
+
     if chat_id not in games or len(games[chat_id]["players"]) < 2:
         return await event.reply("❌ تحتاج على الأقل لاعبين اثنين.")
+
+    if chat_id in used_go:
+        return await event.reply("⛔ تم بالفعل بدء جولة القتل. انتظر حتى تنتهي.")
+    
+    used_go.add(chat_id)
     await assign_killer(chat_id)
+
 async def assign_killer(chat_id):
     players = list(games[chat_id]["players"])
     killer_id = random.choice(players)
     games[chat_id]["killer"] = killer_id
+
     killer = await ABH.get_entity(killer_id)
     ment = await mention(None, killer)
-    await ABH.send_message(
+
+    message = await ABH.send_message(
         chat_id,
-        f"🔫 القاتل هو {ment}! اضغط الزر التالي لاختيار ضحية.",
-        buttons=[Button.inline("🔪 اقتل الآن", data=b"kill")],
+        f"🔫 القاتل هو {ment}! لديك 30 ثانية لقتل أحدهم.\nاضغط الزر لاختيار ضحية.",
+        buttons=[Button.inline("🔪 اقتل الآن", data=b"kill")]
     )
+
+    # بدء مؤقت 30 ثانية. إذا لم يتم القتل، يُعاد اختيار قاتل.
+    async def killer_timeout():
+        await asyncio.sleep(30)
+        if chat_id in games and games[chat_id].get("killer") == killer_id:
+            await ABH.send_message(chat_id, "⌛ انتهى الوقت! سيتم تعيين قاتل جديد.")
+            await assign_killer(chat_id)
+
+    asyncio.create_task(killer_timeout())
+
 @ABH.on(events.CallbackQuery(data=b"kill"))
 async def handle_kill(event):
     chat_id = event.chat_id
     sender_id = event.sender_id
 
-    # تأكد أن القاتل هو فقط من يمكنه استخدام الزر
-    if chat_id not in games or sender_id != games[chat_id]["killer"]:
+    if chat_id not in games or sender_id != games[chat_id].get("killer"):
         return await event.answer("❌ هذا الزر ليس لك.", alert=True)
 
     players = list(games[chat_id]["players"])
@@ -103,7 +123,6 @@ async def handle_kill(event):
     while target_id == sender_id:
         target_id = random.choice(players)
 
-    # إزالة الضحية
     games[chat_id]["players"].remove(target_id)
     target = await ABH.get_entity(target_id)
     killer = await ABH.get_entity(sender_id)
@@ -112,16 +131,17 @@ async def handle_kill(event):
 
     await event.edit(f"🔫 {killer_ment} قتل {target_ment}!")
 
-    # تحقق إذا بقي لاعب واحد فقط = الفائز
+    # فحص الفائز
     if len(games[chat_id]["players"]) == 1:
         winner_id = list(games[chat_id]["players"])[0]
         games.pop(chat_id)
+        used_go.discard(chat_id)
         winner = await ABH.get_entity(winner_id)
         winner_ment = await mention(None, winner)
         await ABH.send_message(chat_id, f"🏆 {winner_ment} هو الفائز الأخير! 🎉")
         return
 
-    # تعيين قاتل جديد بعد 5 ثوانٍ
+    # إعادة التعيين بعد 5 ثوانٍ
     await asyncio.sleep(5)
     await assign_killer(chat_id)
 
