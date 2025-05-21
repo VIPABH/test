@@ -91,24 +91,38 @@ async def assign_killer(chat_id):
 async def handle_kill(event):
     chat_id = event.chat_id
     sender_id = event.sender_id
+
+    # تأكد أن القاتل هو فقط من يمكنه استخدام الزر
     if chat_id not in games or sender_id != games[chat_id]["killer"]:
         return await event.answer("❌ هذا الزر ليس لك.", alert=True)
+
     players = list(games[chat_id]["players"])
-    if len(players) <= 2:
-        winner = [p for p in players if p != sender_id][0]
-        games.pop(chat_id)
-        win_entity = await ABH.get_entity(winner)
-        win_ment = await mention(None, win_entity)
-        return await event.edit(f" الفائز هو {killer_ment} \n قتل الكل وفاز")
+
+    # اختيار ضحية عشوائية غير القاتل
     target_id = sender_id
     while target_id == sender_id:
         target_id = random.choice(players)
+
+    # إزالة الضحية
     games[chat_id]["players"].remove(target_id)
     target = await ABH.get_entity(target_id)
     killer = await ABH.get_entity(sender_id)
     killer_ment = await mention(None, killer)
     target_ment = await mention(None, target)
-    await event.edit(f"💥 {killer_ment} قتل {target_ment}!")
+
+    await event.edit(f"🔫 {killer_ment} قتل {target_ment}!")
+
+    # تحقق إذا بقي لاعب واحد فقط = الفائز
+    if len(games[chat_id]["players"]) == 1:
+        winner_id = list(games[chat_id]["players"])[0]
+        games.pop(chat_id)
+        winner = await ABH.get_entity(winner_id)
+        winner_ment = await mention(None, winner)
+        await ABH.send_message(chat_id, f"🏆 {winner_ment} هو الفائز الأخير! 🎉")
+        return
+
+    # تعيين قاتل جديد بعد 5 ثوانٍ
     await asyncio.sleep(5)
     await assign_killer(chat_id)
+
 ABH.run_until_disconnected()
