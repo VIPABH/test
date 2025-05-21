@@ -6,31 +6,50 @@ api_hash = os.environ.get('API_HASH')
 bot_token = os.environ.get('BOT_TOKEN')
 ABH = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
 games = {}
+@ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
+async def injoin(event):
+    await join(event)
+@ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
+async def unified_handler(event):
+    global games
+    chat_id = event.chat_id
+    sender = await event.get_sender()
+    command = event.raw_text.strip().lower()
+    if command == '/killamorder':
+        if chat_id in games:
+            return await event.reply("⚠️ هناك لعبة جارية بالفعل.")
+        games[chat_id] = {
+            "owner": sender.id,
+            "players": set([sender.id])
+        }
+        return await start(event)
+    elif command == '/players':
+        if chat_id not in games:
+            return await event.reply("❌ لم تبدأ أي لعبة بعد.")
+        return await players(event)
 async def start(event):
     global games
     sender = await event.get_sender()
     ment = await mention(event, sender)
     join_num = str(uuid.uuid4())[:6]
     await event.reply(
-        f"👋 أهلاً {ment}\n تم بدء لعبة القاتل والمقتول.\n للانضمام اضغط 👇",
+        f"👋 أهلاً {ment}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
         buttons=[
             [Button.url("انضم", url=f"https://t.me/{(await ABH.get_me()).username}?start={join_num}")],
             [Button.inline("قائمة اللاعبين", b"players")]
         ]
-        )
+    )
 async def join(event):
     global games
     chat_id = event.chat_id
     sender = await event.get_sender()
     ment = await mention(event, sender)
     if chat_id not in games and not event.is_private:
-        await event.reply("لم تبدأ أي لعبة بعد. أرسل /killAmorder لبدء اللعبة.")
-        return
+        return await event.reply("❌ لم تبدأ أي لعبة بعد. أرسل /killAmorder لبدء اللعبة.")
     if sender.id in games[chat_id]["players"]:
-        await event.reply(f"{ment} أنت بالفعل مشارك في اللعبة.", parse_mode="md")
-        return
+        return await event.reply(f"{ment} أنت بالفعل مشارك في اللعبة.", parse_mode="md")
     games[chat_id]["players"].add(sender.id)
-    await event.reply(f"تم انضمام {ment} إلى اللعبة.", parse_mode="md")
+    await event.reply(f"✅ تم انضمام {ment} إلى اللعبة.", parse_mode="md")
 async def players(event):
     global games
     if not event.is_group:
@@ -49,29 +68,6 @@ async def players(event):
             players_list.append(f"• مستخدم غير معروف (ID: {user_id})")
     players_text = "\n".join(players_list) if players_list else "لا يوجد لاعبين حالياً."
     await event.reply(f"👥 قائمة اللاعبين:\n{players_text}", parse_mode="md")
-@ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
-async def injoin(event):
-    uidj = event.pattern_match.group(1)
-    await join(event)
-@ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
-@ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
-async def unified_handler(event):
-    global games
-    chat_id = event.chat_id
-    sender = await event.get_sender()
-    command = event.raw_text.strip().lower()
-    if command == '/killamorder':
-        if chat_id in games:
-            return #await event.reply("⚠️ هناك لعبة جارية بالفعل.\n🕹️ انتظر حتى تنتهي.")
-        games[chat_id] = {
-            "owner": sender.id,
-            "players": set([sender.id])
-        }
-        return await start(event)
-    elif command == '/players':
-        if chat_id not in games:
-            return await event.reply("❌ لم تبدأ أي لعبة بعد.")
-        return await players(event)
 used_go = set()
 @ABH.on(events.NewMessage(pattern='/go'))
 async def go(event):
