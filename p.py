@@ -47,7 +47,7 @@ async def join(event):
 
     games[chat_id]["players"].add(sender.id)
     await event.reply(f"✅ تم انضمام {ment} إلى اللعبة.", parse_mode="md")
-ABH.on(events.NewMessage(pattern='/players'))
+@ABH.on(events.NewMessage(pattern='/players'))
 async def players(event):
     global games
     if not event.is_group:
@@ -55,13 +55,21 @@ async def players(event):
         return
 
     chat_id = event.chat_id
-    sender = await event.get_sender()
-    ment = await mention(event, sender)
-
     if chat_id not in games:
         await event.reply("❌ لم تبدأ أي لعبة بعد. أرسل /start لبدء اللعبة.")
         return
 
-    players_list = "\n".join([f"• {mention(event, player)}" for player in games[chat_id]["players"]])
-    await event.reply(f"👥 قائمة اللاعبين:\n{players_list}", parse_mode="md")
+    player_ids = games[chat_id]["players"]
+    players_list = []
+
+    for user_id in player_ids:
+        try:
+            user = await ABH.get_entity(user_id)
+            ment = await mention(event, user)
+            players_list.append(f"• {ment}")
+        except Exception:
+            players_list.append(f"• مستخدم غير معروف (ID: {user_id})")
+
+    players_text = "\n".join(players_list) if players_list else "لا يوجد لاعبين حالياً."
+    await event.reply(f"👥 قائمة اللاعبين:\n{players_text}", parse_mode="md")
 ABH.run_until_disconnected()
