@@ -26,6 +26,7 @@ async def start(event):
             f"👋 أهلاً {ment}\n✅ تم بدء لعبة القاتل والمقتول.\n🎮 أرسل /join للانضمام إلى اللعبة.",
             parse_mode="md"
         )
+
 @ABH.on(events.NewMessage(pattern='/join'))
 async def join(event):
     global games
