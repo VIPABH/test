@@ -1,4 +1,4 @@
-from telethon import TelegramClient, events
+from telethon import TelegramClient, events, Button
 from Resources import mention #type: ignore
 import asyncio, os, random
 api_id = os.environ.get('API_ID')
@@ -70,32 +70,45 @@ async def unified_handler(event):
         await join(event)
     elif command == '/players':
         await players(event)
-async def kill(event):
-    global games
+@ABH.on(events.NewMessage(pattern='/go'))
+async def go(event):
     chat_id = event.chat_id
-    sender = await event.get_sender()
-    ment = await mention(event, sender)
-    if chat_id not in games:
-        await event.reply("❌ لم تبدأ أي لعبة بعد. أرسل /start أولاً.")
-        return
+    if chat_id not in games or len(games[chat_id]["players"]) < 2:
+        return await event.reply("❌ تحتاج على الأقل لاعبين اثنين.")
+    await assign_killer(chat_id)
+async def assign_killer(chat_id):
     players = list(games[chat_id]["players"])
-    if len(players) < 2:
-        await event.reply("❌ لا يوجد لاعبون كافون للقتل.")
-        return
-    target_id = sender.id
-    while target_id == sender.id:
-        target_id = random.choice(players)
-    target = await ABH.get_entity(target_id)
-    target_mention = await mention(event, target)
-    games[chat_id]["players"].remove(target_id)
-    await event.reply(
-        f"🔫 {ment} أطلق النار على {target_mention}!\n💀 تم إقصاؤه من اللعبة.",
-        parse_mode="md"
+    killer_id = random.choice(players)
+    games[chat_id]["killer"] = killer_id
+    killer = await ABH.get_entity(killer_id)
+    ment = await mention(None, killer)
+    await ABH.send_message(
+        chat_id,
+        f"🔫 القاتل هو {ment}! اضغط الزر التالي لاختيار ضحية.",
+        buttons=[Button.inline("🔪 اقتل الآن", data=b"kill")],
     )
-    if len(games[chat_id]["players"]) == 1:
-        winner_id = list(games[chat_id]["players"])[0]
-        winner = await ABH.get_entity(winner_id)
-        winner_mention = await mention(event, winner)
-        await event.reply(f"🏆 {winner_mention} هو الفائز! 🎉")
-        del games[chat_id]
+@ABH.on(events.CallbackQuery(data=b"kill"))
+async def handle_kill(event):
+    chat_id = event.chat_id
+    sender_id = event.sender_id
+    if chat_id not in games or sender_id != games[chat_id]["killer"]:
+        return await event.answer("❌ هذا الزر ليس لك.", alert=True)
+    players = list(games[chat_id]["players"])
+    if len(players) <= 2:
+        winner = [p for p in players if p != sender_id][0]
+        games.pop(chat_id)
+        win_entity = await ABH.get_entity(winner)
+        win_ment = await mention(None, win_entity)
+        return await event.edit(f"🏆 الفائز هو {win_ment}!")
+    target_id = sender_id
+    while target_id == sender_id:
+        target_id = random.choice(players)
+    games[chat_id]["players"].remove(target_id)
+    target = await ABH.get_entity(target_id)
+    killer = await ABH.get_entity(sender_id)
+    killer_ment = await mention(None, killer)
+    target_ment = await mention(None, target)
+    await event.edit(f"💥 {killer_ment} قتل {target_ment}!")
+    await asyncio.sleep(5)
+    await assign_killer(chat_id)
 ABH.run_until_disconnected()
