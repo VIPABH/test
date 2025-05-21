@@ -23,7 +23,7 @@ async def join(event):
     chat_id = event.chat_id
     sender = await event.get_sender()
     ment = await mention(event, sender)
-    if chat_id not in games:
+    if chat_id not in games and not event.privte:
         await event.reply("لم تبدأ أي لعبة بعد. أرسل /killAmorder لبدء اللعبة.")
         return
     if sender.id in games[chat_id]["players"]:
