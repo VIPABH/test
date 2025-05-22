@@ -76,3 +76,4 @@ async def monitor_messages(event):
                 await event.reply(f"⛔ لا يمكنك إرسال الرسائل الآن. تم إعادة تقييدك لمدة {remaining//60} دقيقة و {remaining%60} ثانية.")
             except:
                 pass
+ABH.run_until_disconnected()
