@@ -23,15 +23,13 @@ async def restrict_user(event):
         return await event.reply("❗ يجب الرد على رسالة العضو الذي تريد تقييده.")    
     
     chat = await event.get_chat()
-    sender = await event.get_sender()
-
-    # التحقق إذا كان المُرسل مشرفًا أو مالكًا
-    # try:
-    #     participant = await ABH(GetParticipantRequest(channel=chat.id, participant=sender.id))
-    #     if isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
-    #         return await event.reply("⚠️ أنت مشرف أو مالك، لا يمكنك استخدام هذا الأمر.")
-    # except:
-    #     return await event.reply("❗ لم أتمكن من التحقق من صلاحياتك.")    
+    sender = await r.get_sender()
+    try:
+        participant = await ABH(GetParticipantRequest(channel=chat.id, participant=sender.id))
+        if isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
+            return await event.reply("⚠️ أنت مشرف أو مالك، لا يمكنك استخدام هذا الأمر.")
+    except:
+        return await event.reply("❗ لم أتمكن من التحقق من صلاحياتك.")    
     user_to_restrict = await r.get_sender()
     user_id = user_to_restrict.id
     restriction_times[user_id] = int(time.time())
