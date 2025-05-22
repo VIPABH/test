@@ -1,31 +1,29 @@
-from telethon import TelegramClient, events
-from Resources import mention  # type: ignore
-import os
-
-# إعدادات الاتصال بالبوت
-api_id = int(os.environ.get('API_ID'))
+from telethon import TelegramClient, events, Button
+from Resources import mention #type: ignore
+import asyncio, os, random, uuid
+api_id = os.environ.get('API_ID')
 api_hash = os.environ.get('API_HASH')
 bot_token = os.environ.get('BOT_TOKEN')
-
 ABH = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
+from telethon import events
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin
 
-# تعقب أحداث المجموعة
-@ABH.on(events.ChatAction)
-async def handler(event):
+@ABH.on(events.NewMessage(pattern='^تقييد عام$'))
+async def start(event):
+    if not event.is_group:
+        return await event.reply("هذا الأمر يعمل فقط في المجموعات.")
+    sender = await event.get_sender()
+    chat = await event.get_chat()
     try:
-        user = await event.get_user()
-        ment = await mention(event, user)
-
-        if event.user_joined or event.user_added:
-            print(f"👋 مرحباً {ment} في المجموعة!")
-        elif event.user_left or event.user_kicked:
-            print(f"👋 وداعاً {ment}، نتمنى لك التوفيق!")
-        elif event.promoted:
-            print(f"⭐ تم ترقية {ment} إلى مشرف.")
-        elif event.demoted:
-            print(f"⚠️ تم إزالة صلاحيات الإشراف من {ment}.")
+        participant = await ABH(GetParticipantRequest(
+            channel=chat.id,
+            user_id=sender.id
+        ))
     except Exception as e:
-        print("❌ حدث خطأ:", e)
-
-# تشغيل البوت
+        return await event.reply("لم أتمكن من الحصول على صلاحياتك.")
+    if isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
+        await event.reply("⚠️ أنت مشرف أو مالك، لا يمكنك تنفيذ هذا الأمر.")
+        return
+    await event.reply("✅ أنت لست مشرفاً ولا مالكاً، يمكن تنفيذ الأمر.")    
 ABH.run_until_disconnected()
