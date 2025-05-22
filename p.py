@@ -71,3 +71,4 @@ async def monitor_messages(event):
                 await event.reply("⛔ لا يمكنك إرسال الرسائل بعد، تم إعادة تقييدك لمدة 30 دقيقة.")
             except:
                 pass  # تجاهل الأخطاء إذا فشل التقييد
+ABH.run_until_disconnected()
