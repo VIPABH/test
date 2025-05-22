@@ -27,7 +27,7 @@ async def restrict_user(event):
 
     try:
         participant = await ABH(GetParticipantRequest(channel=chat.id, participant=sender.id))
-        if isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
+        if not isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
             return await event.reply("⚠️ أنت مشرف أو مالك، لا يمكنك استخدام هذا الأمر.")
     except:
         return await event.reply("❗ لم أتمكن من التحقق من صلاحياتك.")
