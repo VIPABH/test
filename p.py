@@ -14,6 +14,12 @@ async def injoin(event):
     if chat_id is None:
         return await event.reply(" هذا الزر غير صالح أو انتهت صلاحيته.")
     await join(event, chat_id)
+    s = await event.get_sender()
+    sm = await mention(event, s)
+    await ABH.send_message(
+        chat_id,
+        f'المستخدم {sm} تم تسجيله في اللعبة والعدد صار ( {len(games[chat_id]["players"])} )',
+        )
 @ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
     global games
