@@ -1,52 +1,42 @@
-from telethon import TelegramClient, events
-from telethon.tl.functions.channels import GetParticipantRequest, EditBannedRequest
-from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin, ChatBannedRights
-import os
-
-api_id = int(os.environ.get('API_ID'))
+from telethon import TelegramClient, events, Button
+from Resources import mention #type: ignore
+import asyncio, os, random, uuid
+api_id = os.environ.get('API_ID')
 api_hash = os.environ.get('API_HASH')
 bot_token = os.environ.get('BOT_TOKEN')
-
 ABH = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
+from telethon import events
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin
+
+from telethon.tl.functions.channels import EditBannedRequest
+from telethon.tl.types import ChatBannedRights
 
 @ABH.on(events.NewMessage(pattern='^تقييد عام$'))
 async def start(event):
-    if not event.is_group:
-        return await event.reply("❗ هذا الأمر يعمل فقط في المجموعات.")
-    
     r = await event.get_reply_message()
     if not r:
-        return await event.reply("❗ يجب الرد على رسالة العضو الذي تريد تقييده.")
-    
-    sender = await event.get_sender()
+        return await event.reply("❗ يجب الرد على رسالة العضو الذي تريد تقييده.")    
+    sender = await r.get_sender()
     chat = await event.get_chat()
-
-    # التحقق من صلاحيات المرسل (هل هو مشرف أو مالك)
-    try:
-        participant = await ABH(GetParticipantRequest(
-            channel=chat,
-            participant=sender.id
-        ))
-    except Exception as e:
-        return await event.reply("❗ لم أتمكن من الحصول على صلاحياتك.")
-
+    participant = await ABH(GetParticipantRequest(
+        channel=chat.id,
+        user_id=sender.id
+))
     if isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
-        return await event.reply("⚠️ أنت مشرف أو مالك، لا يمكنك استخدام هذا الأمر.")
-
-    # تقييد العضو المُراد
+        return await event.reply("⚠️ أنت مشرف أو مالك، لا يمكنك استخدام هذا الأمر.")    
     user_to_restrict = await r.get_sender()
     rights = ChatBannedRights(
         until_date=None,
-        send_messages=True  # تمنع إرسال الرسائل
+        send_messages=True
     )
     try:
         await ABH(EditBannedRequest(
-            channel=chat,
+            channel=chat.id,
             participant=user_to_restrict.id,
             banned_rights=rights
         ))
         await event.reply(f"✅ تم تقييد {user_to_restrict.first_name} من إرسال الرسائل.")
     except Exception as e:
         await event.reply(f"❌ فشل التقييد: {e}")
-
 ABH.run_until_disconnected()
