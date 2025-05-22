@@ -50,13 +50,13 @@ async def start(event, chat_id):
     join_num = str(uuid.uuid4())[:6]
     join_links[join_num] = chat_id
     bot_username = (await ABH.get_me()).username
-    await event.reply(
-        f"👋 أهلاً {ment}\nتم ب",
-        # f"👋 أهلاً {ment}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
-        buttons=[
-            [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]
-        ]
-    )
+    if event.is_group:
+        await event.reply(
+            f"👋 أهلاً {ment}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
+            buttons=[
+                [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]
+            ]
+        )
     return join_num
 async def join(event, chat_id):
     global games
