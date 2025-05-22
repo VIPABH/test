@@ -19,7 +19,7 @@ async def start(event):
     chat = await event.get_chat()
     participant = await ABH(GetParticipantRequest(
         channel=chat.id,
-        user_id=sender.id
+        participant=sender.id
 ))
     if isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
         return await event.reply("⚠️ أنت مشرف أو مالك، لا يمكنك استخدام هذا الأمر.")    
