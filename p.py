@@ -26,7 +26,7 @@ async def start(event):
     user_to_restrict = await r.get_sender()
     rights = ChatBannedRights(
         until_date=None,
-        send_messages=True
+        send_messages=False
     )
     try:
         await ABH(EditBannedRequest(
