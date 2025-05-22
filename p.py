@@ -16,15 +16,16 @@ async def injoin(event):
     await join(event, chat_id)
     s = await event.get_sender()
     sm = await mention(event, s)
-    bot_username = (await ABH.get_me()).username
-    join_num = await start(event, chat_id)
-    await ABH.send_message(
-        chat_id,
-        f'المستخدم {sm} تم تسجيله في اللعبة والعدد صار ( {len(games[chat_id]["players"])} )',
-        buttons=[
-            [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]]
-
-        )
+    uid = str(s.id)
+    if event.is_group and uid not in games[chat_id]["players"]:
+        bot_username = (await ABH.get_me()).username
+        join_num = await start(event, chat_id)
+        await ABH.send_message(
+            chat_id,
+            f'المستخدم {sm} تم تسجيله في اللعبة والعدد صار ( {len(games[chat_id]["players"])} )',
+            buttons=[
+                [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]]
+            )
 @ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
     global games
