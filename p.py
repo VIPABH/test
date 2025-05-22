@@ -36,10 +36,11 @@ async def start(event):
     if isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
         return await event.reply("⚠️ لا يمكن تقييد المشرفين أو المالك.")
 
-    # إعداد صلاحيات الحظر (منع الإرسال)
+    thirty_minutes = int(time.time()) + 30 * 60
+
     rights = ChatBannedRights(
-        until_date=None,
-        send_messages=True  # True تعني "منع الإرسال"
+        until_date=thirty_minutes,
+        send_messages=True
     )
 
     try:
