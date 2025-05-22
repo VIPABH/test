@@ -15,8 +15,6 @@ from telethon.tl.types import ChatBannedRights
 @ABH.on(events.NewMessage(pattern='^تقييد عام$'))
 async def start(event):
     r = await event.get_reply_message()
-    if not r:
-        return await event.reply("❗ يجب الرد على رسالة العضو الذي تريد تقييده.")    
     sender = await r.get_sender()
     chat = await event.get_chat()
     participant = await ABH(GetParticipantRequest(
