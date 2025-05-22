@@ -14,34 +14,37 @@ async def start(event):
     if not event.is_group:
         return await event.reply("❗ هذا الأمر يعمل فقط في المجموعات.")
 
+    # تأكد من وجود رد على رسالة
     r = await event.get_reply_message()
     if not r:
         return await event.reply("❗ يجب الرد على رسالة العضو الذي تريد تقييده.")
-    
-    # المرسل (من كتب الأمر)
-    sender = await event.get_sender()
+
     chat = await event.get_chat()
 
+    # الشخص الذي تم الرد عليه
+    user_to_restrict = await r.get_sender()
+
+    # التحقق هل هو مشرف أو مالك
     try:
         participant = await ABH(GetParticipantRequest(
-            channel=chat.id,
-            participant=sender.id
+            channel=chat,
+            participant=user_to_restrict.id
         ))
     except Exception as e:
-        return await event.reply("❗ لم أتمكن من الحصول على صلاحياتك.")
+        return await event.reply(f"❗ لم أتمكن من التحقق من صلاحيات الشخص: {e}")
 
     if isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
-        return await event.reply("⚠️ أنت مشرف أو مالك، لا يمكنك استخدام هذا الأمر.")
-    
-    # الشخص الذي تم الرد على رسالته
-    user_to_restrict = await r.get_sender()
+        return await event.reply("⚠️ لا يمكن تقييد المشرفين أو المالك.")
+
+    # إعداد صلاحيات الحظر (منع الإرسال)
     rights = ChatBannedRights(
         until_date=None,
-        send_messages=True  # لتقييده من الإرسال
+        send_messages=True  # True تعني "منع الإرسال"
     )
+
     try:
         await ABH(EditBannedRequest(
-            channel=chat.id,
+            channel=chat,
             participant=user_to_restrict.id,
             banned_rights=rights
         ))
