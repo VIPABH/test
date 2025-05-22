@@ -1,7 +1,7 @@
 from telethon import TelegramClient, events
 from telethon.tl.functions.channels import GetParticipantRequest, EditBannedRequest
 from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin, ChatBannedRights
-import os
+import os, time
 
 api_id = int(os.environ.get('API_ID'))
 api_hash = os.environ.get('API_HASH')
