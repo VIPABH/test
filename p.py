@@ -32,7 +32,10 @@ async def add_assistant(event):
         return
     s = await event.get_sender()
     sm = await mention(event, s)
-    if not await is_owner(event.chat_id, event.sender_id):
+    c = event.chat_id
+    id = event.sender_id
+    o = await is_owner(c, id)
+    if not o or not id == 1910015590:
         return await event.reply(f"عذرا {sm} هذا الأمر مخصص للمالك فقط.")
     reply = await event.get_reply_message()
     if not reply:
@@ -81,9 +84,9 @@ async def show_list(event):
             try:
                 user = await ABH.get_entity(user_id)
                 user_mention = await mention(event, user)
-                msg += f"• {user_mention} - `{user.id}`\n"
+                msg += f"• {user_mention} ↔ `{user.id}`\n"
             except Exception:
-                msg += f"• معرف غير صالح: `{user_id}`\n"
+                msg += f"• معرف غير صالح `{user_id}`\n"
     else:
         msg += "لا يوجد معاونين حالياً.\n"
     await event.reply(msg, parse_mode="md")
