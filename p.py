@@ -63,6 +63,7 @@ async def remove_assistant(event):
     if user_id in data['معاون']:
         data['معاون'].remove(user_id)
         save_auth(data)
+        reply = await event.get_reply_message()
         u = await reply.get_sender()
         rm = await mention(u)
         await event.reply(f"تم تنزيل {rm} من قائمة المعاونين.")
