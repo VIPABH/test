@@ -2,7 +2,7 @@ import os, json
 from telethon import TelegramClient, events
 from Resources import mention
 from telethon.tl.functions.channels import GetParticipantRequest
-from telethon.tl.types import ChannelParticipantCreator
+from telethon.tl.types import ChannelParticipantCreator, InputChannel
 api_id = int(os.environ.get('API_ID'))
 api_hash = os.environ.get('API_HASH')
 bot_token = os.environ.get('BOT_TOKEN')
@@ -31,11 +31,23 @@ def is_assistant(user_id):
     data = load_auth()
     return user_id in data.get('معاون', [])
 
+
 async def is_owner(chat_id, user_id):
     try:
-        result = await ABH(GetParticipantRequest(channel=chat_id, participant=user_id))
-        participant = result.participant
-        return getattr(participant, 'rank', '').lower() == 'owner' or isinstance(participant, ChannelParticipantCreator)
+        entity = await ABH.get_entity(chat_id)
+
+        # تأكد أن الكيان قابل للتحويل إلى InputChannel
+        if hasattr(entity, 'access_hash'):
+            input_channel = InputChannel(channel_id=entity.id, access_hash=entity.access_hash)
+            result = await ABH(GetParticipantRequest(channel=input_channel, participant=user_id))
+            participant = result.participant
+            return (
+                getattr(participant, 'rank', '').lower() == 'owner' or 
+                isinstance(participant, ChannelParticipantCreator)
+            )
+        else:
+            print("[خطأ التحقق من المالك]: الكيان ليس مجموعة خارقة (supergroup) أو قناة.")
+            return False
     except Exception as e:
         print(f"[خطأ التحقق من المالك]: {e}")
         return False
