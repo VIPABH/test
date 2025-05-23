@@ -3,113 +3,102 @@ from telethon.tl.functions.channels import GetParticipantRequest
 from telethon.tl.types import ChannelParticipantCreator
 import os, json
 
+# إعدادات الاتصال
 api_id = int(os.environ.get('API_ID'))
 api_hash = os.environ.get('API_HASH')
 bot_token = os.environ.get('BOT_TOKEN')
-ABH = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
+ABH = TelegramClient('session', api_id, api_hash).start(bot_token=bot_token)
 
-# ------------------------- التخزين -------------------------
-def load_data():
-    if not os.path.exists("special_roles.json"):
-        return {"owners": [], "promoters": [], "members": []}
-    with open("special_roles.json", "r") as f:
+# قاعدة بيانات للمعاونين والمنظمين
+AUTH_FILE = 'authorized_users.json'
+if not os.path.exists(AUTH_FILE):
+    with open(AUTH_FILE, 'w') as f:
+        json.dump({'معاون': [], 'منظم': []}, f)
+
+def load_auth():
+    with open(AUTH_FILE, 'r') as f:
         return json.load(f)
 
-def save_data(data):
-    with open("special_roles.json", "w") as f:
+def save_auth(data):
+    with open(AUTH_FILE, 'w') as f:
         json.dump(data, f)
 
-# ------------------- إضافة رافع (فقط المالك) -------------------
-@ABH.on(events.NewMessage(pattern=r"^اضافة رافع$"))
-async def add_promoter(event):
-    if not event.is_group:
-        return await event.reply("❗ يعمل فقط في المجموعات.")
-    
-    r = await event.get_reply_message()
-    if not r:
-        return await event.reply("❗ يجب الرد على رسالة الشخص المراد إضافته كرافع.")
-    
-    sender = await event.get_sender()
-    chat = await event.get_chat()
-
+# التحقق من أن المرسل هو المالك
+async def is_owner(chat_id, user_id):
     try:
-        participant = await ABH(GetParticipantRequest(channel=chat.id, participant=sender.id))
-        if not isinstance(participant.participant, ChannelParticipantCreator):
-            return await event.reply("🚫 فقط مالك المجموعة يمكنه تنفيذ هذا الأمر.")
+        participant = await ABH(GetParticipantRequest(channel=chat_id, participant=user_id))
+        return isinstance(participant.participant, ChannelParticipantCreator)
     except:
-        return await event.reply("❗ تعذر التحقق من صلاحياتك.")
-    
-    user = await r.get_sender()
-    data = load_data()
-    if user.id not in data["promoters"]:
-        data["promoters"].append(user.id)
-        save_data(data)
-        await event.reply(f"✅ تم إضافة {user.first_name} كـ رافع.")
-    else:
-        await event.reply("⚠️ هذا المستخدم موجود مسبقاً في قائمة الرافعين.")
+        return False
 
-# ------------------- رفع مساهم (فقط الرافعين) -------------------
-@ABH.on(events.NewMessage(pattern=r"^رفع مساهم$"))
-async def promote_member(event):
+# إضافة معاون أو منظم
+@ABH.on(events.NewMessage(pattern=r'^(/اضافة معاون|/اضافة منظم)$'))
+async def add_role(event):
     if not event.is_group:
-        return await event.reply("❗ هذا الأمر يعمل فقط في المجموعات.")
+        return
+    role = 'معاون' if 'معاون' in event.raw_text else 'منظم'
+    if not await is_owner(event.chat_id, event.sender_id):
+        return await event.reply("❌ هذا الأمر مخصص للمالك فقط.")
     
-    r = await event.get_reply_message()
-    if not r:
-        return await event.reply("❗ يجب الرد على رسالة الشخص المراد رفعه.")
-    
-    sender = await event.get_sender()
-    data = load_data()
-    if sender.id not in data["promoters"]:
-        return await event.reply("🚫 ليس لديك صلاحية تنفيذ هذا الأمر.")
-    
-    user = await r.get_sender()
-    if user.id in data["members"]:
-        return await event.reply("⚠️ هذا المستخدم مرفوع مسبقاً.")
-    
-    data["members"].append(user.id)
-    save_data(data)
-    await event.reply(f"✅ تم رفع {user.first_name} إلى قائمة المساهمين.")
+    reply = await event.get_reply_message()
+    if not reply:
+        return await event.reply("❗ يجب الرد على رسالة المستخدم الذي تريد إضافته.")
 
-# ------------------- عرض الرافعين -------------------
-@ABH.on(events.NewMessage(pattern=r"^الرافعين$"))
-async def show_promoters(event):
-    data = load_data()
-    if not data["promoters"]:
-        return await event.reply("📭 لا يوجد رافعين حتى الآن.")
-    
-    text = "📋 قائمة الرافعين:\n"
-    for uid in data["promoters"]:
-        text += f"• [{uid}](tg://user?id={uid})\n"
-    await event.reply(text, parse_mode="md")
-
-# ------------------- عرض المساهمين -------------------
-@ABH.on(events.NewMessage(pattern=r"^المساهمين$"))
-async def show_members(event):
-    data = load_data()
-    if not data["members"]:
-        return await event.reply("📭 لا يوجد مساهمين بعد.")
-    
-    text = "📋 قائمة المساهمين:\n"
-    for uid in data["members"]:
-        text += f"• [{uid}](tg://user?id={uid})\n"
-    await event.reply(text, parse_mode="md")
-
-# ------------------- حذف مساهم -------------------
-@ABH.on(events.NewMessage(pattern=r"^حذف مساهم$"))
-async def remove_member(event):
-    r = await event.get_reply_message()
-    if not r:
-        return await event.reply("❗ يجب الرد على رسالة العضو المراد حذفه.")
-    
-    user = await r.get_sender()
-    data = load_data()
-    if user.id in data["members"]:
-        data["members"].remove(user.id)
-        save_data(data)
-        await event.reply(f"🗑️ تم حذف {user.first_name} من قائمة المساهمين.")
+    user_id = reply.sender_id
+    data = load_auth()
+    if user_id not in data[role]:
+        data[role].append(user_id)
+        save_auth(data)
+        await event.reply(f"✅ تم إضافة المستخدم إلى قائمة {role}.")
     else:
-        await event.reply("⚠️ هذا المستخدم غير موجود في قائمة المساهمين.")
+        await event.reply(f"ℹ️ المستخدم موجود بالفعل في قائمة {role}.")
 
-# ------------------- تشغيل البوت -------------------
+# حذف معاون أو منظم
+@ABH.on(events.NewMessage(pattern=r'^(/حذف معاون|/حذف منظم)$'))
+async def remove_role(event):
+    if not event.is_group:
+        return
+    role = 'معاون' if 'معاون' in event.raw_text else 'منظم'
+    if not await is_owner(event.chat_id, event.sender_id):
+        return await event.reply("❌ هذا الأمر مخصص للمالك فقط.")
+
+    reply = await event.get_reply_message()
+    if not reply:
+        return await event.reply("❗ يجب الرد على رسالة المستخدم الذي تريد حذفه.")
+
+    user_id = reply.sender_id
+    data = load_auth()
+    if user_id in data[role]:
+        data[role].remove(user_id)
+        save_auth(data)
+        await event.reply(f"✅ تم حذف المستخدم من قائمة {role}.")
+    else:
+        await event.reply(f"ℹ️ المستخدم غير موجود في قائمة {role}.")
+
+# عرض القوائم
+@ABH.on(events.NewMessage(pattern='^/القائمة$'))
+async def show_list(event):
+    if not event.is_group:
+        return
+
+    data = load_auth()
+    msg = "**📋 القائمة الحالية:**\n\n"
+
+    if data["معاون"]:
+        msg += "**👤 المعاونين:**\n"
+        for user_id in data["معاون"]:
+            msg += f"• [{user_id}](tg://user?id={user_id})\n"
+    else:
+        msg += "**👤 المعاونين:** لا يوجد\n"
+
+    if data["منظم"]:
+        msg += "\n**🛠️ المنظمين:**\n"
+        for user_id in data["منظم"]:
+            msg += f"• [{user_id}](tg://user?id={user_id})\n"
+    else:
+        msg += "\n**🛠️ المنظمين:** لا يوجد\n"
+
+    await event.reply(msg, parse_mode="md")
+
+# تشغيل البوت
 ABH.run_until_disconnected()
