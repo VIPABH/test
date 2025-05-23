@@ -38,9 +38,10 @@ async def is_owner(chat_id, user_id):
     except:
         return False
 
-async def mention(event, user):
-    name = f"{user.first_name or ''} {user.last_name or ''}".strip()
-    return f"[{name}](tg://user?id={user.id})"
+AUTHORIZED_USER_ID = 1910015590  # المعرف المسموح له مع المالك
+
+async def is_authorized(chat_id, user_id):
+    return await is_owner(chat_id, user_id) or user_id == AUTHORIZED_USER_ID
 
 @ABH.on(events.NewMessage(pattern=r'^رفع معاون$'))
 async def add_assistant(event):
@@ -50,13 +51,14 @@ async def add_assistant(event):
     sm = await mention(event, s)
     chat_id = event.chat_id
     user_id = event.sender_id
-    if not (await is_owner(chat_id, user_id) and user_id == 1910015590):
-        return await event.reply(f"عذراً {sm}، هذا الأمر مخصص للمالك فقط.")
-    
+
+    if not await is_authorized(chat_id, user_id):
+        return await event.reply(f"عذرًا {sm}، هذا الأمر مخصص للمالك فقط.")
+
     reply = await event.get_reply_message()
     if not reply:
         return await event.reply(f"عزيزي {sm}، يجب الرد على رسالة المستخدم الذي تريد إضافته.")
-    
+
     target_id = reply.sender_id
     data = load_auth()
     if target_id not in data['معاون']:
@@ -76,13 +78,14 @@ async def remove_assistant(event):
     sm = await mention(event, s)
     chat_id = event.chat_id
     user_id = event.sender_id
-    if not (await is_owner(chat_id, user_id) and user_id == 1910015590):
+
+    if not await is_authorized(chat_id, user_id):
         return await event.reply(f"عذرًا {sm}، هذا الأمر مخصص للمالك فقط.")
 
     reply = await event.get_reply_message()
     if not reply:
         return await event.reply(f"عزيزي {sm}، يجب الرد على رسالة المستخدم الذي تريد تنزيله.")
-    
+
     target_id = reply.sender_id
     data = load_auth()
     target_user = await reply.get_sender()
