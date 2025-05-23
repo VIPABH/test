@@ -33,9 +33,11 @@ def is_assistant(user_id):
 
 async def is_owner(chat_id, user_id):
     try:
-        participant = await ABH(GetParticipantRequest(channel=chat_id, participant=user_id))
-        return isinstance(participant.participant, ChannelParticipantCreator)
-    except:
+        result = await ABH(GetParticipantRequest(channel=chat_id, participant=user_id))
+        participant = result.participant
+        return getattr(participant, 'rank', '').lower() == 'owner' or isinstance(participant, ChannelParticipantCreator)
+    except Exception as e:
+        print(f"[خطأ التحقق من المالك]: {e}")
         return False
 
 AUTHORIZED_USER_ID = 1910015590  # المعرف المسموح له مع المالك
