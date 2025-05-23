@@ -1,79 +1,115 @@
 from telethon import TelegramClient, events
-from telethon.tl.functions.channels import GetParticipantRequest, EditBannedRequest
-from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin, ChatBannedRights
-import os, time
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.tl.types import ChannelParticipantCreator
+import os, json
 
-# إعدادات الاتصال
 api_id = int(os.environ.get('API_ID'))
 api_hash = os.environ.get('API_HASH')
 bot_token = os.environ.get('BOT_TOKEN')
 ABH = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
 
-# قاعدة بيانات مؤقتة في الذاكرة لحفظ وقت انتهاء التقييد (timestamp)
-restriction_end_times = {}
+# ------------------------- التخزين -------------------------
+def load_data():
+    if not os.path.exists("special_roles.json"):
+        return {"owners": [], "promoters": [], "members": []}
+    with open("special_roles.json", "r") as f:
+        return json.load(f)
 
-# أمر التقييد العام
-@ABH.on(events.NewMessage(pattern='^تقييد عام$'))
-async def restrict_user(event):
+def save_data(data):
+    with open("special_roles.json", "w") as f:
+        json.dump(data, f)
+
+# ------------------- إضافة رافع (فقط المالك) -------------------
+@ABH.on(events.NewMessage(pattern=r"^اضافة رافع$"))
+async def add_promoter(event):
+    if not event.is_group:
+        return await event.reply("❗ يعمل فقط في المجموعات.")
+    
+    r = await event.get_reply_message()
+    if not r:
+        return await event.reply("❗ يجب الرد على رسالة الشخص المراد إضافته كرافع.")
+    
+    sender = await event.get_sender()
+    chat = await event.get_chat()
+
+    try:
+        participant = await ABH(GetParticipantRequest(channel=chat.id, participant=sender.id))
+        if not isinstance(participant.participant, ChannelParticipantCreator):
+            return await event.reply("🚫 فقط مالك المجموعة يمكنه تنفيذ هذا الأمر.")
+    except:
+        return await event.reply("❗ تعذر التحقق من صلاحياتك.")
+    
+    user = await r.get_sender()
+    data = load_data()
+    if user.id not in data["promoters"]:
+        data["promoters"].append(user.id)
+        save_data(data)
+        await event.reply(f"✅ تم إضافة {user.first_name} كـ رافع.")
+    else:
+        await event.reply("⚠️ هذا المستخدم موجود مسبقاً في قائمة الرافعين.")
+
+# ------------------- رفع مساهم (فقط الرافعين) -------------------
+@ABH.on(events.NewMessage(pattern=r"^رفع مساهم$"))
+async def promote_member(event):
     if not event.is_group:
         return await event.reply("❗ هذا الأمر يعمل فقط في المجموعات.")
     
     r = await event.get_reply_message()
     if not r:
-        return await event.reply("❗ يجب الرد على رسالة العضو الذي تريد تقييده.")    
+        return await event.reply("❗ يجب الرد على رسالة الشخص المراد رفعه.")
     
-    chat = await event.get_chat()
     sender = await event.get_sender()
-
-    try:
-        participant = await ABH(GetParticipantRequest(channel=chat.id, participant=sender.id))
-        if not isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
-            return await event.reply("⚠️ أنت مشرف أو مالك، لا يمكنك استخدام هذا الأمر.")
-    except:
-        return await event.reply("❗ لم أتمكن من التحقق من صلاحياتك.")
+    data = load_data()
+    if sender.id not in data["promoters"]:
+        return await event.reply("🚫 ليس لديك صلاحية تنفيذ هذا الأمر.")
     
-    user_to_restrict = await r.get_sender()
-    user_id = user_to_restrict.id
-
-    now = int(time.time())
-    restriction_duration = 10 * 60  # 10 دقائق
-
-    # وقت انتهاء التقييد = الوقت الحالي + 10 دقائق
-    restriction_end_times[user_id] = now + restriction_duration
+    user = await r.get_sender()
+    if user.id in data["members"]:
+        return await event.reply("⚠️ هذا المستخدم مرفوع مسبقاً.")
     
-    rights = ChatBannedRights(
-        until_date=now + restriction_duration,
-        send_messages=True
-    )
-    try:
-        await ABH(EditBannedRequest(channel=chat.id, participant=user_id, banned_rights=rights))
-        await event.reply(f"✅ تم تقييد {user_to_restrict.first_name} لمدة 10 دقائق.")
-    except Exception as e:
-        await event.reply(f"❌ فشل التقييد: {e}")
+    data["members"].append(user.id)
+    save_data(data)
+    await event.reply(f"✅ تم رفع {user.first_name} إلى قائمة المساهمين.")
 
-# مراقبة الرسائل من المستخدمين
-@ABH.on(events.NewMessage)
-async def monitor_messages(event):
-    if not event.is_group:
-        return
+# ------------------- عرض الرافعين -------------------
+@ABH.on(events.NewMessage(pattern=r"^الرافعين$"))
+async def show_promoters(event):
+    data = load_data()
+    if not data["promoters"]:
+        return await event.reply("📭 لا يوجد رافعين حتى الآن.")
+    
+    text = "📋 قائمة الرافعين:\n"
+    for uid in data["promoters"]:
+        text += f"• [{uid}](tg://user?id={uid})\n"
+    await event.reply(text, parse_mode="md")
 
-    user_id = event.sender_id
-    now = int(time.time())
+# ------------------- عرض المساهمين -------------------
+@ABH.on(events.NewMessage(pattern=r"^المساهمين$"))
+async def show_members(event):
+    data = load_data()
+    if not data["members"]:
+        return await event.reply("📭 لا يوجد مساهمين بعد.")
+    
+    text = "📋 قائمة المساهمين:\n"
+    for uid in data["members"]:
+        text += f"• [{uid}](tg://user?id={uid})\n"
+    await event.reply(text, parse_mode="md")
 
-    # تحقق هل المستخدم مقيّد ومتى ينتهي تقييده
-    if user_id in restriction_end_times:
-        end_time = restriction_end_times[user_id]
-        if now < end_time:
-            # الوقت المتبقي من التقييد
-            remaining = end_time - now
-            try:
-                chat = await event.get_chat()
-                rights = ChatBannedRights(
-                    until_date=now + remaining,  # يعيد تقييد نفس الوقت المتبقي
-                    send_messages=True
-                )
-                await ABH(EditBannedRequest(channel=chat.id, participant=user_id, banned_rights=rights))
-                await event.reply(f"⛔ لا يمكنك إرسال الرسائل الآن. تم إعادة تقييدك لمدة {remaining//60} دقيقة و {remaining%60} ثانية.")
-            except:
-                pass
+# ------------------- حذف مساهم -------------------
+@ABH.on(events.NewMessage(pattern=r"^حذف مساهم$"))
+async def remove_member(event):
+    r = await event.get_reply_message()
+    if not r:
+        return await event.reply("❗ يجب الرد على رسالة العضو المراد حذفه.")
+    
+    user = await r.get_sender()
+    data = load_data()
+    if user.id in data["members"]:
+        data["members"].remove(user.id)
+        save_data(data)
+        await event.reply(f"🗑️ تم حذف {user.first_name} من قائمة المساهمين.")
+    else:
+        await event.reply("⚠️ هذا المستخدم غير موجود في قائمة المساهمين.")
+
+# ------------------- تشغيل البوت -------------------
 ABH.run_until_disconnected()
