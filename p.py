@@ -80,7 +80,7 @@ async def show_list(event):
         for user_id in data["معاون"]:
             try:
                 user = await ABH.get_entity(user_id)
-                user_mention = mention(event, user)
+                user_mention = await mention(event, user)
                 msg += f"• {user_mention} - `{user.id}`\n"
             except Exception:
                 msg += f"• معرف غير صالح: `{user_id}`\n"
