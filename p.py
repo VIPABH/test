@@ -63,10 +63,11 @@ AUTHORIZED_USER_ID = 1910015590  # المعرف المسموح له مع الم�
 async def is_authorized(chat_id, user_id):
     return await is_owner(chat_id, user_id) or user_id == AUTHORIZED_USER_ID
 
-@ABH.on(events.NewMessage(pattern=r'^رفع معاون$'))
+@ABH.on(events.NewMessage(pattern=r'^رفع معاون (\d+)$'))
 async def add_assistant(event):
     if not event.is_group:
         return
+
     s = await event.get_sender()
     sm = await mention(event, s)
     chat_id = event.chat_id
@@ -75,17 +76,18 @@ async def add_assistant(event):
     if not await is_authorized(chat_id, user_id):
         return await event.reply(f"عذرًا {sm}، هذا الأمر مخصص للمالك فقط.")
 
-    reply = await event.get_reply_message()
-    if not reply:
-        return await event.reply(f"عزيزي {sm}، يجب الرد على رسالة المستخدم الذي تريد إضافته.")
+    target_id_str = event.pattern_match.group(1)
+    try:
+        target_id = int(target_id_str)
+    except:
+        return await event.reply(f"الرجاء إرسال معرف مستخدم صحيح.")
 
-    target_id = reply.sender_id
     data = load_auth()
     if target_id not in data['معاون']:
         data['معاون'].append(target_id)
         save_auth(data)
-        sender = await reply.get_sender()
-        rm = await mention(event, sender)
+        user = await ABH.get_entity(target_id)
+        rm = await mention(event, user)
         await event.reply(f"✅ تم رفع المستخدم {rm} إلى معاون.")
     else:
         await event.reply(f"ℹ️ {sm}، المستخدم موجود مسبقًا في قائمة المعاونين.")
