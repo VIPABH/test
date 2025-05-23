@@ -68,6 +68,7 @@ async def remove_assistant(event):
         rm = await mention(u)
         await event.reply(f"تم تنزيل {rm} من قائمة المعاونين.")
     else:
+        rm = await mention(u)
         await event.reply(f"{sm} المستخدم غير موجود في قائمة المعاونين.")
 @ABH.on(events.NewMessage(pattern='^المعاونين$'))
 async def show_list(event):
