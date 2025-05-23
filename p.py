@@ -1,7 +1,8 @@
+from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin, ChatBannedRights
+from telethon.tl.functions.channels import GetParticipantRequest, EditBannedRequest
 from telethon import TelegramClient, events
 from Resources import mention
-from telethon.tl.functions.channels import GetParticipantRequest, EditBannedRequest
-from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin, ChatBannedRights
+from other import is_assistant
 import os, time
 api_id = int(os.environ.get('API_ID'))
 api_hash = os.environ.get('API_HASH')
@@ -10,6 +11,8 @@ ABH = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token
 restriction_end_times = {}
 @ABH.on(events.NewMessage(pattern='^تقييد عام|مخفي قيده|مخفي قيدة$'))
 async def restrict_user(event):
+    if not is_assistant(chat_id, user_id):
+    return await event.reply("جا قيدته الك بس انت مو معاون")
     if not event.is_group:
         return
     r = await event.get_reply_message()
