@@ -33,13 +33,32 @@ def is_assistant(user_id):
 from telethon.tl.functions.channels import GetParticipantRequest
 from telethon.tl.types import ChannelParticipantCreator
 
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.tl.types import ChannelParticipantCreator, Channel, Chat
+
 async def is_owner(chat, user_id):
     try:
-        participant = await ABH(GetParticipantRequest(chat, user_id))
-        return isinstance(participant.participant, ChannelParticipantCreator)
-    except:
-        return False
+        # الحصول على كيان الدردشة/المجموعة/القناة
+        entity = await ABH.get_entity(chat)
 
+        # حالة القنوات والمجموعات الخارقة
+        if isinstance(entity, Channel) and hasattr(entity, 'access_hash'):
+            input_channel = InputChannel(channel_id=entity.id, access_hash=entity.access_hash)
+            participant = await ABH(GetParticipantRequest(input_channel, user_id))
+            # تحقق هل هو مالك رسمي
+            return isinstance(participant.participant, ChannelParticipantCreator)
+        
+        # حالة المجموعات العادية (Chat)
+        elif isinstance(entity, Chat):
+            return False
+        
+        else:
+            # إذا كان نوع غير معروف
+            return False
+
+    except Exception as e:
+        print(f"[خطأ التحقق من المالك]: {e}")
+        return False
 AUTHORIZED_USER_ID = 1910015590  # المعرف المسموح له مع المالك
 async def is_authorized(chat_id, user_id):
     return await is_owner(chat_id, user_id) or user_id == AUTHORIZED_USER_ID
