@@ -54,7 +54,7 @@ async def add_assistant(event):
 async def remove_assistant(event):
     if not event.is_group:
         return
-    if not await is_owner(event.chat_id, event.sender_id):
+    if await is_owner(event.chat_id, event.sender_id):
         s = await event.get_sender()
         sm = await mention(event, s)
         return await event.reply(f"عذرا {sm} هذا الأمر مخصص للمالك فقط.")
