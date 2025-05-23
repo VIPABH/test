@@ -60,18 +60,15 @@ async def remove_assistant(event):
         return await event.reply(f"عزيزي {sm} يجب الرد على رسالة المستخدم الذي تريد تنزيله.")
     user_id = reply.sender_id
     data = load_auth()
+    reply = await event.get_reply_message()
+    u = await reply.get_sender()
+    rm = await mention(event, u)
     if user_id in data['معاون']:
         data['معاون'].remove(user_id)
         save_auth(data)
-        reply = await event.get_reply_message()
-        u = await reply.get_sender()
-        rm = await mention(event, u)
         await event.reply(f"تم تنزيل {rm} من قائمة المعاونين.")
     else:
-        reply = await event.get_reply_message()
-        u = await reply.get_sender()
-        rm = await mention(event, u)
-        await event.reply(f"{sm} المستخدم غير موجود في قائمة المعاونين.")
+        await event.reply(f"{rm} المستخدم غير موجود في قائمة المعاونين.")
 @ABH.on(events.NewMessage(pattern='^المعاونين$'))
 async def show_list(event):
     if not event.is_group:
