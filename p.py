@@ -30,30 +30,17 @@ def save_auth(data):
 def is_assistant(user_id):
     data = load_auth()
     return user_id in data.get('معاون', [])
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.tl.types import ChannelParticipantCreator
 
-
-async def is_owner(chat_id, user_id):
+async def is_owner(chat, user_id):
     try:
-        entity = await ABH.get_entity(chat_id)
-
-        # تأكد أن الكيان قابل للتحويل إلى InputChannel
-        if hasattr(entity, 'access_hash'):
-            input_channel = InputChannel(channel_id=entity.id, access_hash=entity.access_hash)
-            result = await ABH(GetParticipantRequest(channel=input_channel, participant=user_id))
-            participant = result.participant
-            return (
-                getattr(participant, 'rank', '').lower() == 'owner' or 
-                isinstance(participant, ChannelParticipantCreator)
-            )
-        else:
-            print("[خطأ التحقق من المالك]: الكيان ليس مجموعة خارقة (supergroup) أو قناة.")
-            return False
-    except Exception as e:
-        print(f"[خطأ التحقق من المالك]: {e}")
+        participant = await ABH(GetParticipantRequest(chat, user_id))
+        return isinstance(participant.participant, ChannelParticipantCreator)
+    except:
         return False
 
 AUTHORIZED_USER_ID = 1910015590  # المعرف المسموح له مع المالك
-
 async def is_authorized(chat_id, user_id):
     return await is_owner(chat_id, user_id) or user_id == AUTHORIZED_USER_ID
 
