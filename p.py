@@ -30,9 +30,9 @@ async def is_owner(chat_id, user_id):
 async def add_assistant(event):
     if not event.is_group:
         return
+    s = await event.get_sender()
+    sm = await mention(event, s)
     if not await is_owner(event.chat_id, event.sender_id):
-        s = await event.get_sender()
-        sm = await mention(event, s)
         return await event.reply(f"عذرا {sm} هذا الأمر مخصص للمالك فقط.")
     reply = await event.get_reply_message()
     if not reply:
@@ -74,7 +74,7 @@ async def show_list(event):
     if not event.is_group:
         return
     data = load_auth()
-    msg = "**قائمة المعاونين:**\n\n"
+    msg = "**قائمة المعاونين**\n\n"
     if data["معاون"]:
         for user_id in data["معاون"]:
             msg += f"• [{user_id}](tg://user?id={user_id})\n"
