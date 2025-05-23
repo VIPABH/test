@@ -75,9 +75,15 @@ async def show_list(event):
         return
     data = load_auth()
     msg = "**قائمة المعاونين**\n\n"
+
     if data["معاون"]:
         for user_id in data["معاون"]:
-            msg += f"• [{user_id}](tg://user?id={user_id})\n"
+            try:
+                user = await ABH.get_entity(user_id)
+                user_mention = mention(event, user)
+                msg += f"• {user_mention} - `{user.id}`\n"
+            except Exception:
+                msg += f"• معرف غير صالح: `{user_id}`\n"
     else:
         msg += "لا يوجد معاونين حالياً.\n"
     await event.reply(msg, parse_mode="md")
