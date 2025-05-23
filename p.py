@@ -37,7 +37,7 @@ async def restrict_user(event):
         await ABH(EditBannedRequest(channel=chat.id, participant=user_id, banned_rights=rights))
         await event.reply(f" تم تقييد {user_to_restrict.first_name} لمدة 10 دقائق.")
     except Exception as e:
-        await event.reply(f" ياريت اقيده بس ماكدر لان مشرف")
+        await event.reply(f" ياريت اقيده بس ماكدر")
 @ABH.on(events.NewMessage)
 async def monitor_messages(event):
     if not event.is_group:
@@ -55,7 +55,7 @@ async def monitor_messages(event):
                     send_messages=True
                 )
                 await ABH(EditBannedRequest(channel=chat.id, participant=user_id, banned_rights=rights))
-                await event.reply(f" لا يمكنك إرسال الرسائل الآن. تم إعادة تقييدك لمدة ||{remaining//60} دقيقة و {remaining%60} ثانية.||")
+                await event.reply(f" لا يمكنك إرسال الرسائل الآن. تم إعادة تقييدك لمدة || {remaining//60} دقيقة و {remaining%60} ثانية. ||")
             except:
                 pass
 ABH.run_until_disconnected()
