@@ -20,7 +20,7 @@ async def restrict_user(event):
     name = await mention(event, sender)
     try:
         participant = await ABH(GetParticipantRequest(channel=chat.id, participant=sender.id))
-        if not isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
+        if isinstance(participant.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
             return await event.reply(f"لا يمكنك تقييد {name} لانه مشرف ")
     except:
         return
