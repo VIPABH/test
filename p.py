@@ -32,7 +32,7 @@ async def add_assistant(event):
         return
     if not await is_owner(event.chat_id, event.sender_id):
         s = await event.get_sender()
-        sm = await mention(s)
+        sm = await mention(event, s)
         return await event.reply(f"عذرا {sm} هذا الأمر مخصص للمالك فقط.")
     reply = await event.get_reply_message()
     if not reply:
@@ -43,7 +43,7 @@ async def add_assistant(event):
         data['معاون'].append(user_id)
         save_auth(data)
         sender = await reply.get_sender()
-        rm = await mention(sender)
+        rm = await mention(event, sender)
         await event.reply(f"تم رفع المستخدم {rm} معاون في المجموعة.")
     else:
         await event.reply(f"{sm} المستخدم موجود بالفعل في قائمة المعاونين.")
@@ -53,7 +53,7 @@ async def remove_assistant(event):
         return
     if not await is_owner(event.chat_id, event.sender_id):
         s = await event.get_sender()
-        sm = await mention(s)
+        sm = await mention(event, s)
         return await event.reply(f"عذرا {sm} هذا الأمر مخصص للمالك فقط.")
     reply = await event.get_reply_message()
     if not reply:
@@ -62,7 +62,7 @@ async def remove_assistant(event):
     data = load_auth()
     reply = await event.get_reply_message()
     u = await reply.get_sender()
-    rm = await mention(u)
+    rm = await mention(event, u)
     if user_id in data['معاون']:
         data['معاون'].remove(user_id)
         save_auth(data)
