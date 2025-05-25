@@ -70,42 +70,73 @@ async def start_game(event):
         return
     join_enabled = False
     await event.respond('تم بدء اللعبة. الآن تفاعلوا بدون رد مباشر على الرسائل!')
+players = set()
+player_times = {}
+game_started = True
+join_enabled = False
 
 @ABH.on(events.NewMessage)
 async def monitor_messages(event):
-    global players
+    global players, player_times
     if not game_started or join_enabled:
         return
 
     sender_id = event.sender_id
-    reply = await event.get_reply_message()
 
-    if sender_id in players and reply:
+    # فقط سجل النشاط إذا كان من ضمن اللاعبين
+    if sender_id in players:
         now = datetime.now()
-        player_times[sender_id]["end"] = now
-        duration = now - player_times[sender_id]["start"]
-        formatted_duration = str(timedelta(seconds=int(duration.total_seconds())))[2:7]
+        player_times[sender_id] = now
 
-        user = await event.client.get_entity(sender_id)
-        mention = f"[{user.first_name}](tg://user?id={sender_id})"
-        players.remove(sender_id)
-        await event.reply(
-            f'اللاعب {mention} رد على رسالة وخسر!\nمدة اللعب: {formatted_duration}',
-            parse_mode='md'
-        )
-
-        if len(players) == 1:
-            winner_id = next(iter(players))
-            winner = await event.client.get_entity(winner_id)
-            winner_mention = f"[{winner.first_name}](tg://user?id={winner_id})"
-            winner_duration = datetime.now() - player_times[winner_id]["start"]
-            formatted_winner_duration = str(timedelta(seconds=int(winner_duration.total_seconds())))[2:7]
+        # التحقق من الرد على رسالة وخسارة اللاعب
+        if await event.get_reply_message():
+            from telethon.tl.functions.users import GetFullUser
+            players.remove(sender_id)
+            duration = now - player_times.get(sender_id, now)
+            formatted_duration = str(timedelta(seconds=int(duration.total_seconds())))[2:7]
+            user = await event.client.get_entity(sender_id)
+            mention = f"[{user.first_name}](tg://user?id={sender_id})"
 
             await event.reply(
-                f'انتهت اللعبة.\nالفائز هو: {winner_mention}\nمدة اللعب: {formatted_winner_duration}',
+                f'اللاعب {mention} رد على رسالة وخسر!\nمدة اللعب: {formatted_duration}',
                 parse_mode='md'
             )
-            reset_game()
+
+            if len(players) == 1:
+                winner_id = next(iter(players))
+                winner = await event.client.get_entity(winner_id)
+                winner_mention = f"[{winner.first_name}](tg://user?id={winner_id})"
+                winner_duration = datetime.now() - player_times[winner_id]
+                formatted_winner_duration = str(timedelta(seconds=int(winner_duration.total_seconds())))[2:7]
+                await event.reply(
+                    f'انتهت اللعبة.\nالفائز هو: {winner_mention}\nمدة اللعب: {formatted_winner_duration}',
+                    parse_mode='md'
+                )
+                reset_game()
+
+# دالة لفحص غير النشطين وطردهم
+async def kick_inactive_players():
+    while True:
+        if game_started and not join_enabled:
+            now = datetime.now()
+            for player_id in list(players):
+                last_active = player_times.get(player_id)
+                if last_active and now - last_active > timedelta(minutes=5):
+                    players.remove(player_id)
+                    try:
+                        await ABH.kick_participant(event.chat_id, player_id)
+                        user = await ABH.get_entity(player_id)
+                        mention = f"[{user.first_name}](tg://user?id={player_id})"
+                        await ABH.send_message(event.chat_id, f"تم طرد {mention} بسبب عدم التفاعل.", parse_mode='md')
+                    except Exception as e:
+                        print(f"خطأ أثناء الطرد: {e}")
+        await asyncio.sleep(300)  # كل 5 دقائق
+
+# تأكد من تشغيل الفاحص بالخلفية عند تشغيل البوت
+@ABH.on(events.ChatAction)
+async def start_background_task(event):
+    if event.user_joined or event.user_added:
+        asyncio.create_task(kick_inactive_players())
 
 # إعادة تعيين اللعبة
 def reset_game():
