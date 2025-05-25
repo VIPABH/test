@@ -1,7 +1,6 @@
 from telethon import TelegramClient, events
+from datetime import datetime
 import os, asyncio
-
-# استيراد المتغيرات من البيئة
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
