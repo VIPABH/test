@@ -1,57 +1,86 @@
 from telethon import TelegramClient, events
 import os, asyncio
-api_id = os.getenv('API_ID')      
-api_hash = os.getenv('API_HASH')  
+
+# استيراد المتغيرات من البيئة
+api_id = int(os.getenv('API_ID'))
+api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
+
+# تشغيل البوت
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+
+# متغيرات التحكم باللعبة
 players = set()
-join = False
-done = False
-@ABH.on(events.NewMessage(pattern='/vagueness|غموض'))
+game_started = False
+join_enabled = False
+
+# بدء اللعبة
+@ABH.on(events.NewMessage(pattern=r'^/(vagueness|غموض)$'))
 async def vagueness_start(event):
-    global game, join
-    await event.reply('تم بدء لعبة الغموض , يسجل الاعبين عبر امر `انا`')
-    uid = event.sender_id
-    if uid not in players:
-        players.add(uid)
+    global game_started, join_enabled, players
+    if game_started:
+        await event.reply('اللعبة بالفعل بدأت.')
         return
-    game = True
-    join = True
-@ABH.on(events.NewMessage(pattern='انا'))
-async def me(event):
-    pid = event.sender_id
-    if game and join:
-        players.add(pid)
-        await event.reply('سجلتك , كول يا علي وانتظر')
-    if pid in players:
-        await event.reply('سجلتك من قبل😶')
+    players.clear()
+    join_enabled = True
+    game_started = True
+    await event.reply('تم بدء لعبة الغموض، يسجل اللاعبون عبر أمر `انا`')
+
+# تسجيل اللاعبين
+@ABH.on(events.NewMessage(pattern=r'^انا$'))
+async def register_player(event):
+    global join_enabled
+    user_id = event.sender_id
+    if not game_started or not join_enabled:
+        await event.reply('لم تبدأ اللعبة بعد.')
         return
-@ABH.on(events.NewMessage('تم'))
-async def start_vagueness(event):
-    global game, join, done
-    join = False
+    if user_id in players:
+        await event.reply('أنت مسجل مسبقًا.')
+        return
+    players.add(user_id)
+    await event.reply('تم تسجيلك، انتظر بدء اللعبة.')
+
+# إنهاء التسجيل وبدء التحدي
+@ABH.on(events.NewMessage(pattern=r'^تم$'))
+async def start_game(event):
+    global join_enabled
+    if not game_started:
+        await event.reply('لا توجد لعبة نشطة حالياً.')
+        return
     if len(players) < 2:
-        await event.reply('اعتذر عن بدء اللعبة لكن العدد قليل')
-        game = False
-        join = False
-        done = False
+        await event.reply('عدد اللاعبين غير كافٍ لبدء اللعبة.')
+        reset_game()
         return
-    else:
-        done = True
-        await event.respond('تم الان اكملوا محادثتكم')
+    join_enabled = False
+    await event.respond('تم بدء اللعبة. الآن تفاعلوا بدون رد مباشر على الرسائل!')
+
+# منطق التفاعل داخل اللعبة
 @ABH.on(events.NewMessage)
-async def vagueness(event):
-    global game, join, done
-    sid = event.sender_id
-    isrep = await event.get_reply_message()
-    if sid in players and isrep and done:
-        user = await event.client.get_entity(sid)
-        nid = user.first_name
-        await event.reply(f'العينتين {nid} سوه رد علئ رساله معينه وخسر 😁')
-        players.discard(sid)
-    if len(players) == 1:
-        await event.reply('انتهت اللعبة فاز الاعب -> ')
-        game = False
-        join = False
-        done = False
+async def monitor_messages(event):
+    global players
+    if not game_started or join_enabled:
+        return
+
+    sender_id = event.sender_id
+    reply = await event.get_reply_message()
+
+    if sender_id in players and reply:
+        user = await event.client.get_entity(sender_id)
+        players.remove(sender_id)
+        await event.reply(f'اللاعب {user.first_name} رد على رسالة وخسر!')
+
+        if len(players) == 1:
+            winner_id = next(iter(players))
+            winner = await event.client.get_entity(winner_id)
+            await event.reply(f'انتهت اللعبة. الفائز هو: {winner.first_name}')
+            reset_game()
+
+# دالة لإعادة تعيين اللعبة
+def reset_game():
+    global players, game_started, join_enabled
+    players.clear()
+    game_started = False
+    join_enabled = False
+
+# تشغيل البوت
 ABH.run_until_disconnected()
