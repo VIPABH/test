@@ -46,7 +46,7 @@ async def register_player(event):
     await event.reply('تم تسجيلك، انتظر بدء اللعبة.')
 
 # عرض اللاعبين المسجلين
-@ABH.on(events.NewMessage(pattern=r'^اللاعبين$'))
+@ABH.on(events.NewMessage(pattern=r'^!الاعبين$'))
 async def show_players(event):
     if not players:
         await event.reply("لا يوجد لاعبون مسجلون حالياً.")
