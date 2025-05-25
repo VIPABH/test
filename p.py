@@ -256,7 +256,7 @@ def format_duration(duration):
         hours = total_seconds // 3600
         minutes = (total_seconds % 3600) // 60
         return f"{hours:02d}:{minutes:02d}"
-
+player_times = {}
 @ABH.on(events.NewMessage)
 async def monitor_messages(event):
     global players
