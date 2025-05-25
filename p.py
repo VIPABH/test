@@ -1,67 +1,105 @@
 from telethon import TelegramClient, events, Button
 from datetime import datetime
 from Resources import mention
-import os, asyncio, uuid
+import os, asyncio, uuid, random
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
 # تشغيل البوت
-ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 games = {}
 join_links = {}
+
+# دالة مساعدة لعمل منشن للاعب
+async def mention(event, user):
+    return f"[{user.first_name}](tg://user?id={user.id})"
+
+# أمر الانضمام عبر رابط /start <uid>
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def injoin(event):
     uid = event.pattern_match.group(1)
     chat_id = join_links.get(uid)
     if chat_id is None:
-        return await event.reply(" هذا الزر غير صالح أو انتهت صلاحيته.")
-    await join(event, chat_id)
+        return await event.reply("هذا الزر غير صالح أو انتهت صلاحيته.")
+    
+    if chat_id not in games:
+        return await event.reply("لا توجد لعبة نشطة في هذه المجموعة.")
+    
     s = await event.get_sender()
     sm = await mention(event, s)
-    uid = str(s.id)
-    if event.is_group and uid not in games[chat_id]["players"]:
+    uid_str = str(s.id)
+
+    if event.is_group and uid_str not in games[chat_id]["players"]:
+        games[chat_id]["players"].add(uid_str)
         bot_username = (await ABH.get_me()).username
-        join_num = await start(event, chat_id)
+        join_num = uid  # نستخدم نفس الكود في الرابط
+        
         await ABH.send_message(
             chat_id,
             f'المستخدم {sm} تم تسجيله في اللعبة والعدد صار ( {len(games[chat_id]["players"])} )',
             buttons=[
-                [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]]
-            )
+                [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]
+            ]
+        )
+        await event.reply("تم تسجيلك في اللعبة.")
+
+# أمر بدء اللعبة
 @ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
-    global games
     chat_id = event.chat_id
     sender = await event.get_sender()
     command = event.raw_text.strip().lower()
+    
     if command == '/killamorder':
         if chat_id in games:
-            return await event.reply(" هناك لعبة جارية بالفعل.")
+            return await event.reply("هناك لعبة جارية بالفعل.")
         games[chat_id] = {
             "owner": sender.id,
-            "players": set([sender.id])
+            "players": set([str(sender.id)])
         }
-        return await start(event, chat_id)    
-    elif command == '/players':
+        await start(event, chat_id)
+        
+    elif command == '!players':
         if chat_id not in games:
-            return await event.reply(" لم تبدأ أي لعبة بعد.")
-        return await players(event)
+            return await event.reply("لم تبدأ أي لعبة بعد.")
+        await players(event)
+
+# دالة بدء اللعبة - ترسل رسالة مع زر انضمام
 async def start(event, chat_id):
-    global games, join_links
     sender = await event.get_sender()
     ment = await mention(event, sender)
     join_num = str(uuid.uuid4())[:6]
     join_links[join_num] = chat_id
     bot_username = (await ABH.get_me()).username
     uid = str(sender.id)
+    
     if event.is_group and uid not in games[chat_id]["players"]:
-        await event.reply(
-            f"👋 أهلاً {ment}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
-            buttons=[
-                [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]
-            ]
-        )
+        games[chat_id]["players"].add(uid)
+    
+    await ABH.send_message(
+        chat_id,
+        f"👋 أهلاً {ment}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
+        buttons=[
+            [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]
+        ]
+    )
+
+# دالة عرض اللاعبين
+async def players(event):
+    chat_id = event.chat_id
+    if chat_id not in games:
+        return await event.reply("لم تبدأ أي لعبة بعد.")
+    
+    player_ids = games[chat_id]["players"]
+    if not player_ids:
+        return await event.reply("لا يوجد لاعبين مسجلين حالياً.")
+    
+    mentions = []
+    for pid in player_ids:
+        user = await ABH.get_entity(int(pid))
+        mentions.append(f"[{user.first_name}](tg://user?id={pid})")
+    
+    await event.reply("اللاعبون المسجلون:\n" + "\n".join(mentions), parse_mode='md')
 async def join(event, chat_id):
     global games
     sender = await event.get_sender()
