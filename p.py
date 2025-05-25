@@ -8,19 +8,19 @@ api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 
-# تشغيل البوت
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 
-# متغيرات التحكم باللعبة
+# متغيرات اللعبة
 players = set()
+player_times = {}  # user_id: {"start": datetime, "end": datetime}
 game_started = False
 join_enabled = False
-player_times = {}  # user_id: {"start": datetime, "end": datetime}
+game_chat_id = None  # معرف المجموعة التي تجري فيها اللعبة
 
 # بدء اللعبة
 @ABH.on(events.NewMessage(pattern=r'^/(vagueness|غموض)$'))
 async def vagueness_start(event):
-    global game_started, join_enabled, players, player_times
+    global game_started, join_enabled, players, player_times, game_chat_id
     if game_started:
         await event.reply('اللعبة بالفعل بدأت.')
         return
@@ -28,6 +28,8 @@ async def vagueness_start(event):
     player_times.clear()
     join_enabled = True
     game_started = True
+    game_chat_id = event.chat_id  # حفظ معرف المجموعة
+    asyncio.create_task(kick_inactive_players())  # بدء فحص التفاعل
     await event.reply('تم بدء لعبة الغموض، يسجل اللاعبون عبر أمر `انا`')
 
 # تسجيل اللاعبين
@@ -45,7 +47,7 @@ async def register_player(event):
     player_times[user_id] = {"start": datetime.now(), "end": None}
     await event.reply('تم تسجيلك، انتظر بدء اللعبة.')
 
-# عرض اللاعبين المسجلين
+# عرض اللاعبين
 @ABH.on(events.NewMessage(pattern=r'^!الاعبين$'))
 async def show_players(event):
     if not players:
@@ -57,7 +59,7 @@ async def show_players(event):
         mentions.append(f"[{user.first_name}](tg://user?id={user_id})")
     await event.reply("اللاعبون المسجلون:\n" + "\n".join(mentions), parse_mode='md')
 
-# إنهاء التسجيل وبدء اللعبة
+# بدء اللعبة بعد إغلاق التسجيل
 @ABH.on(events.NewMessage(pattern=r'^تم$'))
 async def start_game(event):
     global join_enabled
@@ -70,11 +72,8 @@ async def start_game(event):
         return
     join_enabled = False
     await event.respond('تم بدء اللعبة. الآن تفاعلوا بدون رد مباشر على الرسائل!')
-players = set()
-player_times = {}
-game_started = True
-join_enabled = False
 
+# مراقبة الرسائل
 @ABH.on(events.NewMessage)
 async def monitor_messages(event):
     global players, player_times
@@ -82,17 +81,13 @@ async def monitor_messages(event):
         return
 
     sender_id = event.sender_id
-
-    # فقط سجل النشاط إذا كان من ضمن اللاعبين
     if sender_id in players:
         now = datetime.now()
-        player_times[sender_id] = now
+        player_times[sender_id]["start"] = now
 
-        # التحقق من الرد على رسالة وخسارة اللاعب
         if await event.get_reply_message():
-            from telethon.tl.functions.users import GetFullUser
             players.remove(sender_id)
-            duration = now - player_times.get(sender_id, now)
+            duration = now - player_times[sender_id]["start"]
             formatted_duration = str(timedelta(seconds=int(duration.total_seconds())))[2:7]
             user = await event.client.get_entity(sender_id)
             mention = f"[{user.first_name}](tg://user?id={sender_id})"
@@ -106,7 +101,7 @@ async def monitor_messages(event):
                 winner_id = next(iter(players))
                 winner = await event.client.get_entity(winner_id)
                 winner_mention = f"[{winner.first_name}](tg://user?id={winner_id})"
-                winner_duration = datetime.now() - player_times[winner_id]
+                winner_duration = datetime.now() - player_times[winner_id]["start"]
                 formatted_winner_duration = str(timedelta(seconds=int(winner_duration.total_seconds())))[2:7]
                 await event.reply(
                     f'انتهت اللعبة.\nالفائز هو: {winner_mention}\nمدة اللعب: {formatted_winner_duration}',
@@ -114,37 +109,36 @@ async def monitor_messages(event):
                 )
                 reset_game()
 
-# دالة لفحص غير النشطين وطردهم
+# فحص غير المتفاعلين كل 5 دقائق وطردهم
 async def kick_inactive_players():
-    while True:
-        if game_started and not join_enabled:
-            now = datetime.now()
-            for player_id in list(players):
-                last_active = player_times.get(player_id)
-                if last_active and now - last_active > timedelta(minutes=5):
-                    players.remove(player_id)
-                    try:
-                        await ABH.kick_participant(event.chat_id, player_id)
-                        user = await ABH.get_entity(player_id)
-                        mention = f"[{user.first_name}](tg://user?id={player_id})"
-                        await ABH.send_message(event.chat_id, f"تم طرد {mention} بسبب عدم التفاعل.", parse_mode='md')
-                    except Exception as e:
-                        print(f"خطأ أثناء الطرد: {e}")
-        await asyncio.sleep(30)  # كل 5 دقائق
+    global game_chat_id
+    while game_started and not join_enabled:
+        now = datetime.now()
+        to_remove = []
+        for player_id in list(players):
+            last_active = player_times.get(player_id, {}).get("start")
+            if last_active and now - last_active > timedelta(minutes=5):
+                to_remove.append(player_id)
 
-# تأكد من تشغيل الفاحص بالخلفية عند تشغيل البوت
-@ABH.on(events.ChatAction)
-async def start_background_task(event):
-    if event.user_joined or event.user_added:
-        asyncio.create_task(kick_inactive_players())
+        for player_id in to_remove:
+            players.remove(player_id)
+            try:
+                await ABH.kick_participant(game_chat_id, player_id)
+                user = await ABH.get_entity(player_id)
+                mention = f"[{user.first_name}](tg://user?id={player_id})"
+                await ABH.send_message(game_chat_id, f"تم طرد {mention} بسبب عدم التفاعل.", parse_mode='md')
+            except Exception as e:
+                print(f"خطأ أثناء الطرد: {e}")
+        await asyncio.sleep(300)  # كل 5 دقائق
 
 # إعادة تعيين اللعبة
 def reset_game():
-    global players, game_started, join_enabled, player_times
+    global players, game_started, join_enabled, player_times, game_chat_id
     players.clear()
     player_times.clear()
     game_started = False
     join_enabled = False
+    game_chat_id = None
 
 # تشغيل البوت
 ABH.run_until_disconnected()
