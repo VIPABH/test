@@ -60,7 +60,7 @@ async def unified_handler(event):
         }
         await start(event, chat_id)
         
-    elif command == '!players':
+    elif command == 'players':
         if chat_id not in games:
             return await event.reply("لم تبدأ أي لعبة بعد.")
         await players(event)
