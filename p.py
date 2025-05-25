@@ -130,7 +130,7 @@ async def kick_inactive_players():
                         await ABH.send_message(event.chat_id, f"تم طرد {mention} بسبب عدم التفاعل.", parse_mode='md')
                     except Exception as e:
                         print(f"خطأ أثناء الطرد: {e}")
-        await asyncio.sleep(300)  # كل 5 دقائق
+        await asyncio.sleep(30)  # كل 5 دقائق
 
 # تأكد من تشغيل الفاحص بالخلفية عند تشغيل البوت
 @ABH.on(events.ChatAction)
