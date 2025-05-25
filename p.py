@@ -1,7 +1,7 @@
 from telethon import TelegramClient, events
 from datetime import datetime
 from Resources import mention
-import os, asyncio
+import os, asyncio, uuid
 api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
