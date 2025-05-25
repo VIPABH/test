@@ -53,6 +53,16 @@ async def start_game(event):
         return
     join_enabled = False
     await event.respond('تم بدء اللعبة. الآن تفاعلوا بدون رد مباشر على الرسائل!')
+@ABH.on(events.NewMessage(pattern=r'^اللاعبين$'))
+async def show_players(event):
+    if not players:
+        await event.reply("لا يوجد لاعبون مسجلون حالياً.")
+        return
+    mentions = []
+    for user_id in players:
+        user = await ABH.get_entity(user_id)
+        mentions.append(f"[{user.first_name}](tg://user?id={user_id})")
+    await event.reply("اللاعبون المسجلون:\n" + "\n".join(mentions), parse_mode='md')
 
 def format_duration(duration):
     total_seconds = int(duration.total_seconds())
