@@ -64,10 +64,10 @@ async def start_game(event):
     if not game_started:
         await event.reply('لا توجد لعبة نشطة حالياً.')
         return
-    if len(players) < 2:
-        await event.reply('عدد اللاعبين غير كافٍ لبدء اللعبة.')
-        reset_game()
-        return
+    # if len(players) < 2:
+    #     await event.reply('عدد اللاعبين غير كافٍ لبدء اللعبة.')
+        # reset_game()
+        # return
     join_enabled = False
     await event.respond('تم بدء اللعبة. الآن تفاعلوا بدون رد مباشر على الرسائل!')
     asyncio.create_task(kick_inactive_players(event.chat_id))
