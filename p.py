@@ -71,7 +71,6 @@ async def start_game(event):
     join_enabled = False
     await event.respond('تم بدء اللعبة. الآن تفاعلوا بدون رد مباشر على الرسائل!')
 
-# منطق التفاعل داخل اللعبة
 @ABH.on(events.NewMessage)
 async def monitor_messages(event):
     global players
@@ -88,17 +87,24 @@ async def monitor_messages(event):
         formatted_duration = str(timedelta(seconds=int(duration.total_seconds())))[2:7]
 
         user = await event.client.get_entity(sender_id)
+        mention = f"[{user.first_name}](tg://user?id={sender_id})"
         players.remove(sender_id)
-        await event.reply(f'اللاعب {user.first_name} رد على رسالة وخسر!\nمدة اللعب: {formatted_duration}')
+        await event.reply(
+            f'اللاعب {mention} رد على رسالة وخسر!\nمدة اللعب: {formatted_duration}',
+            parse_mode='md'
+        )
 
         if len(players) == 1:
             winner_id = next(iter(players))
             winner = await event.client.get_entity(winner_id)
+            winner_mention = f"[{winner.first_name}](tg://user?id={winner_id})"
             winner_duration = datetime.now() - player_times[winner_id]["start"]
             formatted_winner_duration = str(timedelta(seconds=int(winner_duration.total_seconds())))[2:7]
 
             await event.reply(
-                f'انتهت اللعبة.\nالفائز هو: {winner.first_name}\nمدة اللعب: {formatted_winner_duration}')
+                f'انتهت اللعبة.\nالفائز هو: {winner_mention}\nمدة اللعب: {formatted_winner_duration}',
+                parse_mode='md'
+            )
             reset_game()
 
 # إعادة تعيين اللعبة
