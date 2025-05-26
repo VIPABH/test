@@ -230,9 +230,9 @@ async def mention(event, user):
 #     await asyncio.sleep(5)
 #     await assign_killer(chat_id)
 
-# players = set()
-# game_started = False
-# join_enabled = False
+players = set()
+game_started = False
+join_enabled = False
 
 # # بدء اللعبة
 @ABH.on(events.NewMessage(pattern=r'^/(vagueness|غموض)$'))
