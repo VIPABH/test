@@ -314,7 +314,7 @@ def reset_game():
     join_enabled = False
 
 # مراقبة الردود من اللاعبين
-@client.on(events.NewMessage(incoming=True))
+@ABH.on(events.NewMessage(incoming=True))
 async def monitor_messages(event):
     global players, player_times, game_started, join_enabled
 
