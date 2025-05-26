@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events, Button
-from datetime import datetime
+from datetime import datetime, timedelta
 from Resources import mention
 import os, asyncio, uuid, random
 api_id = int(os.getenv('API_ID'))
