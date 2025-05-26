@@ -294,18 +294,39 @@ def format_duration(duration):
         hours = total_seconds // 3600
         minutes = (total_seconds % 3600) // 60
         return f"{hours:02d}:{minutes:02d}"
+players = set()
 player_times = {}
-@ABH.on(events.NewMessage)
+game_started = False
+join_enabled = False
+
+# دالة تنسيق مدة اللعب
+def format_duration(duration: timedelta) -> str:
+    total_seconds = int(duration.total_seconds())
+    minutes, seconds = divmod(total_seconds, 60)
+    return f"{minutes} دقيقة و {seconds} ثانية"
+
+# دالة لإعادة تعيين اللعبة
+def reset_game():
+    global players, game_started, join_enabled, player_times
+    players.clear()
+    player_times.clear()
+    game_started = False
+    join_enabled = False
+
+# مراقبة الردود من اللاعبين
+@client.on(events.NewMessage(incoming=True))
 async def monitor_messages(event):
-    global players
+    global players, player_times, game_started, join_enabled
+
     if not game_started or join_enabled:
         return
 
     sender_id = event.sender_id
     reply = await event.get_reply_message()
 
-    if sender_id in players and reply:
-        now = datetime.now()
+    # التحقق إذا اللاعب من المشاركين ورد على رسالة
+    if sender_id in players and reply and sender_id in player_times:
+        now = datetime.utcnow()
         player_times[sender_id]["end"] = now
         duration = now - player_times[sender_id]["start"]
         formatted_duration = format_duration(duration)
@@ -313,24 +334,25 @@ async def monitor_messages(event):
         user = await event.client.get_entity(sender_id)
         mention = f"[{user.first_name}](tg://user?id={sender_id})"
         players.remove(sender_id)
+
         await event.reply(
-            f'اللاعب {mention} رد على رسالة وخسر!\nمدة اللعب: {formatted_duration}',
+            f'🚫 اللاعب {mention} رد على رسالة وخسر!\n⏱️ مدة اللعب: {formatted_duration}',
             parse_mode='md'
         )
 
+        # التحقق إذا تبقّى لاعب واحد فقط
         if len(players) == 1:
             winner_id = next(iter(players))
             winner = await event.client.get_entity(winner_id)
             winner_mention = f"[{winner.first_name}](tg://user?id={winner_id})"
-            winner_duration = datetime.now() - player_times[winner_id]["start"]
+            winner_duration = datetime.utcnow() - player_times[winner_id]["start"]
             formatted_winner_duration = format_duration(winner_duration)
 
             await event.reply(
-                f'انتهت اللعبة.\nالفائز هو: {winner_mention}\nمدة اللعب: {formatted_winner_duration}',
+                f'🎉 انتهت اللعبة.\n🏆 الفائز هو: {winner_mention}\n⏱️ مدة اللعب: {formatted_winner_duration}',
                 parse_mode='md'
             )
             reset_game()
-# دالة لإعادة تعيين اللعبة
 def reset_game():
     global players, game_started, join_enabled
     players.clear()
