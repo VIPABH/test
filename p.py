@@ -22,8 +22,8 @@ def reset_game(chat_id):
         del games[chat_id]
     if chat_id in active_players:
         del active_players[chat_id]
-
-@ABH.on(events.NewMessage(pattern=r'^/vagueness|غموض$'))
+@ABH.on(events.NewMessage(pattern=r'^/(vagueness)$|^غموض$'))
+# @ABH.on(events.NewMessage(pattern=r'^/vagueness|غموض$'))
 async def vagueness_start(event):
     chat_id = event.chat_id
     games[chat_id] = {
