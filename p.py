@@ -16,12 +16,12 @@ async def run_cmd(command: str):
     return stdout.decode().strip(), stderr.decode().strip(), process.returncode
 @ABH.on(events.NewMessage(pattern="^تحديث$"))
 async def update_repo(event):
-    msg = await event.edit(" جاري جلب آخر التحديثات من الريبو عبر...")
+    msg = await event.respond(" جاري جلب آخر التحديثات من الريبو عبر...")
     stdout, stderr, code = await run_cmd("git pull")
     if code == 0:
-        await msg.edit(f" تحديث السورس بنجاح")
+        await msg.respond(f" تحديث السورس بنجاح")
     else:
-        await msg.edit(f" حدث خطأ أثناء التحديث:\n\n{stderr}")
+        await msg.respond(f" حدث خطأ أثناء التحديث:\n\n{stderr}")
 games = {}
 join_links = {}
 
