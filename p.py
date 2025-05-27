@@ -56,10 +56,10 @@ async def start_game(event):
     game = games.get(chat_id)
     if not game or not game["game_started"]:
         return
-    if len(game["players"]) < 2:
-        await event.respond('🔒 عدد اللاعبين غير كافٍ لبدء اللعبة.')
-        reset_game(chat_id)
-        return
+    # if len(game["players"]) < 2:
+    #     await event.respond('🔒 عدد اللاعبين غير كافٍ لبدء اللعبة.')
+    #     reset_game(chat_id)
+    #     return
     game["join_enabled"] = False
     await event.respond('✅ تم بدء اللعبة. الآن تفاعلوا بدون الرد على أي رسالة!')
 @ABH.on(events.NewMessage(pattern=r'^اللاعبين$'))
