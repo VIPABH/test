@@ -22,14 +22,6 @@ async def update_repo(event):
         await msg.edit(f" تحديث السورس بنجاح")
     else:
         await msg.edit(f" حدث خطأ أثناء التحديث:\n\n{stderr}")
-async def main():
-    await ABH.start()
-    print("البوت شغال الآن")
-    await ABH.run_until_disconnected()
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
-# تشغيل البوت
 games = {}
 join_links = {}
 
