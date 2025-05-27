@@ -7,125 +7,85 @@ api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 games = {}
-join_links = {}
-async def mention(event, user):
-    return f"[{user.first_name}](tg://user?id={user.id})"
-players = set()
-players = set()
-player_times = {}
-game_started = False
-join_enabled = False
-
-# دالة تنسيق مدة اللعب
 def format_duration(duration: timedelta) -> str:
-    total_seconds = int(duration.total_seconds())
-    minutes, seconds = divmod(total_seconds, 60)
+    minutes, seconds = divmod(int(duration.total_seconds()), 60)
     return f"{minutes} دقيقة و {seconds} ثانية"
-
-# دالة لإعادة تعيين اللعبة
-def reset_game():
-    global players, game_started, join_enabled, player_times
-    players.clear()
-    player_times.clear()
-    game_started = False
-    join_enabled = False
-
-# بدء اللعبة
-@ABH.on(events.NewMessage(pattern=r'^/(vagueness|غموض)$'))
+def reset_game(chat_id):
+    if chat_id in games:
+        del games[chat_id]
+@ABH.on(events.NewMessage(pattern=r'^/(vagueness)$|^غموض$'))
 async def vagueness_start(event):
-    global game_started, join_enabled, players
-    if game_started:
-        await event.respond('⚠️ اللعبة بالفعل بدأت.')
-        return
-    players.clear()
-    join_enabled = True
-    game_started = True
+    chat_id = event.chat_id
+    games[chat_id] = {
+        "players": set(),
+        "player_times": {},
+        "game_started": True,
+        "join_enabled": True
+    }
     await event.respond('🎮 تم بدء لعبة الغموض، يسجل اللاعبون عبر أمر `انا`')
-
-# تسجيل اللاعبين
 @ABH.on(events.NewMessage(pattern=r'^انا$'))
 async def register_player(event):
-    global join_enabled
+    chat_id = event.chat_id
     user_id = event.sender_id
-    if not game_started or not join_enabled:
-        await event.respond('❗ لم تبدأ اللعبة بعد.')
+    game = games.get(chat_id)
+    if not game or not game["game_started"] or not game["join_enabled"]:
         return
-    if user_id in players:
+    if user_id in game["players"]:
         await event.respond('✅ أنت مسجل مسبقًا.')
         return
-    players.add(user_id)
-    player_times[user_id] = {"start": datetime.utcnow()}
+    game["players"].add(user_id)
+    game["player_times"][user_id] = {"start": datetime.utcnow()}
     await event.respond('📝 تم تسجيلك، انتظر بدء اللعبة.')
-
-# إنهاء التسجيل وبدء التحدي
 @ABH.on(events.NewMessage(pattern=r'^تم$'))
 async def start_game(event):
-    global join_enabled
-    if not game_started:
-        await event.respond('🚫 لا توجد لعبة نشطة حالياً.')
+    chat_id = event.chat_id
+    game = games.get(chat_id)
+    if not game or not game["game_started"]:
         return
-    if len(players) < 2:
+    if len(game["players"]) < 2:
         await event.respond('🔒 عدد اللاعبين غير كافٍ لبدء اللعبة.')
-        reset_game()
+        reset_game(chat_id)
         return
-    join_enabled = False
+    game["join_enabled"] = False
     await event.respond('✅ تم بدء اللعبة. الآن تفاعلوا بدون الرد على أي رسالة!')
-
-# عرض اللاعبين المسجلين
 @ABH.on(events.NewMessage(pattern=r'^اللاعبين$'))
 async def show_players(event):
-    if not players:
-        await event.respond("لا يوجد لاعبون مسجلون حالياً.")
+    chat_id = event.chat_id
+    game = games.get(chat_id)
+    if not game or not game["players"]:
         return
     mentions = []
-    for user_id in players:
-        user = await ABH.get_entity(user_id)
-        mentions.append(f"[{user.first_name}](tg://user?id={user_id})")
+    for uid in game["players"]:
+        user = await ABH.get_entity(uid)
+        mentions.append(f"[{user.first_name}](tg://user?id={uid})")
     await event.respond("👥 اللاعبون المسجلون:\n" + "\n".join(mentions), parse_mode='md')
-
-# مراقبة الردود من اللاعبين
 @ABH.on(events.NewMessage(incoming=True))
 async def monitor_messages(event):
-    global players, player_times, game_started, join_enabled
-
-    if not game_started or join_enabled:
+    chat_id = event.chat_id
+    game = games.get(chat_id)
+    if not game or not game["game_started"] or game["join_enabled"]:
         return
-
     sender_id = event.sender_id
     reply = await event.get_reply_message()
-
-    if sender_id in players and reply and sender_id in player_times:
+    if sender_id in game["players"] and reply and sender_id in game["player_times"]:
         now = datetime.utcnow()
-        player_times[sender_id]["end"] = now
-        duration = now - player_times[sender_id]["start"]
-        formatted_duration = format_duration(duration)
-        user = await event.client.get_entity(sender_id)
-        mention = f"[{user.first_name}](tg://user?id={sender_id})"
-        players.remove(sender_id)
-
+        game["player_times"][sender_id]["end"] = now
+        duration = now - game["player_times"][sender_id]["start"]
+        mention = f"[{(await ABH.get_entity(sender_id)).first_name}](tg://user?id={sender_id})"
+        game["players"].remove(sender_id)
         await event.reply(
-            f'🚫 اللاعب {mention} رد على رسالة وخسر!\n⏱️ مدة اللعب: {formatted_duration}',
+            f'🚫 اللاعب {mention} رد على رسالة وخسر!\n⏱️ مدة اللعب: {format_duration(duration)}',
             parse_mode='md'
         )
-
-        if len(players) == 1:
-            winner_id = next(iter(players))
-            winner = await event.client.get_entity(winner_id)
-            winner_mention = f"[{winner.first_name}](tg://user?id={winner_id})"
-            winner_duration = datetime.utcnow() - player_times[winner_id]["start"]
-            formatted_winner_duration = format_duration(winner_duration)
-
+        if len(game["players"]) == 1:
+            winner_id = next(iter(game["players"]))
+            winner = await ABH.get_entity(winner_id)
+            win_time = datetime.utcnow() - game["player_times"][winner_id]["start"]
             await event.reply(
-                f'🎉 انتهت اللعبة.\n🏆 الفائز هو: {winner_mention}\n⏱️ مدة اللعب: {formatted_winner_duration}',
+                f'🎉 انتهت اللعبة.\n🏆 الفائز هو: [{winner.first_name}](tg://user?id={winner_id})\n⏱️ مدة اللعب: {format_duration(win_time)}',
                 parse_mode='md'
             )
-            reset_game()
-def reset_game():
-    global players, game_started, join_enabled
-    players.clear()
-    game_started = False
-    join_enabled = False
-
+            reset_game(chat_id)
 # @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 # async def injoin(event):
 #     uid = event.pattern_match.group(1)
