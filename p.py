@@ -62,7 +62,6 @@ async def start_game(event):
         return
     game["join_enabled"] = False
     await event.respond('✅ تم بدء اللعبة. الآن تفاعلوا بدون الرد على أي رسالة!')
-
 @ABH.on(events.NewMessage(pattern=r'^اللاعبين$'))
 async def show_players(event):
     chat_id = event.chat_id
@@ -109,17 +108,21 @@ async def monitor_messages(event):
             reset_game(chat_id)
 async def track_inactive_players(chat_id):
     while chat_id in games and games[chat_id]["game_started"]:
-        await asyncio.sleep(5)
+        await asyncio.sleep(300)  # 5 دقائق
+
         game = games.get(chat_id)
         if not game:
-            return
+            break
+
         current_players = game["players"].copy()
         active_now = active_players.get(chat_id, set())
         inactive = current_players - active_now
+
         for uid in inactive:
             game["players"].discard(uid)
             game["player_times"].pop(uid, None)
             user = await ABH.get_entity(uid)
             await ABH.send_message(chat_id, f'🚫 تم طرد اللاعب [{user.first_name}](tg://user?id={uid}) بسبب عدم التفاعل.', parse_mode='md')
+
         active_players[chat_id] = set()
 ABH.run_until_disconnected()
