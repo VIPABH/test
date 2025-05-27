@@ -85,7 +85,6 @@ async def monitor_messages(event):
     if chat_id not in active_players:
         active_players[chat_id] = set()
     active_players[chat_id].add(sender_id)
-    asyncio.create_task(track_inactive_players(chat_id))
     reply = await event.get_reply_message()
     if sender_id in game["players"] and reply and sender_id in game["player_times"]:
         now = datetime.utcnow()
@@ -97,6 +96,7 @@ async def monitor_messages(event):
             f'🚫 اللاعب {mention} رد على رسالة وخسر!\n⏱️ مدة اللعب: {format_duration(duration)}',
             parse_mode='md'
         )
+        asyncio.create_task(track_inactive_players(chat_id))
         if len(game["players"]) == 1:
             winner_id = next(iter(game["players"]))
             winner = await ABH.get_entity(winner_id)
@@ -108,8 +108,7 @@ async def monitor_messages(event):
             reset_game(chat_id)
 async def track_inactive_players(chat_id):
     while chat_id in games and games[chat_id]["game_started"]:
-        await asyncio.sleep(5)  # 5 دقائق
-
+        await asyncio.sleep(5)
         game = games.get(chat_id)
         if not game:
             break
