@@ -110,7 +110,7 @@ async def monitor_messages(event):
         reset_game(chat_id)
 async def track_inactive_players(chat_id):
     while chat_id in games and games[chat_id]["game_started"]:
-        await asyncio.sleep(300)  # 5 دقائق
+        await asyncio.sleep(3)  # 5 دقائق
 
         game = games.get(chat_id)
         if not game:
