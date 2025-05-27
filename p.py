@@ -6,13 +6,23 @@ api_id = int(os.getenv('API_ID'))
 api_hash = os.getenv('API_HASH')
 bot_token = os.getenv('BOT_TOKEN')
 ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+import asyncio
+from datetime import datetime, timedelta
+from telethon import events
+
 games = {}
+active_players = {}
+
 def format_duration(duration: timedelta) -> str:
     minutes, seconds = divmod(int(duration.total_seconds()), 60)
     return f"{minutes} دقيقة و {seconds} ثانية"
+
 def reset_game(chat_id):
     if chat_id in games:
         del games[chat_id]
+    if chat_id in active_players:
+        del active_players[chat_id]
+
 @ABH.on(events.NewMessage(pattern=r'^/(vagueness)$|^غموض$'))
 async def vagueness_start(event):
     chat_id = event.chat_id
@@ -22,7 +32,11 @@ async def vagueness_start(event):
         "game_started": True,
         "join_enabled": True
     }
+    active_players[chat_id] = set()
     await event.respond('🎮 تم بدء لعبة الغموض، يسجل اللاعبون عبر أمر `انا`')
+    # بدء مهمة دورية لطرد غير النشطين
+    asyncio.create_task(track_inactive_players(chat_id))
+
 @ABH.on(events.NewMessage(pattern=r'^انا$'))
 async def register_player(event):
     chat_id = event.chat_id
@@ -36,6 +50,7 @@ async def register_player(event):
     game["players"].add(user_id)
     game["player_times"][user_id] = {"start": datetime.utcnow()}
     await event.respond('📝 تم تسجيلك، انتظر بدء اللعبة.')
+
 @ABH.on(events.NewMessage(pattern=r'^تم$'))
 async def start_game(event):
     chat_id = event.chat_id
@@ -48,6 +63,7 @@ async def start_game(event):
         return
     game["join_enabled"] = False
     await event.respond('✅ تم بدء اللعبة. الآن تفاعلوا بدون الرد على أي رسالة!')
+
 @ABH.on(events.NewMessage(pattern=r'^اللاعبين$'))
 async def show_players(event):
     chat_id = event.chat_id
@@ -59,13 +75,20 @@ async def show_players(event):
         user = await ABH.get_entity(uid)
         mentions.append(f"[{user.first_name}](tg://user?id={uid})")
     await event.respond("👥 اللاعبون المسجلون:\n" + "\n".join(mentions), parse_mode='md')
+
 @ABH.on(events.NewMessage(incoming=True))
 async def monitor_messages(event):
     chat_id = event.chat_id
+    sender_id = event.sender_id
     game = games.get(chat_id)
     if not game or not game["game_started"] or game["join_enabled"]:
         return
-    sender_id = event.sender_id
+
+    # تسجيل تفاعل اللاعب
+    if chat_id not in active_players:
+        active_players[chat_id] = set()
+    active_players[chat_id].add(sender_id)
+
     reply = await event.get_reply_message()
     if sender_id in game["players"] and reply and sender_id in game["player_times"]:
         now = datetime.utcnow()
@@ -86,6 +109,28 @@ async def monitor_messages(event):
                 parse_mode='md'
             )
             reset_game(chat_id)
+
+async def track_inactive_players(chat_id):
+    while chat_id in games and games[chat_id]["game_started"]:
+        await asyncio.sleep(300)  # 5 دقائق
+        game = games.get(chat_id)
+        if not game:
+            return
+
+        current_players = game["players"].copy()
+        active_now = active_players.get(chat_id, set())
+
+        # حساب اللاعبين غير النشطين (اللاعبين المسجلين في اللعبة لكن لم يتفاعلوا خلال الـ5 دقائق)
+        inactive = current_players - active_now
+
+        for uid in inactive:
+            game["players"].discard(uid)
+            game["player_times"].pop(uid, None)
+            user = await ABH.get_entity(uid)
+            await ABH.send_message(chat_id, f'🚫 تم طرد اللاعب [{user.first_name}](tg://user?id={uid}) بسبب عدم التفاعل.', parse_mode='md')
+
+        # إعادة تعيين مجموعة اللاعبين النشطين للجولة التالية
+        active_players[chat_id] = set()
 # @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 # async def injoin(event):
 #     uid = event.pattern_match.group(1)
