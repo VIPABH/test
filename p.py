@@ -83,11 +83,10 @@ async def monitor_messages(event):
     if not game or not game["game_started"] or game["join_enabled"]:
         return
 
-    # تسجيل تفاعل اللاعب
     if chat_id not in active_players:
         active_players[chat_id] = set()
     active_players[chat_id].add(sender_id)
-
+    asyncio.create_task(track_inactive_players(chat_id))
     reply = await event.get_reply_message()
     if sender_id in game["players"] and reply and sender_id in game["player_times"]:
         now = datetime.utcnow()
@@ -108,28 +107,19 @@ async def monitor_messages(event):
                 parse_mode='md'
             )
             reset_game(chat_id)
-
 async def track_inactive_players(chat_id):
     while chat_id in games and games[chat_id]["game_started"]:
-        await asyncio.sleep(10)  # 5 دقائق
+        await asyncio.sleep(5)
         game = games.get(chat_id)
         if not game:
             return
-        asyncio.create_task(track_inactive_players(chat_id))
-
         current_players = game["players"].copy()
         active_now = active_players.get(chat_id, set())
-
-        # حساب اللاعبين غير النشطين (اللاعبين المسجلين في اللعبة لكن لم يتفاعلوا خلال الـ5 دقائق)
         inactive = current_players - active_now
-
         for uid in inactive:
             game["players"].discard(uid)
             game["player_times"].pop(uid, None)
             user = await ABH.get_entity(uid)
             await ABH.send_message(chat_id, f'🚫 تم طرد اللاعب [{user.first_name}](tg://user?id={uid}) بسبب عدم التفاعل.', parse_mode='md')
-
-        # إعادة تعيين مجموعة اللاعبين النشطين للجولة التالية
         active_players[chat_id] = set()
-
 ABH.run_until_disconnected()
