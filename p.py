@@ -14,7 +14,7 @@ async def run_cmd(command: str):
     )
     stdout, stderr = await process.communicate()
     return stdout.decode().strip(), stderr.decode().strip(), process.returncode
-@ABH.on(events.NewMessage(pattern="^تحديث$", outgoing=True))
+@ABH.on(events.NewMessage(pattern="^تحديث$"))
 async def update_repo(event):
     msg = await event.edit(" جاري جلب آخر التحديثات من الريبو عبر...")
     stdout, stderr, code = await run_cmd("git pull")
