@@ -22,132 +22,132 @@ async def update_repo(event):
         await msg.respond(f" تحديث السورس بنجاح")
     else:
         await msg.respond(f" حدث خطأ أثناء التحديث:\n\n{stderr}")
-games = {}
-join_links = {}
+# games = {}
+# join_links = {}
 
-# دالة مساعدة لعمل منشن للاعب
-async def mention(event, user):
-    return f"[{user.first_name}](tg://user?id={user.id})"
+# # دالة مساعدة لعمل منشن للاعب
+# async def mention(event, user):
+#     return f"[{user.first_name}](tg://user?id={user.id})"
 
-players = set()
-game_started = False
-join_enabled = False
+# players = set()
+# game_started = False
+# join_enabled = False
+
+# # # بدء اللعبة
+# players = set()
+# player_times = {}
+# game_started = False
+# join_enabled = False
+
+# # دالة تنسيق مدة اللعب
+# def format_duration(duration: timedelta) -> str:
+#     total_seconds = int(duration.total_seconds())
+#     minutes, seconds = divmod(total_seconds, 60)
+#     return f"{minutes} دقيقة و {seconds} ثانية"
+
+# # دالة لإعادة تعيين اللعبة
+# def reset_game():
+#     global players, game_started, join_enabled, player_times
+#     players.clear()
+#     player_times.clear()
+#     game_started = False
+#     join_enabled = False
 
 # # بدء اللعبة
-players = set()
-player_times = {}
-game_started = False
-join_enabled = False
+# @ABH.on(events.NewMessage(pattern=r'^/(vagueness|غموض)$'))
+# async def vagueness_start(event):
+#     global game_started, join_enabled, players
+#     if game_started:
+#         await event.respond('⚠️ اللعبة بالفعل بدأت.')
+#         return
+#     players.clear()
+#     join_enabled = True
+#     game_started = True
+#     await event.respond('🎮 تم بدء لعبة الغموض، يسجل اللاعبون عبر أمر `انا`')
 
-# دالة تنسيق مدة اللعب
-def format_duration(duration: timedelta) -> str:
-    total_seconds = int(duration.total_seconds())
-    minutes, seconds = divmod(total_seconds, 60)
-    return f"{minutes} دقيقة و {seconds} ثانية"
+# # تسجيل اللاعبين
+# @ABH.on(events.NewMessage(pattern=r'^انا$'))
+# async def register_player(event):
+#     global join_enabled
+#     user_id = event.sender_id
+#     if not game_started or not join_enabled:
+#         await event.respond('❗ لم تبدأ اللعبة بعد.')
+#         return
+#     if user_id in players:
+#         await event.respond('✅ أنت مسجل مسبقًا.')
+#         return
+#     players.add(user_id)
+#     player_times[user_id] = {"start": datetime.utcnow()}
+#     await event.respond('📝 تم تسجيلك، انتظر بدء اللعبة.')
 
-# دالة لإعادة تعيين اللعبة
-def reset_game():
-    global players, game_started, join_enabled, player_times
-    players.clear()
-    player_times.clear()
-    game_started = False
-    join_enabled = False
+# # إنهاء التسجيل وبدء التحدي
+# @ABH.on(events.NewMessage(pattern=r'^تم$'))
+# async def start_game(event):
+#     global join_enabled
+#     if not game_started:
+#         await event.respond('🚫 لا توجد لعبة نشطة حالياً.')
+#         return
+#     if len(players) < 2:
+#         await event.respond('🔒 عدد اللاعبين غير كافٍ لبدء اللعبة.')
+#         reset_game()
+#         return
+#     join_enabled = False
+#     await event.respond('✅ تم بدء اللعبة. الآن تفاعلوا بدون الرد على أي رسالة!')
 
-# بدء اللعبة
-@ABH.on(events.NewMessage(pattern=r'^/(vagueness|غموض)$'))
-async def vagueness_start(event):
-    global game_started, join_enabled, players
-    if game_started:
-        await event.respond('⚠️ اللعبة بالفعل بدأت.')
-        return
-    players.clear()
-    join_enabled = True
-    game_started = True
-    await event.respond('🎮 تم بدء لعبة الغموض، يسجل اللاعبون عبر أمر `انا`')
+# # عرض اللاعبين المسجلين
+# @ABH.on(events.NewMessage(pattern=r'^اللاعبين$'))
+# async def show_players(event):
+#     if not players:
+#         await event.respond("لا يوجد لاعبون مسجلون حالياً.")
+#         return
+#     mentions = []
+#     for user_id in players:
+#         user = await ABH.get_entity(user_id)
+#         mentions.append(f"[{user.first_name}](tg://user?id={user_id})")
+#     await event.respond("👥 اللاعبون المسجلون:\n" + "\n".join(mentions), parse_mode='md')
 
-# تسجيل اللاعبين
-@ABH.on(events.NewMessage(pattern=r'^انا$'))
-async def register_player(event):
-    global join_enabled
-    user_id = event.sender_id
-    if not game_started or not join_enabled:
-        await event.respond('❗ لم تبدأ اللعبة بعد.')
-        return
-    if user_id in players:
-        await event.respond('✅ أنت مسجل مسبقًا.')
-        return
-    players.add(user_id)
-    player_times[user_id] = {"start": datetime.utcnow()}
-    await event.respond('📝 تم تسجيلك، انتظر بدء اللعبة.')
+# # مراقبة الردود من اللاعبين
+# @ABH.on(events.NewMessage(incoming=True))
+# async def monitor_messages(event):
+#     global players, player_times, game_started, join_enabled
 
-# إنهاء التسجيل وبدء التحدي
-@ABH.on(events.NewMessage(pattern=r'^تم$'))
-async def start_game(event):
-    global join_enabled
-    if not game_started:
-        await event.respond('🚫 لا توجد لعبة نشطة حالياً.')
-        return
-    if len(players) < 2:
-        await event.respond('🔒 عدد اللاعبين غير كافٍ لبدء اللعبة.')
-        reset_game()
-        return
-    join_enabled = False
-    await event.respond('✅ تم بدء اللعبة. الآن تفاعلوا بدون الرد على أي رسالة!')
+#     if not game_started or join_enabled:
+#         return
 
-# عرض اللاعبين المسجلين
-@ABH.on(events.NewMessage(pattern=r'^اللاعبين$'))
-async def show_players(event):
-    if not players:
-        await event.respond("لا يوجد لاعبون مسجلون حالياً.")
-        return
-    mentions = []
-    for user_id in players:
-        user = await ABH.get_entity(user_id)
-        mentions.append(f"[{user.first_name}](tg://user?id={user_id})")
-    await event.respond("👥 اللاعبون المسجلون:\n" + "\n".join(mentions), parse_mode='md')
+#     sender_id = event.sender_id
+#     reply = await event.get_reply_message()
 
-# مراقبة الردود من اللاعبين
-@ABH.on(events.NewMessage(incoming=True))
-async def monitor_messages(event):
-    global players, player_times, game_started, join_enabled
+#     if sender_id in players and reply and sender_id in player_times:
+#         now = datetime.utcnow()
+#         player_times[sender_id]["end"] = now
+#         duration = now - player_times[sender_id]["start"]
+#         formatted_duration = format_duration(duration)
+#         user = await event.client.get_entity(sender_id)
+#         mention = f"[{user.first_name}](tg://user?id={sender_id})"
+#         players.remove(sender_id)
 
-    if not game_started or join_enabled:
-        return
+#         await event.reply(
+#             f'🚫 اللاعب {mention} رد على رسالة وخسر!\n⏱️ مدة اللعب: {formatted_duration}',
+#             parse_mode='md'
+#         )
 
-    sender_id = event.sender_id
-    reply = await event.get_reply_message()
+#         if len(players) == 1:
+#             winner_id = next(iter(players))
+#             winner = await event.client.get_entity(winner_id)
+#             winner_mention = f"[{winner.first_name}](tg://user?id={winner_id})"
+#             winner_duration = datetime.utcnow() - player_times[winner_id]["start"]
+#             formatted_winner_duration = format_duration(winner_duration)
 
-    if sender_id in players and reply and sender_id in player_times:
-        now = datetime.utcnow()
-        player_times[sender_id]["end"] = now
-        duration = now - player_times[sender_id]["start"]
-        formatted_duration = format_duration(duration)
-        user = await event.client.get_entity(sender_id)
-        mention = f"[{user.first_name}](tg://user?id={sender_id})"
-        players.remove(sender_id)
-
-        await event.reply(
-            f'🚫 اللاعب {mention} رد على رسالة وخسر!\n⏱️ مدة اللعب: {formatted_duration}',
-            parse_mode='md'
-        )
-
-        if len(players) == 1:
-            winner_id = next(iter(players))
-            winner = await event.client.get_entity(winner_id)
-            winner_mention = f"[{winner.first_name}](tg://user?id={winner_id})"
-            winner_duration = datetime.utcnow() - player_times[winner_id]["start"]
-            formatted_winner_duration = format_duration(winner_duration)
-
-            await event.reply(
-                f'🎉 انتهت اللعبة.\n🏆 الفائز هو: {winner_mention}\n⏱️ مدة اللعب: {formatted_winner_duration}',
-                parse_mode='md'
-            )
-            reset_game()
-def reset_game():
-    global players, game_started, join_enabled
-    players.clear()
-    game_started = False
-    join_enabled = False
+#             await event.reply(
+#                 f'🎉 انتهت اللعبة.\n🏆 الفائز هو: {winner_mention}\n⏱️ مدة اللعب: {formatted_winner_duration}',
+#                 parse_mode='md'
+#             )
+#             reset_game()
+# def reset_game():
+#     global players, game_started, join_enabled
+#     players.clear()
+#     game_started = False
+#     join_enabled = False
 
 # @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 # async def injoin(event):
