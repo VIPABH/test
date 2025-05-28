@@ -122,21 +122,25 @@ async def track_inactive_players(chat_id):
         if not game:
             break
 
+        # ✅ جميع اللاعبين
         current_players = game["players"].copy()
-        active_now = set(متفاعل.get(chat_id, {}).keys())
-        inactive = current_players - active_now
 
-        for uid in inactive:
-            if uid in game["players"]:  # تحقق مزدوج
-                game["players"].discard(uid)
-                game["player_times"].pop(uid, None)
-                user = await ABH.get_entity(uid)
-                await ABH.send_message(
-                    chat_id,
-                    f'🚫 تم طرد اللاعب [{user.first_name}](tg://user?id={uid}) بسبب عدم التفاعل.',
-                    parse_mode='md'
-                )
+        # ✅ المتفاعلين في آخر 5 ثوانٍ
+        current_active = set(متفاعل.get(chat_id, {}).keys())
 
-        # ♻️ تصفير التفاعلات للدورة القادمة
+        # ❌ الذين لم يتفاعلوا أبدًا
+        inactive_players = current_players - current_active
+
+        for uid in inactive_players:
+            game["players"].discard(uid)
+            game["player_times"].pop(uid, None)
+            user = await ABH.get_entity(uid)
+            await ABH.send_message(
+                chat_id,
+                f'🚫 تم طرد اللاعب [{user.first_name}](tg://user?id={uid}) بسبب عدم التفاعل.',
+                parse_mode='md'
+            )
+
+        # ♻️ مسح سجل التفاعل لهذه الدورة
         متفاعل[chat_id] = {}
 ABH.run_until_disconnected()
