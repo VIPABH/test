@@ -72,7 +72,6 @@ async def show_players(event):
         mentions.append(f"[{user.first_name}](tg://user?id={uid})")
     await event.respond("👥 اللاعبون المسجلون:\n" + "\n".join(mentions), parse_mode='md')
 متفاعل = {}
-
 @ABH.on(events.NewMessage(incoming=True))
 async def monitor_messages(event):
     chat_id = event.chat_id
@@ -82,16 +81,13 @@ async def monitor_messages(event):
     if not game or not game["game_started"] or game["join_enabled"]:
         return
 
-    # 🔍 تحقق إذا كان المرسل أحد اللاعبين في اللعبة
+    # 🔸 تسجيل التفاعل
     if sender_id in game["players"]:
-        # ⏺️ تأكد من أن هناك قاموس فرعي للمجموعة
         if chat_id not in متفاعل:
             متفاعل[chat_id] = {}
+        متفاعل[chat_id][sender_id] = datetime.utcnow()
 
-        # ✅ أضف اللاعب لقاموس المتفاعلين مع وقت التفاعل (أو True)
-        متفاعل[chat_id][sender_id] = datetime.utcnow()  # أو متفاعل[chat_id][sender_id] = True
-
-    # ⏳ تحقق إن كان اللاعب رد على رسالة
+    # 🔸 التحقق من الرد على رسالة (خسارة)
     reply = await event.get_reply_message()
     asyncio.create_task(track_inactive_players(chat_id))
 
@@ -107,7 +103,7 @@ async def monitor_messages(event):
             parse_mode='md'
         )
 
-    # 🏆 إعلان الفائز
+    # 🔸 إعلان الفائز إن بقي لاعب واحد فقط
     if len(game["players"]) == 1:
         winner_id = next(iter(game["players"]))
         winner = await ABH.get_entity(winner_id)
@@ -126,25 +122,21 @@ async def track_inactive_players(chat_id):
         if not game:
             break
 
-        # 🧾 جلب اللاعبين الحاليين
         current_players = game["players"].copy()
-
-        # ✅ المتفاعلين خلال آخر 5 ثواني من قاموس متفاعل
         active_now = set(متفاعل.get(chat_id, {}).keys())
-
-        # ❌ اللاعبون غير المتفاعلين
         inactive = current_players - active_now
 
         for uid in inactive:
-            game["players"].discard(uid)
-            game["player_times"].pop(uid, None)
-            user = await ABH.get_entity(uid)
-            await ABH.send_message(
-                chat_id,
-                f'🚫 تم طرد اللاعب [{user.first_name}](tg://user?id={uid}) بسبب عدم التفاعل.',
-                parse_mode='md'
-            )
+            if uid in game["players"]:  # تحقق مزدوج
+                game["players"].discard(uid)
+                game["player_times"].pop(uid, None)
+                user = await ABH.get_entity(uid)
+                await ABH.send_message(
+                    chat_id,
+                    f'🚫 تم طرد اللاعب [{user.first_name}](tg://user?id={uid}) بسبب عدم التفاعل.',
+                    parse_mode='md'
+                )
 
-        # ♻️ إعادة تهيئة المتفاعلين لهذه المجموعة للدورة القادمة
+        # ♻️ تصفير التفاعلات للدورة القادمة
         متفاعل[chat_id] = {}
 ABH.run_until_disconnected()
