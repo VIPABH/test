@@ -23,7 +23,6 @@ def reset_game(chat_id):
     if chat_id in active_players:
         del active_players[chat_id]
 @ABH.on(events.NewMessage(pattern=r'^/(vagueness)$|^غموض$'))
-# @ABH.on(events.NewMessage(pattern=r'^/vagueness|غموض$'))
 async def vagueness_start(event):
     chat_id = event.chat_id
     games[chat_id] = {
@@ -34,7 +33,6 @@ async def vagueness_start(event):
     }
     active_players[chat_id] = set()
     await event.respond('🎮 تم بدء لعبة الغموض، يسجل اللاعبون عبر أمر `انا`')
-    # بدء مهمة دورية لطرد غير النشطين
 
 @ABH.on(events.NewMessage(pattern=r'^انا$'))
 async def register_player(event):
@@ -56,14 +54,12 @@ async def start_game(event):
     game = games.get(chat_id)
     if not game or not game["game_started"]:
         return
-    # if len(game["players"]) < 2:
-    #     await event.respond('🔒 عدد اللاعبين غير كافٍ لبدء اللعبة.')
-    #     reset_game(chat_id)
-    #     return
+    if len(game["players"]) < 2:
+        await event.respond('🔒 عدد اللاعبين غير كافٍ لبدء اللعبة.')
+        reset_game(chat_id)
+        return
     game["join_enabled"] = False
     await event.respond('✅ تم بدء اللعبة. الآن تفاعلوا بدون الرد على أي رسالة!')
-    asyncio.create_task(track_inactive_players(chat_id))
-
 @ABH.on(events.NewMessage(pattern=r'^اللاعبين$'))
 async def show_players(event):
     chat_id = event.chat_id
@@ -75,34 +71,48 @@ async def show_players(event):
         user = await ABH.get_entity(uid)
         mentions.append(f"[{user.first_name}](tg://user?id={uid})")
     await event.respond("👥 اللاعبون المسجلون:\n" + "\n".join(mentions), parse_mode='md')
+متفاعل = {}
 
 @ABH.on(events.NewMessage(incoming=True))
 async def monitor_messages(event):
     chat_id = event.chat_id
     sender_id = event.sender_id
+
     game = games.get(chat_id)
     if not game or not game["game_started"] or game["join_enabled"]:
         return
 
-    if chat_id not in active_players:
-        active_players[chat_id] = set()
-    active_players[chat_id].add(sender_id)
+    # 🔍 تحقق إذا كان المرسل أحد اللاعبين في اللعبة
+    if sender_id in game["players"]:
+        # ⏺️ تأكد من أن هناك قاموس فرعي للمجموعة
+        if chat_id not in متفاعل:
+            متفاعل[chat_id] = {}
+
+        # ✅ أضف اللاعب لقاموس المتفاعلين مع وقت التفاعل (أو True)
+        متفاعل[chat_id][sender_id] = datetime.utcnow()  # أو متفاعل[chat_id][sender_id] = True
+
+    # ⏳ تحقق إن كان اللاعب رد على رسالة
     reply = await event.get_reply_message()
     asyncio.create_task(track_inactive_players(chat_id))
+
     if sender_id in game["players"] and reply and sender_id in game["player_times"]:
         now = datetime.utcnow()
         game["player_times"][sender_id]["end"] = now
         duration = now - game["player_times"][sender_id]["start"]
+
         mention = f"[{(await ABH.get_entity(sender_id)).first_name}](tg://user?id={sender_id})"
         game["players"].remove(sender_id)
         await event.reply(
             f'🚫 اللاعب {mention} رد على رسالة وخسر!\n⏱️ مدة اللعب: {format_duration(duration)}',
             parse_mode='md'
         )
+
+    # 🏆 إعلان الفائز
     if len(game["players"]) == 1:
         winner_id = next(iter(game["players"]))
         winner = await ABH.get_entity(winner_id)
         win_time = datetime.utcnow() - game["player_times"][winner_id]["start"]
+
         await event.reply(
             f'🎉 انتهت اللعبة.\n🏆 الفائز هو: [{winner.first_name}](tg://user?id={winner_id})\n⏱️ مدة اللعب: {format_duration(win_time)}',
             parse_mode='md'
@@ -110,35 +120,31 @@ async def monitor_messages(event):
         reset_game(chat_id)
 async def track_inactive_players(chat_id):
     while chat_id in games and games[chat_id]["game_started"]:
-        await asyncio.sleep(3)  # 5 دقائق
+        await asyncio.sleep(5)
 
         game = games.get(chat_id)
         if not game:
             break
 
-        # جلب اللاعبين المسجلين
-        registered_players = game["players"].copy()
-        # جلب المتفاعلين خلال الـ5 دقائق الماضية
-        active_now = active_players.get(chat_id, set())
+        # 🧾 جلب اللاعبين الحاليين
+        current_players = game["players"].copy()
 
-        # تحديد من لم يتفاعل أبدًا خلال الفترة
-        inactive = registered_players - active_now
+        # ✅ المتفاعلين خلال آخر 5 ثواني من قاموس متفاعل
+        active_now = set(متفاعل.get(chat_id, {}).keys())
+
+        # ❌ اللاعبون غير المتفاعلين
+        inactive = current_players - active_now
 
         for uid in inactive:
             game["players"].discard(uid)
             game["player_times"].pop(uid, None)
-            try:
-                user = await ABH.get_entity(uid)
-                mention = f"[{user.first_name}](tg://user?id={uid})"
-            except:
-                mention = f"مستخدم {uid}"
+            user = await ABH.get_entity(uid)
             await ABH.send_message(
                 chat_id,
-                f'🚫 تم طرد اللاعب {mention} بسبب عدم التفاعل خلال 5 دقائق.',
+                f'🚫 تم طرد اللاعب [{user.first_name}](tg://user?id={uid}) بسبب عدم التفاعل.',
                 parse_mode='md'
             )
 
-        # إعادة تعيين المتفاعلين للدورة القادمة
-        active_players[chat_id] = set()
-
+        # ♻️ إعادة تهيئة المتفاعلين لهذه المجموعة للدورة القادمة
+        متفاعل[chat_id] = {}
 ABH.run_until_disconnected()
