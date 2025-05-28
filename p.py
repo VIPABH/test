@@ -94,7 +94,7 @@ async def monitor_messages(event):
             await announce_winner(chat_id)
 async def track_inactive_players(chat_id):
     while chat_id in games and games[chat_id]["game_started"]:
-        await asyncio.sleep(5)
+        await asyncio.sleep(60)
         game = games.get(chat_id)
         if not game:
             break
