@@ -87,7 +87,7 @@ async def monitor_messages(event):
         game["players"].remove(sender_id)
         game["player_times"].pop(sender_id, None)
         await event.reply(
-            f'🚫 اللاعب {mention} رد على رسالة وخسر!\n⏱️ مدة اللعب: {format_duration(duration)}',
+            f' اللاعب {mention} رد على رسالة وخسر!\n⏱️ مدة اللعب: {format_duration(duration)}',
             parse_mode='md'
         )
         if len(game["players"]) == 1:
@@ -107,7 +107,7 @@ async def track_inactive_players(chat_id):
             user = await ABH.get_entity(uid)
             await ABH.send_message(
                 chat_id,
-                f'🚫 تم طرد اللاعب [{user.first_name}](tg://user?id={uid}) بسبب عدم التفاعل.',
+                f' تم طرد اللاعب [{user.first_name}](tg://user?id={uid}) بسبب عدم التفاعل.',
                 parse_mode='md'
             )
         active_players[chat_id] = set()
