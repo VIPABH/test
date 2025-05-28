@@ -122,13 +122,8 @@ async def track_inactive_players(chat_id):
         if not game:
             break
 
-        # ✅ جميع اللاعبين
         current_players = game["players"].copy()
-
-        # ✅ المتفاعلين في آخر 5 ثوانٍ
         current_active = set(متفاعل.get(chat_id, {}).keys())
-
-        # ❌ الذين لم يتفاعلوا أبدًا
         inactive_players = current_players - current_active
 
         for uid in inactive_players:
@@ -141,6 +136,19 @@ async def track_inactive_players(chat_id):
                 parse_mode='md'
             )
 
-        # ♻️ مسح سجل التفاعل لهذه الدورة
+        # بعد الطرد، تحقق إذا بقي لاعب واحد فقط => إعلان الفائز
+        if len(game["players"]) == 1:
+            winner_id = next(iter(game["players"]))
+            winner = await ABH.get_entity(winner_id)
+            win_time = datetime.utcnow() - game["player_times"][winner_id]["start"]
+
+            await ABH.send_message(
+                chat_id,
+                f'🎉 انتهت اللعبة.\n🏆 الفائز هو: [{winner.first_name}](tg://user?id={winner_id})\n⏱️ مدة اللعب: {format_duration(win_time)}',
+                parse_mode='md'
+            )
+            reset_game(chat_id)  # إعادة تعيين اللعبة بعد انتهاء الجولة
+            break  # خروج من الحلقة لإنهاء المراقبة
+
         متفاعل[chat_id] = {}
 ABH.run_until_disconnected()
