@@ -27,7 +27,7 @@ async def vagueness_start(event):
         "join_enabled": True
     }
     active_players[chat_id] = set()
-    await event.respond('🎮 تم بدء لعبة الغموض، يسجل اللاعبون عبر أمر `انا`')
+    await event.respond(' تم بدء لعبة الغموض، يسجل اللاعبون عبر أمر `انا`')
 @ABH.on(events.NewMessage(pattern=r'^انا$'))
 async def register_player(event):
     chat_id = event.chat_id
@@ -36,11 +36,11 @@ async def register_player(event):
     if not game or not game["game_started"] or not game["join_enabled"]:
         return
     if user_id in game["players"]:
-        await event.respond('✅ أنت مسجل مسبقًا.')
+        await event.respond('اسمك موجود بالفعل في اللعبة.')
         return
     game["players"].add(user_id)
     game["player_times"][user_id] = {"start": datetime.utcnow()}
-    await event.respond('📝 تم تسجيلك، انتظر بدء اللعبة.')
+    await event.respond('تم تسجيلك، انتظر بدء اللعبة.')
 @ABH.on(events.NewMessage(pattern=r'^تم$'))
 async def start_game(event):
     chat_id = event.chat_id
@@ -48,11 +48,11 @@ async def start_game(event):
     if not game or not game["game_started"]:
         return
     if len(game["players"]) < 2:
-        await event.respond('🔒 عدد اللاعبين غير كافٍ لبدء اللعبة.')
+        await event.respond('عدد اللاعبين غير كافٍ لبدء اللعبة.')
         reset_game(chat_id)
         return
     game["join_enabled"] = False
-    await event.respond('✅ تم بدء اللعبة. الآن تفاعلوا بدون الرد على أي رسالة!')
+    await event.respond('تم بدء اللعبة , اي رد على رسالة سيؤدي لخسارة اللاعب.')
 @ABH.on(events.NewMessage(pattern=r'^اللاعبين$'))
 async def show_players(event):
     chat_id = event.chat_id
@@ -63,7 +63,7 @@ async def show_players(event):
     for uid in game["players"]:
         user = await ABH.get_entity(uid)
         mentions.append(f"[{user.first_name}](tg://user?id={uid})")
-    await event.respond("👥 اللاعبون المسجلون:\n" + "\n".join(mentions), parse_mode='md')
+    await event.respond("👥 **اللاعبون المسجلون**\n" + "● \n".join(mentions), parse_mode='md')
 @ABH.on(events.NewMessage(incoming=True))
 async def monitor_messages(event):
     chat_id = event.chat_id
@@ -107,7 +107,7 @@ async def track_inactive_players(chat_id):
             user = await ABH.get_entity(uid)
             await ABH.send_message(
                 chat_id,
-                f' تم طرد اللاعب [{user.first_name}](tg://user?id={uid}) بسبب عدم التفاعل.',
+                f'اللاعب [{user.first_name}](tg://user?id={uid}) اصابته لعنة غامضة سببتله طرد من اللعبة!\n⏱️ مدة اللعب: {format_duration(datetime.utcnow() - game["player_times"][uid]["start"])}',
                 parse_mode='md'
             )
         active_players[chat_id] = set()
@@ -124,7 +124,7 @@ async def announce_winner(chat_id):
     win_time = datetime.utcnow() - game["player_times"][winner_id]["start"]
     await ABH.send_message(
         chat_id,
-        f'🎉 انتهت اللعبة.\n🏆 الفائز هو: [{winner.first_name}](tg://user?id={winner_id})\n⏱️ مدة اللعب: {format_duration(win_time)}',
+        f'فاز اللاعب [{winner.first_name}](tg://user?id={winner_id}) في ضل تزايد اللعنات\n⏱️ مدة اللعب: {format_duration(win_time)}',
         parse_mode='md'
     )
     reset_game(chat_id)
