@@ -63,7 +63,7 @@ async def show_players(event):
     for uid in game["players"]:
         user = await ABH.get_entity(uid)
         mentions.append(f"[{user.first_name}](tg://user?id={uid})")
-    await event.respond("👥 **اللاعبون المسجلون**\n" + "● \n".join(mentions), parse_mode='md')
+    await event.respond("👥 **اللاعبون المسجلون**\n" + "\n ●".join(mentions), parse_mode='md')
 @ABH.on(events.NewMessage(incoming=True))
 async def monitor_messages(event):
     chat_id = event.chat_id
