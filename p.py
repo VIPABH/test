@@ -18,12 +18,6 @@ if not os.path.exists("anti_ban"):
 
 @bot.on(events.NewMessage)
 async def anti_spam_ban_word(event):
-    if not event.is_group and not event.is_channel:
-        return
-
-    if "حظر" not in event.text:
-        return
-
     sender = await event.get_sender()
     user_id = sender.id
     chat_id = event.chat_id
