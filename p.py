@@ -43,3 +43,4 @@ async def handler(event):
     reply_value = r.get(key)
     if reply_value:
         await event.reply(reply_value)
+ABH.run_until_disconnected()
