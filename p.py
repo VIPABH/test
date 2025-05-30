@@ -21,7 +21,7 @@ async def anti_spam_ban_word(event):
     if not event.is_group and not event.is_channel:
         return
 
-    if "حظر" not in event.raw_text:
+    if "حظر" not in event.text:
         return
 
     sender = await event.get_sender()
