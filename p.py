@@ -4,21 +4,14 @@ api_id = int(os.environ.get('API_ID'))
 api_hash = os.environ.get('API_HASH')
 bot_token = os.environ.get('BOT_TOKEN')
 bot = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
-
 r = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
-
-# تخزين الحالات المؤقتة للمستخدمين
 user_states = {}
-
 @bot.on(events.NewMessage)
 async def handler(event):
     user_id = event.sender_id
     text = event.raw_text.strip()
-    
-    # تحقق إذا المستخدم في وضع "إضافة رد"
     if user_id in user_states:
         state = user_states[user_id]
-        
         if state["step"] == "name":
             state["name"] = text
             state["step"] = "text"
@@ -31,14 +24,10 @@ async def handler(event):
             user_states.pop(user_id)
             await event.reply(f"✅ تم حفظ الرد باسم: {reply_name}")
         return
-
-    # بدء مرحلة إضافة رد
     if text.lower() == "اضف رد":
         user_states[user_id] = {"step": "name"}
         await event.reply("✏️ أرسل الآن **اسم الرد**.")
         return
-
-    # محاولة استرجاع رد محفوظ
     key = f"رد:{text}"
     reply_value = r.get(key)
     if reply_value:
