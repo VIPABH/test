@@ -16,9 +16,12 @@ bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 if not os.path.exists("anti_ban"):
     os.makedirs("anti_ban")
 
-@bot.on(events.NewMessage(pattern="حظر"))
+@bot.on(events.NewMessage)
 async def anti_spam_ban_word(event):
     if not event.is_group and not event.is_channel:
+        return
+
+    if "حظر" not in event.raw_text:
         return
 
     sender = await event.get_sender()
@@ -48,9 +51,9 @@ async def anti_spam_ban_word(event):
             await bot.edit_permissions(
                 chat_id,
                 user_id,
-                view_messages=False  # كتمه
+                view_messages=False  # كتم المستخدم
             )
-            await event.reply(f"🚫 تم كتم [{user_id}](tg://user?id={user_id}) لأنه أرسل كلمة 'حظر' أكثر من 5 مرات خلال 5 ثوانٍ.")
+            await event.reply(f"🚫 تم كتم [{user_id}](tg://user?id={user_id}) لأنه كتب كلمة 'حظر' أكثر من 5 مرات خلال 5 ثوانٍ.")
         except Exception as e:
             await event.reply(f"❌ فشل في كتم المستخدم: {e}")
 
