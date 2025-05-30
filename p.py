@@ -1,12 +1,10 @@
 from telethon import TelegramClient, events
-import redis
+import redis, os
+api_id = int(os.environ.get('API_ID'))
+api_hash = os.environ.get('API_HASH')
+bot_token = os.environ.get('BOT_TOKEN')
+bot = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
 
-# إعدادات Telethon
-api_id = 123456
-api_hash = 'your_api_hash'
-bot_token = 'your_bot_token'
-
-bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 r = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
 
 # تخزين الحالات المؤقتة للمستخدمين
