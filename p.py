@@ -1,7 +1,7 @@
 from helpers import *
-import os
 
-bot = os.getenv("BOT_TOKEN")
+
+bot = telebot.TeleBot("توكن")
 
 
 
