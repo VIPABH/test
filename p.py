@@ -1,51 +1,54 @@
 import os
+import subprocess
 from telethon import TelegramClient, events
-import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# إعدادات سبوتيفاي
-SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
-SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+api_id = int(os.getenv("API_ID"))
+api_hash = os.getenv("API_HASH")
+bot_token = os.getenv("BOT_TOKEN")
 
-client_credentials_manager = SpotifyClientCredentials(
-    client_id=SPOTIFY_CLIENT_ID, client_secret=SPOTIFY_CLIENT_SECRET)
-sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+bot = TelegramClient("spotify_bot", api_id, api_hash).start(bot_token=bot_token)
 
-# إعدادات تيليجرام
-API_ID = int(os.getenv("API_ID"))
-API_HASH = os.getenv("API_HASH")
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+# المسار الذي سيتم فيه حفظ ملفات MP3
+DOWNLOAD_DIR = "spotify_downloads"
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-bot = TelegramClient('bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+def download_spotify_audio(spotify_url):
+    try:
+        result = subprocess.run(
+            ["spotdl", spotify_url, "--output", f"{DOWNLOAD_DIR}/"],
+            capture_output=True, text=True
+        )
+        print(result.stdout)
+        
+        # البحث عن ملف MP3 داخل المجلد
+        for file in os.listdir(DOWNLOAD_DIR):
+            if file.endswith(".mp3"):
+                return os.path.join(DOWNLOAD_DIR, file)
+    except Exception as e:
+        print(f"❌ خطأ أثناء التنزيل: {e}")
+        return None
 
-@bot.on(events.NewMessage(pattern=r'^\.اغنية (.+)'))
-async def search_song(event):
-    query = event.pattern_match.group(1)
-    await event.reply(f"🔍 جارٍ البحث عن الأغنية: {query}")
+@bot.on(events.NewMessage(pattern=r'^/spotify (.+)'))
+async def handler(event):
+    url = event.pattern_match.group(1).strip()
+    
+    await event.reply("🔄 جاري تحميل الصوت من Spotify...")
+
+    audio_path = download_spotify_audio(url)
+    if not audio_path:
+        await event.reply("❌ فشل التنزيل. تأكد من أن الرابط صحيح.")
+        return
 
     try:
-        results = sp.search(q=query, type='track', limit=1)
-        if results['tracks']['items']:
-            track = results['tracks']['items'][0]
-            name = track['name']
-            artist = track['artists'][0]['name']
-            album = track['album']['name']
-            spotify_url = track['external_urls']['spotify']
-
-            response = (
-                f"🎵 **اسم الأغنية:** {name}\n"
-                f"👤 **الفنان:** {artist}\n"
-                f"💿 **الألبوم:** {album}\n"
-                f"🔗 [استمع على Spotify]({spotify_url})"
-            )
-            await event.reply(response, link_preview=False)
-        else:
-            await event.reply("⚠️ لم أتمكن من العثور على الأغنية المطلوبة.")
+        await bot.send_file(event.chat_id, file=audio_path, reply_to=event.id)
+        await event.reply("✅ تم الإرسال بنجاح.")
     except Exception as e:
-        await event.reply(f"⚠️ حدث خطأ أثناء البحث: {str(e)}")
+        await event.reply(f"⚠️ حدث خطأ أثناء الإرسال: {e}")
+    finally:
+        os.remove(audio_path)
 
-print("🤖 البوت بدأ العمل...")
+print("🤖 بوت Spotify يعمل...")
 bot.run_until_disconnected()
