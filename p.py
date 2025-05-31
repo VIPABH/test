@@ -1,7 +1,7 @@
 from helpers import *
 import os
 
-bot_token = os.getenv("BOT_TOKEN")
+bot = os.getenv("BOT_TOKEN")
 
 
 
