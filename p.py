@@ -22,8 +22,10 @@ def download_audio(url, output_path):
             'preferredquality': '192',
         }],
     }
+    print(f"🔄 جاري تحميل الصوت إلى: {output_path}")
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
+    print("✅ تم تحميل الملف بنجاح.")
 
 def get_first_soundcloud_track(query):
     search_url = f"https://m.soundcloud.com/search?q={query}"
@@ -45,10 +47,16 @@ async def soundcloud_handler(event):
         await event.reply('⚠️ لم أتمكن من العثور على مقطع صوتي لهذا البحث.')
         return
 
+    if not os.path.exists('downloads'):
+        os.makedirs('downloads')
+
     output_file = f'downloads/{event.sender_id}_{event.id}.mp3'
     try:
         download_audio(soundcloud_url, output_file)
-        await client.send_file(event.chat_id, output_file, caption=f'صوت من ساوند كلاود: {query}')
+        if os.path.exists(output_file):
+            await client.send_file(event.chat_id, output_file, caption=f'صوت من ساوند كلاود: {query}')
+        else:
+            await event.reply('⚠️ لم يتم إنشاء ملف الصوت بنجاح.')
     except Exception as e:
         await event.reply(f'⚠️ حدث خطأ أثناء التحميل أو الإرسال: {e}')
     finally:
