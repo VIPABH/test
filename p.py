@@ -1,13 +1,50 @@
-import requests 
-import re
-query = input("==>  ")
-data = requests.get(f"https://m.soundcloud.com/search?q={query}")
+import os
+from telethon import TelegramClient, events
+import yt_dlp
 
-result = []
-urls = re.findall(r'data-testid="cell-entity-link" href="([^"]+)', data.text)
-photos = re.findall(r'src="(https://i1.sndcdn.com/[^"]+)" data-testid="actual-image"', data.text)
-names = re.findall(r'<div class="Information_CellTitle__2KitR">([^<]+)', data.text)
-for i in range(len(urls)): result.append({'photo': photos[i], 'title': names[i], 'url': f'https://soundcloud.com{urls[i]}'})
-for a in result:
- print(a)
- print("\n\n")
+# تحميل القيم من المتغيرات البيئية (Environment Variables)
+API_ID = int(os.getenv('API_ID'))
+API_HASH = os.getenv('API_HASH')
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+
+client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+
+# دالة لتحميل الصوت من ساوند كلاود (أو أي رابط مدعوم)
+def download_audio(url, output_path):
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': output_path,
+        'quiet': True,
+        'no_warnings': True,
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
+# حدث عند استقبال رسالة تبدأ بـ ".صوت "
+@client.on(events.NewMessage(pattern=r'^\.صوت (.+)'))
+async def soundcloud_handler(event):
+    query = event.pattern_match.group(1)
+    await event.reply(f'🔍 جاري البحث وتحميل الصوت لـ: {query} ...')
+
+    # **هنا يجب عليك البحث عن رابط مباشر لمقطع الصوت في ساوند كلاود**
+    # للشرح، سأضع رابطًا ثابتًا كمثال (استبدل هذا بالرابط الفعلي بناءً على البحث)
+    soundcloud_url = 'https://soundcloud.com/artist/track'  # استبدل بالرابط الصحيح
+
+    output_file = f'downloads/{event.sender_id}_{event.id}.mp3'
+    try:
+        download_audio(soundcloud_url, output_file)
+        await client.send_file(event.chat_id, output_file, caption=f'صوت من ساوند كلاود: {query}')
+    except Exception as e:
+        await event.reply(f'⚠️ حدث خطأ أثناء التحميل أو الإرسال: {e}')
+    finally:
+        if os.path.exists(output_file):
+            os.remove(output_file)
+
+print("🤖 بوت تيليجرام يعمل...")
+
+client.run_until_disconnected()
