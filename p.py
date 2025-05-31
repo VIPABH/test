@@ -1,69 +1,79 @@
-import os
-import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from telethon import TelegramClient, events
-from telethon.tl.functions.channels import EditBannedRequest
-from telethon.tl.types import ChatBannedRights
+import requests
+import time
+import os
 from dotenv import load_dotenv
 
+# تحميل المتغيرات البيئية
 load_dotenv()
-
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
 
-ABH = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
+# إنشاء جلسة البوت
+bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# تخزين بيانات كل مستخدم: عداد الحظر وأول وقت حظر في النافذة الزمنية
-user_ban_data = {}
+# دالة تحميل أول صورتين من بحث الصور
+def download_first_two_images(query):
+    driver = webdriver.Chrome()  # تأكد من وجود chromedriver في نفس المجلد أو في PATH
+    image_paths = []
 
-@ABH.on(events.NewMessage(pattern='^(حظر|.حظر|حظر$|/حظر)(.*)'))
-async def anti_spam_ban(event):
-    user_id = event.sender_id
-    now = time.time()
+    try:
+        driver.get("https://www.google.com/imghp?hl=ar")
 
-    # قراءة الجزء المرفق بعد الأمر (مثلاً اسم المستخدم أو المعرف)
-    target = event.pattern_match.group(2).strip()
+        # قبول الكوكيز إذا ظهرت
+        try:
+            consent_button = driver.find_element(By.XPATH, "//button[contains(., 'أوافق') or contains(., 'Accept all')]")
+            consent_button.click()
+        except:
+            pass
 
-    if not target:
-        await event.reply("**يرجى تحديد المستخدم الذي تريد حظره.**")
+        # تنفيذ البحث
+        search_box = driver.find_element(By.NAME, "q")
+        search_box.send_keys(query)
+        search_box.send_keys(Keys.RETURN)
+
+        time.sleep(3)
+
+        # الحصول على أول صورتين
+        images = driver.find_elements(By.XPATH, "//img[contains(@class, 'rg_i')]")[:2]
+        for i, img in enumerate(images, start=1):
+            src = img.get_attribute("src") or img.get_attribute("data-src")
+            if src:
+                img_data = requests.get(src).content
+                img_path = f"image_{i}.jpg"
+                with open(img_path, 'wb') as f:
+                    f.write(img_data)
+                image_paths.append(img_path)
+                print(f"✅ تم تحميل الصورة {i}")
+
+    finally:
+        driver.quit()
+
+    return image_paths
+
+# التعامل مع أمر /صور
+@bot.on(events.NewMessage(pattern=r'^/صور (.+)'))
+async def handler(event):
+    query = event.pattern_match.group(1)
+    await event.reply("🔍 جاري البحث عن الصور ...")
+    image_paths = download_first_two_images(query)
+
+    if not image_paths:
+        await event.reply("❌ لم يتم العثور على صور.")
         return
 
-    # تهيئة بيانات المستخدم إن لم تكن موجودة
-    if user_id not in user_ban_data:
-        user_ban_data[user_id] = {"count": 0, "first_time": now}
+    for path in image_paths:
+        await bot.send_file(
+            entity=event.chat_id,
+            file=path,
+            reply_to=event.id
+        )
+        os.remove(path)
 
-    data = user_ban_data[user_id]
-
-    # إذا مرت أكثر من 5 ثواني على أول عملية حظر، إعادة التهيئة
-    if now - data["first_time"] > 5:
-        data["count"] = 0
-        data["first_time"] = now
-
-    # زيادة عداد الحظر
-    data["count"] += 1
-
-    # تنفيذ عملية الحظر (هنا فقط رد مؤقت، يمكنك تعديلها لتنفيذ حظر فعلي)
-    await event.reply(f"**جاري حظر {target}**")
-
-    # إذا تجاوز المستخدم 5 حظرات خلال 5 ثواني
-    if data["count"] >= 5:
-        try:
-            # تقييد المستخدم نفسه في نفس الشات (كتم ومنع إرسال رسائل)
-            rights = ChatBannedRights(
-                until_date=None,
-                send_messages=True,
-                send_media=True,
-                send_stickers=True,
-                send_gifs=True,
-                send_games=True,
-                send_inline=True,
-                embed_links=True
-            )
-            await ABH(EditBannedRequest(event.chat_id, user_id, rights))
-            await event.reply(f"🚫 تم تقييد المستخدم [{user_id}](tg://user?id={user_id}) بسبب تكرار الحظر خلال 5 ثوانٍ.")
-            # إعادة تهيئة العداد بعد التقييد
-            user_ban_data[user_id] = {"count": 0, "first_time": now}
-        except Exception as e:
-            await event.reply(f"❌ فشل في تقييد المستخدم: {e}")
-
-ABH.run_until_disconnected()
+# تشغيل البوت
+print("✅ البوت يعمل الآن.")
+bot.run_until_disconnected()
