@@ -19,7 +19,6 @@ def myChannelButton(username:str=None):
 
 
 import re
-
 @bot.message_handler(func=lambda message: message.text.startswith(("يوت ", "يوتيوب ")))
 def handle_youtube_search(message):
     user_id = message.from_user.id
@@ -29,7 +28,6 @@ def handle_youtube_search(message):
     ddtyt.delfile(f"{user_id}_{chat_id}.json")
     data = ddtyt.word2links(message, search_query)
     markup = ddtyt.generate_markup(data, 'yt_close', message)
-    bot.send_message(chat_id, f"نتائج البحث عن: {search_query}", reply_markup=markup)
     if myus:
         btn = myChannelButton(myus)
         markup.add(btn)
