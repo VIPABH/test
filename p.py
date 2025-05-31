@@ -4,6 +4,11 @@ import subprocess
 from telethon import events
 
 DOWNLOADS_DIR = "downloads"
+api_id = int(os.getenv("API_ID"))
+api_hash = os.getenv("API_HASH")
+bot_token = os.getenv("BOT_TOKEN")
+
+bot = TelegramClient('bot_session', api_id, api_hash).start(bot_token=bot_token)
 
 @bot.on(events.NewMessage(pattern=r'^\.صوت (.+)'))
 async def audio_handler(event):
