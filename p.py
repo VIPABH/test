@@ -67,33 +67,24 @@ final = Client("youtube_audio_bot", api_id=API_ID, api_hash=API_HASH, bot_token=
 async def start(client, message):
     await message.reply("مرحباً! أرسل:\n\nيوت + اسم الأغنية")
 x = 0
-@final.on_message(filters.regex(r"^(يوت|yt) (.+)"))
+@final.on_message(filters.regex(r"^(يوت |yt) (.+)"))
 async def download_audio(client, message):
     query = message.text.split(" ", 1)[1]
-    wait_message = await message.reply("⏳ جاري البحث عن وتحميل الصوت... 🎧")
 
     ydl = YoutubeDL(YDL_OPTIONS)
-    try:
-        info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
-        if 'entries' in info and len(info['entries']) > 0:
-            info = info['entries'][0]
-            file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
-            await client.send_audio(  
-                chat_id=1910015590,
-                audio=file_path,
-                title=info.get("title"),
-                performer=info.get("uploader"),
-                reply_to_message_id=message.id, 
-                caption=f'{x}'  
-            )
-            x += 1
-            await wait_message.delete()
-            os.remove(file_path)
-        else:
-            await wait_message.edit("🚫 لم يتم العثور على نتائج للبحث.")
-    except Exception as e:
-        await wait_message.edit(f"🚫 حدث خطأ أثناء التحميل:\n{e}")
-    finally:
-        pass
+    info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
+    if 'entries' in info and len(info['entries']) > 0:
+        info = info['entries'][0]
+        file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
+        await client.send_audio(  
+            chat_id=1910015590,
+            audio=file_path,
+            title=info.get("title"),
+            performer=info.get("uploader"),
+            reply_to_message_id=message.id, 
+            caption=f'{x}'  
+        )
+        x += 1
+        os.remove(file_path)
 
 final.run()
