@@ -1,64 +1,211 @@
-import os
-import glob
-import subprocess
-from dotenv import load_dotenv
-from telethon import TelegramClient, events
+from helpers import *
 
 
-DOWNLOADS_DIR = "downloads"
-api_id = int(os.getenv("API_ID"))
-api_hash = os.getenv("API_HASH")
-bot_token = os.getenv("BOT_TOKEN")
+bot = telebot.TeleBot("توكن")
 
-bot = TelegramClient('bot_session', api_id, api_hash).start(bot_token=bot_token)
 
-@bot.on(events.NewMessage(pattern=r'^\.صوت (.+)'))
-async def audio_handler(event):
-    query = event.pattern_match.group(1)
-    await event.reply(f"🔍 جارٍ البحث عن: {query}")
 
-    try:
-        # تأكد من وجود مجلد التنزيل
-        os.makedirs(DOWNLOADS_DIR, exist_ok=True)
-        
-        # مسح الملفات القديمة
-        for old_file in glob.glob(f"{DOWNLOADS_DIR}/*.mp3"):
-            os.remove(old_file)
 
-        output_path = os.path.join(DOWNLOADS_DIR, "%(id)s.%(ext)s")
+# تكدر تخلي يوزرنيم قناتك اذا جانت عندك قناة
+myus = "" # @يوزر نيم  => @username
+# اذا ماعندك قناة خليه فارغ
 
-        # تحميل الصوت
-        result = subprocess.run(
-            ["yt-dlp", "--extract-audio", "--audio-format", "mp3", "-o", output_path, f"ytsearch1:{query}"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
 
-        if result.returncode != 0:
-            await event.reply(f"⚠️ خطأ في yt-dlp:\n{result.stderr}")
-            return
 
-        # العثور على الملف الناتج
-        files = glob.glob(f"{DOWNLOADS_DIR}/*.mp3")
-        if not files:
-            await event.reply("⚠️ لم يتم العثور على أي ملف صوتي.")
-            return
 
-        mp3_file = files[0]
+def myChannelButton(username:str=None):
+    if username:
+        ch = bot.get_chat(username)
+        username = username.replace("@", "")
+        return InlineKeyboardButton(text=ch.title, url=f"https://t.me/{username}")
 
-        # التحقق من الحجم (Telegram limit ~50MB)
-        size_mb = os.path.getsize(mp3_file) / (1024 * 1024)
-        if size_mb > 49:
-            await event.reply(f"⚠️ الملف كبير جدًا: {size_mb:.2f}MB، الحد المسموح 49MB.")
-            return
 
-        # الإرسال
-        await bot.send_file(event.chat_id, file=mp3_file, reply_to=event.id)
+@bot.message_handler(func=lambda message: message.text.startswith(("يوت ", "يوتيوب ")))
+def handle_youtube_search(message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    search_query = re.sub(r"^(يوت|يوتيوب)\s+", "", message.text, count=1).strip()
+    ddtyt = yUtube_data(user_id, chat_id)
+    ddtyt.delfile(f"{message.from_user.id}_{message.chat.id}.json")
+    data = ddtyt.word2links(message, search_query)
+    markup = ddtyt.generate_markup(data, 'yt_close', message)
+    if myus:
+        btn = myChannelButton(myus)
+        markup.add(btn)
+    bot.send_message(message.chat.id, text='____', reply_markup=markup)
+    ddtyt.set_value("fmsg", message.id)
+    ddtyt.set_value("ftime", datetime.now())
+    ddtyt.deldata("ftime")
 
-        # حذف الملف
-        os.remove(mp3_file)
 
-    except Exception as e:
-        await event.reply(f"⚠️ حدث خطأ: {e}")
-bot.run_until_disconnected()
+@bot.callback_query_handler(func=lambda call : True)
+def quhndr(call:telebot.types.CallbackQuery):
+    data = call.data
+    data = call.data
+    msg = call.message
+
+    chat_id = msg.chat.id
+    msg_id = msg.id
+    user_id = call.from_user.id
+    ddtyt = yUtube_data(user_id, chat_id)
+    FILENAME = f"{call.from_user.id}_{msg.chat.id}.json"
+    if "YT" in data:
+        extracted_data  = ddtyt.extract_data_yt(data, 'YT')
+        ID = extracted_data['id']
+        userID = extracted_data['user_id']
+        chatID = extracted_data['chat_id']
+        if userID == user_id and chatID == chat_id: 
+            my_data = ddtyt.view_items(FILENAME)
+            for i_d in my_data:
+                if i_d['id'] == ID:
+                    mrkup = ddtyt.select_type_mrkup_yt(ID, call)
+                    if myus:
+                        btn = myChannelButton(myus)
+                        mrkup.add(btn)
+                    # caption = f"{i_d['title']} \n[duration = {i_d['duration']}]\n`"
+                    caption = ddtyt.detxt(i_d['title'], i_d['duration'])
+                    bot.delete_message(chat_id, msg_id)
+                    send_data = {
+                        "chat_id": chat_id,
+                        "caption": caption,
+                        "reply_markup": mrkup,
+                        "photo": i_d['thumbnails'][-1],
+                        # "reply_to_message_id": msg_id
+                        "parse_mode": 'html',
+                    }
+                    m = bot.send_photo(**send_data)
+                    ddtyt.set_value("mmsg", m.id)
+                    ddtyt.set_value("mtime", datetime.now())
+                    ddtyt.deldata("mtime")
+                    return
+
+    elif "vidyt" in data:
+        extracted_data  = ddtyt.extract_data_yt(data, "vidyt")
+        ID = extracted_data['id']
+        userID = extracted_data['user_id']
+        chatID = extracted_data['chat_id']
+        if userID == user_id and chatID == chat_id: 
+            downloadingtext = "تم التحميل ارجاء الانتظار\n"
+            senddingtext = "يتم الارسال الرجاء الانتظار \n"
+            m = bot.send_message(chat_id, downloadingtext+ ddtyt.step_text*2)
+            my_data = ddtyt.view_items(FILENAME)
+            m = bot.edit_message_text(chat_id=chat_id,message_id=m.id, text= downloadingtext+ ddtyt.step_text*4)
+            for i_d in my_data:
+                if i_d['id'] == ID:
+                    mrkup = None
+                    if myus:
+                        mrkup = InlineKeyboardMarkup()
+                        btn = myChannelButton(myus)
+                        mrkup.add(btn)
+                    bot.send_chat_action(chat_id, "upload_video")
+                    file_name = f"{user_id}_{chat_id}_{ID}"
+                    bot.delete_message(chat_id, msg_id)
+                    m = bot.edit_message_text(chat_id=chat_id,message_id=m.id, text= downloadingtext+ ddtyt.step_text*6)
+                    media = ddtyt.get_yt_link_by_id('video', ID, file_name)
+                    m = bot.edit_message_text(chat_id=chat_id,message_id=m.id, text= downloadingtext+ ddtyt.step_text*7)
+                    # caption = f"""<b>{i_d['title']} \nالمدة 🥟: = {i_d['duration']}\nُ </b>"""
+                    caption = ddtyt.detxt(i_d['title'], i_d['duration'])
+                    bot.send_chat_action(chat_id, "upload_video")
+                    try:
+                        m = bot.edit_message_text(chat_id=chat_id,message_id=m.id, text= senddingtext)
+                        with open(media, 'rb') as file:
+                            send_data = {
+                                "thumbnail": None,
+                                "chat_id": chat_id,
+                                # "width": 120,
+                                # "height": 150,
+                                "caption": caption,
+                                "reply_markup": mrkup,
+                                "video": file, # if media if file
+                                "reply_to_message_id": ddtyt.get_value('fmsg'),
+                                "parse_mode": 'html',
+                            }
+                            bot.send_video(**send_data, timeout=100)
+                            try:
+                                bot.delete_message(chat_id, m.id)
+                            except:
+                                ...
+                            file.close()
+                    except:
+                        ...
+                    ddtyt.delfile(FILENAME)
+                    ddtyt.del_user()
+                    ddtyt.delfile(media)
+
+    elif "audyt" in data:
+        extracted_data  = ddtyt.extract_data_yt(data, "audyt")
+        ID = extracted_data['id']
+        userID = extracted_data['user_id']
+        chatID = extracted_data['chat_id']
+        if userID == user_id and chatID == chat_id:
+            downloadingtext = "تم التحميل ارجاء الانتظار\n"
+            senddingtext = "يتم الارسال الرجاء الانتظار \n"
+            m = bot.send_message(chat_id, downloadingtext+ ddtyt.step_text*2)
+            my_data = ddtyt.view_items(FILENAME)
+            m = bot.edit_message_text(chat_id=chat_id,message_id=m.id, text= downloadingtext+ ddtyt.step_text*4)
+            for i_d in my_data:
+                if i_d['id'] == ID:
+                    mrkup = None
+                    if myus:
+                        mrkup = InlineKeyboardMarkup()
+                        btn = myChannelButton(myus)
+                        mrkup.add(btn)
+                    file_name = f"{user_id}_{chat_id}_{ID}".replace("-", "_")
+                    bot.delete_message(chat_id, msg_id)
+                    bot.send_chat_action(chat_id, "upload_voice")
+                    m = bot.edit_message_text(chat_id=chat_id,message_id=m.id, text= downloadingtext+ ddtyt.step_text*6)
+                    media = ddtyt.get_yt_link_by_id('audio', ID, file_name)
+                    m = bot.edit_message_text(chat_id=chat_id,message_id=m.id, text= senddingtext+ ddtyt.step_text*7)
+                    # media = ur2_yt_url(ID, 'a')
+                    
+                    # caption = f"""<b>{i_d['title']} \nالمدة 🥟: = {i_d['duration']}\nُ </b>"""
+                    caption = ddtyt.detxt(i_d['title'], i_d['duration'])
+                    bot.send_chat_action(chat_id, "upload_voice")
+                    try:
+                        m = bot.edit_message_text(chat_id=chat_id,message_id=m.id, text= senddingtext)
+                        with open(media, 'rb') as file:
+                            send_data = {
+                                "chat_id": chat_id,
+                                "thumbnail": requests.get(i_d['thumbnails'][-1]).content,
+                                "title": i_d['title'][:10],
+                                "performer": i_d['channel'][:10],
+                                "caption": caption,
+                                "reply_markup": mrkup,
+                                "audio": file, # if media if file
+                                # "audio": media, # if media if url
+                                "reply_to_message_id": ddtyt.get_value('fmsg'),
+                                "parse_mode": 'html',
+                            }
+                            try:
+                                bot.send_audio(**send_data)
+                                try:
+                                    bot.delete_message(chat_id, m.id)
+                                except:
+                                    ...
+                            except:
+                                del send_data['reply_to_message_id']
+                            file.close()
+                    except:
+                        ...
+                    ddtyt.delfile(FILENAME)
+                    ddtyt.delfile(media)
+                    ddtyt.del_user()                
+                    return
+
+    elif data == "yt_close": 
+        try:
+            bot.delete_message(chat_id, msg.id)
+        except:
+            ...    
+        try:
+            bot.delete_message(chat_id, ddtyt.get_value('fmsg'))
+        except:
+            ...
+        ddtyt.delfile(FILENAME)
+        ddtyt.del_user()  
+
+
+
+
+
+bot.infinity_polling(skip_pending=True)
