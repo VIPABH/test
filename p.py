@@ -1,8 +1,8 @@
 import os
-import re
 import requests
 from telethon import TelegramClient, events
 import yt_dlp
+from bs4 import BeautifulSoup
 
 API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
@@ -30,12 +30,20 @@ def search_soundcloud(query):
     response = requests.get(search_url)
     if response.status_code != 200:
         return None
-    # استخراج روابط من صفحة البحث
-    urls = re.findall(r'href="(/[^/]+/[^/"]+)"', response.text)
-    if not urls:
-        return None
-    # إرجاع الرابط الأول الكامل
-    return f"https://soundcloud.com{urls[0]}"
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    # البحث عن روابط الأصوات باستخدام السمات الصحيحة
+    results = soup.find_all('a', href=True)
+    for link in results:
+        href = link['href']
+        # روابط مسارات ساوند كلاود تتبع الشكل: /artist/track
+        if href.count('/') == 2 and href.startswith('/'):
+            full_url = f"https://soundcloud.com{href}"
+            # يمكن هنا إضافة تحقق برأس HTTP للتأكد من صحة الرابط
+            r = requests.head(full_url)
+            if r.status_code == 200:
+                return full_url
+    return None
 
 @client.on(events.NewMessage(pattern=r'^\.صوت (.+)'))
 async def soundcloud_handler(event):
