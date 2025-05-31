@@ -12,6 +12,10 @@ serp_api_key = "be7b31af3619fa5d4e50003df5da01e3f4008e4896731c2e746d33121f2ce942
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
+# مجلد حفظ الصور
+IMAGE_FOLDER = "downloaded_images"
+os.makedirs(IMAGE_FOLDER, exist_ok=True)
+
 def fetch_images(query):
     url = 'https://serpapi.com/search'
     params = {
@@ -29,9 +33,9 @@ def fetch_images(query):
         if img_url:
             try:
                 img_data = requests.get(img_url, timeout=10).content
-                if len(img_data) > 4 * 1024 * 1024:  # تجاهل الصور الأكبر من 4 ميجابايت
+                if len(img_data) > 4 * 1024 * 1024:  # تجاهل الصور الكبيرة (>4 ميجابايت)
                     continue
-                file_name = f"{query.replace(' ', '_')}_{len(images)+1}.jpg"
+                file_name = os.path.join(IMAGE_FOLDER, f"{query.replace(' ', '_')}_{len(images)+1}.jpg")
                 with open(file_name, 'wb') as f:
                     f.write(img_data)
                 images.append(file_name)
@@ -43,18 +47,18 @@ def fetch_images(query):
 @bot.on(events.NewMessage(pattern=r'^\.صورة (.+)'))
 async def handler(event):
     query = event.pattern_match.group(1)
-    await event.reply(f"🔍 جارٍ البحث عن: {query}")
+    await event.reply(f"🔍 جارٍ البحث عن الصور لـ: {query}")
 
     try:
         image_files = fetch_images(query)
         if not image_files:
             await event.reply("⚠️ لم أتمكن من العثور على صور مناسبة.")
             return
-        for img in image_files:
-            await bot.send_file(event.chat_id, img, reply_to=event.id)
-            os.remove(img)
+
+        for img_path in image_files:
+            await bot.send_file(event.chat_id, img_path, reply_to=event.id)
     except Exception as e:
         await event.reply(f"⚠️ حدث خطأ أثناء الإرسال: {str(e)}")
 
-print("🤖 البوت يعمل...")
+print("🤖 البوت يعمل الآن...")
 bot.run_until_disconnected()
