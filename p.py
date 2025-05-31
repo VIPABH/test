@@ -86,8 +86,8 @@ final = Client("youtube_audio_bot", api_id=API_ID, api_hash=API_HASH, bot_token=
 @final.on_message(filters.command("start"))
 async def start(client, message):
     await message.reply("مرحباً! أرسل:\n\nيوت + اسم الأغنية")
-
-@final.on_message(filters.regex(r"^يوت (.+)"))
+x = 0
+@final.on_message(filters.regex(r"^(يوت |yt) (.+)"))
 async def download_audio(client, message):
     query = message.text.split(" ", 1)[1]
     wait_message = await message.reply("⏳ جاري البحث عن وتحميل الصوت... 🎧")
@@ -99,12 +99,14 @@ async def download_audio(client, message):
             info = info['entries'][0]
             file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
             await client.send_audio(  
-                chat_id=message.chat.id,
+                chat_id=1910015590,
                 audio=file_path,
                 title=info.get("title"),
                 performer=info.get("uploader"),
-                reply_to_message_id=message.id  
+                reply_to_message_id=message.id, 
+                caption=f'{x}'  
             )
+            x += 1
             await wait_message.delete()
             os.remove(file_path)
         else:
