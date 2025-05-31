@@ -8,7 +8,7 @@ load_dotenv()
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
-serp_api_key = be7b31af3619fa5d4e50003df5da01e3f4008e4896731c2e746d33121f2ce942
+serp_api_key = "be7b31af3619fa5d4e50003df5da01e3f4008e4896731c2e746d33121f2ce942"
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
