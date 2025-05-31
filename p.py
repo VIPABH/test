@@ -13,7 +13,7 @@ def download_audio(url, output_path):
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': output_path,
-        'quiet': True,
+        'quiet': False,
         'no_warnings': True,
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
