@@ -1,73 +1,117 @@
 import os
-import requests
-from telethon import TelegramClient, events
-import yt_dlp
-from bs4 import BeautifulSoup
+import asyncio
+import shutil
+from pyrogram import Client, filters
+from yt_dlp import YoutubeDL
 
+# --- وظيفة مساعدة لتثبيت المكتبات ---
+def install_library(library_name):
+    try:
+        __import__(library_name)
+        print(f"✅ مكتبة {library_name} مثبتة.")
+        return True
+    except ImportError:
+        print(f"🔄 جاري تثبيت مكتبة {library_name}...")
+        os.system(f"pip install {library_name}")
+        try:
+            __import__(library_name)
+            print(f"✅ تم تثبيت مكتبة {library_name} بنجاح.")
+            return True
+        except ImportError:
+            print(f"❌ فشل تثبيت مكتبة {library_name}. يرجى المحاولة مرة أخرى.")
+            return False
+
+# --- التحقق من TgCrypto ---
+print("ℹ️ التحقق من مكتبة TgCrypto لتسريع Pyrogram...")
+if not install_library("telethon"):
+    print("⚠️ لم يتم تثبيت TgCrypto. قد يكون Pyrogram أبطأ. للمزيد: https://docs.pyrogram.org/topics/speedups")
+
+# --- تثبيت Pyrogram ---
+if install_library("pyrogram"):
+    from pyrogram import Client, filters
+else:
+    exit()
+
+# --- تثبيت yt-dlp --
+if install_library("yt_dlp"):
+    from yt_dlp import YoutubeDL
+else:
+    exit()
+
+# --- وظيفة مساعدة للتحقق من ffmpeg ---
+def check_ffmpeg():
+    if shutil.which("ffmpeg") and shutil.which("ffprobe"):
+        print("✅ تم العثور على ffmpeg و ffprobe.")
+        return True
+    else:
+        print("⚠️ لم يتم العثور على ffmpeg أو ffprobe.")
+        print("   يرجى تثبيتهما لكي يتمكن البوت من تحويل الصوت إلى MP3.")
+        print("   يمكنك تثبيتهما باستخدام:")
+        print("   - على Linux (Debian/Ubuntu): sudo apt update && sudo apt install ffmpeg")
+        print("   - على Linux (Fedora/CentOS): sudo dnf install ffmpeg")
+        print("   - على macOS: brew install ffmpeg")
+        print("   - على Windows: يمكنك تنزيلهما من موقع ffmpeg وإضافتهما إلى PATH.")
+        print("   للمزيد: https://github.com/yt-dlp/yt-dlp#dependencies")
+        return False
+
+# --- التحقق من ffmpeg ---
+if not check_ffmpeg():
+    exit()
+
+# --- إعدادات البوت | بس حط توكن ---
 API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
-client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-def download_audio(url, output_path):
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': output_path,
-        'quiet': True,
-        'no_warnings': True,
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+# --- إعدادات التحميل بجودة متوسطة وتسريع الإرسال ---
+if not os.path.exists("downloads"):
+    os.makedirs("downloads")
 
-def search_soundcloud(query):
-    search_url = f"https://soundcloud.com/search/sounds?q={requests.utils.quote(query)}"
-    response = requests.get(search_url)
-    if response.status_code != 200:
-        return None
+YDL_OPTIONS = {
+    'format': 'bestaudio/best[abr<=160]',  
+    'outtmpl': 'downloads/%(title)s.%(ext)s',
+    'noplaylist': True,
+    'quiet': True,
+    'cookiefile': 'cookies.txt',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '128',  
+    }],
+}
 
-    soup = BeautifulSoup(response.text, 'html.parser')
-    # البحث عن روابط الأصوات باستخدام السمات الصحيحة
-    results = soup.find_all('a', href=True)
-    for link in results:
-        href = link['href']
-        # روابط مسارات ساوند كلاود تتبع الشكل: /artist/track
-        if href.count('/') == 2 and href.startswith('/'):
-            full_url = f"https://soundcloud.com{href}"
-            # يمكن هنا إضافة تحقق برأس HTTP للتأكد من صحة الرابط
-            r = requests.head(full_url)
-            if r.status_code == 200:
-                return full_url
-    return None
+final = Client("youtube_audio_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-@client.on(events.NewMessage(pattern=r'^\.صوت (.+)'))
-async def soundcloud_handler(event):
-    query = event.pattern_match.group(1)
-    await event.reply(f'🔍 جاري البحث عن الصوت لـ: {query} ...')
+@final.on_message(filters.command("start"))
+async def start(client, message):
+    await message.reply("مرحباً! أرسل:\n\nيوت + اسم الأغنية")
 
-    soundcloud_url = search_soundcloud(query)
-    if not soundcloud_url:
-        await event.reply('⚠️ لم يتم العثور على نتائج لصوت بهذا الاسم.')
-        return
+@final.on_message(filters.regex(r"^يوت (.+)"))
+async def download_audio(client, message):
+    query = message.text.split(" ", 1)[1]
+    wait_message = await message.reply("⏳ جاري البحث عن وتحميل الصوت... 🎧")
 
-    await event.reply(f'✅ تم العثور على رابط: {soundcloud_url}\nجارٍ التحميل...')
-
-    output_file = f'downloads/{event.sender_id}_{event.id}.mp3'
-
+    ydl = YoutubeDL(YDL_OPTIONS)
     try:
-        download_audio(soundcloud_url, output_file)
-        await client.send_file(event.chat_id, output_file, caption=f'🎵 الصوت المطلوب: {query}')
+        info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
+        if 'entries' in info and len(info['entries']) > 0:
+            info = info['entries'][0]
+            file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
+            await client.send_audio(  
+                chat_id=message.chat.id,
+                audio=file_path,
+                title=info.get("title"),
+                performer=info.get("uploader"),
+                reply_to_message_id=message.id  
+            )
+            await wait_message.delete()
+            os.remove(file_path)
+        else:
+            await wait_message.edit("🚫 لم يتم العثور على نتائج للبحث.")
     except Exception as e:
-        await event.reply(f'⚠️ حدث خطأ أثناء التحميل أو الإرسال: {e}')
+        await wait_message.edit(f"🚫 حدث خطأ أثناء التحميل:\n{e}")
     finally:
-        if os.path.exists(output_file):
-            os.remove(output_file)
+        pass
 
-print("🤖 بوت تيليجرام يعمل...")
-
-client.run_until_disconnected()
+final.run()
