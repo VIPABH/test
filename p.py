@@ -66,7 +66,7 @@ final = Client("youtube_audio_bot", api_id=API_ID, api_hash=API_HASH, bot_token=
 @final.on_message(filters.command("start"))
 async def start(client, message):
     await message.reply("مرحباً! أرسل:\n\nيوت + اسم الأغنية")
-x = 0
+x = 1
 @final.on_message(filters.regex(r"^(يوت|yt) (.+)"))
 async def download_audio(client, message):
     global x
