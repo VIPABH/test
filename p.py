@@ -1,9 +1,8 @@
 import os
 from telethon import TelegramClient, events
 import yt_dlp
-import requests
-import re
 
+# تحميل القيم من المتغيرات البيئية
 API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -22,43 +21,30 @@ def download_audio(url, output_path):
             'preferredquality': '192',
         }],
     }
-    print(f"🔄 جاري تحميل الصوت إلى: {output_path}")
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
-    print("✅ تم تحميل الملف بنجاح.")
-
-def get_first_soundcloud_track(query):
-    search_url = f"https://m.soundcloud.com/search?q={query}"
-    res = requests.get(search_url)
-    if res.status_code != 200:
-        return None
-    urls = re.findall(r'data-testid="cell-entity-link" href="([^"]+)"', res.text)
-    if not urls:
-        return None
-    return f"https://soundcloud.com{urls[0]}"
 
 @client.on(events.NewMessage(pattern=r'^\.صوت (.+)'))
 async def soundcloud_handler(event):
     query = event.pattern_match.group(1)
-    await event.reply(f'🔍 جاري البحث وتحميل الصوت لـ: {query} ...')
+    await event.reply(f'🔍 جاري تحميل الصوت لـ: {query} ...')
 
-    soundcloud_url = get_first_soundcloud_track(query)
-    if not soundcloud_url:
-        await event.reply('⚠️ لم أتمكن من العثور على مقطع صوتي لهذا البحث.')
-        return
+    # **رابط ثابت لمقطع صوتي في ساوند كلاود للاختبار**
+    # استبدل الرابط بالرابط الذي تريد تحميله
+    soundcloud_url = 'https://soundcloud.com/forss/flickermood'
 
-    if not os.path.exists('downloads'):
-        os.makedirs('downloads')
+    output_dir = "downloads"
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, f'{event.sender_id}_{event.id}.mp3')
 
-    output_file = f'downloads/{event.sender_id}_{event.id}.mp3'
     try:
         download_audio(soundcloud_url, output_file)
         if os.path.exists(output_file):
-            await client.send_file(event.chat_id, output_file, caption=f'صوت من ساوند كلاود: {query}')
+            await client.send_file(event.chat_id, output_file, caption=f'🎵 صوت من ساوند كلاود: {query}')
         else:
-            await event.reply('⚠️ لم يتم إنشاء ملف الصوت بنجاح.')
+            await event.reply("⚠️ لم يتم إنشاء ملف الصوت بنجاح.")
     except Exception as e:
-        await event.reply(f'⚠️ حدث خطأ أثناء التحميل أو الإرسال: {e}')
+        await event.reply(f"⚠️ حدث خطأ أثناء التحميل أو الإرسال:\n{e}")
     finally:
         if os.path.exists(output_file):
             os.remove(output_file)
