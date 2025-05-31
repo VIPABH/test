@@ -1,14 +1,12 @@
 from helpers import *
+import os
+
+bot = os.getenv("BOT_TOKEN")
 
 
-bot = telebot.TeleBot("توكن")
 
 
-
-
-# تكدر تخلي يوزرنيم قناتك اذا جانت عندك قناة
-myus = "" # @يوزر نيم  => @username
-# اذا ماعندك قناة خليه فارغ
+myus = ""
 
 
 
