@@ -1,7 +1,9 @@
 import os
 import glob
 import subprocess
-from telethon import events
+from dotenv import load_dotenv
+from telethon import TelegramClient, events
+
 
 DOWNLOADS_DIR = "downloads"
 api_id = int(os.getenv("API_ID"))
@@ -59,3 +61,4 @@ async def audio_handler(event):
 
     except Exception as e:
         await event.reply(f"⚠️ حدث خطأ: {e}")
+bot.run_until_disconnected()
