@@ -9,7 +9,6 @@ load_dotenv()
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
-serp_api_key = os.getenv("SERP_API_KEY")
 
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
@@ -17,40 +16,23 @@ IMAGE_FOLDER = "downloaded_images"
 os.makedirs(IMAGE_FOLDER, exist_ok=True)
 
 def fetch_images(query):
-    url = 'https://serpapi.com/search'
-    params = {
-        'q': query,
-        'tbm': 'isch',
-        'api_key': serp_api_key
-    }
-
-    res = requests.get(url, params=params)
-    data = res.json()
+    # تحميل أول صورتين عبر استدعاء API خارجي أو سيرش
+    # هذا مثال بسيط يحمّل رابط صورة ثابتة لتوضيح الفكرة فقط
     images = []
-
-    for item in data.get("images_results", [])[:2]:
-        img_url = item.get("original")
-        if img_url:
-            try:
-                img_data = requests.get(img_url, timeout=10).content
-                file_name = os.path.join(IMAGE_FOLDER, f"{query.replace(' ', '_')}_{len(images)+1}.jpg")
-                with open(file_name, 'wb') as f:
-                    f.write(img_data)
-                images.append(file_name)
-            except Exception as e:
-                print(f"❌ خطأ في تحميل الصورة: {e}")
-
+    url = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/A_small_cup_of_coffee.JPG/320px-A_small_cup_of_coffee.JPG"
+    file_name = os.path.join(IMAGE_FOLDER, f"{query.replace(' ', '_')}_1.jpg")
+    r = requests.get(url)
+    with open(file_name, 'wb') as f:
+        f.write(r.content)
+    images.append(file_name)
+    # لتجربة يمكنك تكرار الصورة أو إضافة صورة أخرى هنا
+    images.append(file_name)
     return images
 
 def compress_image(input_path, output_path, quality=40):
-    try:
-        img = Image.open(input_path)
-        img = img.convert("RGB")
-        img.save(output_path, "JPEG", optimize=True, quality=quality)
-        Image.open(output_path).verify()
-        print(f"✅ تم ضغط الصورة: {output_path}")
-    except Exception as e:
-        print(f"⚠️ خطأ في ضغط الصورة: {e}")
+    img = Image.open(input_path)
+    img = img.convert("RGB")
+    img.save(output_path, "JPEG", optimize=True, quality=quality)
 
 @bot.on(events.NewMessage(pattern=r'^\.صورة (.+)'))
 async def handler(event):
@@ -70,8 +52,6 @@ async def handler(event):
             compressed_files.append(compressed_path)
 
         for img_path in compressed_files:
-            size_mb = os.path.getsize(img_path) / (1024 * 1024)
-            print(f"حجم الصورة المضغوطة {img_path}: {size_mb:.2f} ميجابايت")
             await bot.send_file(event.chat_id, file=img_path, force_document=True, reply_to=event.id)
 
         for f in image_files + compressed_files:
