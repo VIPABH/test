@@ -42,11 +42,12 @@ def fetch_images(query):
 
     return images
 
-def compress_image(input_path, output_path, quality=70):
+def compress_image(input_path, output_path, quality=40):
     try:
         img = Image.open(input_path)
-        img = img.convert("RGB")  # تأكد من صيغة RGB
+        img = img.convert("RGB")
         img.save(output_path, "JPEG", optimize=True, quality=quality)
+        Image.open(output_path).verify()
         print(f"✅ تم ضغط الصورة: {output_path}")
     except Exception as e:
         print(f"⚠️ خطأ في ضغط الصورة: {e}")
@@ -71,9 +72,8 @@ async def handler(event):
         for img_path in compressed_files:
             size_mb = os.path.getsize(img_path) / (1024 * 1024)
             print(f"حجم الصورة المضغوطة {img_path}: {size_mb:.2f} ميجابايت")
-            await bot.send_file(event.chat_id, img_path, reply_to=event.id)
+            await bot.send_file(event.chat_id, file=img_path, force_document=True, reply_to=event.id)
 
-        # حذف الصور الأصلية والمضغوطة بعد الإرسال (اختياري)
         for f in image_files + compressed_files:
             os.remove(f)
 
