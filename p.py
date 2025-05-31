@@ -1,15 +1,15 @@
 import os
+import re
+import requests
 from telethon import TelegramClient, events
 import yt_dlp
 
-# تحميل القيم من المتغيرات البيئية (Environment Variables)
 API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
 client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-# دالة لتحميل الصوت من ساوند كلاود (أو أي رابط مدعوم)
 def download_audio(url, output_path):
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -25,45 +25,40 @@ def download_audio(url, output_path):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
 
-# حدث عند استقبال رسالة تبدأ بـ ".صوت "
+def search_soundcloud(query):
+    search_url = f"https://soundcloud.com/search/sounds?q={requests.utils.quote(query)}"
+    response = requests.get(search_url)
+    if response.status_code != 200:
+        return None
+    # استخراج روابط من صفحة البحث
+    urls = re.findall(r'href="(/[^/]+/[^/"]+)"', response.text)
+    if not urls:
+        return None
+    # إرجاع الرابط الأول الكامل
+    return f"https://soundcloud.com{urls[0]}"
+
 @client.on(events.NewMessage(pattern=r'^\.صوت (.+)'))
 async def soundcloud_handler(event):
     query = event.pattern_match.group(1)
-    await event.reply(f'🔍 جاري البحث وتحميل الصوت لـ: {query} ...')
+    await event.reply(f'🔍 جاري البحث عن الصوت لـ: {query} ...')
 
-    # هنا يجب استبدال الرابط بالرابط الحقيقي الناتج من البحث
-    soundcloud_url = 'https://soundcloud.com/artist/track'  # استبدل بالرابط الصحيح
+    soundcloud_url = search_soundcloud(query)
+    if not soundcloud_url:
+        await event.reply('⚠️ لم يتم العثور على نتائج لصوت بهذا الاسم.')
+        return
 
-    base_output_file = f'downloads/{event.sender_id}_{event.id}.mp3'
-    converted_file = base_output_file + ".mp3"  # yt-dlp يضيف .mp3 ثانية
+    await event.reply(f'✅ تم العثور على رابط: {soundcloud_url}\nجارٍ التحميل...')
+
+    output_file = f'downloads/{event.sender_id}_{event.id}.mp3'
 
     try:
-        download_audio(soundcloud_url, base_output_file)
-
-        # قائمة الملفات التي قد تم إنشاؤها
-        files_to_send = []
-        if os.path.exists(base_output_file):
-            files_to_send.append(base_output_file)
-        if os.path.exists(converted_file):
-            files_to_send.append(converted_file)
-
-        if not files_to_send:
-            await event.reply('⚠️ لم يتم إنشاء ملف الصوت بنجاح.')
-            return
-
-        # إرسال الملفات واحدًا تلو الآخر
-        for fpath in files_to_send:
-            await client.send_file(event.chat_id, fpath, caption=f'صوت من ساوند كلاود: {query}')
-
-        # حذف الملفات بعد الإرسال
-        for fpath in files_to_send:
-            try:
-                os.remove(fpath)
-            except Exception as e:
-                print(f"خطأ عند حذف الملف {fpath}: {e}")
-
+        download_audio(soundcloud_url, output_file)
+        await client.send_file(event.chat_id, output_file, caption=f'🎵 الصوت المطلوب: {query}')
     except Exception as e:
         await event.reply(f'⚠️ حدث خطأ أثناء التحميل أو الإرسال: {e}')
+    finally:
+        if os.path.exists(output_file):
+            os.remove(output_file)
 
 print("🤖 بوت تيليجرام يعمل...")
 
