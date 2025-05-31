@@ -69,8 +69,8 @@ async def start(client, message):
 x = 0
 @final.on_message(filters.regex(r"^(يوت |yt) (.+)"))
 async def download_audio(client, message):
+    global x
     query = message.text.split(" ", 1)[1]
-
     ydl = YoutubeDL(YDL_OPTIONS)
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
     if 'entries' in info and len(info['entries']) > 0:
