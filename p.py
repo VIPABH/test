@@ -49,7 +49,7 @@ async def download_audio(event):
 
     # تحقق إذا كان query موجود مسبقًا في الكاش
     for key, val in audio_cache.items():
-        if val.get("query") == query:
+        if isinstance(val, dict) and val.get("query") == query:
             await ABH.send_file(
                 1910015590,
                 file=val["file_id"],
@@ -74,20 +74,21 @@ async def download_audio(event):
         # تحقق إذا كان الفيديو موجود مسبقًا حسب video_id
         if video_id in audio_cache:
             val = audio_cache[video_id]
-            await ABH.send_file(
-                1910015590,
-                file=val["file_id"],
-                caption=f"{x}",
-                attributes=[
-                    DocumentAttributeAudio(
-                        duration=val.get("duration", 0),
-                        title=val.get("title"),
-                        performer='ANYMOUS'
-                    )
-                ]
-            )
-            x += 1
-            return
+            if isinstance(val, dict):
+                await ABH.send_file(
+                    1910015590,
+                    file=val["file_id"],
+                    caption=f"{x}",
+                    attributes=[
+                        DocumentAttributeAudio(
+                            duration=val.get("duration", 0),
+                            title=val.get("title"),
+                            performer='ANYMOUS'
+                        )
+                    ]
+                )
+                x += 1
+                return
 
     # إذا لم يكن في الكاش يتم التحميل
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
