@@ -26,10 +26,8 @@ x = 1
 async def download_audio(event):
     global x
     query = event.pattern_match.group(2)
-    print(query)
     ydl = YoutubeDL(YDL_OPTIONS)
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
-    print(info)
     if 'entries' in info and len(info['entries']) > 0:
         info = info['entries'][0]
         print(info)
