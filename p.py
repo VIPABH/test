@@ -4,7 +4,6 @@ import json
 from telethon.tl.types import DocumentAttributeAudio
 from telethon import TelegramClient, events
 from yt_dlp import YoutubeDL
-ydl = YoutubeDL(YDL_OPTIONS)
 API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -35,6 +34,7 @@ YDL_OPTIONS = {
 ABH = TelegramClient("x", api_id=API_ID, api_hash=API_HASH).start(bot_token=BOT_TOKEN)
 x = 1
 async def get_audio_id(query):
+    ydl = YoutubeDL(YDL_OPTIONS)
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=False)
     if 'entries' in info and len(info['entries']) > 0:
         video_info = info['entries'][0]
@@ -57,6 +57,7 @@ async def get_audio_id(query):
 @ABH.on(events.NewMessage(pattern=r'^(يوت|yt) (.+)'))
 async def download_audio(event):
     global x
+    ydl = YoutubeDL(YDL_OPTIONS)
     query = event.pattern_match.group(2)
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
     await get_audio_id(query)
