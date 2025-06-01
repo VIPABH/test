@@ -25,11 +25,11 @@ YDL_OPTIONS = {
 
 ABH = TelegramClient("x", api_id=API_ID, api_hash=API_HASH).start(bot_token=BOT_TOKEN)
 x = 1
-@ABH.on(events.NewMessage(pattern='يوت|yt(.*)'))
+@ABH.on(events.NewMessage(pattern=r'^(يوت|yt) (.+)'))
 async def download_audio(event):
     global x
+    query = event.pattern_match.group(2)
     print(query)
-    query = event.pattern_match.group(1)
     ydl = YoutubeDL(YDL_OPTIONS)
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
     if 'entries' in info and len(info['entries']) > 0:
