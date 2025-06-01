@@ -83,12 +83,7 @@ async def download_audio(event):
         # تحميل الملف فعليًا
         info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
 
-        # تحقق من وجود الملف بعد التنظيف
-        if not os.path.exists(file_name):
-            await event.reply("⚠️ فشل في تحميل الملف الصوتي.")
-            return
-
-        # إرسال الملف
+        
         await ABH.send_file(
             event.chat_id,
             file=file_name,
@@ -100,7 +95,6 @@ async def download_audio(event):
                     performer='ANYMOUS'
                 )
             ],
-            reply_to=event.id
         )
 
         # حفظ الملف في القائمه لتفادي إعادة التحميل
