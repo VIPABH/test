@@ -23,7 +23,7 @@ YDL_OPTIONS = {
     'outtmpl': 'downloads/%(title)s.%(ext)s',
     'noplaylist': True,
     'quiet': True,
-    'cookiefile': os.getenv("c"),
+    'cookiefile': "cookies.txt"),
     'postprocessors': [{
         'key': 'FFmpegExtractAudio',
         'preferredcodec': 'mp3',
