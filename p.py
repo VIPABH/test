@@ -22,7 +22,7 @@ YDL_OPTIONS = {
     }],
 }
 
-bot = TelegramClient('youtube_audio_bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+bot = TelegramClient('youtubeaudio_bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 @bot.on(events.NewMessage(pattern="/start"))
 async def start(event):
