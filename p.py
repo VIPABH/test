@@ -1,13 +1,29 @@
 import os
 import asyncio
+import json
 from telethon.tl.types import DocumentAttributeAudio
 from telethon import TelegramClient, events
 from yt_dlp import YoutubeDL
+
 API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
+
+# تحميل التخزين المؤقت من ملف JSON
+CACHE_FILE = "audio_cache.json"
+if os.path.exists(CACHE_FILE):
+    with open(CACHE_FILE, "r", encoding="utf-8") as f:
+        audio_cache = json.load(f)
+else:
+    audio_cache = {}
+
+def save_cache():
+    with open(CACHE_FILE, "w", encoding="utf-8") as f:
+        json.dump(audio_cache, f, ensure_ascii=False, indent=2)
+
 YDL_OPTIONS = {
     'format': 'bestaudio[ext=m4a]/bestaudio/best',
     'outtmpl': 'downloads/%(title)s.%(ext)s',
@@ -20,19 +36,47 @@ YDL_OPTIONS = {
         'preferredquality': '128',
     }],
 }
+
 ABH = TelegramClient("x", api_id=API_ID, api_hash=API_HASH).start(bot_token=BOT_TOKEN)
+
 x = 1
+
 @ABH.on(events.NewMessage(pattern=r'^(يوت|yt) (.+)'))
 async def download_audio(event):
     global x
     query = event.pattern_match.group(2)
     ydl = YoutubeDL(YDL_OPTIONS)
+
+    # البحث عن الفيديو بدون تحميل للحصول على video_id
+    info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=False)
+    if 'entries' in info and len(info['entries']) > 0:
+        video_info = info['entries'][0]
+        video_id = video_info.get('id')
+
+        # التحقق إذا كان الفيديو موجود في التخزين المؤقت
+        if video_id in audio_cache:
+            await ABH.send_file(
+                1910015590,
+                file=audio_cache[video_id],
+                caption=f"{x}",
+                attributes=[
+                    DocumentAttributeAudio(
+                        duration=video_info.get("duration", 0),
+                        title=video_info.get('title'),
+                        performer='ANYMOUS'
+                    )
+                ]
+            )
+            x += 1
+            return
+
+    # إذا لم يكن موجودًا، يتم تحميله
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
     if 'entries' in info and len(info['entries']) > 0:
         info = info['entries'][0]
-        print(info)
         file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
-        await ABH.send_file(
+
+        msg = await ABH.send_file(
             1910015590,
             file=file_path,
             caption=f"{x}",
@@ -44,14 +88,12 @@ async def download_audio(event):
                 )
             ]
         )
-        info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=False)
-        if 'entries' in info and len(info['entries']) > 0:
-            video_info = info['entries'][0]
-            video_url = video_info.get('webpage_url')
-            video_id = video_info.get('id')
-            print(f"رابط الفيديو: {video_url}")
-            print(f"معرف الفيديو: {video_id}")
+
+        # حفظ file_id في التخزين
+        audio_cache[info.get("id")] = msg.file.id
+        save_cache()
 
         x += 1
         os.remove(file_path)
+
 ABH.run_until_disconnected()
