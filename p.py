@@ -26,12 +26,10 @@ x = 1
 async def download_audio(event):
     global x
     query = event.pattern_match.group(2)
-    print(query)
     ydl = YoutubeDL(YDL_OPTIONS)
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
     if 'entries' in info and len(info['entries']) > 0:
         info = info['entries'][0]
-        print(info)
         file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
         await ABH.send_file(
             1910015590,
