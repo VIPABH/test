@@ -65,7 +65,6 @@ async def download_audio(event):
                     caption=f"{x}",
                     attributes=[
                         DocumentAttributeAudio(
-                            duration=val.get("duration", 0),
                             title=val.get("title"),
                             performer='ANYMOUS'
                         )
@@ -83,7 +82,6 @@ async def download_audio(event):
             caption=f"{x}",
             attributes=[
                 DocumentAttributeAudio(
-                    duration=info.get("duration", 0),
                     title=info.get('title'),
                     performer='ANYMOUS'
                 )
@@ -92,7 +90,6 @@ async def download_audio(event):
         audio_cache[info.get("id")] = {
             "file_id": msg.file.id,
             "title": info.get("title"),
-            "duration": info.get("duration", 0),
             "query": query
         }
         save_cache()
