@@ -27,7 +27,7 @@ YDL_OPTIONS = {
 
 ABH = TelegramClient("x", api_id=API_ID, api_hash=API_HASH).start(bot_token=BOT_TOKEN)
 x = 1
-@ABH.on(events.NewMessage(pattern='يوت|yt (.*)'))
+@ABH.on(events.NewMessage(pattern='يوت|yt(.*)'))
 async def download_audio(event):
     global x
     query = event.pattern_match.group(1)
@@ -43,8 +43,8 @@ async def download_audio(event):
             attributes=[
                 DocumentAttributeAudio(
                     duration=info.get("duration", 0),
-                    title=f"ANYMOUS - {info.get('title', 'ABH')}",
-                    performer=info.get("uploader")
+                    title=info.get('title'),
+                    performer='ANYMOUS'
                 )
             ]
         )
