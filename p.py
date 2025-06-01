@@ -21,11 +21,8 @@ YDL_OPTIONS = {
         'key': 'FFmpegExtractAudio',
         'preferredcodec': 'mp3',
         'preferredquality': '128',
-        'quiet': True,
     }],
 }
-
-
 ABH = TelegramClient("x", api_id=API_ID, api_hash=API_HASH).start(bot_token=BOT_TOKEN)
 x = 1
 @ABH.on(events.NewMessage(pattern=r'^(يوت|yt) (.+)'))
