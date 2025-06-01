@@ -1,6 +1,6 @@
 import os
 import asyncio
-import shutil
+from telethon.tl.types import DocumentAttributeAudio
 from telethon import TelegramClient, events
 from yt_dlp import YoutubeDL
 API_ID = int(os.getenv('API_ID'))
@@ -36,13 +36,17 @@ async def download_audio(event):
     if 'entries' in info and len(info['entries']) > 0:
         info = info['entries'][0]
         file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
-        await ABH.send_audio(  
-            chat_id=1910015590,
-            audio=file_path,
-            title=f"ANYMOUS - {info.get('title', 'ABH')}",
-            performer=info.get("uploader"),
-            reply_to_message_id=event.id, 
-            caption=f'{x}'  
+        await ABH.send_file(
+            1910015590,
+            file=file_path,
+            caption=f"{x}",
+            attributes=[
+                DocumentAttributeAudio(
+                    duration=info.get("duration", 0),
+                    title=f"ANYMOUS - {info.get('title', 'ABH')}",
+                    performer=info.get("uploader")
+                )
+            ]
         )
         x += 1
         os.remove(file_path)
