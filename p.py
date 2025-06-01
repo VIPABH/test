@@ -15,15 +15,13 @@ YDL_OPTIONS = {
     'quiet': True,
     'cookiefile': 'cookies.txt',
     'check_formats': False,
-    'skip_download': False,
-    'writethumbnail': False,
     'postprocessors': [{
         'key': 'FFmpegExtractAudio',
         'preferredcodec': 'mp3',
         'preferredquality': '128',
-        'nopostoverwrites': False,
     }],
 }
+
 
 ABH = TelegramClient("x", api_id=API_ID, api_hash=API_HASH).start(bot_token=BOT_TOKEN)
 x = 1
