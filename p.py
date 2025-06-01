@@ -45,7 +45,6 @@ async def download_audio(event):
                 caption=f"{x}",
                 attributes=[
                     DocumentAttributeAudio(
-                        duration=val.get("duration", 0),
                         title=val.get("title"),
                         performer='ANYMOUS'
                     )
