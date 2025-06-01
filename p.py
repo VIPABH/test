@@ -28,6 +28,7 @@ x = 1
 @ABH.on(events.NewMessage(pattern='يوت|yt(.*)'))
 async def download_audio(event):
     global x
+    print(query)
     query = event.pattern_match.group(1)
     ydl = YoutubeDL(YDL_OPTIONS)
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
