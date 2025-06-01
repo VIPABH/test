@@ -3,66 +3,29 @@ import asyncio
 import shutil
 from pyrogram import Client, filters
 from yt_dlp import YoutubeDL
-
-# --- وظيفة مساعدة لتثبيت المكتبات ---
-def install_library(library_name):
-    try:
-        return True
-    except ImportError:
-        os.system(f"pip install {library_name}")
-        try:
-            return True
-        except ImportError:
-            return False
-
-if install_library("pyrogram"):
-    from pyrogram import Client, filters
-else:
-    exit()
-
-# --- تثبيت yt-dlp --
-if install_library("yt_dlp"):
-    from yt_dlp import YoutubeDL
-else:
-    exit()
-
-# --- وظيفة مساعدة للتحقق من ffmpeg ---
-def check_ffmpeg():
-    if shutil.which("ffmpeg") and shutil.which("ffprobe"):
-        print("✅ تم العثور على ffmpeg و ffprobe.")
-        return True
-    else:
-        return False
-
-# --- التحقق من ffmpeg ---
-if not check_ffmpeg():
-    exit()
-
-# --- إعدادات البوت | بس حط توكن ---
 API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-
-
-# --- إعدادات التحميل بجودة متوسطة وتسريع الإرسال ---
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
-
 YDL_OPTIONS = {
-    'format': 'bestaudio/best[abr<=160]',  
+    'format': 'bestaudio[ext=m4a]/bestaudio/best',
     'outtmpl': 'downloads/%(title)s.%(ext)s',
     'noplaylist': True,
     'quiet': True,
     'cookiefile': 'cookies.txt',
+    'check_formats': False,
+    'skip_download': False,
+    'writethumbnail': False,
     'postprocessors': [{
         'key': 'FFmpegExtractAudio',
         'preferredcodec': 'mp3',
-        'preferredquality': '128',  
+        'preferredquality': '128',
+        'nopostoverwrites': False,
     }],
 }
 
 final = Client("youtube_audio_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-
 @final.on_message(filters.command("start"))
 async def start(client, message):
     await message.reply("مرحباً! أرسل:\n\nيوت + اسم الأغنية")
@@ -86,5 +49,4 @@ async def download_audio(client, message):
         )
         x += 1
         os.remove(file_path)
-
 final.run()
