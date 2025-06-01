@@ -47,29 +47,54 @@ async def download_audio(event):
     query = event.pattern_match.group(2)
     ydl = YoutubeDL(YDL_OPTIONS)
 
-    info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=False)
-    if 'entries' in info and len(info['entries']) > 0:
-        video_info = info['entries'][0]
-        video_id = video_info.get('id')
-        if video_id in audio_cache:
+    # تحقق إذا كان query موجود مسبقًا في الكاش
+    for key, val in audio_cache.items():
+        if val.get("query") == query:
             await ABH.send_file(
                 1910015590,
-                file=audio_cache[video_id],
+                file=val["file_id"],
                 caption=f"{x}",
                 attributes=[
                     DocumentAttributeAudio(
-                        duration=video_info.get("duration", 0),
-                        title=video_info.get('title'),
+                        duration=val.get("duration", 0),
+                        title=val.get("title"),
                         performer='ANYMOUS'
                     )
                 ]
             )
             x += 1
             return
+
+    # إذا لم يكن موجودًا، ابحث عن الفيديو للحصول على video_id
+    info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=False)
+    if 'entries' in info and len(info['entries']) > 0:
+        video_info = info['entries'][0]
+        video_id = video_info.get('id')
+
+        # تحقق إذا كان الفيديو موجود مسبقًا حسب video_id
+        if video_id in audio_cache:
+            val = audio_cache[video_id]
+            await ABH.send_file(
+                1910015590,
+                file=val["file_id"],
+                caption=f"{x}",
+                attributes=[
+                    DocumentAttributeAudio(
+                        duration=val.get("duration", 0),
+                        title=val.get("title"),
+                        performer='ANYMOUS'
+                    )
+                ]
+            )
+            x += 1
+            return
+
+    # إذا لم يكن في الكاش يتم التحميل
     info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
     if 'entries' in info and len(info['entries']) > 0:
         info = info['entries'][0]
         file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
+
         msg = await ABH.send_file(
             1910015590,
             file=file_path,
@@ -82,8 +107,17 @@ async def download_audio(event):
                 )
             ]
         )
-        audio_cache[info.get("id")] = msg.file.id
+
+        # حفظ في التخزين المؤقت باستخدام video_id
+        audio_cache[info.get("id")] = {
+            "file_id": msg.file.id,
+            "title": info.get("title"),
+            "duration": info.get("duration", 0),
+            "query": query
+        }
         save_cache()
+
         x += 1
         os.remove(file_path)
+
 ABH.run_until_disconnected()
