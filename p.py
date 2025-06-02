@@ -102,6 +102,6 @@ async def download_audio(event):
     except Exception as e:
         await ABH.send_message(
             1910015590,
-            e
+            f"Error: {str(e)}"
         )
 ABH.run_until_disconnected()
