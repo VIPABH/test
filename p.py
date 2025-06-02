@@ -100,7 +100,7 @@ async def download_audio(event):
             save_cache()
             x += 1
     except Exception as e:
-        ABH.send_message(
+        await ABH.send_message(
             1910015590,
             e
         )
