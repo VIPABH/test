@@ -2,7 +2,7 @@ import os
 import asyncio
 import json
 from telethon.tl.types import DocumentAttributeAudio
-from telethon import TelegramClient, events
+from telethon import TelegramClient, events, Button
 from yt_dlp import YoutubeDL
 API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
@@ -24,36 +24,34 @@ YDL_OPTIONS = {
     'outtmpl': 'downloads/%(title)s.%(ext)s',
     'noplaylist': True,
     'quiet': True,
-    # 'cookiefile': "cookies.txt",
+    'cookiefile': "cookies.txt",
     'postprocessors': [{
         'key': 'FFmpegExtractAudio',
         'preferredcodec': 'mp3',
         'preferredquality': '128',
     }],
 }
-x = 1
 @ABH.on(events.NewMessage(pattern=r'^(يوت|yt) (.+)'))
 async def download_audio(event):
-    global x
     try:
+        b = Button.url('CHANNEL', 'https://t.me/X04OU')
         query = event.pattern_match.group(2)
         ydl = YoutubeDL(YDL_OPTIONS)
         for key, val in audio_cache.items():
             if isinstance(val, dict) and val.get("query") == query:
                 await ABH.send_file(
-                    1910015590,
+                    event.chat_id,
                     file=val["file_id"],
-                    caption=f"{x}",
+                    caption="ENJOY DEAR",
                     attributes=[
                         DocumentAttributeAudio(
                             duration=val.get("duration", 0),
                             title=val.get("title"),
                             performer='ANYMOUS'
                         )
-                    ]
+                    ],
+                    buttons=[b]
                 )
-                x += 1
-                return
         info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=False)
         if 'entries' in info and len(info['entries']) > 0:
             video_info = info['entries'][0]
@@ -62,35 +60,36 @@ async def download_audio(event):
                 val = audio_cache[video_id]
                 if isinstance(val, dict):
                     await ABH.send_file(
-                        1910015590,
+                        event.chat_id,
                         file=val["file_id"],
-                        caption=f"{x}",
+                        caption="ENJOY DEAR",
                         attributes=[
                             DocumentAttributeAudio(
                                 duration=val.get("duration", 0),
                                 title=val.get("title"),
                                 performer='ANYMOUS'
                             )
-                        ]
+                        ],
+                        buttons=[b]
                     )
-                    x += 1
-                    return
         info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
         if 'entries' in info and len(info['entries']) > 0:
             info = info['entries'][0]
             file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
             msg = await ABH.send_file(
-                1910015590,
-                file=file_path,
-                caption=f"{x}",
-                attributes=[
-                    DocumentAttributeAudio(
-                        duration=info.get("duration", 0),
-                        title=info.get('title'),
-                        performer='ANYMOUS'
-                    )
-                ]
-            )
+                    event.chat_id,
+                    file=val["file_id"],
+                    caption="ENJOY DEAR",
+                    attributes=[
+                        DocumentAttributeAudio(
+                            duration=val.get("duration", 0),
+                            title=val.get("title"),
+                            performer='ANYMOUS'
+                        )
+                    ],
+                    buttons=[b]
+                )
+
             audio_cache[info.get("id")] = {
                 "file_id": msg.file.id,
                 "title": info.get("title"),
@@ -98,7 +97,6 @@ async def download_audio(event):
                 "query": query
             }
             save_cache()
-            x += 1
     except Exception as e:
         await ABH.send_message(
             1910015590,
