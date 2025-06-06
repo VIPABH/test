@@ -34,10 +34,11 @@ YDL_OPTIONS = {
 @ABH.on(events.NewMessage(pattern=r'^(يوت|yt) (.+)'))
 async def download_audio(event):
     try:
-        b = Button.url('CHANNEL', 'https://t.me/X04OU')
         query = event.pattern_match.group(2)
-        ydl = YoutubeDL(YDL_OPTIONS)
-        for key, val in audio_cache.items():
+        b = Button.url('CHANNEL', 'https://t.me/X04OU')
+
+        # تحقق من وجود الملف مسبقًا حسب الاستعلام
+        for val in audio_cache.values():
             if isinstance(val, dict) and val.get("query") == query:
                 await ABH.send_file(
                     event.chat_id,
@@ -52,60 +53,63 @@ async def download_audio(event):
                     ],
                     buttons=[b]
                 )
-            else:
-                return
-        info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=False)
-        if 'entries' in info and len(info['entries']) > 0:
-            video_info = info['entries'][0]
-            video_id = video_info.get('id')
-            if video_id in audio_cache:
-                val = audio_cache[video_id]
-                if isinstance(val, dict):
-                    await ABH.send_file(
-                        event.chat_id,
-                        file=val["file_id"],
-                        caption="ENJOY DEAR",
-                        attributes=[
-                            DocumentAttributeAudio(
-                                duration=val.get("duration", 0),
-                                title=val.get("title"),
-                                performer='ANYMOUS'
-                            )
-                        ],
-                        buttons=[b]
-                    )
-                else:
-                    return
-        info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
-        if 'entries' in info and len(info['entries']) > 0:
-            info = info['entries'][0]
-            file_path = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
-            msg = await ABH.send_file(
-                    event.chat_id,
-                    file=val["file_id"],
-                    caption="ENJOY DEAR",
-                    attributes=[
-                        DocumentAttributeAudio(
-                            duration=val.get("duration", 0),
-                            title=val.get("title"),
-                            performer='ANYMOUS'
-                        )
-                    ],
-                    buttons=[b]
-                )
+                return  # إرسال تم، لا حاجة لمتابعة التحميل
 
-            audio_cache[info.get("id")] = {
-                "file_id": msg.file.id,
-                "title": info.get("title"),
-                "duration": info.get("duration", 0),
-                "query": query
-            }
-            save_cache()
-    except Exception as e:
-        await ABH.send_message(
-            1910015590,
-            f"Error: {str(e)}"
+        # استخراج معلومات الفيديو (بدون تحميل)
+        ydl = YoutubeDL(YDL_OPTIONS)
+        search_result = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=False)
+        if 'entries' not in search_result or not search_result['entries']:
+            await event.reply("لم يتم العثور على نتائج.")
+            return
+
+        video_info = search_result['entries'][0]
+        video_id = video_info.get('id')
+
+        if video_id in audio_cache:
+            val = audio_cache[video_id]
+            await ABH.send_file(
+                event.chat_id,
+                file=val["file_id"],
+                caption="ENJOY DEAR",
+                attributes=[
+                    DocumentAttributeAudio(
+                        duration=val.get("duration", 0),
+                        title=val.get("title"),
+                        performer='ANYMOUS'
+                    )
+                ],
+                buttons=[b]
+            )
+            return
+
+        # تحميل الملف فعليًا
+        download_info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
+        downloaded_video = download_info['entries'][0]
+        file_path = ydl.prepare_filename(downloaded_video).replace(".webm", ".mp3").replace(".m4a", ".mp3")
+
+        msg = await ABH.send_file(
+            event.chat_id,
+            file=file_path,
+            caption="ENJOY DEAR",
+            attributes=[
+                DocumentAttributeAudio(
+                    duration=downloaded_video.get("duration", 0),
+                    title=downloaded_video.get("title"),
+                    performer='ANYMOUS'
+                )
+            ],
+            buttons=[b]
         )
-    else:
-        return
+
+        # تخزين بيانات الملف في الكاش
+        audio_cache[downloaded_video.get("id")] = {
+            "file_id": msg.file.id,
+            "title": downloaded_video.get("title"),
+            "duration": downloaded_video.get("duration", 0),
+            "query": query
+        }
+        save_cache()
+
+    except Exception as e:
+        await ABH.send_message(1910015590, f"Error: {str(e)}")
 ABH.run_until_disconnected()
