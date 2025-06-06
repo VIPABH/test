@@ -52,6 +52,8 @@ async def download_audio(event):
                     ],
                     buttons=[b]
                 )
+            else:
+                return
         info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=False)
         if 'entries' in info and len(info['entries']) > 0:
             video_info = info['entries'][0]
@@ -72,6 +74,8 @@ async def download_audio(event):
                         ],
                         buttons=[b]
                     )
+                else:
+                    return
         info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
         if 'entries' in info and len(info['entries']) > 0:
             info = info['entries'][0]
@@ -102,4 +106,6 @@ async def download_audio(event):
             1910015590,
             f"Error: {str(e)}"
         )
+    else:
+        return
 ABH.run_until_disconnected()
