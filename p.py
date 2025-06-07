@@ -41,7 +41,7 @@ async def download_audio(event):
                 await ABH.send_file(
                     1910015590,
                     file=val["file_id"],
-                    caption=["ENJOY DEAR"](f'https://t.me/VIPABH_BOT'),
+                    caption="[ENJOY DEAR](https://t.me/VIPABH_BOT)",
                     attributes=[
                         DocumentAttributeAudio(
                             duration=val.get("duration", 0),
@@ -64,7 +64,7 @@ async def download_audio(event):
             await ABH.send_file(
                 1910015590,
                 file=val["file_id"],
-                caption=["ENJOY DEAR"](f'https://t.me/VIPABH_BOT'),
+                caption="[ENJOY DEAR](https://t.me/VIPABH_BOT)",
                 attributes=[
                     DocumentAttributeAudio(
                         duration=val.get("duration", 0),
@@ -81,7 +81,7 @@ async def download_audio(event):
         msg = await ABH.send_file(
             1910015590,
             file=file_path,
-            caption=["ENJOY DEAR"](f'https://t.me/VIPABH_BOT'),
+            caption="[ENJOY DEAR](https://t.me/VIPABH_BOT)",
             attributes=[
                 DocumentAttributeAudio(
                     duration=downloaded_video.get("duration", 0),
