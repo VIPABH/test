@@ -36,12 +36,10 @@ async def download_audio(event):
     try:
         query = event.pattern_match.group(2)
         b = Button.url('CHANNEL', 'https://t.me/X04OU')
-
-        # تحقق من وجود الملف مسبقًا حسب الاستعلام
         for val in audio_cache.values():
             if isinstance(val, dict) and val.get("query") == query:
                 await ABH.send_file(
-                    event.chat_id,
+                    1910015590,
                     file=val["file_id"],
                     caption="ENJOY DEAR",
                     attributes=[
@@ -53,22 +51,18 @@ async def download_audio(event):
                     ],
                     buttons=[b]
                 )
-                return  # إرسال تم، لا حاجة لمتابعة التحميل
-
-        # استخراج معلومات الفيديو (بدون تحميل)
+                return  
         ydl = YoutubeDL(YDL_OPTIONS)
         search_result = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=False)
         if 'entries' not in search_result or not search_result['entries']:
             await event.reply("لم يتم العثور على نتائج.")
             return
-
         video_info = search_result['entries'][0]
         video_id = video_info.get('id')
-
         if video_id in audio_cache:
             val = audio_cache[video_id]
             await ABH.send_file(
-                event.chat_id,
+                1910015590,
                 file=val["file_id"],
                 caption="ENJOY DEAR",
                 attributes=[
@@ -81,14 +75,11 @@ async def download_audio(event):
                 buttons=[b]
             )
             return
-
-        # تحميل الملف فعليًا
         download_info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
         downloaded_video = download_info['entries'][0]
         file_path = ydl.prepare_filename(downloaded_video).replace(".webm", ".mp3").replace(".m4a", ".mp3")
-
         msg = await ABH.send_file(
-            event.chat_id,
+            1910015590,
             file=file_path,
             caption="ENJOY DEAR",
             attributes=[
@@ -100,8 +91,6 @@ async def download_audio(event):
             ],
             buttons=[b]
         )
-
-        # تخزين بيانات الملف في الكاش
         audio_cache[downloaded_video.get("id")] = {
             "file_id": msg.file.id,
             "title": downloaded_video.get("title"),
@@ -109,7 +98,6 @@ async def download_audio(event):
             "query": query
         }
         save_cache()
-
     except Exception as e:
         await ABH.send_message(1910015590, f"Error: {str(e)}")
 ABH.run_until_disconnected()
