@@ -1,7 +1,7 @@
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 from telethon import events
 from ABH import ABH
-@ABH.on(events.NewMessge(pattern='^امسح$'))
+@ABH.on(events.NewMessage(pattern='^امسح$'))
 async def deletmedia(event):
         chat = event.chat_id
         deleted_count = 0
