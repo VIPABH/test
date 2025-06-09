@@ -1,36 +1,55 @@
+import json
+import os
 from telethon import events
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 from ABH import ABH
 
-# قاموس لتخزين رسائل الوسائط (مفاتيح: chat_id، قيم: list من message_id)
-media_messages = {}
+FILE_PATH = "media_messages.json"
+
+# تحميل بيانات الوسائط من ملف JSON عند بدء التشغيل
+if os.path.exists(FILE_PATH):
+    with open(FILE_PATH, "r", encoding="utf-8") as f:
+        media_messages = json.load(f)
+else:
+    media_messages = {}
+
+def save_media_messages():
+    with open(FILE_PATH, "w", encoding="utf-8") as f:
+        json.dump(media_messages, f, ensure_ascii=False, indent=2)
 
 @ABH.on(events.NewMessage())
 async def store_media_messages(event):
-    chat_id = event.chat_id
+    chat_id = str(event.chat_id)  # استخدم str كمفتاح لل JSON
     msg = event.message
 
     if msg.media and isinstance(msg.media, (MessageMediaPhoto, MessageMediaDocument)):
         if chat_id not in media_messages:
             media_messages[chat_id] = []
-        media_messages[chat_id].append(msg.id)
+        if msg.id not in media_messages[chat_id]:
+            media_messages[chat_id].append(msg.id)
+            save_media_messages()  # حفظ بعد كل إضافة
 
 @ABH.on(events.NewMessage(pattern='^امسح$'))
 async def delete_stored_media(event):
-    chat_id = event.chat_id
+    chat_id = str(event.chat_id)
     deleted_count = 0
 
     await event.respond("🔄 جاري حذف الوسائط المخزنة...")
 
-    if chat_id in media_messages:
+    if chat_id in media_messages and media_messages[chat_id]:
         for msg_id in media_messages[chat_id]:
             try:
-                await ABH.delete_messages(chat_id, msg_id)
+                await ABH.delete_messages(int(chat_id), msg_id)
                 deleted_count += 1
             except Exception as e:
                 print(f"⚠️ فشل حذف الرسالة {msg_id}: {e}")
 
-        # بعد الحذف نفرغ القاموس
         media_messages[chat_id] = []
+        save_media_messages()  # حفظ التغيير بعد الحذف
 
     await event.respond(f"✅ تم حذف {deleted_count} رسالة وسائط.")
+
+@ABH.on(events.NewMessage(pattern='^حفظ$'))
+async def save_command(event):
+    save_media_messages()
+    await event.respond("💾 تم حفظ بيانات الوسائط في الملف بنجاح.")
