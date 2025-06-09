@@ -45,3 +45,13 @@ async def count_media_messages(event):
         await event.respond(f"📊 يوجد {count} رسالة وسائط مخزنة في هذه المحادثة.")
     else:
         await event.respond("ℹ️ لا توجد أي رسائل وسائط مخزنة حالياً في هذه المحادثة.")
+@ABH.on(events.NewMessage(pattern='^ثبتها|الغاء منع من المسح|الغاء مسح$'))
+async def undel(event):
+    r = await event.get_reply_message()
+    if not r:
+        await event.reply('لازم تسوي رد علئ رساله🙄')
+        return
+    x = r.id
+    if x in media_messages:
+        del media_messages[x]
+        await event.reply('تم تخطي الرساله من الحذف ✌')
