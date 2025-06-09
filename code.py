@@ -6,7 +6,7 @@ from ABH import ABH
 
 FILE_PATH = "media_messages.json"
 
-# تحميل بيانات الوسائط من ملف JSON عند بدء التشغيل
+# تحميل البيانات عند بدء التشغيل
 if os.path.exists(FILE_PATH):
     with open(FILE_PATH, "r", encoding="utf-8") as f:
         media_messages = json.load(f)
@@ -19,7 +19,7 @@ def save_media_messages():
 
 @ABH.on(events.NewMessage())
 async def store_media_messages(event):
-    chat_id = str(event.chat_id)  # استخدم str كمفتاح لل JSON
+    chat_id = str(event.chat_id)
     msg = event.message
 
     if msg.media and isinstance(msg.media, (MessageMediaPhoto, MessageMediaDocument)):
@@ -27,7 +27,7 @@ async def store_media_messages(event):
             media_messages[chat_id] = []
         if msg.id not in media_messages[chat_id]:
             media_messages[chat_id].append(msg.id)
-            save_media_messages()  # حفظ بعد كل إضافة
+            save_media_messages()
 
 @ABH.on(events.NewMessage(pattern='^امسح$'))
 async def delete_stored_media(event):
@@ -45,7 +45,7 @@ async def delete_stored_media(event):
                 print(f"⚠️ فشل حذف الرسالة {msg_id}: {e}")
 
         media_messages[chat_id] = []
-        save_media_messages()  # حفظ التغيير بعد الحذف
+        save_media_messages()
 
     await event.respond(f"✅ تم حذف {deleted_count} رسالة وسائط.")
 
@@ -53,3 +53,9 @@ async def delete_stored_media(event):
 async def save_command(event):
     save_media_messages()
     await event.respond("💾 تم حفظ بيانات الوسائط في الملف بنجاح.")
+
+@ABH.on(events.NewMessage(pattern='^عدد$'))
+async def count_media_messages(event):
+    chat_id = str(event.chat_id)
+    count = len(media_messages.get(chat_id, []))
+    await event.respond(f"ℹ️ عدد رسائل الوسائط المخزنة للحذف في هذه المحادثة: {count} رسالة.")
