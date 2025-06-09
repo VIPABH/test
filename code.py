@@ -40,5 +40,8 @@ async def delete_stored_media(event):
 @ABH.on(events.NewMessage(pattern='^عدد$'))
 async def count_media_messages(event):
     chat_id = str(event.chat_id)
-    count = len(media_messages.get(chat_id, []))
-    await event.respond(f"ℹ️ عدد رسائل الوسائط المخزنة للحذف في هذه المحادثة: {count} رسالة.")
+    if chat_id in media_messages and media_messages[chat_id]:
+        count = len(media_messages[chat_id])
+        await event.respond(f"📊 يوجد {count} رسالة وسائط مخزنة في هذه المحادثة.")
+    else:
+        await event.respond("ℹ️ لا توجد أي رسائل وسائط مخزنة حالياً في هذه المحادثة.")
