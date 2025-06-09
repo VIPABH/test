@@ -49,9 +49,13 @@ async def count_media_messages(event):
 async def undel(event):
     r = await event.get_reply_message()
     if not r:
-        await event.reply('لازم تسوي رد علئ رساله🙄')
+        await event.reply('❗ يجب الرد على رسالة وسائط.')
         return
-    x = r.id
-    if x in media_messages:
-        del media_messages[x]
-        await event.reply('تم تخطي الرساله من الحذف ✌')
+    chat_id = str(event.chat_id)
+    msg_id = r.id
+    if chat_id in media_messages and msg_id in media_messages[chat_id]:
+        media_messages[chat_id].remove(msg_id)
+        save_media_messages()
+        await event.reply("✅ تم استثناء هذه الرسالة من الحذف.")
+    else:
+        await event.reply("ℹ️ هذه الرسالة غير مسجلة للحذف أو تم حذفها مسبقًا.")
