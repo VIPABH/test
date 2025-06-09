@@ -36,7 +36,7 @@ async def delete_stored_media(event):
                 print(f"⚠️ فشل حذف الرسالة {msg_id}: {e}")
         media_messages[chat_id] = []
         save_media_messages()
-    await event.respond(f"✅ تم حذف {deleted_count} رسالة وسائط.")
+    await event.respond(f" تم حذف {deleted_count} رسالة وسائط.")
 @ABH.on(events.NewMessage(pattern='^عدد$'))
 async def count_media_messages(event):
     chat_id = str(event.chat_id)
