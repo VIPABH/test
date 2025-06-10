@@ -2,7 +2,7 @@ from telethon.tl.types import DocumentAttributeAudio
 from telethon import events, Button
 from yt_dlp import YoutubeDL
 import os, asyncio, json
-from other import botuse, is_assistant
+# from other import botuse, is_assistant
 from ABH import ABH
 import os
 import json
@@ -44,8 +44,8 @@ YDL_OPTIONS = {
 async def download_audio(event):
     # if not isc(event.chat_id, "اليوتيوب"):
     #     return
-    type = "يوت"
-    await botuse(type)
+    # type = "يوت"
+    # await botuse(type)
     c = event.chat_id
     try:
         query = event.pattern_match.group(2)
@@ -119,8 +119,8 @@ async def download_audio(event):
         await ABH.send_message(1910015590, f"Error: {str(e)}")
 @ABH.on(events.NewMessage(pattern='^اضف كوكيز$', from_users=[1910015590]))
 async def add_cookie(event):
-    type = "كوكيز"
-    await botuse(type)
+    # type = "كوكيز"
+    # await botuse(type)
     r = await event.get_reply_message()
     if not r or not r.document:
         return await event.reply("❗️يرجى الرد على رسالة تحتوي على ملف كوكيز.")    
@@ -134,27 +134,3 @@ async def add_cookie(event):
     with open("cookie.json", "w", encoding="utf-8") as f:
         json.dump({"cookie_data": content}, f, ensure_ascii=False, indent=2)
     await event.reply(" تم حفظ الكوكيز داخل ملف JSON بنجاح.")
-@ABH.on(events.NewMessage(pattern=r'^ال(\w+)\s+(تعطيل|تفعيل)$'))
-async def handle_flag(event):
-    type = "الايدي تفعيل"
-    await botuse(type)
-    if not is_assistant(event.chat_id, event.sender_id):
-        return
-    key = event.pattern_match.group(1)
-    value_str = event.pattern_match.group(2).lower()
-    value = True if value_str == "تفعيل" else False
-    type = "قفل او فتح عام"
-    await botuse(type)
-    data = {}
-    if os.path.exists("locks.json"):
-        with open("locks.json", "r", encoding="utf-8") as f:
-            try:
-                data = json.load(f)
-            except json.JSONDecodeError:
-                data = {}
-    if event.chat_id not in data:
-        data[event.chat_id] = {}
-    data[event.chat_id][key] = value
-    with open("locks.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-    await event.reply(f"تم {value_str} ال{value} بحمده تعالى")
