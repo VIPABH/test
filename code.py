@@ -1,61 +1,160 @@
-import json
-import os
-from telethon import events
-from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
+from telethon.tl.types import DocumentAttributeAudio
+from telethon import events, Button
+from yt_dlp import YoutubeDL
+import os, asyncio, json
+from other import botuse, is_assistant
 from ABH import ABH
-FILE_PATH = "media_messages.json"
-if os.path.exists(FILE_PATH):
-    with open(FILE_PATH, "r", encoding="utf-8") as f:
-        media_messages = json.load(f)
-else:
-    media_messages = {}
-def save_media_messages():
-    with open(FILE_PATH, "w", encoding="utf-8") as f:
-        json.dump(media_messages, f, ensure_ascii=False, indent=2)
-@ABH.on(events.NewMessage())
-async def store_media_messages(event):
-    chat_id = str(event.chat_id)
-    msg = event.message
-    if msg.media and isinstance(msg.media, (MessageMediaPhoto, MessageMediaDocument)):
-        if chat_id not in media_messages:
-            media_messages[chat_id] = []
-        if msg.id not in media_messages[chat_id]:
-            media_messages[chat_id].append(msg.id)
-            save_media_messages()
-@ABH.on(events.NewMessage(pattern='^امسح$'))
-async def delete_stored_media(event):
-    chat_id = str(event.chat_id)
-    deleted_count = 0
-    await event.respond("🔄 جاري حذف الوسائط المخزنة...")
-    if chat_id in media_messages and media_messages[chat_id]:
-        for msg_id in media_messages[chat_id]:
+import os
+import json
+def isc(chat_id: int, key: str) -> bool:
+    data = {}
+    if os.path.exists("locks.json"):
+        with open("locks.json", "r", encoding="utf-8") as f:
             try:
-                await ABH.delete_messages(int(chat_id), msg_id)
-                deleted_count += 1
-            except Exception as e:
-                print(f"⚠️ فشل حذف الرسالة {msg_id}: {e}")
-        media_messages[chat_id] = []
-        save_media_messages()
-    await event.respond(f" تم حذف {deleted_count} رسالة وسائط.")
-@ABH.on(events.NewMessage(pattern='^عدد$'))
-async def count_media_messages(event):
-    chat_id = str(event.chat_id)
-    if chat_id in media_messages and media_messages[chat_id]:
-        count = len(media_messages[chat_id])
-        await event.respond(f"📊 يوجد {count} رسالة وسائط مخزنة في هذه المحادثة.")
-    else:
-        await event.respond("ℹ️ لا توجد أي رسائل وسائط مخزنة حالياً في هذه المحادثة.")
-@ABH.on(events.NewMessage(pattern='^ثبتها|الغاء منع من المسح|الغاء مسح$'))
-async def undel(event):
+                data = json.load(f)
+            except json.JSONDecodeError:
+                return False
+    chat_id_str = str(chat_id)
+    return data.get(chat_id_str, {}).get(key, False)
+COOKIES_FILE = 'c.txt'
+if not os.path.exists("downloads"):
+    os.makedirs("downloads")
+CACHE_FILE = "audio_cache.json"
+if os.path.exists(CACHE_FILE):
+    with open(CACHE_FILE, "r", encoding="utf-8") as f:
+        audio_cache = json.load(f)
+else:
+    audio_cache = {}
+def save_cache():
+    with open(CACHE_FILE, "w", encoding="utf-8") as f:
+        json.dump(audio_cache, f, ensure_ascii=False, indent=2)
+YDL_OPTIONS = {
+    'format': 'bestaudio',
+    'outtmpl': 'downloads/%(title)s.%(ext)s',
+    'noplaylist': True,
+    'quiet': True,
+    'cookiefile': f"{COOKIES_FILE}",
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '128',
+    }],
+}
+@ABH.on(events.NewMessage(pattern=r'^(يوت|yt) (.+)'))
+async def download_audio(event):
+    # if not isc(event.chat_id, "اليوتيوب"):
+    #     return
+    type = "يوت"
+    await botuse(type)
+    c = event.chat_id
+    try:
+        query = event.pattern_match.group(2)
+        b = Button.url('CHANNEL', 'https://t.me/X04OU')
+        for val in audio_cache.values():
+            if isinstance(val, dict) and val.get("query") == query:
+                await ABH.send_file(
+                    c,
+                    file=val["file_id"],
+                    caption="[ENJOY DEAR](https://t.me/VIPABH_BOT)",
+                    attributes=[
+                        DocumentAttributeAudio(
+                            duration=val.get("duration", 0),
+                            title=val.get("title"),
+                            performer='ANYMOUS'
+                        )
+                    ],
+                    buttons=[b],
+                    reply_to=event.message.id
+                )
+                return  
+        ydl = YoutubeDL(YDL_OPTIONS)
+        search_result = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=False)
+        if 'entries' not in search_result or not search_result['entries']:
+            await event.reply("لم يتم العثور على نتائج.")
+            return
+        video_info = search_result['entries'][0]
+        video_id = video_info.get('id')
+        if video_id in audio_cache:
+            val = audio_cache[video_id]
+            await ABH.send_file(
+                c,
+                file=val["file_id"],
+                caption="[ENJOY DEAR](https://t.me/VIPABH_BOT)",
+                attributes=[
+                    DocumentAttributeAudio(
+                        duration=val.get("duration", 0),
+                        title=val.get("title"),
+                        performer='ANYMOUS'
+                    )
+                ],
+                buttons=[b],
+                reply_to=event.message.id
+            )
+            return
+        download_info = await asyncio.to_thread(ydl.extract_info, f"ytsearch:{query}", download=True)
+        downloaded_video = download_info['entries'][0]
+        file_path = ydl.prepare_filename(downloaded_video).replace(".webm", ".mp3").replace(".m4a", ".mp3")
+        msg = await ABH.send_file(
+            c,
+            file=file_path,
+            caption="[ENJOY DEAR](https://t.me/VIPABH_BOT)",
+            attributes=[
+                DocumentAttributeAudio(
+                    duration=downloaded_video.get("duration", 0),
+                    title=downloaded_video.get("title"),
+                    performer='ANYMOUS'
+                )
+            ],
+            buttons=[b],
+            reply_to=event.message.id
+        )
+        audio_cache[downloaded_video.get("id")] = {
+            "file_id": msg.file.id,
+            "title": downloaded_video.get("title"),
+            "duration": downloaded_video.get("duration", 0),
+            "query": query
+        }
+        save_cache()
+    except Exception as e:
+        await ABH.send_message(1910015590, f"Error: {str(e)}")
+@ABH.on(events.NewMessage(pattern='^اضف كوكيز$', from_users=[1910015590]))
+async def add_cookie(event):
+    type = "كوكيز"
+    await botuse(type)
     r = await event.get_reply_message()
-    if not r:
-        await event.reply('❗ يجب الرد على رسالة وسائط.')
+    if not r or not r.document:
+        return await event.reply("❗️يرجى الرد على رسالة تحتوي على ملف كوكيز.")    
+    tmp_file = "temp_cookie.txt"
+    await r.download_media(file=tmp_file)
+    with open(tmp_file, "r", encoding="utf-8") as f:
+        content = f.read()
+    os.remove(tmp_file)
+    if os.path.exists("cookie.json"):
+        os.remove("cookie.json")
+    with open("cookie.json", "w", encoding="utf-8") as f:
+        json.dump({"cookie_data": content}, f, ensure_ascii=False, indent=2)
+    await event.reply(" تم حفظ الكوكيز داخل ملف JSON بنجاح.")
+@ABH.on(events.NewMessage(pattern=r'^ال(\w+)\s+(تعطيل|تفعيل)$'))
+async def handle_flag(event):
+    type = "الايدي تفعيل"
+    await botuse(type)
+    if not is_assistant(event.chat_id, event.sender_id):
         return
-    chat_id = str(event.chat_id)
-    msg_id = r.id
-    if chat_id in media_messages and msg_id in media_messages[chat_id]:
-        media_messages[chat_id].remove(msg_id)
-        save_media_messages()
-        await event.reply("✅ تم استثناء هذه الرسالة من الحذف.")
-    else:
-        await event.reply("ℹ️ هذه الرسالة غير مسجلة للحذف أو تم حذفها مسبقًا.")
+    key = event.pattern_match.group(1)
+    value_str = event.pattern_match.group(2).lower()
+    value = True if value_str == "تفعيل" else False
+    type = "قفل او فتح عام"
+    await botuse(type)
+    data = {}
+    if os.path.exists("locks.json"):
+        with open("locks.json", "r", encoding="utf-8") as f:
+            try:
+                data = json.load(f)
+            except json.JSONDecodeError:
+                data = {}
+    if event.chat_id not in data:
+        data[event.chat_id] = {}
+    data[event.chat_id][key] = value
+    with open("locks.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+    await event.reply(f"تم {value_str} ال{value} بحمده تعالى")
