@@ -1,5 +1,6 @@
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsAdmins
+from telethon import events
 from ABH import ABH
 @ABH.on(events.NewMessage(pattern="/المالك"))
 async def get_owner(event):
