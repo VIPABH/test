@@ -1,11 +1,10 @@
-from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.types import ChannelParticipantsAdmins, ChannelParticipantCreator
 from telethon import events
-from ABH import ABH
+from telethon.tl.custom import Button
 
-@ABH.on(events.NewMessage(pattern='ها'))
+@ABH.on(events.NewMessage(pattern='/start'))
 async def x(event):
-    await event.respond("الرجاء إرسال معرف القناة:")
-    response = await ABH.wait_for(events.NewMessage(from_user=event.sender_id))
-    chanel = response.raw_text
-    await event.reply(f'chanel={chanel}')
+    async with ABH.conversation(event.chat_id) as conv:
+        await conv.send_message("أرسل لي اسم القناة:")
+        response = await conv.get_response()
+        chanel = response.text
+        await event.respond(f"تم استلام: {chanel}")
