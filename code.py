@@ -6,5 +6,5 @@ async def x(event):
     async with ABH.conversation(event.chat_id) as conv:
         await conv.send_message("أرسل لي اسم القناة:")
         response = await conv.get_response()
-        chanel = response.text
+        chanel = response.message
         await event.respond(f"تم استلام: {chanel}")
