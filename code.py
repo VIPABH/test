@@ -1,10 +1,31 @@
-from telethon import events
-from telethon.tl.custom import Button
-from ABH import *
-@ABH.on(events.NewMessage(pattern='/start'))
-async def x(event):
-    async with ABH.conversation(event.chat_id) as conv:
-        await conv.send_message("أرسل لي اسم القناة:")
-        response = await conv.get_response()
-        chanel = response.message
-        await event.respond(f"تم استلام: {chanel}")
+from telethon import TelegramClient, events
+from ABH import ABH
+import redis, os
+r = redis.Redis(host='localhost', port=6379)  # ← صحيح
+user_states = {}
+@bot.on(events.NewMessage)
+async def handler(event):
+    user_id = event.sender_id
+    text = event.raw_text.strip()
+    if user_id in user_states:
+        state = user_states[user_id]
+        if state["step"] == "name":
+            state["name"] = text
+            state["step"] = "text"
+            await event.reply("📝 أرسل الآن **كلام الرد**.")
+        elif state["step"] == "text":
+            reply_name = state["name"]
+            reply_text = text
+            key = f"رد:{reply_name}"
+            r.set(key, reply_text)
+            user_states.pop(user_id)
+            await event.reply(f"✅ تم حفظ الرد باسم: {reply_name}")
+        return
+    if text.lower() == "اضف رد":
+        user_states[user_id] = {"step": "name"}
+        await event.reply("✏️ أرسل الآن **اسم الرد**.")
+        return
+    key = f"رد:{text}"
+    reply_value = r.get(key)
+    if reply_value:
+        await event.reply(reply_value)
