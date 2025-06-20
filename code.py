@@ -3,7 +3,7 @@ from ABH import ABH
 import redis, os
 r = redis.Redis(host='localhost', port=6379)  # ← صحيح
 user_states = {}
-@bot.on(events.NewMessage)
+@ABH.on(events.NewMessage)
 async def handler(event):
     user_id = event.sender_id
     text = event.raw_text.strip()
