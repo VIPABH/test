@@ -1,31 +1,25 @@
-from telethon import TelegramClient, events
+from telethon import events
+import random, asyncio
 from ABH import ABH
-import redis, os
-r = redis.Redis(host='localhost', port=6379)  # ← صحيح
-user_states = {}
-@ABH.on(events.NewMessage)
-async def handler(event):
-    user_id = event.sender_id
-    text = event.raw_text.strip()
-    if user_id in user_states:
-        state = user_states[user_id]
-        if state["step"] == "name":
-            state["name"] = text
-            state["step"] = "text"
-            await event.reply("📝 أرسل الآن **كلام الرد**.")
-        elif state["step"] == "text":
-            reply_name = state["name"]
-            reply_text = text
-            key = f"رد:{reply_name}"
-            r.set(key, reply_text)
-            user_states.pop(user_id)
-            await event.reply(f"✅ تم حفظ الرد باسم: {reply_name}")
+@ABH.on(events.NewMessage(pattern='/num'))
+async def num(event):
+    if not event.is_group:
         return
-    if text.lower() == "اضف رد":
-        user_states[user_id] = {"step": "name"}
-        await event.reply("✏️ أرسل الآن **اسم الرد**.")
-        return
-    key = f"رد:{text}"
-    reply_value = r.get(key)
-    if reply_value:
-        await event.reply(reply_value.decode("utf-8"))
+    num = random.randint(1, 10)
+    async with ABH.conversation(event.chat_id, timeout=60) as conv:
+        await conv.send_message(event.chat_id,  f'اللعبة بدأت! حاول تخمين الرقم (من 1 إلى 10).' ,file='https://t.me/VIPABH/1204', reply_to=event.message.id)
+        try:
+            response = await conv.get_response()
+            get = response.text
+            if get == num:
+                ء = await conv.send_message("🎉")
+                await asyncio.sleep(3)
+                await ء.edit('🎉مُبارك! لقد فزت!')
+            else:
+                ء = await conv.send_message("😢")
+                await asyncio.sleep(3)
+                await ء.edit(f'للأسف، الرقم الصحيح هو {num}. حاول مرة أخرى!')
+        except asyncio.TimeoutError:
+            await conv.send_message(event.chat_id, 'انتهى الوقت! لم تقم بإرسال إجابة في الوقت المحدد.', reply_to=event.message.id)
+            return
+            
