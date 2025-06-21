@@ -1,9 +1,10 @@
 from telethon import events
 async def ment(sender):
-        name = sender.first_name or 'name'
-        id = sender.id
-        return f"[{name}](tg://user?id={id})"
+    name = getattr(sender, 'first_name', 'name')
+    user_id = getattr(sender, 'id', None)
+    if user_id is None:
+        return "Unknown User"
+    return f"[{name}](tg://user?id={user_id})"
 async def mention(event):
-        name = event.first_name or 'name'
-        id = event.id
-        return f"[{name}](tg://user?id={id})"
+    sender = await event.get_sender()
+    return await ment(sender)
