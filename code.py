@@ -6,8 +6,8 @@ async def num(event):
     if not event.is_group:
         return
     num = random.randint(1, 10)
+    await ABH.send_message(event.chat_id,  f'اللعبة بدأت! حاول تخمين الرقم (من 1 إلى 10).' ,file='https://t.me/VIPABH/1204', reply_to=event.message.id)
     async with ABH.conversation(event.chat_id, timeout=60) as conv:
-        await conv.send_message(event.chat_id,  f'اللعبة بدأت! حاول تخمين الرقم (من 1 إلى 10).' ,file='https://t.me/VIPABH/1204', reply_to=event.message.id)
         try:
             response = await conv.get_response()
             get = response.text
