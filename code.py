@@ -288,6 +288,7 @@ async def telegramgames(event):
 async def num(event):
     if not event.is_group:
         return
+    await botuse("/num")
     num = random.randint(1, 10)
     max_attempts = 3
     async with ABH.conversation(event.chat_id, timeout=6) as conv:
