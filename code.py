@@ -15,8 +15,7 @@ async def get_or_cache_file_id():
         return file_id
 
     # أول مرة فقط: تحميل الفيديو من الرابط وإرساله لاستخراج file_id
-    msg = await ABH.send_file('me', VIDEO_URL)
-    file_id = msg.file.id
+    file_id = VIDEO_URL.file.id
     r.set(VIDEO_KEY, file_id)
 
     # إرسال الفيديو إلى المستخدم المطلوب (مرة واحدة)
