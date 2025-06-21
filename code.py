@@ -28,4 +28,4 @@ async def handler(event):
     key = f"رد:{text}"
     reply_value = r.get(key)
     if reply_value:
-        await event.reply(reply_value)
+        await event.reply(reply_value.decode("utf-8"))
