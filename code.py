@@ -1,16 +1,24 @@
 from telethon import events
 import random, asyncio
 from ABH import ABH
-@ABH.on(events.NewMessage(pattern="/extract"))
-async def extract_file_id(event):
-    channel = 'vipabh'
-    message_id = 1204
-    try:
-        msg = await ABH.get_messages(channel, ids=message_id)
-        if msg.media:
-            file_id = msg.file.id
-            await event.reply(f"تم استخراج File ID: `{file_id}`")
-        else:
-            await event.reply(" لم يتم العثور على ملف مرفق في هذه الرسالة.")
-    except Exception as e:
-        await event.reply(f"⚠️ حدث خطأ: {e}")
+@ABH.on(events.NewMessage(pattern='/num'))
+async def num(event):
+    if not event.is_group:
+        return
+    num = random.randint(1, 10)
+    async with ABH.conversation(event.chat_id, timeout=60) as conv:
+        await conv.send_message(event.chat_id,  f'اللعبة بدأت! حاول تخمين الرقم (من 1 إلى 10).' ,file='BAADAgADE1gAAqVjsUm4S-Q8spmx2QI', reply_to=event.message.id)
+        try:
+            response = await conv.get_response()
+            get = response.text
+            if get == num:
+                ء = await conv.send_message("🎉")
+                await asyncio.sleep(3)
+                await ء.edit('🎉مُبارك! لقد فزت!')
+            else:
+                ء = await conv.send_message("😢")
+                await asyncio.sleep(3)
+                await ء.edit(f'للأسف، الرقم الصحيح هو {num}. حاول مرة أخرى!')
+        except asyncio.TimeoutError:
+            await conv.send_message(event.chat_id, 'انتهى الوقت! لم تقم بإرسال إجابة في الوقت المحدد.', reply_to=event.message.id)
+            return
