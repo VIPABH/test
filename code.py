@@ -35,3 +35,44 @@ async def save_reply(event):
         key = f"user_replies:{sender_id}"
         r.rpush(key, json.dumps(reply_data))
         await conv.send_message(f"✅ تم حفظ الرد: {name} - النوع: {'مميز' if match_type == 'contains' else 'عادي'}")
+@ABH.on(events.NewMessage(pattern=r'^/ردودي$'))
+async def list_replies(event):
+    sender_id = event.sender_id
+    key = f"user_replies:{sender_id}"
+    replies = r.lrange(key, 0, -1)
+
+    if not replies:
+        await event.reply("📭 لا توجد أي ردود محفوظة.")
+        return
+
+    message = "🗂️ قائمة ردودك:\n"
+    for reply_json in replies:
+        reply = json.loads(reply_json)
+        name = reply['name']
+        match_type = "مميز" if reply['match_type'] == "contains" else "عادي"
+        message += f"• {name} — {match_type}\n"
+    
+    await event.reply(message)
+@ABH.on(events.NewMessage(incoming=True))
+async def auto_reply(event):
+    sender_id = event.sender_id
+    key = f"user_replies:{sender_id}"
+    replies = r.lrange(key, 0, -1)
+    message_text = event.raw_text.strip()
+
+    for reply_json in replies:
+        reply = json.loads(reply_json)
+        name = reply['name']
+        match_type = reply['match_type']
+
+        matched = (
+            message_text.startswith(name) if match_type == "starts"
+            else name in message_text
+        )
+
+        if matched:
+            if reply['type'] == "text":
+                await event.reply(reply['content'])
+            elif reply['type'] == "media" and os.path.exists(reply['content']):
+                await event.reply(file=reply['content'])
+            return  # توقف عند أول تطابق
