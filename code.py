@@ -1,9 +1,7 @@
-from telethon import events
 from telethon.tl.custom import Conversation
-from ABH import ABH
-from ABH import r
-import json
-import os
+from telethon import events
+from ABH import ABH, r
+import json, os
 @ABH.on(events.NewMessage(pattern="^وضع رد$"))
 async def save_reply(event):
     sender_id = event.sender_id
