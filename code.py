@@ -2,10 +2,13 @@ from telethon.tl.custom import Conversation
 from telethon import events
 from ABH import ABH, r
 import json, os
+
 @ABH.on(events.NewMessage(pattern="^وضع رد$"))
 async def save_reply(event):
-    sender_id = event.sender_id
-    async with ABH.conversation(sender_id, timeout=60) as conv:
+    if not event.is_group:
+        return await event.reply("❌ يجب استخدام هذا الأمر داخل مجموعة.")
+    chat_id = event.chat_id
+    async with ABH.conversation(event.sender_id, timeout=60) as conv:
         await conv.send_message("📝 أرسل اسم الرد:")
         name = (await conv.get_response()).text.strip()
         await conv.send_message("📌 حدد نوع المطابقة:\n1 - مميز (في أي مكان من الكلام)\n2 - عادي (في بداية الرسالة)")
@@ -18,34 +21,40 @@ async def save_reply(event):
             "match_type": match_type,
         }
         if content_response.media:
-            path = await content_response.download_media(file=f"media/{sender_id}_{name}")
+            path = await content_response.download_media(file=f"media/{chat_id}_{name}")
             reply_data["type"] = "media"
             reply_data["content"] = path
         else:
             reply_data["type"] = "text"
             reply_data["content"] = content_response.text
-        key = f"user_replies:{sender_id}"
+        key = f"group_replies:{chat_id}"
         r.rpush(key, json.dumps(reply_data))
         await conv.send_message(f"✅ تم حفظ الرد: {name} - النوع: {'مميز' if match_type == 'contains' else 'عادي'}")
+
 @ABH.on(events.NewMessage(pattern=r'^/ردودي$'))
 async def list_replies(event):
-    sender_id = event.sender_id
-    key = f"user_replies:{sender_id}"
+    if not event.is_group:
+        return await event.reply("❌ هذا الأمر مخصص للمجموعات.")
+    chat_id = event.chat_id
+    key = f"group_replies:{chat_id}"
     replies = r.lrange(key, 0, -1)
     if not replies:
-        await event.reply("📭 لا توجد أي ردود محفوظة.")
+        await event.reply("📭 لا توجد أي ردود محفوظة في هذه المجموعة.")
         return
-    message = "🗂️ قائمة ردودك:\n"
+    message = "🗂️ قائمة الردود في هذه المجموعة:\n"
     for reply_json in replies:
         reply = json.loads(reply_json)
         name = reply['name']
         match_type = "مميز" if reply['match_type'] == "contains" else "عادي"
         message += f"• {name} — {match_type}\n"
     await event.reply(message)
+
 @ABH.on(events.NewMessage(incoming=True))
 async def auto_reply(event):
-    sender_id = event.sender_id
-    key = f"user_replies:{sender_id}"
+    if not event.is_group:
+        return
+    chat_id = event.chat_id
+    key = f"group_replies:{chat_id}"
     replies = r.lrange(key, 0, -1)
     message_text = event.raw_text.strip()
     for reply_json in replies:
