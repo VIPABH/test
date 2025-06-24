@@ -1,5 +1,5 @@
 from telethon import events
-from Resource import mention
+from Resources import mention
 from ABH import ABH, r
 import json, os
 @ABH.on(events.NewMessage(pattern="^وضع رد$"))
