@@ -44,7 +44,7 @@ async def handle_reply(event):
     state = user_states.get(event.sender_id)
     if not state:
         return
-    if state in x:
+    if event.message.text in x:
         return
     if state["step"] == "name":
         state["name"] = event.raw_text.strip()
