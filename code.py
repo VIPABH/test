@@ -34,16 +34,16 @@ async def start_reply(event):
         return await event.reply("❌ يجب استخدام هذا الأمر في مجموعة.")
     user_states[event.sender_id] = {"step": "name"}
     await event.reply("📥 أرسل اسم الرد:")
-
 @ABH.on(events.NewMessage())
 async def handle_reply(event):
     if not event.is_group:
         return
-
+    x = ["وضع رد", "وضع ردي", "حذف رد", "حذف ردود", "ردود", "/replys"]
     state = user_states.get(event.sender_id)
     if not state:
         return
-
+    if state in x:
+        return
     if state["step"] == "name":
         state["name"] = event.raw_text.strip()
         state["step"] = "content"
@@ -51,7 +51,6 @@ async def handle_reply(event):
     elif state["step"] == "content":
         name = state["name"]
         content = event.raw_text.strip()
-
         reply_data = {
             "name": name,
             "match_type": "starts",
@@ -59,7 +58,6 @@ async def handle_reply(event):
             "type": "text",
             "content": content
         }
-
         key = f"group_replies:{event.chat_id}"
         r.rpush(key, json.dumps(reply_data))
         del user_states[event.sender_id]
