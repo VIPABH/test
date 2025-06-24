@@ -73,8 +73,8 @@ async def delete_reply(event):
     if not event.is_group:
         return
     chat_id = event.chat_id
-    await event.reply("يتم حذف رد \n ارسل اسم الرد")
     async with ABH.conversation(event.sender_id, timeout=60) as conv:
+        await conv.send_message("يتم حذف رد \n ارسل اسم الرد")
         name = (await conv.get_response()).text.strip()
         key = f"group_replies:{chat_id}"
         replies = r.lrange(key, 0, -1)
