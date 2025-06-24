@@ -1,5 +1,5 @@
 from telethon import events
-from Resources import mention
+from Resource import mention
 from ABH import ABH, r
 import json, os
 @ABH.on(events.NewMessage(pattern="^وضع رد$"))
@@ -96,19 +96,14 @@ async def delete_all_replies(event):
 @ABH.on(events.NewMessage(pattern="^وضع ردي$"))
 async def add_reply(event):
     if not event.is_group:
-        return await event.reply("❌ هذا الأمر يعمل في المجموعات فقط.")
-    
+        return await event.reply("هذا الأمر يعمل في المجموعات فقط.")
     chat_id = str(event.chat_id)
-
-    async with ABH.conversation(event.chat_id, timeout=60) as conv:
-        await conv.send_message("📥 أرسل اسم الرد:")
+    await event.reply("📥 أرسل اسم الرد:")
+    async with ABH.conversation(event.sender_id, timeout=60) as conv:
         name = (await conv.get_response()).text.strip()
         key = f"replies:{chat_id}:{name}"
-
-        if await r.exists(key):
-            return await conv.send_message(f"⚠️ لا يمكنك وضع رد بالاسم **{name}** لأنه مستخدم مسبقًا.")
-        
-        x = event.sender.username or (await mention(event))
+        if r.exists(key):
+            return await conv.send_message(f"لا يمكنك وضع رد ب اسم **{name}**.")
+        x = event.username or await mention(event)
         await r.set(key, x)
-
-        await conv.send_message(f"✅ تم حفظ الرد بالاسم **{name}**.")
+        await conv.send_message(f"تم حفظ الرد ب اسم **{name}**. ")
