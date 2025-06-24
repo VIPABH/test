@@ -105,5 +105,5 @@ async def add_reply(event):
         if r.exists(key):
             return await conv.send_message(f"لا يمكنك وضع رد ب اسم **{name}**.")
         x = await mention(event)
-        await r.set(key, x)
+        r.set(key, x)
         await conv.send_message(f"تم حفظ الرد ب اسم **{name}**. ")
