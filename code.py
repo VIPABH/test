@@ -2,6 +2,7 @@ from telethon import events
 from Resources import mention
 from ABH import ABH, r
 import json, os
+x = ["وضع رد", "وضع ردي", "حذف رد", "حذف ردود", "ردود", "/replys"]
 @ABH.on(events.NewMessage(pattern="^وضع ردي$"))
 async def save_personal_reply(event):
     if not event.is_group:
@@ -40,7 +41,6 @@ async def start_reply(event):
 async def handle_reply(event):
     if not event.is_group:
         return
-    x = ["وضع رد", "وضع ردي", "حذف رد", "حذف ردود", "ردود", "/replys"]
     state = user_states.get(event.sender_id)
     if not state:
         return
