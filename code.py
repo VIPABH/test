@@ -98,8 +98,8 @@ async def add_reply(event):
     if not event.is_group:
         return await event.reply("هذا الأمر يعمل في المجموعات فقط.")
     chat_id = str(event.chat_id)
-    await event.reply("📥 أرسل اسم الرد:")
     async with ABH.conversation(event.sender_id, timeout=60) as conv:
+        await conv.send_message("📥 أرسل اسم الرد:")
         name = (await conv.get_response()).text.strip()
         key = f"replies:{chat_id}:{name}"
         if r.exists(key):
