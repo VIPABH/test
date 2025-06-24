@@ -1,5 +1,5 @@
-from telethon.tl.custom import Conversation
 from telethon import events
+from Resource import mention
 from ABH import ABH, r
 import json, os
 @ABH.on(events.NewMessage(pattern="^وضع رد$"))
@@ -68,4 +68,42 @@ async def auto_reply(event):
                 await event.reply(reply['content'])
             elif reply['type'] == "media" and os.path.exists(reply['content']):
                 await event.reply(file=reply['content'])
-            return
+@ABH.on(events.NewMessage(pattern="^حذف رد$"))
+async def delete_reply(event):
+    if not event.is_group:
+        return
+    chat_id = event.chat_id
+    await event.reply("يتم حذف رد \n ارسل اسم الرد")
+    async with ABH.conversation(event.sender_id, timeout=60) as conv:
+        name = (await conv.get_response()).text.strip()
+        key = f"group_replies:{chat_id}"
+        replies = r.lrange(key, 0, -1)
+        for reply_json in replies:
+            reply = json.loads(reply_json)
+            if reply['name'] == name:
+                r.lrem(key, 0, reply_json)
+                await conv.send_message(f"تم حذف الرد **{name}**")
+                return
+        await conv.send_message(f"لم يتم العثور على رد بالاسم **{name}**")
+@ABH.on(events.NewMessage(pattern="^حذف ردود$"))
+async def delete_all_replies(event):
+    if not event.is_group:
+        return
+    chat_id = event.chat_id
+    key = f"group_replies:{chat_id}"
+    r.delete(key)
+    await event.reply("تم حذف جميع الردود في هذه المجموعة.")
+@ABH.on(events.NewMessage(pattern="^وضع ردي$"))
+async def add_reply(event):
+    if not event.is_group:
+        return await event.reply("هذا الأمر يعمل في المجموعات فقط.")
+    chat_id = str(event.chat_id)
+    await event.reply("📥 أرسل اسم الرد:")
+    async with ABH.conversation(event.sender_id, timeout=60) as conv:
+        name = (await conv.get_response()).text.strip()
+        key = f"replies:{chat_id}:{name}"
+        if await r.exists(key):
+            return await conv.send_message(f"لا يمكنك وضع رد ب اسم **{name}**.")
+        x = event.username or await mention(event)
+        await r.set(key, x)
+        await conv.send_message(f"تم حفظ الرد ب اسم **{name}**. ")
