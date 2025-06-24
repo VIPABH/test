@@ -12,7 +12,7 @@ async def save_personal_reply(event):
         await conv.send_message("📥 أرسل اسم الرد:")
         name = (await conv.get_response()).text.strip()
         if name in x:
-        return
+            return
         key = f"group_replies:{chat_id}"
         existing_replies = r.lrange(key, 0, -1)
         for reply_json in existing_replies:
