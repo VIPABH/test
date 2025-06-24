@@ -5,22 +5,18 @@ import json, os
 @ABH.on(events.NewMessage(pattern="^وضع ردي$"))
 async def save_personal_reply(event):
     if not event.is_group:
-        return await event.reply("❌ يجب استخدام هذا الأمر داخل مجموعة.")
-
+        return await event.reply(" يجب استخدام هذا الأمر داخل مجموعة.")
     chat_id = event.chat_id
     source_type = "user"
-
     async with ABH.conversation(event.sender_id, timeout=60) as conv:
         await conv.send_message("📥 أرسل اسم الرد:")
         name = (await conv.get_response()).text.strip()
-
         key = f"group_replies:{chat_id}"
         existing_replies = r.lrange(key, 0, -1)
         for reply_json in existing_replies:
             reply = json.loads(reply_json)
             if reply["name"] == name:
                 return await conv.send_message(f"⚠️ يوجد رد محفوظ مسبقًا بهذا الاسم: **{name}**")
-
         reply_data = {
             "name": name,
             "match_type": "starts",
@@ -85,7 +81,7 @@ async def save_reply(event):
 @ABH.on(events.NewMessage(pattern=r'^ردود|/replys'))
 async def list_replies(event):
     if not event.is_group:
-        return
+        return await event.reply("❌ هذا الأمر يعمل فقط داخل المجموعات.")
 
     chat_id = event.chat_id
     key = f"group_replies:{chat_id}"
@@ -94,36 +90,51 @@ async def list_replies(event):
     if not replies:
         return await event.reply("📭 لا توجد ردود محفوظة في هذه المجموعة.")
 
-    message = "📋 قائمة الردود:\n\n"
-    for index, reply_json in enumerate(replies, start=1):
-        reply = json.loads(reply_json)
-        name = reply["name"]
-        match_type = "مميز" if reply["match_type"] == "contains" else "عادي"
-        source_type = "🔵 عام" if reply["source"] == "group" else "🟢 شخصي"
-        message += f"{index}. **{name}** ⟵ {match_type} ({source_type})\n"
+    message = "📋 **قائمة الردود المحفوظة:**\n\n"
+
+    match_types = {"contains": "مميز", "starts": "عادي"}
+    source_types = {"group": "🔵 عام", "user": "🟢 خاص"}
+    content_types = {"text": "📄 نص", "media": "🖼️ ميديا"}
+
+    for index, reply_str in enumerate(replies, start=1):
+        try:
+            # نقوم بتقسيم السطر إلى عناصر
+            parts = reply_str.split('|')
+            if len(parts) < 5:
+                continue  # تجاهل الإدخالات التالفة
+
+            name, match_type_raw, source_raw, type_raw, _ = parts
+
+            match_type = match_types.get(match_type_raw, "❓")
+            source_type = source_types.get(source_raw, "❓")
+            content_type = content_types.get(type_raw, "❓")
+
+            message += (
+                f"▫️ `{index}` — **{name}**\n"
+                f"   • النوع: `{match_type}`\n"
+                f"   • المحتوى: {content_type}\n"
+                f"   • المصدر: {source_type}\n\n"
+            )
+        except Exception:
+            continue  # الأمان من الأخطاء
 
     await event.reply(message)
-
 @ABH.on(events.NewMessage(incoming=True))
 async def auto_reply(event):
     if not event.is_group:
         return
-
     chat_id = event.chat_id
     key = f"group_replies:{chat_id}"
     replies = r.lrange(key, 0, -1)
     message_text = event.raw_text.strip()
-
     for reply_json in replies:
         reply = json.loads(reply_json)
         name = reply['name']
         match_type = reply['match_type']
-
         matched = (
             message_text.startswith(name) if match_type == "starts"
             else name in message_text
         )
-
         if matched:
             if reply['type'] == "text":
                 await event.reply(reply['content'])
