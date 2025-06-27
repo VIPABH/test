@@ -1,65 +1,10 @@
-from Resources import mention
-from telethon import events
-from ABH import ABH, r
-import json, os
-import redis
-
-# الاتصال بـ Redis
-rd = redis.StrictRedis(host='localhost', port=6379, decode_responses=True)
-
-x = ["وضع رد", "وضع ردي", "حذف رد", "حذف ردود", "ردود", "/replys"]
-user = {}
-
-@ABH.on(events.NewMessage(pattern='^وضع رد$'))
-async def set_reply(event):
-    if not event.is_group:
-        return
-    await event.reply('📥 اكتب اسم الرد الذي تريد وضعه:')
-    user[event.sender_id] = 'set_reply'
-
-@ABH.on(events.NewMessage(pattern=r'^وضع ردي$'))
-async def set_my_reply(event):
-    if not event.is_group:
-        return
-    await event.reply('📥 اكتب اسم الرد الذي تريد وضعه:')
-    user[event.sender_id] = 'set_my_reply'
-
-@ABH.on(events.NewMessage(pattern='^حذف رد$'))
-async def delete_reply(event):
-    if not event.is_group:
-        return
-    await event.reply('🗑️ اكتب اسم الرد الذي تريد حذفه:')
-    user[event.sender_id] = 'delete_reply'
-
-@ABH.on(events.NewMessage(pattern='^حذف ردود$'))
-async def delete_replies(event):
-    if not event.is_group:
-        return
-    for key in rd.scan_iter("reply:*"):
-        rd.delete(key)
-    await event.reply('🗑️ تم حذف جميع الردود بنجاح.')
-
-@ABH.on(events.NewMessage(pattern='^ردود$'))
-async def get_replies(event):
-    if not event.is_group:
-        return
-    keys = list(rd.scan_iter("reply:*"))
-    if not keys:
-        await event.reply('📭 لا توجد ردود محفوظة.')
-        return
-    replys_text = []
-    for key in keys:
-        name = key.split("reply:")[1]
-        typ = rd.hget(key, "type")
-        replys_text.append(f'▫️ **{name}** : {typ}')
-    await event.reply('\n'.join(replys_text))
-
 @ABH.on(events.NewMessage)
 async def reply_handler(event):
     if not event.is_group or (event.raw_text and event.raw_text.strip() in x):
         return
 
     sender_id = event.sender_id
+    chat_id = event.chat_id
     msg_text = event.raw_text.strip() if event.raw_text else None
 
     if sender_id in user:
@@ -72,16 +17,18 @@ async def reply_handler(event):
 
         elif isinstance(current, tuple):
             action, reply_name = current
+            key = f"reply:{chat_id}:{reply_name}"
 
             if event.media:
                 msg = await event.reply("📤 تم حفظ الرد كميديا.")
                 file = await event.client.send_file("me", event.media, caption=f"رد محفوظ: {reply_name}")
-                rd.hset(f"reply:{reply_name}", mapping={
+                file_id = file.file.id if file.file else None
+                rd.hset(key, mapping={
                     "type": "media",
-                    "file_id": file.file.id
+                    "file_id": file_id
                 })
             else:
-                rd.hset(f"reply:{reply_name}", mapping={
+                rd.hset(key, mapping={
                     "type": "text",
                     "content": msg_text
                 })
@@ -91,7 +38,7 @@ async def reply_handler(event):
 
         elif current == 'delete_reply':
             reply_name = msg_text
-            key = f"reply:{reply_name}"
+            key = f"reply:{chat_id}:{reply_name}"
             if rd.exists(key):
                 rd.delete(key)
                 await event.reply(f'🗑️ تم حذف الرد: **{reply_name}**')
@@ -100,13 +47,21 @@ async def reply_handler(event):
             del user[sender_id]
             return
 
-    # الرد التلقائي عند التطابق
+    # رد تلقائي
     if not msg_text:
         return
 
-    for key in rd.scan_iter("reply:*"):
-        reply_name = key.split("reply:")[1]
-        if msg_text.startswith(reply_name):
+    for key in rd.scan_iter(f"reply:{chat_id}:*"):
+        reply_name = key.split(f"reply:{chat_id}:")[1]
+        if msg_text.startswith(reply_name):  # مطابقة عادية
+            typ = rd.hget(key, "type")
+            if typ == "text":
+                await event.reply(rd.hget(key, "content"))
+            elif typ == "media":
+                file_id = rd.hget(key, "file_id")
+                await event.respond(file=file_id)
+            break
+        elif reply_name in msg_text:  # مطابقة مميزة (كلمة داخل الجملة)
             typ = rd.hget(key, "type")
             if typ == "text":
                 await event.reply(rd.hget(key, "content"))
