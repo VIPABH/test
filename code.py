@@ -1,3 +1,4 @@
+from Resources import mention
 from telethon import events
 from ABH import ABH
 replys = {}
@@ -6,8 +7,13 @@ session = {}
 async def set_my_reply(event):
     x = event.sender_id
     await event.reply('ارسل الآن **اسم الرد**')
+    session[x] = {'step': 'waiting_for_me_reply_name'}
+@ABH.on(events.NewMessage(pattern='^وضع رد$'))
+async def set_my_reply(event):
+    x = event.sender_id
+    await event.reply('ارسل الآن **اسم الرد**')
     session[x] = {'step': 'waiting_for_reply_name'}
-banned = ['وضع ردي']
+banned = ['وضع ردي', 'وضع رد']
 @ABH.on(events.NewMessage)
 async def add_reply(event):
     x = event.sender_id
@@ -44,6 +50,13 @@ async def add_reply(event):
                 }
                 await event.reply(f'تم حفظ الرد النصي باسم **{reply_name}**')
             del session[x]
+            return
+        elif user_step == 'waiting_for_reply_name':
+            session[x]['reply_name'] = event.raw_text
+            replys[x][reply_name] = {
+                'type': 'text',
+                'content': await mention(event)
+            }
 @ABH.on(events.NewMessage)
 async def use_reply(event):
     x = event.sender_id
