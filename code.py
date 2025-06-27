@@ -66,4 +66,4 @@ async def use_reply(event):
             if reply_data['type'] == 'text':
                 await event.reply(reply_data['content'])
             elif reply_data['type'] == 'media':
-                await ABH.send_file(event.chat_id, file=reply_data['file_id'], reply_to=event_id)
+                await ABH.send_file(event.chat_id, file=reply_data['file_id'], reply_to=event.id)
