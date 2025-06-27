@@ -10,11 +10,12 @@ async def set_my_reply(event):
     x = event.sender_id
     await event.reply('ارسل الآن **اسم الرد**')
     session[x] = {'step': 'waiting_for_reply_name'}
-
-# استكمال عملية الإضافة
+banned = ['وضع ردي']
 @ABH.on(events.NewMessage)
 async def add_reply(event):
     x = event.sender_id
+    if x in bannedd:
+        return
     if x in session:
         user_step = session[x].get('step')
 
