@@ -29,23 +29,13 @@ async def handle_reply_saving(event):
     user_id = event.sender_id
     msg = event.message
     text = msg.text or ""
-
-    # لا نتعامل مع أوامر الإعداد داخل هذه الدالة
     if text in banned:
         return
-
-    # معالجة مرحلة إعداد الردود
     if user_id in session:
         step = session[user_id]['step']
         reply_type = session[user_id]['type']
 
-        if step == 'waiting_for_reply_name':
-            session[user_id]['reply_name'] = text
-            session[user_id]['step'] = 'waiting_for_reply_content'
-            # await event.reply('📎 أرسل الآن محتوى الرد (نص أو وسائط)')
-            return
-
-        elif step == 'waiting_for_reply_content':
+        if step == 'waiting_for_reply_content':
             reply_name = session[user_id]['reply_name']
             redis_key = f"replys:{user_id}:{reply_name}"
 
@@ -60,26 +50,29 @@ async def handle_reply_saving(event):
                     'content': content,
                     'match': 'exact'
                 })
+        if step == 'waiting_for_reply_name':
+            session[user_id]['reply_name'] = text
+            session[user_id]['step'] = 'waiting_for_reply_content'
+            await event.reply('📎 أرسل الآن محتوى الرد (نص أو وسائط)')
+            return
 
-            elif msg.media:
-                try:
-                    file_id = getattr(msg.file, "id", None)
-                    if not file_id:
-                        await event.reply("⚠️ لا يمكن قراءة الوسائط.")
-                        del session[user_id]
-                        return
-
-                    r.hset(redis_key, mapping={
-                        'type': 'media',
-                        'file_id': file_id,
-                        'match': 'startswith' if reply_type == 'special' else 'exact'
-                    })
-
-                except Exception as e:
-                    await event.reply(f'⚠️ حدث خطأ أثناء قراءة الوسائط: {e}')
+        elif msg.media:
+            try:
+                file_id = getattr(msg.file, "id", None)
+                if not file_id:
+                    await event.reply("⚠️ لا يمكن قراءة الوسائط.")
                     del session[user_id]
                     return
 
+                r.hset(redis_key, mapping={
+                    'type': 'media',
+                    'file_id': file_id,
+                    'match': 'startswith' if reply_type == 'special' else 'exact'
+                })
+            except Exception as e:
+                await event.reply(f'⚠️ حدث خطأ أثناء قراءة الوسائط: {e}')
+                del session[user_id]
+                return
             else:
                 r.hset(redis_key, mapping={
                     'type': 'text',
