@@ -4,7 +4,7 @@ from ABH import ABH
 import redis
 r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 session = {}
-banned = ['وضع ردي', 'وضع رد', 'وضع رد مميز']
+banned = ['وضع ردي', 'وضع رد', 'وضع رد مميز', 'الغاء', 'حذف رد', 'حذف الردود', 'عرض الردود']
 @ABH.on(events.NewMessage(pattern='^وضع رد$'))
 async def set_reply(event):
     user_id = event.sender_id
@@ -17,13 +17,19 @@ async def set_special_reply(event):
     await event.reply('📝 أرسل اسم الرد الآن')
 @ABH.on(events.NewMessage(pattern=r'^وضع ردي (.+)$'))
 async def set_my_reply(event):
-    user_id = event.sender_id
-    # session[user_id]
     chat_id = event.chat_id
+    user_id = event.sender_id
     reply_name = event.pattern_match.group(1).strip()
+    if not reply_name:
+        await event.reply('عذراً، يجب كتابة اسم الرد مع الأمر.')
+        return
     redis_key = f"replys:{chat_id}:{reply_name}"
+    user_reply_key = f"user_reply:{chat_id}:{user_id}"
+    if r.exists(user_reply_key):
+        await event.reply("⚠️ لديك رد مسجل بالفعل، الرجاء حذف ردك الحالي قبل إنشاء رد جديد.")
+        return
     if r.exists(redis_key):
-        await event.reply(f" الرد **{reply_name}** موجود مسبقاً. يرجى اختيار اسم آخر.")
+        await event.reply(f"⚠️ الرد **{reply_name}** موجود مسبقاً، يرجى اختيار اسم آخر.")
         return
     try:
         content = await mention(event)
@@ -32,9 +38,23 @@ async def set_my_reply(event):
             'content': content,
             'match': 'exact'
         })
-        await event.reply(f"👍🏾👍🏾 تم حفظ الرد باسم **{reply_name}**")
+        r.set(user_reply_key, reply_name)
+        await event.reply(f"👍🏾 تم حفظ الرد باسم **{reply_name}**")
     except Exception as e:
-        await event.reply(f" حدث خطأ أثناء إعداد الرد: {e}")
+        await event.reply(f"حدث خطأ أثناء إعداد الرد: {e}")
+@ABH.on(events.NewMessage(pattern='^حذف ردي$'))
+async def delete_my_reply(event):
+    chat_id = event.chat_id
+    user_id = event.sender_id
+    user_reply_key = f"user_reply:{chat_id}:{user_id}"
+    if not r.exists(user_reply_key):
+        await event.reply("⚠️ لا يوجد رد مسجل باسمك لحذفه.")
+        return
+    reply_name = r.get(user_reply_key)
+    redis_key = f"replys:{chat_id}:{reply_name}"
+    r.delete(redis_key)
+    r.delete(user_reply_key)
+    await event.reply(f"🗑️ تم حذف ردك **{reply_name}** بنجاح.")
 @ABH.on(events.NewMessage)
 async def handle_reply(event):
     user_id = event.sender_id
@@ -117,6 +137,9 @@ async def show_replies(event):
 async def delete_reply(event):
     chat_id = event.chat_id
     reply_name = event.pattern_match.group(1).strip()
+    if not reply_name:
+        await event.reply('عذرا لازم تكتب اسم الرد وي الامر')
+        return
     key = f"replys:{chat_id}:{reply_name}"
     if r.exists(key):
         r.delete(key)
