@@ -7,20 +7,16 @@ r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
 session = {}
 banned = ['وضع ردي', 'وضع رد', 'وضع رد مميز']
-
-# أوامر إعداد الردود
 @ABH.on(events.NewMessage(pattern='^وضع رد$'))
 async def set_reply(event):
     user_id = event.sender_id
     session[user_id] = {'step': 'waiting_for_reply_name', 'type': 'normal', 'chat_id': event.chat_id}
     await event.reply('📝 أرسل اسم الرد الآن')
-
 @ABH.on(events.NewMessage(pattern='^وضع رد مميز$'))
 async def set_special_reply(event):
     user_id = event.sender_id
     session[user_id] = {'step': 'waiting_for_reply_name', 'type': 'special', 'chat_id': event.chat_id}
     await event.reply('📝 أرسل اسم الرد الآن')
-
 @ABH.on(events.NewMessage(pattern='^وضع ردي$'))
 async def set_my_reply(event):
     user_id = event.sender_id
@@ -46,7 +42,7 @@ async def handle_reply_saving(event):
         if step == 'waiting_for_reply_name':
             session[user_id]['reply_name'] = text
             session[user_id]['step'] = 'waiting_for_reply_content'
-            await event.reply('📎 أرسل الآن محتوى الرد (نص أو وسائط)')
+            # await event.reply('📎 أرسل الآن محتوى الرد (نص أو وسائط)')
             return
 
         elif step == 'waiting_for_reply_content':
