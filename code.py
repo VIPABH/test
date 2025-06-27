@@ -6,11 +6,6 @@ from ABH import ABH
 banned = ['وضع ردي', 'وضع رد', 'وضع رد مميز']
 session = {}
 
-async def get_redis():
-    # هذه دالة وهمية، عليك تعديلها حسب كودك الخاص بإعادة الاتصال بـ Redis
-    # مثلا: return ABH.redis_client
-    pass
-
 @ABH.on(events.NewMessage(pattern='^وضع رد$'))
 async def set_reply(event):
     user_id = event.sender_id
