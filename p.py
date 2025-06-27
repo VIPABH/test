@@ -7,7 +7,7 @@ async def update_repo(event):
     stdout, stderr, code = await run_cmd("git pull")
     if code == 0:
         await event.reply(f" تحديث السورس بنجاح")
-        os.execv(sys.executable, [sys.executable, "config.py"])
+        os.execv(sys.executable, [sys.executable, "p.py"])
     else:
         await event.reply(f" حدث خطأ أثناء التحديث:\n\n{stderr}")
 def main():
