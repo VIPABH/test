@@ -14,8 +14,9 @@ banned = ['وضع ردي']
 @ABH.on(events.NewMessage)
 async def add_reply(event):
     x = event.sender_id
-    print(x)
-    if x in banned:
+    s = event.text
+    print(s)
+    if s in banned:
         return
     if x in session:
         user_step = session[x].get('step')
