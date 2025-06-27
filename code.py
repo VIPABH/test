@@ -1,5 +1,5 @@
-from telethon import events
 from Resources import mention
+from telethon import events
 from ABH import ABH, r
 import json, os
 x = ["وضع رد", "وضع ردي", "حذف رد", "حذف ردود", "ردود", "/replys"]
@@ -28,13 +28,12 @@ async def save_personal_reply(event):
             "content": await mention(event)
         }
         r.rpush(key, json.dumps(reply_data))
-        await conv.send_message(f"✅ تم حفظ الرد الخاص بك:\n• الاسم: **{name}**\n• المحتوى: {reply_data['content']}")
+        await conv.send_message(f" تم حفظ الرد الخاص بك:\n• الاسم: **{name}**\n• المحتوى: {reply_data['content']}")
 user_states = {}
-
 @ABH.on(events.NewMessage(pattern="^وضع رد$"))
 async def start_reply(event):
     if not event.is_group:
-        return await event.reply("❌ يجب استخدام هذا الأمر في مجموعة.")
+        return
     user_states[event.sender_id] = {"step": "name"}
     await event.reply("📥 أرسل اسم الرد:")
 @ABH.on(events.NewMessage())
@@ -67,28 +66,19 @@ async def handle_reply(event):
 @ABH.on(events.NewMessage(pattern=r'^ردود|/replys'))
 async def list_replies(event):
     if not event.is_group:
-        return await event.reply("❌ هذا الأمر يعمل فقط داخل المجموعات.")
+        return
     chat_id = event.chat_id
     key = f"group_replies:{chat_id}"
     replies = r.lrange(key, 0, -1)
     if not replies:
         return await event.reply("📭 لا توجد ردود محفوظة في هذه المجموعة.")
     message = "📋 **قائمة الردود المحفوظة:**\n\n"
-    match_types = {"contains": "مميز", "starts": "عادي"}
-    source_types = {"group": "🔵 عام", "user": "🟢 خاص"}
-    content_types = {"text": "📄 نص", "media": "🖼️ ميديا"}
     for index, reply_str in enumerate(replies, start=1):
         try:
             reply = json.loads(reply_str)
             name = reply.get("name", "❓")
-            match_type = match_types.get(reply.get("match_type", ""), "❓")
-            source_type = source_types.get(reply.get("source", ""), "❓")
-            content_type = content_types.get(reply.get("type", ""), "❓")
             message += (
                 f"▫️ `{index}` — **{name}**\n"
-                f"   • النوع: `{match_type}`\n"
-                f"   • المحتوى: {content_type}\n"
-                f"   • المصدر: {source_type}\n\n"
             )
         except Exception:
             continue
@@ -128,8 +118,8 @@ async def delete_reply(event):
             reply = json.loads(reply_json)
             if reply['name'] == name:
                 r.lrem(key, 0, reply_json)
-                return await conv.send_message(f"✅ تم حذف الرد: **{name}**")
-        await conv.send_message(f"❌ لم يتم العثور على رد بالاسم: **{name}**")
+                return await conv.send_message(f" تم حذف الرد: **{name}**")
+        await conv.send_message(f" لم يتم العثور على رد بالاسم: **{name}**")
 @ABH.on(events.NewMessage(pattern="^حذف ردود$"))
 async def delete_all_replies(event):
     if not event.is_group:
