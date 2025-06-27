@@ -36,6 +36,13 @@ async def add_reply(event):
     if user_id in session:
         step = session[user_id]['step']
         reply_type = session[user_id]['type']
+        reply_name = session[user_id]['reply_name']
+        if reply_name in replys[user_id]:
+            await event.reply(f"⚠️ اسم الرد **{reply_name}** موجود مسبقاً، يرجى اختيار اسم آخر.")
+            return
+        if reply_type == 'mention':
+            content = await mention(event)
+            replys[user_id][reply_name] = {'type': 'text', 'content': content, 'match': 'exact'}
 
         if step == 'waiting_for_reply_name':
             session[user_id]['reply_name'] = text
@@ -43,17 +50,9 @@ async def add_reply(event):
             await event.reply('📎 أرسل الآن محتوى الرد (نص أو وسائط)')
 
         elif step == 'waiting_for_reply_content':
-            reply_name = session[user_id]['reply_name']
             if user_id not in replys:
                 replys[user_id] = {}
 
-            if reply_name in replys[user_id]:
-                await event.reply(f"⚠️ اسم الرد **{reply_name}** موجود مسبقاً، يرجى اختيار اسم آخر.")
-                return
-
-            if reply_type == 'mention':
-                content = await mention(event)
-                replys[user_id][reply_name] = {'type': 'text', 'content': content, 'match': 'exact'}
 
             elif msg.media:
                 try:
