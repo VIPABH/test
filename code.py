@@ -1,50 +1,70 @@
 from telethon import events
 from ABH import ABH
 
-replys = {}     # لتخزين الردود حسب المستخدم
-session = {}    # لتتبع حالة المستخدم
+replys = {}
+session = {}
 
-# بدء عملية إضافة رد
 @ABH.on(events.NewMessage(pattern='^وضع ردي$'))
 async def set_my_reply(event):
     x = event.sender_id
     await event.reply('ارسل الآن **اسم الرد**')
     session[x] = {'step': 'waiting_for_reply_name'}
-banned = ['وضع ردي']
+
 @ABH.on(events.NewMessage)
 async def add_reply(event):
     x = event.sender_id
-    s = event.text
-    print(s)
-    if s in banned:
-        return
     if x in session:
         user_step = session[x].get('step')
+
         if user_step == 'waiting_for_reply_name':
             session[x]['reply_name'] = event.raw_text
             session[x]['step'] = 'waiting_for_reply_content'
-            await event.reply('جيد، الآن أرسل **محتوى الرد**')
+            await event.reply('أرسل الآن **محتوى الرد** سواءً نصًا أو وسائط')
 
-        # الخطوة الثانية: استلام محتوى الرد
         elif user_step == 'waiting_for_reply_content':
             reply_name = session[x]['reply_name']
-            reply_content = event.raw_text
+            msg = event.message
 
             if x not in replys:
                 replys[x] = {}
 
-            replys[x][reply_name] = reply_content
-            await event.reply(f'تم حفظ الرد باسم: **{reply_name}**')
+            # حفظ الرد حسب نوعه
+            if msg.media:
+                file_id = None
+                try:
+                    file_id = msg.file.id  # هذا المتغير هو ما يتم استخدامه لإعادة إرسال الوسائط
+                except Exception as e:
+                    await event.reply('فشل في الحصول على الملف. تأكد من أن الوسائط مدعومة.')
+                    del session[x]
+                    return
 
-            # حذف الجلسة
+                replys[x][reply_name] = {
+                    'type': 'media',
+                    'file_id': file_id
+                }
+                await event.reply(f'تم حفظ الرد الوسائطي باسم **{reply_name}**')
+
+            else:
+                replys[x][reply_name] = {
+                    'type': 'text',
+                    'content': event.raw_text
+                }
+                await event.reply(f'تم حفظ الرد النصي باسم **{reply_name}**')
+
             del session[x]
 
-# استخدام الردود لاحقًا
 @ABH.on(events.NewMessage)
 async def use_reply(event):
     x = event.sender_id
     if x in replys:
         user_replies = replys[x]
         text = event.raw_text
+
         if text in user_replies:
-            await event.reply(user_replies[text])
+            reply_data = user_replies[text]
+            if reply_data['type'] == 'text':
+                await event.reply(reply_data['content'])
+            elif reply_data['type'] == 'media':
+                await event.respond(file=reply_data['file_id'])
+
+
