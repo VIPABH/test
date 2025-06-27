@@ -11,6 +11,9 @@ banned = ['وضع ردي']
 @ABH.on(events.NewMessage)
 async def add_reply(event):
     x = event.sender_id
+    msg = event.message
+    if msg.text in banned:
+        return
     if x in session:
         user_step = session[x].get('step')
         if user_step == 'waiting_for_reply_name':
@@ -19,9 +22,6 @@ async def add_reply(event):
             await event.reply('أرسل الآن **محتوى الرد** سواءً نصًا أو وسائط')
         elif user_step == 'waiting_for_reply_content':
             reply_name = session[x]['reply_name']
-            msg = event.message
-            if msg.text in banned:
-                return
             if x not in replys:
                 replys[x] = {}
             if msg.media:
