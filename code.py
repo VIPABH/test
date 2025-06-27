@@ -24,7 +24,7 @@ async def set_special_reply(event):
 @ABH.on(events.NewMessage(pattern='^وضع ردي$'))
 async def set_my_reply(event):
     user_id = event.sender_id
-    session[user_id] = {'step': 'waiting_for_reply_name', 'type': 'mention', 'chat_id': event.chat_id}
+    session[user_id] = {'step': 'set_my_reply', 'type': 'mention', 'chat_id': event.chat_id}
     await event.reply('📝 أرسل اسم الرد الآن')
 
 
