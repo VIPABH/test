@@ -77,7 +77,7 @@ async def show_replies(event):
     if user_id not in replys or not replys[user_id]:
         await event.reply(" لا توجد أي ردود محفوظة.")
         return
-    msg = "\n".join(f"{k} {k}" for k in replys[user_id])
+    msg = "\n".join(f" {andex} {k}" for andex, k in replys[user_id])
     await event.reply(f"📋 ردودك:\n{msg}")
 @ABH.on(events.NewMessage(pattern=r"^حذف رد (.+)$"))
 async def delete_reply(event):
