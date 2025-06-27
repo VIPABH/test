@@ -14,12 +14,11 @@ banned = ['وضع ردي']
 @ABH.on(events.NewMessage)
 async def add_reply(event):
     x = event.sender_id
+    print(x)
     if x in banned:
         return
     if x in session:
         user_step = session[x].get('step')
-
-        # الخطوة الأولى: استلام اسم الرد
         if user_step == 'waiting_for_reply_name':
             session[x]['reply_name'] = event.raw_text
             session[x]['step'] = 'waiting_for_reply_content'
