@@ -1,71 +1,49 @@
+from telethon import events
+from ABH import ABH
+
+replys = {}     # لتخزين الردود حسب المستخدم
+session = {}    # لتتبع حالة المستخدم
+
+# بدء عملية إضافة رد
+@ABH.on(events.NewMessage(pattern='^وضع ردي$'))
+async def set_my_reply(event):
+    x = event.sender_id
+    await event.reply('ارسل الآن **اسم الرد**')
+    session[x] = {'step': 'waiting_for_reply_name'}
+
+# استكمال عملية الإضافة
 @ABH.on(events.NewMessage)
-async def reply_handler(event):
-    if not event.is_group or (event.raw_text and event.raw_text.strip() in x):
-        return
+async def add_reply(event):
+    x = event.sender_id
+    if x in session:
+        user_step = session[x].get('step')
 
-    sender_id = event.sender_id
-    chat_id = event.chat_id
-    msg_text = event.raw_text.strip() if event.raw_text else None
+        # الخطوة الأولى: استلام اسم الرد
+        if user_step == 'waiting_for_reply_name':
+            session[x]['reply_name'] = event.raw_text
+            session[x]['step'] = 'waiting_for_reply_content'
+            await event.reply('جيد، الآن أرسل **محتوى الرد**')
 
-    if sender_id in user:
-        current = user[sender_id]
+        # الخطوة الثانية: استلام محتوى الرد
+        elif user_step == 'waiting_for_reply_content':
+            reply_name = session[x]['reply_name']
+            reply_content = event.raw_text
 
-        if current in ['set_reply', 'set_my_reply']:
-            user[sender_id] = (current, msg_text)
-            await event.reply("📩 الآن أرسل محتوى الرد (نص أو ميديا):")
-            return
+            if x not in replys:
+                replys[x] = {}
 
-        elif isinstance(current, tuple):
-            action, reply_name = current
-            key = f"reply:{chat_id}:{reply_name}"
+            replys[x][reply_name] = reply_content
+            await event.reply(f'تم حفظ الرد باسم: **{reply_name}**')
 
-            if event.media:
-                msg = await event.reply("📤 تم حفظ الرد كميديا.")
-                file = await event.client.send_file("me", event.media, caption=f"رد محفوظ: {reply_name}")
-                file_id = file.file.id if file.file else None
-                rd.hset(key, mapping={
-                    "type": "media",
-                    "file_id": file_id
-                })
-            else:
-                rd.hset(key, mapping={
-                    "type": "text",
-                    "content": msg_text
-                })
-                await event.reply(f'✅ تم حفظ الرد:\n• الاسم: **{reply_name}**\n• المحتوى: {msg_text}')
-            del user[sender_id]
-            return
+            # حذف الجلسة
+            del session[x]
 
-        elif current == 'delete_reply':
-            reply_name = msg_text
-            key = f"reply:{chat_id}:{reply_name}"
-            if rd.exists(key):
-                rd.delete(key)
-                await event.reply(f'🗑️ تم حذف الرد: **{reply_name}**')
-            else:
-                await event.reply(f'🚫 لا يوجد رد بهذا الاسم: **{reply_name}**')
-            del user[sender_id]
-            return
-
-    # رد تلقائي
-    if not msg_text:
-        return
-
-    for key in rd.scan_iter(f"reply:{chat_id}:*"):
-        reply_name = key.split(f"reply:{chat_id}:")[1]
-        if msg_text.startswith(reply_name):  # مطابقة عادية
-            typ = rd.hget(key, "type")
-            if typ == "text":
-                await event.reply(rd.hget(key, "content"))
-            elif typ == "media":
-                file_id = rd.hget(key, "file_id")
-                await event.respond(file=file_id)
-            break
-        elif reply_name in msg_text:  # مطابقة مميزة (كلمة داخل الجملة)
-            typ = rd.hget(key, "type")
-            if typ == "text":
-                await event.reply(rd.hget(key, "content"))
-            elif typ == "media":
-                file_id = rd.hget(key, "file_id")
-                await event.respond(file=file_id)
-            break
+# استخدام الردود لاحقًا
+@ABH.on(events.NewMessage)
+async def use_reply(event):
+    x = event.sender_id
+    if x in replys:
+        user_replies = replys[x]
+        text = event.raw_text
+        if text in user_replies:
+            await event.reply(user_replies[text])
