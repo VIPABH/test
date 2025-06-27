@@ -9,7 +9,7 @@ async def set_my_reply(event):
     await event.reply('ارسل الآن **اسم الرد**')
     session[x] = {'step': 'waiting_for_me_reply_name'}
 @ABH.on(events.NewMessage(pattern='^وضع رد$'))
-async def set_reply(event):
+async def set_my_reply(event):
     x = event.sender_id
     await event.reply('ارسل الآن **اسم الرد**')
     session[x] = {'step': 'waiting_for_reply_name'}
@@ -57,6 +57,7 @@ async def add_reply(event):
                 'type': 'text',
                 'content': await mention(event)
             }
+            await event.reply('تم اضافه الرد')
 @ABH.on(events.NewMessage)
 async def use_reply(event):
     x = event.sender_id
