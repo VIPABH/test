@@ -4,30 +4,30 @@ from ABH import ABH, r
 import json, os
 x = ["وضع رد", "وضع ردي", "حذف رد", "حذف ردود", "ردود", "/replys"]
 user = {}
-@ABH.on(events.NewMessage(pattern='وضع رد'))
+@ABH.on(events.NewMessage(pattern='^وضع رد$'))
 async def set_reply(event):
     if not event.is_group:
         return
     await event.reply('يتم وضع رد \n اكتب اسم الرد الذي تريد وضعه')
     user[event.sender_id] = 'set_reply'
-@ABH.on(events.NewMessage(pattern='وضع ردي'))
+@ABH.on(events.NewMessage(pattern='^$وضع ردي$'))
 async def set_my_reply(event):
     if not event.is_group:
         return
     await event.reply('يتم وضع رد \n اكتب اسم الرد الذي تريد وضعه')
     user[event.sender_id] = 'set_my_reply'
-@ABH.on(events.NewMessage(pattern='حذف رد'))
+@ABH.on(events.NewMessage(pattern='^حذف رد$'))
 async def delete_reply(event):
     if not event.is_group:
         return
     await event.reply('يتم حذف رد \n اكتب اسم الرد الذي تريد حذفه')
     user[event.sender_id] = 'delete_reply'
-@ABH.on(events.NewMessage(pattern='حذف الردود'))
+@ABH.on(events.NewMessage(pattern='^حذف الردود$'))
 async def delete_replies(event):
     if not event.is_group:
         return
     await event.reply('تم حذف جميع الردود 🗑️🗑️')
-@ABH.on(events.NewMessage(pattern='ردود'))
+@ABH.on(events.NewMessage(pattern='^ردود$'))
 async def get_replies(event):
     if not event.is_group:
         return
