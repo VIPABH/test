@@ -20,7 +20,7 @@ async def set_special_reply(event):
 @ABH.on(events.NewMessage(pattern='^وضع ردي$'))
 async def set_my_reply(event):
     user_id = event.sender_id
-    session[user_id] = {'step': 'waiting_for_reply_name', 'type': 'mention', 'chat_id': event.chat_id}
+    session[user_id] = {'step': 'set_my_reply', 'type': 'mention', 'chat_id': event.chat_id}
     await event.reply('📝 أرسل اسم الرد الآن')
 
 # تخزين الردود
@@ -35,7 +35,7 @@ async def handle_reply_saving(event):
         step = session[user_id]['step']
         reply_type = session[user_id]['type']
 
-        if step == 'waiting_for_reply_content':
+        if step == 'set_my_reply':
             reply_name = session[user_id]['reply_name']
             redis_key = f"replys:{user_id}:{reply_name}"
 
