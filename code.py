@@ -6,9 +6,8 @@ x = ["وضع رد", "وضع ردي", "حذف رد", "حذف ردود", "ردود
 @ABH.on(events.NewMessage(pattern="^وضع ردي$"))
 async def save_personal_reply(event):
     if not event.is_group:
-        return await event.reply(" يجب استخدام هذا الأمر داخل مجموعة.")
+        return
     chat_id = event.chat_id
-    source_type = "user"
     async with ABH.conversation(event.sender_id, timeout=60) as conv:
         await conv.send_message("📥 أرسل اسم الرد:")
         name = (await conv.get_response()).text.strip()
@@ -19,12 +18,10 @@ async def save_personal_reply(event):
         for reply_json in existing_replies:
             reply = json.loads(reply_json)
             if reply["name"] == name:
-                return await conv.send_message(f"⚠️ يوجد رد محفوظ مسبقًا بهذا الاسم: **{name}**")
+                return await conv.send_message(f"يوجد رد محفوظ مسبقًا بهذا الاسم: **{name}**")
         reply_data = {
             "name": name,
-            "match_type": "starts",
-            "source": source_type,
-            "type": "text",
+            "type": "نص",
             "content": await mention(event)
         }
         r.rpush(key, json.dumps(reply_data))
@@ -54,9 +51,7 @@ async def handle_reply(event):
         content = event.raw_text.strip()
         reply_data = {
             "name": name,
-            "match_type": "starts",
-            "source": "user",
-            "type": "text",
+            "type": "نص",
             "content": content
         }
         key = f"group_replies:{event.chat_id}"
@@ -103,7 +98,7 @@ async def auto_reply(event):
             if reply['type'] == "text":
                 await event.reply(reply['content'])
             elif reply['type'] == "media" and os.path.exists(reply['content']):
-                await event.reply(file=reply['content'])
+                await ABH.send_file(event.chat_id, file=reply['content'], reply_to=event.message.id)
 @ABH.on(events.NewMessage(pattern="^حذف رد$"))
 async def delete_reply(event):
     if not event.is_group:
