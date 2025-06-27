@@ -10,7 +10,7 @@ async def set_reply(event):
         return
     await event.reply('يتم وضع رد \n اكتب اسم الرد الذي تريد وضعه')
     user[event.sender_id] = 'set_reply'
-@ABH.on(events.NewMessage(pattern='^$وضع ردي$'))
+@ABH.on(events.NewMessage(pattern=r'^وضع ردي$'))
 async def set_my_reply(event):
     if not event.is_group:
         return
