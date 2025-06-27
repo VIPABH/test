@@ -131,7 +131,7 @@ async def show_replies(event):
     if not keys:
         await event.reply(" لا توجد ردود محفوظة.")
         return
-    msg = "\n".join(f"▫️ {key.split(':', 2)[-1]}" for key in keys)
+    msg = "\n".join(f"⊕ {key.split(':', 2)[-1]}" for key in keys)
     await event.reply(f"📋 قائمة الردود:\n{msg}")
 @ABH.on(events.NewMessage(pattern=r"^حذف رد (.+)$"))
 async def delete_reply(event):
