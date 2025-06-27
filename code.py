@@ -51,7 +51,9 @@ async def handle_reply(event):
         content = event.raw_text.strip()
         reply_data = {
             "name": name,
-            "type": "نص",
+            "match_type": "starts",
+            "source": "user",
+            "type": "text",
             "content": content
         }
         key = f"group_replies:{event.chat_id}"
