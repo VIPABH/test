@@ -21,12 +21,28 @@ async def set_special_reply(event):
     session[user_id] = {'step': 'waiting_for_reply_name', 'type': 'special', 'chat_id': event.chat_id}
     await event.reply('📝 أرسل اسم الرد الآن')
 
-@ABH.on(events.NewMessage(pattern='^وضع ردي$'))
+@ABH.on(events.NewMessage(pattern=r'^وضع ردي (.+)$'))
 async def set_my_reply(event):
     user_id = event.sender_id
-    session[user_id] = {'step': 'set_my_reply', 'type': 'mention', 'chat_id': event.chat_id}
-    await event.reply('📝 أرسل اسم الرد الآن')
+    chat_id = event.chat_id
+    reply_name = event.pattern_match.group(1).strip()
+    redis_key = f"replys:{chat_id}:{reply_name}"
 
+    # تحقق من وجود الرد مسبقاً
+    if r.exists(redis_key):
+        await event.reply(f"⚠️ الرد **{reply_name}** موجود مسبقاً. يرجى اختيار اسم آخر.")
+        return
+
+    try:
+        content = await mention(event)
+        r.hset(redis_key, mapping={
+            'type': 'text',
+            'content': content,
+            'match': 'exact'
+        })
+        await event.reply(f"✅ تم حفظ الرد باسم **{reply_name}**")
+    except Exception as e:
+        await event.reply(f"⚠️ حدث خطأ أثناء إعداد الرد: {e}")
 
 # تخزين وتنفيذ الردود
 @ABH.on(events.NewMessage)
