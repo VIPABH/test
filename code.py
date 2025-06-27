@@ -18,6 +18,7 @@ async def set_special_reply(event):
 @ABH.on(events.NewMessage(pattern=r'^وضع ردي (.+)$'))
 async def set_my_reply(event):
     user_id = event.sender_id
+    session[user_id]
     chat_id = event.chat_id
     reply_name = event.pattern_match.group(1).strip()
     redis_key = f"replys:{chat_id}:{reply_name}"
