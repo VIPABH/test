@@ -5,6 +5,7 @@ from ABH import ABH
 async def mypic(event):
     s = await event.get_sender()
     e = await event.client.get_entity(s.id)
+    await event.reply(e)
     photo = await event.client.download_profile_photo(
         InputPeerUser(user_id=s.id, access_hash=s.access_hash),
         file=f"user_{s.id}.jpg"
@@ -13,7 +14,7 @@ async def mypic(event):
         await ABH.send_file(
             event.chat_id,
             file=photo,
-            caption=f"`{e.about}`",
+            caption=f"`{e.bio}`",
             reply_to=event.id
         )
     else:
