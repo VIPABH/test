@@ -2,8 +2,10 @@ from telethon import TelegramClient, events
 import asyncio
 from deepseek_api import DeepSeekAI  # استخدم الكلاس المذكور أعلاه
 from ABH import ABH as bot
-# إعدادات التليجرام
-
+try:
+    from deepseek_api import DeepSeekAI
+except ImportError:
+    from .deepseek_api import DeepSeekAI
 # إعدادات DeepSeek
 DEEPSEEK_API_KEY = 'sk-531f6b796ad24749b26d68e6d1d74a88'
 
