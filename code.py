@@ -1,5 +1,5 @@
 from telethon.tl.types import InputPeerUser
-
+from ABH import ABH
 @ABH.on(events.NewMessage(pattern='^صورتي$'))
 async def mypic(event):
     # الحصول على معلومات المرسل
