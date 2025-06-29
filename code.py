@@ -3,27 +3,70 @@ from telethon import events
 from ABH import ABH
 import os
 
-@ABH.on(events.NewMessage(pattern='^صورتي$'))
+@ABH.on(events.NewMessage(pattern='^(صورتي|صورة البروفايل)$'))
 async def mypic(event):
     try:
-        s = await event.get_sender()        
-        full_user = await event.client.get_entity(s.id)
-        photo = await event.client.download_profile_photo(
-            s,
-            file=f"temp_{s.id}.jpg"
-        )
+        # الحصول على معلومات المرسل مع معالجة الأخطاء
+        sender = await event.get_sender()
+        
+        # جلب البيانات الكاملة للمستخدم (مهم للوصول إلى البايو)
+        try:
+            full_user = await event.client.get_entity(sender.id)
+        except ValueError:
+            await event.reply("❌ لا يمكن الوصول إلى معلومات الملف الشخصي")
+            return
+
+        # تحميل الصورة بجودة عالية مع ضغط
+        photo_path = f"temp_profile_{sender.id}.jpg"
+        try:
+            photo = await event.client.download_profile_photo(
+                full_user,
+                file=photo_path,
+                download_big=True  # لتحميل أعلى جودة
+            )
+        except Exception as download_error:
+            await event.reply("⚠️ فشل في تحميل الصورة")
+            return
+
         if photo:
-            bio_text = f"`{full_user.about}`" if hasattr(full_user, 'about') and full_user.about else "`لا يوجد وصف متاح`"
-            await ABH.send_file(
-                event.chat_id,
-                file=photo,
-                caption=bio_text,
-                reply_to=event.id,
-                parse_mode='md')
-            os.remove(photo)
+            # معالجة البايو مع تنسيق متقدم
+            bio = getattr(full_user, 'about', None)
+            if bio:
+                formatted_bio = f"""
+                📝 **الوصف الشخصي**:
+                `{bio}`
+                """
+            else:
+                formatted_bio = "`لا يوجد وصف في الملف الشخصي`"
+
+            # إرسال الصورة مع البايو
+            try:
+                await event.client.send_file(
+                    event.chat_id,
+                    file=photo,
+                    caption=formatted_bio,
+                    reply_to=event.id,
+                    parse_mode='markdown',
+                    allow_cache=False,
+                    attributes=[DocumentAttributeFilename(f"profile_{sender.id}.jpg")]
+                )
+            except Exception as send_error:
+                await event.reply(f"⚠️ فشل في إرسال الصورة: {str(send_error)}")
+
+            # تنظيف الملفات المؤقتة
+            try:
+                if os.path.exists(photo_path):
+                    os.remove(photo_path)
+            except:
+                pass
         else:
-            await event.reply("⚠️ ليس لديك صورة ملف شخصي!")
-    except Exception as e:
-        await event.reply(f"❌ حدث خطأ: {str(e)}")
-        if 'photo' in locals() and os.path.exists(photo):
-            os.remove(photo)
+            await event.reply("⚠️ لم يتم العثور على صورة بروفايل", reply_to=event.id)
+
+    except Exception as main_error:
+        await event.reply(f"❌ خطأ غير متوقع: {str(main_error)}")
+        # تنظيف الملفات في حالة الخطأ
+        if 'photo_path' in locals() and os.path.exists(photo_path):
+            try:
+                os.remove(photo_path)
+            except:
+                pass
