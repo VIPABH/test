@@ -2,7 +2,7 @@ from telethon import events
 import os
 from ABH import ABH
 
-@ABH.on(events.NewMessage(pattern='^صورتي$'))
+@ABH.on(events.NewMessage)
 async def mypic(event):
     try:
         sender = await event.get_sender()
@@ -15,10 +15,13 @@ async def mypic(event):
                 file=f"temp/user_{user.id}.jpg"
             )
             
+            # Check if the user has a bio (handle cases where it's missing)
+            user_bio = getattr(user, 'bio', 'لا يوجد نبذة ⚠️')  # Fallback if no bio
+            
             await event.client.send_file(
                 event.chat_id,
                 photo_path,
-                caption=f"Bio: `{user.bio or 'No bio'}`",
+                caption=f"النبذة: `{user_bio}`",
                 reply_to=event.id
             )
             
