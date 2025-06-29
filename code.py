@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-import asyncio
+import asyncio, requests
 class DeepSeekAI:
     def __init__(self, api_key):
         self.api_key = api_key
