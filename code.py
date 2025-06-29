@@ -13,7 +13,7 @@ async def mypic(event):
         await ABH.send_file(
             event.chat_id,
             file=photo,
-            caption=f"`{e.bio}`",
+            caption=f"`{e.about}`",
             reply_to=event.id
         )
     else:
