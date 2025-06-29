@@ -1,12 +1,41 @@
 from telethon import TelegramClient, events
 import asyncio
-from deepseek_api import DeepSeekAI  # استخدم الكلاس المذكور أعلاه
+class DeepSeekAI:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.base_url = "https://api.deepseek.com/v1"
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+    def chat_completion(self, prompt, model="deepseek-chat", temperature=0.7, max_tokens=2000):
+        """
+        إرسال رسالة إلى نموذج DeepSeek والحصول على رد
+        """
+        data = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": max_tokens
+        }
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/chat/completions",
+                headers=self.headers,
+                json=data
+            )
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]["content"]
+        except requests.exceptions.RequestException as e:
+            return f"خطأ في الاتصال بالخادم: {str(e)}"
+        except KeyError:
+            return "خطأ في معالجة الرد من الخادم"
+        except Exception as e:
+            return f"حدث خطأ غير متوقع: {str(e)}"
 from ABH import ABH as bot
-try:
-    from deepseek_api import DeepSeekAI
-except ImportError:
-    from .deepseek_api import DeepSeekAI
-# إعدادات DeepSeek
+
 DEEPSEEK_API_KEY = 'sk-531f6b796ad24749b26d68e6d1d74a88'
 
 # تهيئة العميل
