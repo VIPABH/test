@@ -1,8 +1,10 @@
 from telethon import TelegramClient, events, Button
-from datetime import datetime, timedelta
-from Resources import mention
+from Resources import mention, ment
 import os, asyncio, uuid, random
-from ABH import ABH
+api_id = int(os.getenv('API_ID'))
+api_hash = os.getenv('API_HASH')
+bot_token = os.getenv('BOT_TOKEN')
+ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
 games = {}
 join_links = {}
 players = set()
@@ -51,7 +53,7 @@ async def unified_handler(event):
         await players(event)
 async def start(event, chat_id):
     sender = await event.get_sender()
-    ment = await ment(sender)
+    m = await ment(sender)
     join_num = str(uuid.uuid4())[:6]
     join_links[join_num] = chat_id
     bot_username = (await ABH.get_me()).username
@@ -60,7 +62,7 @@ async def start(event, chat_id):
         games[chat_id]["players"].add(uid)
     await ABH.send_message(
         chat_id,
-        f"👋 أهلاً {ment}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
+        f"👋 أهلاً {m}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
         buttons=[
             [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]
         ]
@@ -206,3 +208,4 @@ async def handle_select_kill(event):
         return
     await asyncio.sleep(5)
     await assign_killer(chat_id)
+ABH.run_until_disconnected()
