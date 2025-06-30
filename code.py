@@ -21,6 +21,7 @@ async def injoin(event):
     sm = await ment(s)
     uid_str = str(s.id)
     bot_username = (await ABH.get_me()).username
+    join_num = uid
     if uid_str not in games[chat_id]:
         await ABH.send_message(
             chat_id,
@@ -30,7 +31,6 @@ async def injoin(event):
             ]
         )
         games[chat_id]["players"].add(uid_str)
-        join_num = uid
     await event.reply('تم تسجيلك')
 @ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
