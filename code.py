@@ -58,7 +58,7 @@ async def start(event, chat_id):
     join_links[join_num] = chat_id
     bot_username = (await ABH.get_me()).username
     uid = str(sender.id)
-    if event.is_group and uid not in games[chat_id]["players"]:
+    if uid not in games[chat_id]["players"]:
         games[chat_id]["players"].add(uid)
     await ABH.send_message(
         chat_id,
