@@ -32,21 +32,24 @@ async def injoin(event):
         )
 @ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
-    chat_id = event.chat_id
-    sender = await event.get_sender()
-    command = event.raw_text.strip().lower()
-    if command == '/killamorder':
-        if chat_id in games:
-            return await event.reply("هناك لعبة جارية بالفعل.")
-        games[chat_id] = {
-            "owner": sender.id,
-            "players": set([str(sender.id)])
-        }
-        await start(event, chat_id)
-    elif command == 'players':
-        if chat_id not in games:
-            return await event.reply("لم تبدأ أي لعبة بعد.")
-        await players(event)
+    try:
+        chat_id = event.chat_id
+        sender = await event.get_sender()
+        command = event.raw_text.strip().lower()
+        if command == '/killamorder':
+            if chat_id in games:
+                return await event.reply("هناك لعبة جارية بالفعل.")
+            games[chat_id] = {
+                "owner": sender.id,
+                "players": set([str(sender.id)])
+            }
+            await start(event, chat_id)
+        elif command == 'players':
+            if chat_id not in games:
+                return await event.reply("لم تبدأ أي لعبة بعد.")
+            await players(event)
+    except Exception as e:
+        print(e)
 async def start(event, chat_id):
     sender = await event.get_sender()
     m = await ment(sender)
