@@ -28,7 +28,6 @@ async def injoin(event):
                 [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]
             ]
         )
-    if uid_str not in games[chat_id]:
         games[chat_id]["players"].add(uid_str)
         bot_username = (await ABH.get_me()).username
         join_num = uid
