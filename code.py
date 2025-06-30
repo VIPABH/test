@@ -19,7 +19,7 @@ async def injoin(event):
     s = await event.get_sender()
     sm = await ment(s)
     uid_str = str(s.id)
-    if event.is_group and uid_str not in games[chat_id]["players"]:
+    if uid_str not in games[chat_id]["players"]:
         games[chat_id]["players"].add(uid_str)
         bot_username = (await ABH.get_me()).username
         join_num = uid
@@ -64,10 +64,12 @@ async def start(event, chat_id):
 async def players(event):
     chat_id = event.chat_id
     if chat_id not in games:
-        return await event.reply("لم تبدأ أي لعبة بعد.")
+        await event.reply("لم تبدأ أي لعبة بعد.")
+        return
     player_ids = games[chat_id]["players"]
     if not player_ids:
-        return await event.reply("لا يوجد لاعبين مسجلين حالياً.")
+        await event.reply("لا يوجد لاعبين مسجلين حالياً.")
+        return 
     mentions = []
     for pid in player_ids:
         user = await ABH.get_entity(int(pid))
@@ -83,24 +85,6 @@ async def join(event, chat_id):
         return await event.reply(f"{ment} أنت بالفعل مشارك في اللعبة.")
     games[chat_id]["players"].add(sender.id)
     await event.reply(f"تم انضمام {ment} إلى اللعبة في المجموعة.")
-async def players(event):
-    global games
-    if not event.is_group:
-        return
-    chat_id = event.chat_id
-    if chat_id not in games:
-        return
-    player_ids = games[chat_id]["players"]
-    players_list = []
-    for user_id in player_ids:
-        try:
-            user = await ABH.get_entity(user_id)
-            ment = await ment(user)
-            players_list.append(f"• {ment}")
-        except Exception:
-            players_list.append(f"• مستخدم غير معروف (ID: {user_id})")
-    players_text = "\n".join(players_list) if players_list else "لا يوجد لاعبين حالياً."
-    await event.reply(f"👥 قائمة اللاعبين:\n{players_text}", parse_mode="md")
 used_go = set()
 @ABH.on(events.NewMessage(pattern='^تم$'))
 async def go(event):
