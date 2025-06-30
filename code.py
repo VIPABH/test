@@ -2,10 +2,7 @@ from telethon import TelegramClient, events, Button
 from datetime import datetime, timedelta
 from Resources import mention
 import os, asyncio, uuid, random
-api_id = int(os.getenv('API_ID'))
-api_hash = os.getenv('API_HASH')
-bot_token = os.getenv('BOT_TOKEN')
-ABH = TelegramClient('code', api_id, api_hash).start(bot_token=bot_token)
+from ABH import ABH
 games = {}
 join_links = {}
 players = set()
@@ -209,4 +206,3 @@ async def handle_select_kill(event):
         return
     await asyncio.sleep(5)
     await assign_killer(chat_id)
-ABH.run_until_disconnected()
