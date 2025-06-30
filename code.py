@@ -18,7 +18,7 @@ async def injoin(event):
     if chat_id not in games:
         return await event.reply("لا توجد لعبة نشطة في هذه المجموعة.")
     s = await event.get_sender()
-    sm = await mention(event, s)
+    sm = await ment(s)
     uid_str = str(s.id)
     if event.is_group and uid_str not in games[chat_id]["players"]:
         games[chat_id]["players"].add(uid_str)
@@ -51,7 +51,7 @@ async def unified_handler(event):
         await players(event)
 async def start(event, chat_id):
     sender = await event.get_sender()
-    ment = await mention(event, sender)
+    ment = await ment(sender)
     join_num = str(uuid.uuid4())[:6]
     join_links[join_num] = chat_id
     bot_username = (await ABH.get_me()).username
@@ -80,7 +80,7 @@ async def players(event):
 async def join(event, chat_id):
     global games
     sender = await event.get_sender()
-    ment = await mention(event, sender)
+    ment = await ment(sender)
     if chat_id not in games:
         return await event.reply(" لم تبدأ أي لعبة في المجموعة بعد.")
     if sender.id in games[chat_id]["players"]:
@@ -99,7 +99,7 @@ async def players(event):
     for user_id in player_ids:
         try:
             user = await ABH.get_entity(user_id)
-            ment = await mention(event, user)
+            ment = await ment(user)
             players_list.append(f"• {ment}")
         except Exception:
             players_list.append(f"• مستخدم غير معروف (ID: {user_id})")
@@ -120,7 +120,7 @@ async def assign_killer(chat_id):
     killer_id = random.choice(players)
     games[chat_id]["killer"] = killer_id
     killer = await ABH.get_entity(killer_id)
-    ment = await mention(None, killer)
+    ment = await ment(killer)
     await ABH.send_message(
         chat_id,
         f"🔫 القاتل هو {ment}! لديك 30 ثانية لقتل أحدهم.\nاختر أحد الخيارين:",
@@ -151,15 +151,15 @@ async def handle_kill(event):
     games[chat_id]["players"].remove(target_id)
     target = await ABH.get_entity(target_id)
     killer = await ABH.get_entity(sender_id)
-    killer_ment = await mention(None, killer)
-    target_ment = await mention(None, target)
+    killer_ment = await ment(killer)
+    target_ment = await ment(target)
     await event.edit(f"🔫 {killer_ment} قتل ⇠ {target_ment}!")
     if len(games[chat_id]["players"]) == 1:
         winner_id = list(games[chat_id]["players"])[0]
         games.pop(chat_id)
         used_go.discard(chat_id)
         winner = await ABH.get_entity(winner_id)
-        winner_ment = await mention(None, winner)
+        winner_ment = await ment(winner)
         await ABH.send_message(chat_id, f"🏆 {winner_ment} هو الفائز الأخير! 🎉")
         return
     await asyncio.sleep(5)
@@ -193,8 +193,8 @@ async def handle_select_kill(event):
     games[chat_id]["players"].remove(target_id)
     target = await ABH.get_entity(target_id)
     killer = await ABH.get_entity(sender_id)
-    killer_ment = await mention(None, killer)
-    target_ment = await mention(None, target)
+    killer_ment = await ment(killer)
+    target_ment = await ment(target)
     await event.edit(f"🗡️ {killer_ment} اختار وقتل ↤ {target_ment}!")
     if len(games[chat_id]["players"]) == 1:
         winner_id = list(games[chat_id]["players"])[0]
