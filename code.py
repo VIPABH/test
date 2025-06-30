@@ -31,6 +31,7 @@ async def injoin(event):
                 [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]
             ]
         )
+    await event.reply('تم تسجيلك')
 @ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
     try:
