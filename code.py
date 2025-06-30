@@ -20,7 +20,7 @@ async def injoin(event):
     s = await event.get_sender()
     sm = await ment(s)
     uid_str = str(s.id)
-    if uid_str not in games[chat_id]["players"]:
+    if uid_str not in games[chat_id]:
         await ABH.send_message(
             chat_id,
             f'المستخدم {sm} تم تسجيله في اللعبة والعدد صار ( {len(games[chat_id]["players"])} )',
