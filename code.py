@@ -30,7 +30,6 @@ async def injoin(event):
                 [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]
             ]
         )
-        await event.reply("تم تسجيلك في اللعبة.")
 @ABH.on(events.NewMessage(pattern=r'^/(killAmorder|players)$'))
 async def unified_handler(event):
     chat_id = event.chat_id
@@ -62,8 +61,6 @@ async def start(event, chat_id):
         f"👋 أهلاً {m}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
         buttons=[
             [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]])
-    else:
-        await event.reply('انت بالفعل داخل باللعبه')
 async def players(event):
     chat_id = event.chat_id
     if chat_id not in games:
