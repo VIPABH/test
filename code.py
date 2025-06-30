@@ -12,6 +12,7 @@ join_enabled = False
 async def injoin(event):
     uid = event.pattern_match.group(1)
     chat_id = join_links.get(uid)
+    print(chat_id)
     if chat_id is None:
         return await event.reply("هذا الزر غير صالح أو انتهت صلاحيته.")
     if chat_id not in games:
