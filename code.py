@@ -60,13 +60,13 @@ async def start(event, chat_id):
     uid = str(sender.id)
     if uid not in games[chat_id]["players"]:
         games[chat_id]["players"].add(uid)
-    await ABH.send_message(
+        await ABH.send_message(
         chat_id,
         f"👋 أهلاً {m}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
         buttons=[
-            [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]
-        ]
-    )
+            [Button.url("انضم", url=f"https://t.me/{bot_username}?start={join_num}")]])
+    else:
+        await event.reply('انت بالفعل داخل باللعبه')
 async def players(event):
     chat_id = event.chat_id
     if chat_id not in games:
