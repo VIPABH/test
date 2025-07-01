@@ -24,5 +24,5 @@ async def scan(event):
             await asyncio.sleep(0.3)
         except Exception:
             continue
-        await event.reply(f'{x}')
-        await event.reply(f'{z}')
+    await event.reply(f'{x}')
+    await event.reply(f'{z}')
