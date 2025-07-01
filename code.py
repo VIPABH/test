@@ -24,7 +24,7 @@ async def injoin(event):
     join_num = uid
     print(games[chat_id]["players"])
     print(uid_str)
-    if uid_str in games[chat_id]["players"]:
+    if not uid_str in games[chat_id]["players"]:
         return
     await ABH.send_message(
         chat_id,
