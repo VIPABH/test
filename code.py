@@ -6,5 +6,5 @@ async def scan(event):
     for i in range(385):
         m = f'https://t.me/{x}/{i}'
         s = await ABH.get_messages(x, ids=i)
-        if not s.media:
+        if s and not s.media:
             await event.reply(s)
