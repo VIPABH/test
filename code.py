@@ -7,7 +7,7 @@ from collections import defaultdict
 @ABH.on(events.NewMessage(pattern="/scan_dups"))
 async def scan_duplicates(event):
     channel = 'x04ou'
-    seen_files = defaultdict(list)  # {file_name: [msg_id1, msg_id2, ...]}
+    seen_files = defaultdict(list) 
     similar_files = defaultdict(list)
 
     await event.reply("🔎 جاري فحص الرسائل الصوتية بحثًا عن الملفات المتكررة...")
