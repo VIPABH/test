@@ -24,7 +24,7 @@ async def injoin(event):
     join_num = uid
     print(games[chat_id]["players"])
     print(uid_str)
-    if not uid_str in games[chat_id]["players"]:
+    if uid_str not in games[chat_id]["players"]:
         return
     await ABH.send_message(
         chat_id,
@@ -64,7 +64,7 @@ async def start(event, chat_id):
     bot_username = (await ABH.get_me()).username
     uid = str(sender.id)
     if uid not in games[chat_id]:
-        games[chat_id]["players"].add(uid)
+        # games[chat_id]["players"].add(uid)
         await ABH.send_message(
         chat_id,
         f"👋 أهلاً {m}\nتم بدء لعبة القاتل والمقتول.\nللانضمام اضغط 👇",
