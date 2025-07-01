@@ -23,7 +23,7 @@ async def injoin(event):
     bot_username = (await ABH.get_me()).username
     join_num = uid
     print(games[chat_id]["players"])
-    print(uid_str)
+    print(str(uid_str))
     if str(uid_str) not in games[chat_id]["players"]:
         await ABH.send_message(
             chat_id,
