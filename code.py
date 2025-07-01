@@ -363,7 +363,11 @@ banned_url = [
     150, 152, 175,
     194, 212, 230,
     245, 254, 273,
-    275, 333, 365]
+    275, 333, 362,
+    363, 364, 365,
+    366, 367, 368,
+    369, 370, 372,
+    ]
 latmiyat_range = range(50, 385)
 async def send_random_latmia(event):
     chosen = random.choice(list(latmiyat_range))
