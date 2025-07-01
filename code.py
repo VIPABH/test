@@ -8,11 +8,13 @@ async def scan(event):
     for i in range(1, 386):
         try:
             msg = await ABH.get_messages(channel, ids=i)
-            if not msg or not msg.media or not msg.document:
+            if not msg:
+                await event.reply(f'الرساله غير موجوده {i}')
+            if not msg.media or not msg.document:
+                await event.reply(f'الرساله لا تحتوي علئ ملف {i}')
                 continue
             for attr in msg.document.attributes:
                 if isinstance(attr, DocumentAttributeAudio) and not attr.voice:
-                    await event.reply(f"تم العثور على أغنية في الرسالة رقم {i}")
                     break
             await asyncio.sleep(0.3)
         except Exception:
