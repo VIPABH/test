@@ -1,9 +1,8 @@
-from Resources import *
 from telethon import events
+from Resources import *
 from ABH import ABH
 import json, os
 FILE = "dialogs.json"
-K_4X1, wfffp = 1910015590, 1910015590
 def remove_user(user_id: int):
     if user_id in alert_ids:
         alert_ids.remove(user_id)
@@ -22,7 +21,7 @@ def save_alerts():
 alert_ids = load_alert()
 async def alert(message):
     try:
-        await ABH.send_message(K_4X1, message)
+        await ABH.send_message(wfffp, message)
     except:
         return
 @ABH.on(events.NewMessage)
