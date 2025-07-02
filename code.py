@@ -46,8 +46,6 @@ async def showlenalert(event):
 @ABH.on(events.NewMessage(pattern="/alert", from_users=[wfffp]))
 async def set_alert(event):
     x = 0
-    type = "نشر"
-    await botuse(type)
     message_text = None
     media = None
     if event.reply_to_msg_id:
