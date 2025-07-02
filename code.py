@@ -1,4 +1,5 @@
 from ABH import ABH
+from telethon import 
 import json, os
 FILE = "dialogs.json"
 K_4X1 = 1910015590
