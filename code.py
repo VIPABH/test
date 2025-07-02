@@ -1,3 +1,4 @@
+from Resources import mention, ment
 from telethon import events
 from ABH import ABH
 import json, os
