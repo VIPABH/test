@@ -1,7 +1,6 @@
 from telethon import events
 from ABH import ABH
 wfffp = 1910015590
-K_4X1 = 1910015590
 async def mention(event):
     name = getattr(event.sender, 'first_name', None) or 'غير معروف'
     user_id = event.sender_id
