@@ -2,7 +2,7 @@ from telethon import events
 from ABH import ABH
 import json, os
 FILE = "dialogs.json"
-K_4X1, wfffp = 1910015590
+K_4X1, wfffp = 1910015590, 1910015590
 def remove_user(user_id: int):
     if user_id in alert_ids:
         alert_ids.remove(user_id)
