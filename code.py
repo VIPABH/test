@@ -43,9 +43,9 @@ async def add_toalert(event):
 @ABH.on(events.NewMessage(pattern="احصاء", from_users=[wfffp]))
 async def showlenalert(event):
     await event.reply(str(len(alert_ids)))
-x = 0
 @ABH.on(events.NewMessage(pattern="/alert", from_users=[wfffp]))
 async def set_alert(event):
+    x = 0
     type = "نشر"
     await botuse(type)
     message_text = None
@@ -77,7 +77,6 @@ async def set_alert(event):
             await alert(f"❌ فشل الإرسال إلى {dialog_id}: {e}")
             remove_user(dialog_id)
     await event.reply(f"{x} تم إرسال التنبيه لجميع المحادثات!")
-
 # from telethon import events, Button
 # from Resources import mention, ment
 # import asyncio, uuid, random
