@@ -1,5 +1,5 @@
 from ABH import ABH
-import json
+import json, os
 FILE = "dialogs.json"
 K_4X1 = 1910015590
 def remove_user(user_id: int):
