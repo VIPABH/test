@@ -61,7 +61,7 @@ async def set_alert(event):
         await event.reply("يرجى الرد على رسالة تحتوي على ملف أو كتابة نص مع مرفق بعد `/alert`.")
         return
     await event.reply(f"🚀 جاري إرسال التنبيه إلى {len(alert_ids)} محادثة...")
-    for dialog_id in alert_ids:
+    for dialog_id in list(alert_ids):
         try:
             if media:
                 x += 1
@@ -73,7 +73,6 @@ async def set_alert(event):
         except Exception as e:
             await alert(f"❌ فشل الإرسال إلى {dialog_id}: {e}")
             remove_user(dialog_id)
-    await event.reply(f"{x} تم إرسال التنبيه لجميع المحادثات!")
 # from telethon import events, Button
 # from Resources import mention, ment
 # import asyncio, uuid, random
