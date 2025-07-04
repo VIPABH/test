@@ -1,5 +1,5 @@
 from ABH import *
-@ABH.on(events.NewMeassge)
+@ABH.on(events.NewMessage)
 async def x(event):
     if msg.media:
         file_id = None
