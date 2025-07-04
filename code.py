@@ -1,4 +1,4 @@
-from ABH import ABH
+from ABH import *
 @ABH.on(events.NewMeassge)
 async def x(event):
     if msg.media:
