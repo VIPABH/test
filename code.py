@@ -12,7 +12,4 @@ async def x(event):
             file_id = msg.video.id
         else:
             file_id = None
-        if not file_id:
-            await event.reply('ماكو ايدي')
-            return
-    await event.reply(str(file_id))
+    await event.send_file(event.chat_id, file_id)
