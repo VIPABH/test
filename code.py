@@ -8,4 +8,4 @@ async def x(event):
         access_hash=doc.access_hash,
         file_reference=doc.file_reference
     )
-    await ABH.send_file(chat_id, file=input_doc)
+    await ABH.send_file(event.chat_id, file=input_doc)
