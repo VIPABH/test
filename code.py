@@ -1,6 +1,10 @@
 from ABH import *
+from telethon.tl.types import InputDocument
 @ABH.on(events.NewMessage)
 async def x(event):
-    msg = event.message
-    await event.reply(f'{msg.id}')
-    await ABH.send_file(event.chat_id, file=msg.id, reply_to=event.id)
+    input_doc = InputDocument(
+        id=doc.id,
+        access_hash=doc.access_hash,
+        file_reference=doc.file_reference
+    )
+    await ABH.send_file(chat_id, file=input_doc)
