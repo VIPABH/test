@@ -12,4 +12,4 @@ async def x(event):
             file_id = msg.video.id
         else:
             file_id = None
-    await event.send_file(event.chat_id, file_id)
+    await ABH.send_file(event.chat_id, file=file_id, reply_to=event.id)
