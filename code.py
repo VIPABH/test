@@ -15,4 +15,4 @@ async def x(event):
         if not file_id:
             await event.reply('ماكو ايدي')
             return
-        await event.reply(str(file_id)
+        await event.reply(str(file_id))
