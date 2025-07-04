@@ -1,6 +1,7 @@
 from ABH import *
 @ABH.on(events.NewMessage)
 async def x(event):
+    msg = event.message
     if msg.media:
         file_id = None
         if msg.photo:
