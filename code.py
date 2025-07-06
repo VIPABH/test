@@ -1,6 +1,6 @@
 from telethon.tl.types import InputDocument
 from Resources import mention, hint, wfffp
-from other import botuse, #is_assistant
+from other import botuse # , is_assistant
 from telethon import Button, events
 from Program import chs
 import random, redis
