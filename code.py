@@ -161,6 +161,7 @@ async def handle_reply(event):
     for key in r.scan_iter(match=pattern):
         reply_name = key.split(":", 2)[-1]
         data = r.hgetall(key)
+        print(data.get('type'))
         match_type = data.get('match')
         if (
             (match_type == 'exact' and text == reply_name) or
@@ -181,9 +182,6 @@ async def handle_reply(event):
                         await event.reply(f"❌ فشل إرسال الملف: {e}")
                 else:
                     await event.reply("⚠️ لا يوجد معرف ملف.")
-            else:
-                await event.reply("⚠️ نوع الرد غير معروف.")
-            break
 @ABH.on(events.NewMessage(pattern='^عرض الردود$'))
 async def show_replies(event):
     # if not is_assistant(event.chat_id, event.sender_id):
