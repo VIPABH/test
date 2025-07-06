@@ -136,11 +136,10 @@ async def handle_reply(event):
                     access_hash=doc.access_hash,
                     file_reference=doc.file_reference
                 )
-                if not file_id:
-                    await event.reply("لا يمكن قراءة الوسائط.")
-                    del session[user_id]
-                    return
-                await ABH.send_file(event.chat_id, file=file_id)
+                # if not file_id:
+                #     await event.reply("لا يمكن قراءة الوسائط.")
+                #     del session[user_id]
+                #     return
                 r.hset(redis_key, mapping={
                     'type': 'media',
                     'file_id': file_id,
