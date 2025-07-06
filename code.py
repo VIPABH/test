@@ -1,6 +1,6 @@
 from telethon.tl.types import InputDocument
 from Resources import mention, hint, wfffp
-from other import botuse, is_assistant
+from other import botuse, #is_assistant
 from telethon import Button, events
 from Program import chs
 import random, redis
@@ -18,9 +18,9 @@ async def set_reply(event):
     if not z:
         await chs(event, 'عذرا بس امر الردود معطل 😑')
         return
-    if not is_assistant(event.chat_id, event.sender_id):
-        await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
-        return
+    # if not is_assistant(event.chat_id, event.sender_id):
+    #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
+    #     return
     type = "وضع رد"
     await botuse(type)
     user_id = event.sender_id
@@ -36,9 +36,9 @@ async def set_special_reply(event):
     if not z:
         await chs(event, 'عذرا بس امر الردود معطل 😑')
         return
-    if not is_assistant(event.chat_id, event.sender_id):
-        await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
-        return
+    # if not is_assistant(event.chat_id, event.sender_id):
+    #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
+    #     return
     type = "وضع رد مميز"
     await botuse(type)
     user_id = event.sender_id
@@ -185,9 +185,9 @@ async def handle_reply(event):
             break
 @ABH.on(events.NewMessage(pattern='^عرض الردود$'))
 async def show_replies(event):
-    if not is_assistant(event.chat_id, event.sender_id):
-        await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
-        return
+    # if not is_assistant(event.chat_id, event.sender_id):
+    #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
+    #     return
     type = "عرض الردود"
     await botuse(type)
     chat_id = event.chat_id
@@ -205,9 +205,9 @@ async def delete_reply(event):
     if not z:
         await chs(event, 'عذرا بس امر الردود معطل 😑')
         return
-    if not is_assistant(event.chat_id, event.sender_id):
-        await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
-        return
+    # if not is_assistant(event.chat_id, event.sender_id):
+    #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
+    #     return
     type = "حذف رد"
     await botuse(type)
     chat_id = event.chat_id
@@ -228,9 +228,9 @@ async def delete_all_replies(event):
     if not z:
         await chs(event, 'عذرا بس امر الردود معطل 😑')
         return
-    if not is_assistant(event.chat_id, event.sender_id):
-        await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
-        return
+    # if not is_assistant(event.chat_id, event.sender_id):
+    #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
+    #     return
     type = "حذف الردود"
     await botuse(type)
     chat_id = event.chat_id
