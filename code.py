@@ -1,6 +1,6 @@
 from telethon.tl.types import InputDocument
 from Resources import mention, hint, wfffp
-from other import botuse # , is_assistant
+# from other import botuse, is_assistant
 from telethon import Button, events
 from Program import chs
 import random, redis
@@ -22,7 +22,7 @@ async def set_reply(event):
     #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
     #     return
     type = "وضع رد"
-    await botuse(type)
+#    await botuse(type)
     user_id = event.sender_id
     session[user_id] = {'step': 'waiting_for_reply_name', 'type': 'normal', 'chat_id': event.chat_id}
     await event.reply('📝 أرسل اسم الرد الآن')
@@ -40,7 +40,7 @@ async def set_special_reply(event):
     #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
     #     return
     type = "وضع رد مميز"
-    await botuse(type)
+#    await botuse(type)
     user_id = event.sender_id
     session[user_id] = {'step': 'waiting_for_reply_name', 'type': 'special', 'chat_id': event.chat_id}
     await event.reply('📝 أرسل اسم الرد الآن')
@@ -52,7 +52,7 @@ async def set_my_reply(event):
         await chs(event, 'عذرا بس امر الردود معطل 😑')
         return
     type = "وضع ردي"
-    await botuse(type)
+#    await botuse(type)
     chat_id = event.chat_id
     user_id = event.sender_id
     reply_name = event.pattern_match.group(1)
@@ -81,7 +81,7 @@ async def set_my_reply(event):
 @ABH.on(events.NewMessage(pattern='^حذف ردي$'))
 async def delete_my_reply(event):
     type = "حذف ردي"
-    await botuse(type)
+#    await botuse(type)
     chat_id = event.chat_id
     user_id = event.sender_id
     user_reply_key = f"user_reply:{chat_id}:{user_id}"
@@ -189,7 +189,7 @@ async def show_replies(event):
     #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
     #     return
     type = "عرض الردود"
-    await botuse(type)
+#    await botuse(type)
     chat_id = event.chat_id
     pattern = f"replys:{chat_id}:*"
     keys = list(r.scan_iter(match=pattern))
@@ -209,7 +209,7 @@ async def delete_reply(event):
     #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
     #     return
     type = "حذف رد"
-    await botuse(type)
+#    await botuse(type)
     chat_id = event.chat_id
     reply_name = event.pattern_match.group(1)
     if not reply_name:
@@ -232,7 +232,7 @@ async def delete_all_replies(event):
     #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
     #     return
     type = "حذف الردود"
-    await botuse(type)
+#    await botuse(type)
     chat_id = event.chat_id
     pattern = f"replys:{chat_id}:*"
     keys = list(r.scan_iter(match=pattern))
@@ -244,7 +244,7 @@ async def delete_all_replies(event):
 @ABH.on(events.NewMessage(pattern='^الغاء$'))
 async def cancel(event):
     type = "الغاء اضافه رد"
-    await botuse(type)
+#    await botuse(type)
     id = event.sender_id
     if id in session:
         del session[id]
@@ -264,13 +264,13 @@ async def anymous(event):
     if event.is_reply or not event.is_group:
         return
     type = "مخفي"
-    await botuse(type)
+#    await botuse(type)
     vipabh = random.choice(abh)
     await chs(event, vipabh)
 @ABH.on(events.NewMessage(pattern=r'^ابن هاشم$'))
 async def ABN_HASHEM(event):
     type = "ابن هاشم"
-    await botuse(type)
+#    await botuse(type)
     caption = "أبن هاشم (رض) مرات متواضع ،🌚 @K_4x1"
     button = [Button.url(text="click", url="https://t.me/wfffp")]
     pic = 'links/vipabh.jpg'
@@ -286,7 +286,7 @@ async def reply_hi(event):
     if not event.is_group:
         return
     type = "السلام عليكم"
-    await botuse(type)
+#    await botuse(type)
     abh = random.choice(auto)
     await event.reply(abh)
 @ABH.on(events.NewMessage(pattern='النازية|الشعار'))
@@ -294,7 +294,7 @@ async def nazi(event):
     if not event.is_group:
         return
     type = "النازية"
-    await botuse(type)
+#    await botuse(type)
     n1 = """🟥🟥🟥🟥🟥🟥🟥🟥🟥
 🟥⬜⬜⬜⬜⬜⬜⬜🟥
 🟥⬜⬛⬜⬛⬛⬛⬜🟥
