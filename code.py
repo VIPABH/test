@@ -172,7 +172,7 @@ async def handle_reply(event):
                 if content:
                     await event.reply(content)
                     return
-            elif data.get('type') == 'media':
+            if data.get('type') == 'media':
                 file_id = data.get('file_id')
                 if file_id:
                     try:
