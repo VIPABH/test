@@ -130,30 +130,32 @@ async def handle_reply(event):
                     'content': content,
                     'match': 'exact'
                 })
-                doc = event.message.media.document
-                file_id = InputDocument(
-                    id=doc.id,
-                    access_hash=doc.access_hash,
-                    file_reference=doc.file_reference
-                )
-                # if not file_id:
-                #     await event.reply("لا يمكن قراءة الوسائط.")
-                #     del session[user_id]
-                #     return
-                r.hset(redis_key, mapping={
-                    'type': 'media',
-                    'file_id': file_id,
-                    'match': 'startswith' if reply_type == 'special' else 'exact'
-                })
-            else:
-                r.hset(redis_key, mapping={
-                    'type': 'text',
-                    'content': text,
-                    'match': 'startswith' if reply_type == 'special' else 'exact'
-                })
-            await event.reply(f" تم حفظ الرد باسم **{reply_name}**")
-            del session[user_id]
-            return
+                if event.media:
+                    print('>>')
+                    doc = event.message.media.document
+                    file_id = InputDocument(
+                        id=doc.id,
+                        access_hash=doc.access_hash,
+                        file_reference=doc.file_reference
+                    )
+                    if not file_id:
+                        await event.reply("لا يمكن قراءة الوسائط.")
+                        del session[user_id]
+                        return
+                    r.hset(redis_key, mapping={
+                        'type': 'media',
+                        'file_id': file_id,
+                        'match': 'startswith' if reply_type == 'special' else 'exact'
+                    })
+                else:
+                    r.hset(redis_key, mapping={
+                        'type': 'text',
+                        'content': text,
+                        'match': 'startswith' if reply_type == 'special' else 'exact'
+                    })
+                await event.reply(f" تم حفظ الرد باسم **{reply_name}**")
+                del session[user_id]
+                return
     chat_id = event.chat_id
     text = event.raw_text or ""
     pattern = f"replys:{chat_id}:*"
