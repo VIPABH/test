@@ -171,8 +171,7 @@ async def handle_reply(event):
                 content = data.get('content')
                 if content:
                     await event.reply(content)
-                else:
-                    await event.reply("⚠️ لا يوجد محتوى نصي.")
+                    return
             elif data.get('type') == 'media':
                 file_id = data.get('file_id')
                 if file_id:
