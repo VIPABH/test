@@ -116,11 +116,6 @@ async def handle_reply(event):
             session[user_id]['step'] = 'waiting_for_reply_content'
             await event.reply('📎 أرسل الآن محتوى الرد (نص، وسائط أو منشن)')
             return
-    redis_key = f"replys:{chat_id}:{reply_name}"
-    if r.exists(redis_key):
-        await event.reply(f" الرد **{reply_name}** موجود مسبقاً. يرجى اختيار اسم آخر.")
-        # del session[user_id]
-        return
     elif step == 'waiting_for_reply_content':
         reply_name = current.get('reply_name')
         if reply_type == 'mention':
@@ -130,6 +125,11 @@ async def handle_reply(event):
                 'content': content,
                 'match': 'exact'
             })
+    redis_key = f"replys:{chat_id}:{reply_name}"
+    if r.exists(redis_key):
+        await event.reply(f" الرد **{reply_name}** موجود مسبقاً. يرجى اختيار اسم آخر.")
+        # del session[user_id]
+        return
         if event.media:
             doc = event.message.media.document
             file_id = InputDocument(
