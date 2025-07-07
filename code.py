@@ -143,7 +143,7 @@ async def handle_reply(event):
                 return
             r.hset(redis_key, mapping={
                 'type': 'media',
-                'file_id': file_id,
+                'file_id': str(file_id),
                 'match': 'startswith' if reply_type == 'special' else 'exact'
             })
         else:
