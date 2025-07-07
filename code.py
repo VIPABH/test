@@ -177,7 +177,7 @@ async def handle_reply(event):
                 file_id = data.get('file_id')
                 if file_id:
                     try:
-                        await ABH.send_file(event.chat_id, file=file_id, reply_to=event.id)
+                        await ABH.send_file(event.chat_id, file=str(file_id), reply_to=event.id)
                     except Exception as e:
                         await event.reply(f"❌ فشل إرسال الملف: {e}")
                 else:
