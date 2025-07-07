@@ -125,11 +125,11 @@ async def handle_reply(event):
                 'content': content,
                 'match': 'exact'
             })
-    redis_key = f"replys:{chat_id}:{reply_name}"
-    if r.exists(redis_key):
-        await event.reply(f" الرد **{reply_name}** موجود مسبقاً. يرجى اختيار اسم آخر.")
-        # del session[user_id]
-        return
+        redis_key = f"replys:{chat_id}:{reply_name}"
+        if r.exists(redis_key):
+            await event.reply(f" الرد **{reply_name}** موجود مسبقاً. يرجى اختيار اسم آخر.")
+            # del session[user_id]
+            return
         if event.media:
             doc = event.message.media.document
             file_id = InputDocument(
