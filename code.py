@@ -2,8 +2,8 @@ from telethon.tl.types import InputDocument
 from Resources import mention, hint, wfffp
 # from other import botuse, is_assistant
 from telethon import Button, events
+import random, redis, base64, json
 # from Program import chs
-import random, redis
 from ABH import ABH
 async def chs(e, t):
     ABH.send_message(e.chat_id, t, reply_to=e.id)
@@ -132,18 +132,14 @@ async def handle_reply(event):
                 })
         if event.media:
             doc = event.message.media.document
-            file_id = InputDocument(
-                id=doc.id,
-                access_hash=doc.access_hash,
-                file_reference=doc.file_reference
-            )
-            if not file_id:
-                await event.reply("لا يمكن قراءة الوسائط.")
-                del session[user_id]
-                return
+            file_id = {
+                "id": str(doc.id),
+                "access_hash": str(doc.access_hash),
+                "file_reference": base64.b64encode(doc.file_reference).decode()
+            }
             r.hset(redis_key, mapping={
                 'type': 'media',
-                'file_id': str(file_id),
+                'file_id': json.dumps(file_id),
                 'match': 'startswith' if reply_type == 'special' else 'exact'
             })
         else:
@@ -177,7 +173,13 @@ async def handle_reply(event):
                 file_id = data.get('file_id')
                 if file_id:
                     try:
-                        await ABH.send_file(event.chat_id, file=str(file_id), reply_to=event.id)
+                        file_data = json.loads(file_id)
+                        file_id = InputDocument(
+                            id=int(file_data['id']),
+                            access_hash=int(file_data['access_hash']),
+                            file_reference=base64.b64decode(file_data['file_reference'])
+                        )
+                        await ABH.send_file(event.chat_id, file=file_id, reply_to=event.id)
                     except Exception as e:
                         await event.reply(f"❌ فشل إرسال الملف: {e}")
                 else:
