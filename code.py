@@ -1,9 +1,9 @@
 from telethon.tl.types import InputDocument
 from Resources import mention, hint, wfffp
-# from other import botuse, is_assistant
+from other import botuse, is_assistant
 from telethon import Button, events
 import random, redis, base64, json
-# from Program import chs
+from Program import chs
 from ABH import ABH
 async def chs(e, t):
     ABH.send_message(e.chat_id, t, reply_to=e.id)
@@ -12,37 +12,31 @@ session = {}
 banned = ['وضع ردي', 'وضع رد', 'وضع رد مميز', 'الغاء', 'حذف رد', 'حذف الردود', 'عرض الردود', 'حذف ردي']
 @ABH.on(events.NewMessage(pattern='^وضع رد$'))
 async def set_reply(event):
-    if event.sender_id != wfffp:
-        await chs(event, 'عذرا الامر فيه صيانه ')
-        return
     lock_key = f"lock:{event.chat_id}:ردود"
     z = r.get(lock_key) == "True"
     if not z:
         await chs(event, 'عذرا بس امر الردود معطل 😑')
         return
-    # if not is_assistant(event.chat_id, event.sender_id):
-    #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
-    #     return
+    if not is_assistant(event.chat_id, event.sender_id):
+         await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
+         return
     type = "وضع رد"
-#    await botuse(type)
+    await botuse(type)
     user_id = event.sender_id
     session[user_id] = {'step': 'waiting_for_reply_name', 'type': 'normal', 'chat_id': event.chat_id}
     await event.reply('📝 أرسل اسم الرد الآن')
 @ABH.on(events.NewMessage(pattern='^وضع رد مميز$'))
 async def set_special_reply(event):
-    if event.sender_id != wfffp:
-        await chs(event, 'عذرا الامر فيه صيانه ')
-        return
     lock_key = f"lock:{event.chat_id}:ردود"
     z = r.get(lock_key) == "True"
     if not z:
         await chs(event, 'عذرا بس امر الردود معطل 😑')
         return
-    # if not is_assistant(event.chat_id, event.sender_id):
-    #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
-    #     return
+    if not is_assistant(event.chat_id, event.sender_id):
+         await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
+         return
     type = "وضع رد مميز"
-#    await botuse(type)
+    await botuse(type)
     user_id = event.sender_id
     session[user_id] = {'step': 'waiting_for_reply_name', 'type': 'special', 'chat_id': event.chat_id}
     await event.reply('📝 أرسل اسم الرد الآن')
@@ -54,7 +48,7 @@ async def set_my_reply(event):
         await chs(event, 'عذرا بس امر الردود معطل 😑')
         return
     type = "وضع ردي"
-#    await botuse(type)
+    await botuse(type)
     chat_id = event.chat_id
     user_id = event.sender_id
     reply_name = event.pattern_match.group(1)
@@ -83,7 +77,7 @@ async def set_my_reply(event):
 @ABH.on(events.NewMessage(pattern='^حذف ردي$'))
 async def delete_my_reply(event):
     type = "حذف ردي"
-#    await botuse(type)
+    await botuse(type)
     chat_id = event.chat_id
     user_id = event.sender_id
     user_reply_key = f"user_reply:{chat_id}:{user_id}"
@@ -186,11 +180,11 @@ async def handle_reply(event):
                     await event.reply("⚠️ لا يوجد معرف ملف.")
 @ABH.on(events.NewMessage(pattern='^عرض الردود$'))
 async def show_replies(event):
-    # if not is_assistant(event.chat_id, event.sender_id):
-    #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
-    #     return
+    if not is_assistant(event.chat_id, event.sender_id):
+        await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
+        return
     type = "عرض الردود"
-#    await botuse(type)
+    await botuse(type)
     chat_id = event.chat_id
     pattern = f"replys:{chat_id}:*"
     keys = list(r.scan_iter(match=pattern))
@@ -206,11 +200,11 @@ async def delete_reply(event):
     if not z:
         await chs(event, 'عذرا بس امر الردود معطل 😑')
         return
-    # if not is_assistant(event.chat_id, event.sender_id):
-    #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
-    #     return
+    if not is_assistant(event.chat_id, event.sender_id):
+         await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
+         return
     type = "حذف رد"
-#    await botuse(type)
+    await botuse(type)
     chat_id = event.chat_id
     reply_name = event.pattern_match.group(1)
     if not reply_name:
@@ -229,11 +223,11 @@ async def delete_all_replies(event):
     if not z:
         await chs(event, 'عذرا بس امر الردود معطل 😑')
         return
-    # if not is_assistant(event.chat_id, event.sender_id):
-    #     await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
-    #     return
+    if not is_assistant(event.chat_id, event.sender_id):
+         await chs(event, 'عذرا الامر خاص بالمعاونين فقط🤭')
+         return
     type = "حذف الردود"
-#    await botuse(type)
+    await botuse(type)
     chat_id = event.chat_id
     pattern = f"replys:{chat_id}:*"
     keys = list(r.scan_iter(match=pattern))
@@ -245,7 +239,7 @@ async def delete_all_replies(event):
 @ABH.on(events.NewMessage(pattern='^الغاء$'))
 async def cancel(event):
     type = "الغاء اضافه رد"
-#    await botuse(type)
+    await botuse(type)
     id = event.sender_id
     if id in session:
         del session[id]
@@ -265,13 +259,13 @@ async def anymous(event):
     if event.is_reply or not event.is_group:
         return
     type = "مخفي"
-#    await botuse(type)
+    await botuse(type)
     vipabh = random.choice(abh)
     await chs(event, vipabh)
 @ABH.on(events.NewMessage(pattern=r'^ابن هاشم$'))
 async def ABN_HASHEM(event):
     type = "ابن هاشم"
-#    await botuse(type)
+    await botuse(type)
     caption = "أبن هاشم (رض) مرات متواضع ،🌚 @K_4x1"
     button = [Button.url(text="click", url="https://t.me/wfffp")]
     pic = 'links/vipabh.jpg'
@@ -287,7 +281,7 @@ async def reply_hi(event):
     if not event.is_group:
         return
     type = "السلام عليكم"
-#    await botuse(type)
+    await botuse(type)
     abh = random.choice(auto)
     await event.reply(abh)
 @ABH.on(events.NewMessage(pattern='النازية|الشعار'))
@@ -295,7 +289,7 @@ async def nazi(event):
     if not event.is_group:
         return
     type = "النازية"
-#    await botuse(type)
+    await botuse(type)
     n1 = """🟥🟥🟥🟥🟥🟥🟥🟥🟥
 🟥⬜⬜⬜⬜⬜⬜⬜🟥
 🟥⬜⬛⬜⬛⬛⬛⬜🟥
