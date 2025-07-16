@@ -25,6 +25,13 @@ async def handler(event):
         user_states[user_id] = {"step": "name"}
         await event.reply("✏️ أرسل الآن **اسم الرد**.")
         return
+    if text.lower() == "الردود":
+    keys = r.keys("رد:*")
+    if keys:
+        names = [k.decode().split(":", 1)[1] for k in keys]
+        await event.reply("📄 الردود:\n" + "\n".join(names))
+    else:
+        await event.reply("🚫 لا توجد ردود حالياً.")
     key = f"رد:{text}"
     reply_value = r.get(key)
     if reply_value:
