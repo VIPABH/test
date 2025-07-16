@@ -32,3 +32,7 @@ async def handler(event):
             await event.reply("📄 الردود:\n" + "\n".join(names))
         else:
             await event.reply("🚫 لا توجد ردود حالياً.")
+    key = f"رد:{text}"
+    reply_value = r.get(key)
+    if reply_value:
+        await event.reply(reply_value.decode("utf-8"))
