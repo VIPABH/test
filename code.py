@@ -1,7 +1,7 @@
 from telethon import TelegramClient, events
 from ABH import ABH
 import redis, os
-r = redis.Redis(host='localhost', port=6379)  # ← صحيح
+r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 user_states = {}
 @ABH.on(events.NewMessage)
 async def handler(event):
