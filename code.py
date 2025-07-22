@@ -6,14 +6,15 @@ import asyncio
 report_data = {}
 @ABH.on(events.MessageEdited)
 async def edited(event):
-    if not event.is_group:
+    if not event.is_group or not msg.edit_date:
         return
     msg = event.message
     chat_id = event.chat_id
-    if msg.media:
-        if isinstance(msg.media, MessageMediaDocument):
-            if any(isinstance(attr, DocumentAttributeAudio) for attr in msg.media.document.attributes):
-                return
+    has_media = msg.media
+    has_document = msg.document
+    has_url = any(isinstance(entity, MessageEntityUrl) for entity in (msg.entities or []))
+    if not (has_media or has_document or has_url):
+        return
     uid = event.sender_id
     perms = await ABH.get_permissions(chat_id, uid)
     if perms.is_admin:
@@ -38,7 +39,12 @@ async def edited(event):
  المستخدم: {mention_text}  
  [رابط الرسالة]({رابط})  
  معرفه: `{uid}`
- هل تعتقد أن هذه الرسالة تحتوي على تلغيم؟""",
+ هل تعتقد أن هذه الرسالة تحتوي على تلغيم؟ 
+ تاريخ النشر - {msg.date}
+ تاريخ التعديل - {msg.edit_date}
+ """,
         buttons=buttons,
         link_preview=True
     )
+    await asyncio.sleep(60)
+    await event.delete()
