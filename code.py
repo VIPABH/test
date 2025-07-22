@@ -10,11 +10,10 @@ async def edited(event):
         return
     msg = event.message
     chat_id = event.chat_id
-    has_media = msg.media
-    has_document = msg.document
-    has_url = any(isinstance(entity, MessageEntityUrl) for entity in (msg.entities or []))
-    if not (has_media or has_document or has_url):
-        return
+    if msg.media:
+        if isinstance(msg.media, MessageMediaDocument):
+            if any(isinstance(attr, DocumentAttributeAudio) for attr in msg.media.document.attributes):
+                return
     uid = event.sender_id
     perms = await ABH.get_permissions(chat_id, uid)
     if perms.is_admin:
