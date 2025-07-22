@@ -40,8 +40,8 @@ async def edited(event):
  [رابط الرسالة]({رابط})  
  معرفه: `{uid}`
  هل تعتقد أن هذه الرسالة تحتوي على تلغيم؟ 
- تاريخ النشر - {msg.date}
- تاريخ التعديل - {msg.edit_date}
+ تاريخ النشر - {event.message.date}
+ تاريخ التعديل - {event.message.edit_date}
  """,
         buttons=buttons,
         link_preview=True
