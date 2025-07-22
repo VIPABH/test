@@ -43,5 +43,3 @@ async def edited(event):
         buttons=buttons,
         link_preview=True
     )
-    await asyncio.sleep(60)
-    await event.delete()
