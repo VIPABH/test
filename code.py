@@ -6,7 +6,7 @@ import asyncio
 report_data = {}
 @ABH.on(events.MessageEdited)
 async def edited(event):
-    if not event.is_group or not msg.edit_date:
+    if not event.is_group or not event.message.edit_date:
         return
     msg = event.message
     chat_id = event.chat_id
