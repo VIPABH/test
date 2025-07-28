@@ -9,10 +9,10 @@ from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import InputPeerUser, ReactionEmoji
 
 @ABH.on(events.NewMessage)
-async def react_to_message(chat_id, message_id, emoji='❤️'):
-    await client(SendReactionRequest(
-        peer=chat_id,
-        msg_id=message_id,
-        reaction=[ReactionEmoji(emoticon=emoji)],
+async def react_to_message(event):
+    await ABH(SendReactionRequest(
+        peer=event.chat_id,
+        msg_id=event.id,
+        reaction=[ReactionEmoji(emoticon='❤️')],
         big=False  # ضع True إذا أردت التفاعل الكبير (Big Reaction)
     ))
