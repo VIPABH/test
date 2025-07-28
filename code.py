@@ -4,17 +4,15 @@ from ABH import ABH  # type:ignore
 from Resources import *
 import asyncio
 from telethon import events, types
-
-# الرمز التعبيري الذي تريد استخدامه كرياكشن
-REACTION = '❤️'  # يمكنك تغييره إلى: '🔥' أو '👍' أو غيرها
+from telethon.sync import TelegramClient
+from telethon.tl.functions.messages import SendReactionRequest
+from telethon.tl.types import InputPeerUser, ReactionEmoji
 
 @ABH.on(events.NewMessage)
-async def auto_reaction(event):
-    try:
-        await ABH.send_reaction(
-            entity=event.chat_id,
-            message_id=event.message.id,  # هذا هو التعديل المهم
-            reaction=types.ReactionEmoji(emoticon=REACTION)
-        )
-    except Exception as e:
-        print(f"فشل في إرسال الرياكشن: {e}")
+async def react_to_message(chat_id, message_id, emoji='❤️'):
+    await client(SendReactionRequest(
+        peer=chat_id,
+        msg_id=message_id,
+        reaction=[ReactionEmoji(emoticon=emoji)],
+        big=False  # ضع True إذا أردت التفاعل الكبير (Big Reaction)
+    ))
