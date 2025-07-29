@@ -1,3 +1,4 @@
+import telethon
 from telethon.tl.types import MessageEntityUrl
 from telethon import events, Button
 from ABH import ABH  # type:ignore
