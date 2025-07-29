@@ -14,5 +14,5 @@ async def react_to_message(event):
         peer=event.chat_id,
         msg_id=event.id,
         reaction=[ReactionEmoji(emoticon='❤️')],
-        big=False  # ضع True إذا أردت التفاعل الكبير (Big Reaction)
+        big=True
     ))
