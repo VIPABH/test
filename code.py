@@ -8,7 +8,7 @@ from telethon.sync import TelegramClient
 from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import InputPeerUser, ReactionEmoji
 
-@ABH.on(events.NewMessage)
+@ABH.on(events.NewMessage('ها')
 async def react_to_message(event):
     await ABH(SendReactionRequest(
         peer=event.chat_id,
