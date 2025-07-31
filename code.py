@@ -1,12 +1,5 @@
 from telethon import events, Button
 from ABH import ABH
-@ABH.on(events.NewMessage(pattern='/start'))
-async def start(event):
-    await event.respond(
-        'اضغط على الزر لعرض إشعار:',
-        buttons=[Button.inline('عرض إشعار', b'show_alert')]
-    )
-
-@ABH.on(events.CallbackQuery(data=b'show_alert'))
-async def callback(event):
-    await event.answer("🚨 هذا هو الإشعار الذي طلبته", alert=True)
+@ABH.on(events.NewMessage(pattern=r'^ازعاج (\d+)$'))
+async def spam(event):
+    await event.reply("تم التعرف على الأمر!")
