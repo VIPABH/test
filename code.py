@@ -1,19 +1,12 @@
-import telethon
-from telethon.tl.types import MessageEntityUrl
 from telethon import events, Button
-from ABH import ABH  # type:ignore
-from Resources import *
-import asyncio
-from telethon import events, types
-from telethon.sync import TelegramClient
-from telethon.tl.functions.messages import SendReactionRequest
-from telethon.tl.types import InputPeerUser, ReactionEmoji
-print(telethon.__version__)
-@ABH.on(events.NewMessage(pattern='ها'))
-async def react_to_message(event):
-    await ABH(SendReactionRequest(
-        peer=event.chat_id,
-        msg_id=event.id,
-        reaction=[ReactionEmoji(emoticon='❤️')],
-        big=True
-    ))
+
+@bot.on(events.NewMessage(pattern='/start'))
+async def start(event):
+    await event.respond(
+        'اضغط على الزر لعرض إشعار:',
+        buttons=[Button.inline('عرض إشعار', b'show_alert')]
+    )
+
+@bot.on(events.CallbackQuery(data=b'show_alert'))
+async def callback(event):
+    await event.answer("🚨 هذا هو الإشعار الذي طلبته", alert=True)
