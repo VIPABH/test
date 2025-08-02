@@ -12,5 +12,5 @@ async def handler(event):
 
     client.add_event_handler(wait_reply, events.NewMessage)
     x = await event.reply("ارسل ردك الآن...")
-    if x.text == "/ابدأ"
+    if x.text == "/ابدأ":
         return
