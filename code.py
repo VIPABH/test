@@ -10,7 +10,7 @@ async def handler(event):
             await new_event.reply(f"تم استلام ردك: {new_event.text}")
             client.remove_event_handler(wait_reply, events.NewMessage)
 
-    client.add_event_handler(wait_reply, events.NewMessage)
-    x = await event.reply("ارسل ردك الآن...")
+    x = client.add_event_handler(wait_reply, events.NewMessage)
     if x.text == "/ابدأ":
         return
+    await event.reply("ارسل ردك الآن...")
