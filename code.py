@@ -11,4 +11,6 @@ async def handler(event):
             client.remove_event_handler(wait_reply, events.NewMessage)
 
     client.add_event_handler(wait_reply, events.NewMessage)
-    await event.reply("ارسل ردك الآن...")
+    x = await event.reply("ارسل ردك الآن...")
+    if x.text == "/ابدأ"
+        return
