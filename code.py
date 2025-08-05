@@ -1,11 +1,8 @@
 from telethon import events
+from Resources import x_ar
 from ABH import ABH
 import random
 session = {}
-x_ar = {
-    '🇹🇳': 'تونس',
-    '🇹🇷': 'تركيا',
-}
 @ABH.on(events.NewMessage)
 async def xss(e):
     try:
