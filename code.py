@@ -3,8 +3,8 @@ from ABH import ABH
 import random
 session = {}
 x_ar = {
-    't': 'تونس',
-    'tt': 'تركيا',
+    '🇹🇳': 'تونس',
+    '🇹🇷': 'تركيا',
 }
 @ABH.on(events.NewMessage)
 async def xss(e):
@@ -14,7 +14,7 @@ async def xss(e):
         id = e.sender_id
         t = e.text
         if g not in session or id not in session:
-            session[id] = emoji, country
+            session[id] = country
         if t == 'h':
             await e.reply(f'ما هو اسم العلم {emoji}')
         em = e.text
