@@ -18,7 +18,9 @@ async def xss(e):
         if t == 'h':
             await e.reply(f'ما هو اسم العلم {emoji}')
         em = e.text
+        print(em)
         country = session[id]
+        print(country)
         if em == country:
             await e.reply('احسنت')
     except Exception as e:
