@@ -9,8 +9,9 @@ async def xss(e):
     g = e.chat_id
     id = e.sender_id
     t = e.text
-    if t == 'ت':
+    if g not in session or id not in session:
         session[g][id] = emoji, country
+    if t == 'ت':
         await e.reply(f'ما هو اسم العلم {country}')
     em = e.text
     if em == f'{session[g][id]["emoji"]}':
