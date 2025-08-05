@@ -1,16 +1,17 @@
-from telethon import events, Button
-from ABH import ABH as client
-@client.on(events.NewMessage(pattern="/ابدأ"))
-async def handler(event):
-    user_id = event.sender_id
-    chat_id = event.chat_id
-
-    async def wait_reply(new_event):
-        if new_event.chat_id == chat_id and new_event.sender_id == user_id:
-            await new_event.reply(f"تم استلام ردك: {new_event.text}")
-            client.remove_event_handler(wait_reply, events.NewMessage)
-
-    x = client.add_event_handler(wait_reply, events.NewMessage)
-    if x.text == "/ابدأ":
-        return
-    await event.reply("ارسل ردك الآن...")
+from telethon import events
+from Resources import x_ar
+from ABH import ABH
+import random
+session = {}
+@ABH.on(events.NewMessage)
+async def xss(e):
+    emoji, country = random.choice(list(x_ar.items()))
+    g = e.chat_id
+    id = e.sender_id
+    t = e.text
+    if t == 'ت':
+        session[g][id] = emoji, country
+        await e.reply(f'ما هو اسم العلم {country}')
+    em = e.text
+    if em == f'{session[g][id]["emoji"]}':
+        await e.reply('احسنت')
