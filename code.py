@@ -1,8 +1,11 @@
 from telethon import events
-from Resources import x_ar
 from ABH import ABH
 import random
 session = {}
+x_ar = {
+    '🇹🇳': 'تونس',
+    '🇹🇷': 'تركيا',
+}
 @ABH.on(events.NewMessage)
 async def xss(e):
     emoji, country = random.choice(list(x_ar.items()))
@@ -17,3 +20,4 @@ async def xss(e):
     country = session[id]
     if em == country:
         await e.reply('احسنت')
+
