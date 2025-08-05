@@ -10,7 +10,7 @@ async def xss(e):
     id = e.sender_id
     t = e.text
     if g not in session or id not in session:
-        session[g][id] = emoji, country
+        session[str(g)][str(id)] = emoji, country
     if t == 'ت':
         await e.reply(f'ما هو اسم العلم {country}')
     em = e.text
