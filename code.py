@@ -3,8 +3,8 @@ from ABH import ABH
 import random
 session = {}
 x_ar = {
-    '🇹🇳': 'تونس',
-    '🇹🇷': 'تركيا',
+    't': 'تونس',
+    'tt': 'تركيا',
 }
 @ABH.on(events.NewMessage)
 async def xss(e):
