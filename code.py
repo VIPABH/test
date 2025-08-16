@@ -1,13 +1,10 @@
 import os
 from telethon import TelegramClient, events
-from tinydb import TinyDB, Query
 
-# قراءة المتغيرات البيئية
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
 
-# إنشاء عميل Telethon
 client = TelegramClient("bot", api_id, api_hash).start(bot_token=bot_token)
 
 target_file_id = None  # نخزن هنا الـ file_id للمتحرك
@@ -30,9 +27,15 @@ async def set_file_id(event):
 @client.on(events.NewMessage)
 async def delete_matching(event):
     global target_file_id
-    reply_msg = await event.get_reply_message()
     if target_file_id and event.document:
         if event.file.id == target_file_id:
-            await reply_msg.delete()
+            # حذف الرسالة الحالية
+            await event.delete()
 
+            # إذا كانت هذه الرسالة رد على رسالة أخرى، نحذف الرسالة الأصلية أيضًا
+            reply_msg = await event.get_reply_message()
+            if reply_msg:
+                await reply_msg.delete()
+
+print("Bot is running...")
 client.run_until_disconnected()
