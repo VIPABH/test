@@ -30,8 +30,9 @@ async def set_file_id(event):
 @client.on(events.NewMessage)
 async def delete_matching(event):
     global target_file_id
+    reply_msg = await event.get_reply_message()
     if target_file_id and event.document:
-        if event.file.id == target_file_id:
+        if reply_msg.file.id == target_file_id:
             await event.delete()
 
 client.run_until_disconnected()
