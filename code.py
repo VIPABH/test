@@ -1,16 +1,10 @@
-import os
-from telethon import TelegramClient, events
-
-api_id = int(os.getenv("API_ID"))
-api_hash = os.getenv("API_HASH")
-bot_token = os.getenv("BOT_TOKEN")
-
-client = TelegramClient("bot", api_id, api_hash).start(bot_token=bot_token)
+from telethon import events
+from ABH import ABH  # استيراد العميل باسم ABH
 
 target_file_id = None  # نخزن هنا الـ file_id للمتحرك
 
 # أمر لتعيين الـ file_id عبر الرد
-@client.on(events.NewMessage(pattern=r"^/ضعمتحرك$"))
+@ABH.on(events.NewMessage(pattern=r"^/ض$"))
 async def set_file_id(event):
     global target_file_id
     if event.is_reply:
@@ -24,7 +18,7 @@ async def set_file_id(event):
         await event.reply("❌ يجب الرد على المتحرك.")
 
 # مراقبة الرسائل وحذف أي رسالة بنفس الـ file_id
-@client.on(events.NewMessage)
+@ABH.on(events.NewMessage)
 async def delete_matching(event):
     global target_file_id
     if target_file_id and event.document:
@@ -38,4 +32,4 @@ async def delete_matching(event):
                 await reply_msg.delete()
 
 print("Bot is running...")
-client.run_until_disconnected()
+ABH.run_until_disconnected()
