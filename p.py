@@ -35,8 +35,6 @@ async def send_all_files(event):
         await event.reply(f"حدث خطأ أثناء إرسال الملفات: {e}")
 @ABH.on(events.NewMessage(pattern=r'^ارسل ملف (.+)$', from_users=[1910015590]))
 async def send_file(event):
-    type = "ارسال ملف"
-    await botuse(type)
     file_name = event.pattern_match.group(1)
     if not os.path.exists(file_name):
         return await event.reply("❗️الملف غير موجود.")
@@ -44,8 +42,6 @@ async def send_file(event):
     await ABH.send_file(event.chat_id, file=file_name)
 @ABH.on(events.NewMessage(pattern=r'^حذف ملف (.+)$', from_users=[1910015590]))
 async def delete_file(event):
-    type = "حذف ملف"
-    await botuse(type)
     file_name = event.pattern_match.group(1)
     if not os.path.exists(file_name):
         return await event.reply("الملف غير موجود.")
@@ -53,8 +49,6 @@ async def delete_file(event):
     await event.reply("✅ تم حذف الملف بنجاح.")
 @ABH.on(events.NewMessage(pattern=r'^الملفات$', from_users=[1910015590]))
 async def list_files(event):
-    type = "قائمة الملفات"
-    await botuse(type)
     files = os.listdir('.')
     if not files:
         return await event.reply("❗️لا توجد ملفات في المجلد الحالي.")
