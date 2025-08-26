@@ -18,6 +18,6 @@ async def all(e):
         if r and r.text:
             x = save(r.text, filename='data.txt')
             await e.reply("تم الحفظ ✅")
-            await e.reply("x)
+            await e.reply(x)
         else:
             await e.reply("رد على رسالة نصية حتى أحفظها ❌")
