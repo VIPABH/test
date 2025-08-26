@@ -13,7 +13,7 @@ async def all(e):
     if e.text == 'مل':
         r = await e.get_reply_message()
         if r and r.sender_id:
-            x = save(r.text, filename='d.json')
+            x = save(r.sender_id, filename='d.json')
             await e.reply("تم الحفظ ✅")
             await e.reply(x)
         else:
