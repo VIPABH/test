@@ -1,21 +1,21 @@
 from telethon import events
 from ABH import ABH
 import os, json
-
-def file(filename='data.txt', data):
-    if not os.path.exists(filename):
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(f'{data}, \n')
-    else:
-        with open(filename, 'a', encoding='utf-8') as f:
-            f.write(f'{data}, \n')
-@ABH.on(events.NewMessage)
-async def all(e):
-    t = e.text
-    if t == 'مل':
-        r = await e.get_reply_message()
-        if r:  # نتأكد أن الرسالة رد
-            file("data.txt", r)  # نخزن الرد داخل ملف data.txt
-            await e.reply("تم الحفظ ✅")
-        else:
-            await e.reply("رد على رسالة حتى أحفظها ❌")
+def save(file, data):
+    if not os.path.exists(file):
+        os.mkdir(file)
+    if not data or data is None:
+        load = json.load(open(os.path.join(file)))
+        return load
+    with open(os.path.join(file), "w") as f:
+        json.dump(data, f)
+        load = json.load(open(os.path.join(file)))
+        return load
+@ABH.on(events.NewMessage(pattern=r"تخزين"))
+async def handler(event):
+    r = await event.get_reply_message()
+    if r:
+        data = r.text
+        s = save('test.json', data)
+        await event.reply("تم تخزين الرسالة.")
+        await event.reply(s)
