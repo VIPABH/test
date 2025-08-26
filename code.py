@@ -16,7 +16,8 @@ async def all(e):
     if e.text == 'مل':
         r = await e.get_reply_message()
         if r and r.text:
-            save(r.text, filename='data.txt')
+            x = save(r.text, filename='data.txt')
             await e.reply("تم الحفظ ✅")
+            await e.reply("x)
         else:
             await e.reply("رد على رسالة نصية حتى أحفظها ❌")
