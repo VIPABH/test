@@ -3,7 +3,8 @@ from ABH import ABH
 import os, json
 def save(file, data):
     if not os.path.exists(file):
-        os.mkdir(file)
+        with open(file, "w") as f:
+            pass
     if not data or data is None:
         load = json.load(open(os.path.join(file)))
         return load
