@@ -16,6 +16,6 @@ async def handler(event):
     r = await event.get_reply_message()
     if r:
         data = r.text
-        s = save('test.json', data)
+        s = save('t.json', data)
         await event.reply("تم تخزين الرسالة.")
         await event.reply(s)
