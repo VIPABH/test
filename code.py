@@ -1,20 +1,15 @@
+from telethon.tl.functions.users import GetFullUserRequest
 from telethon import events
 from ABH import ABH
-import os
-
-def save(data, filename):
-    mode = 'a+' if os.path.exists(filename) else 'w+'
-    with open(filename, mode, encoding='utf-8') as f:
-        f.write(f'{data}, \n')
-        f.seek(0)
-        return f.read()
 @ABH.on(events.NewMessage)
-async def all(e):
-    if e.text == 'مل':
-        r = await e.get_reply_message()
-        if r and r.sender_id:
-            x = save(r.sender_id, filename='d.json')
-            await e.reply("تم الحفظ ✅")
-            await e.reply(x)
-        else:
-            await e.reply("رد على رسالة نصية حتى أحفظها ❌")
+async def get_bio(event):
+    user = await event.client.get_entity(event.sender_id)
+    if user.photo:
+        avatar_path = await event.client.download_profile_photo(
+            user,
+            file=f"temp/avatar_{user.id}.jpg"
+        )
+    FullUser = (await event.client(GetFullUserRequest(event.sender_id))).full_user
+    bio = FullUser.about
+    bio_text = f"\n{bio}" if bio and bio.strip() else ""
+    await ABH.send_file(event.chat_id, file= avatar_path, caption=bio_text,reply_to=event.id)
