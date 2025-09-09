@@ -1,6 +1,6 @@
 from datetime import datetime
 from telethon import events
-
+from ABH import ABH
 @ABH.on(events.NewMessage(pattern='^(رسالة|رساله|وقت) (.+)$'))
 async def gettime(e):
     # النص بعد الكلمة الأولى
