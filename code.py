@@ -53,7 +53,7 @@ def get_message_type(msg: Message) -> str:
 
     return "unknown"
 
-@ABH.on(events.NewMessage()
+@ABH.on(events.NewMessage)
 async def set_my_info(e):
     m = e.message
     msg_type = get_message_type(m)
