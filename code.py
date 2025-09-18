@@ -1,3 +1,4 @@
+
 from telethon import events
 from ABH import ABH
 import os
@@ -45,13 +46,14 @@ def get_message_type(msg: Message) -> str:
 
             # فيديو عادي
             if isinstance(attr, DocumentAttributeVideo):
-                return "video"
+                return "video"  # فلتر فيديو للفيديو بصوت
             if getattr(attr, "round_message", False):
                 return "voice note"  # فلتر voice note
             has_audio = getattr(attr, "audio", None) is not None
             if not has_audio:
                 return "v"  # فلتر GIF للفيديو بدون صوت
-            return "video"
+            return "video"  # فلتر فيديو للفيديو بصوت
+
             # رسوم متحركة
             if isinstance(attr, DocumentAttributeAnimated):
                 return "gif"  # فلتر GIF
@@ -107,6 +109,7 @@ async def track_messages(e):
     msg_type = get_message_type(m)
 
     # تحديث الإحصائيات تلقائيًا لكل رسالة
+    await e.reply(f"{msg_type}")
     user_stats = await info(e, msg_type)
     stats_str = json.dumps(user_stats, ensure_ascii=False, indent=2)
     await e.reply(f"إحصائياتك حتى الآن:\n{stats_str}")
