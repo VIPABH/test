@@ -30,7 +30,8 @@ def get_message_type(msg: Message) -> str:
     # -------------------
     # MessageExtendedMedia / Preview
     if isinstance(msg.media, MessageExtendedMediaPreview):
-        return "preview"
+        inner = msg.media.media
+        return get_message_type(Message(id=msg.id, media=inner))
     if isinstance(msg.media, MessageExtendedMedia):
         inner = msg.media.media
         return get_message_type(Message(id=msg.id, media=inner))
@@ -45,7 +46,6 @@ def get_message_type(msg: Message) -> str:
     if isinstance(msg.media, MessageMediaDocument):
         mime = msg.media.document.mime_type or ""
 
-        # تحقق من الـ Attributes
         for attr in msg.media.document.attributes:
             # صوت أو فويس نوت
             if isinstance(attr, DocumentAttributeAudio):
@@ -57,11 +57,16 @@ def get_message_type(msg: Message) -> str:
 
             # فيديو
             if isinstance(attr, DocumentAttributeVideo):
+                # فيديو مدوّر → Voice note
                 if getattr(attr, "round_message", False):
-                    return "voice note"  # فيديو مدوّر (Voice note)
-                # mp4 بدون صوت → GIF
-                if mime == "video/mp4" and not getattr(attr, "supports_streaming", False):
+                    return "voice note"
+
+                # أي فيديو بدون صوت → GIF
+                has_audio = getattr(attr, "audio", None) is not None
+                if not has_audio:
                     return "gif"
+
+                # الفيديو بصوت → video
                 return "video"
 
             # GIF tgs/webm
@@ -100,10 +105,13 @@ def get_message_type(msg: Message) -> str:
         if isinstance(msg.action, MessageActionScreenshotTaken):
             return "screenshot_taken"
 
-    # -------------------
     return "unknown"
+
+
+# -------------------
+# البوت
 @ABH.on(events.NewMessage)
 async def set_my_info(e):
     m = e.message
-    x = get_message_type(m)
-    print(x)
+    msg_type = get_message_type(m)
+    print(f"Message type: {msg_type}")
