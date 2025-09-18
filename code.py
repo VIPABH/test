@@ -21,19 +21,21 @@ def get_message_type(msg:Message)->str:
         for attr in msg.media.document.attributes:
             if isinstance(attr,DocumentAttributeAnimated):
                 return "gif"
-            if isinstance(attr,DocumentAttributeSticker):
-                return "sticker"
-            if isinstance(attr,DocumentAttributeAudio):
-                return "voice" if getattr(attr,"voice",False) else "audio"
+        for attr in msg.media.document.attributes:
             if isinstance(attr,DocumentAttributeVideo):
                 if getattr(attr,"round_message",False):
                     return "voice note"
                 return "video"
+        for attr in msg.media.document.attributes:
+            if isinstance(attr,DocumentAttributeSticker):
+                return "sticker"
+            if isinstance(attr,DocumentAttributeAudio):
+                return "voice" if getattr(attr,"voice",False) else "audio"
         mime=msg.media.document.mime_type or ""
         if mime.startswith("image/"):
             return "image"
         elif mime.startswith("video/"):
-            return "video"
+            return "v"
         elif mime.startswith("audio/"):
             return "audio"
         return "document"
