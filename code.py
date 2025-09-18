@@ -44,19 +44,15 @@ def get_message_type(msg: Message) -> str:
                 else:
                     return "audio"  # فلتر audio
 
-            # فيديو عادي
+            # فيديو عادي أو voice note
             if isinstance(attr, DocumentAttributeVideo):
-                return "video"  # فلتر فيديو للفيديو بصوت
-            if getattr(attr, "round_message", False):
-                return "voice note"  # فلتر voice note
-            has_audio = getattr(attr, "audio", None) is not None
-            if not has_audio:
-                return "v"  # فلتر GIF للفيديو بدون صوت
-            return "video"  # فلتر فيديو للفيديو بصوت
+                if getattr(attr, "round_message", False):
+                    return "voice note"  # فيديو مدور
+                return "video"  # فيديو عادي بصوت
 
-        # رسوم متحركة
-        if isinstance(attr, DocumentAttributeAnimated):
-            return "gif"  # فلتر GIF
+            # GIF tgs/webm
+            if isinstance(attr, DocumentAttributeAnimated):
+                return "gif"
 
         # fallback حسب MIME
         if mime.startswith("image/"):
@@ -100,7 +96,7 @@ async def track_messages(e):
     msg_type = get_message_type(m)
 
     user_stats = update_stats(e, msg_type)  
-    await e.reply(f"{user_stats}")
+    await e.reply(f"تم تصنيف الرسالة: {msg_type}")
 
     stats_str = "\n".join(f"{k}: {v}" for k, v in user_stats.items())
     await e.reply(f"إحصائياتك الحالية:\n{stats_str}")
