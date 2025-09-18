@@ -49,7 +49,7 @@ def get_message_type(msg: Message) -> str:
                     return "voice note"  # فلتر voice note
                 has_audio = getattr(attr, "audio", None) is not None
                 if not has_audio:
-                    return "gif"  # فلتر GIF للفيديو بدون صوت
+                    return "v"  # فلتر GIF للفيديو بدون صوت
                 return "video"  # فلتر فيديو للفيديو بصوت
 
             # رسوم متحركة
