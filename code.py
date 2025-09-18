@@ -31,8 +31,9 @@ def get_message_type(msg: Message) -> str:
     # المستندات والفيديو/صوت/ملصق/GIF
     if isinstance(msg.media, MessageMediaDocument):
         mime = msg.media.document.mime_type or ""
+        if isinstance(attr, DocumentAttributeAnimated):
+            return "gif"
 
-        # أي ملصق → sticker
         if any(isinstance(attr, DocumentAttributeSticker) for attr in msg.media.document.attributes):
             return "sticker"
 
@@ -43,16 +44,11 @@ def get_message_type(msg: Message) -> str:
                     return "voice"  # فلتر فويس
                 else:
                     return "audio"  # فلتر audio
-
-            # فيديو عادي أو voice note
             if isinstance(attr, DocumentAttributeVideo):
                 if getattr(attr, "round_message", False):
                     return "voice note"  # فيديو مدور
                 return "video"  # فيديو عادي بصوت
 
-            # GIF tgs/webm
-            if isinstance(attr, DocumentAttributeAnimated):
-                return "gif"
 
         # fallback حسب MIME
         if mime.startswith("image/"):
