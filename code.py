@@ -1,50 +1,32 @@
 from telethon import events
-from ABH import *
-import json
+from ABH import ABH
 import os
-
+import json
 from telethon.tl.types import (
-    Message,
-    MessageMediaPhoto,
-    MessageMediaDocument,
-    MessageMediaGeo,
-    MessageMediaVenue,
-    MessageMediaPoll,
-    MessageExtendedMedia,
-    MessageExtendedMediaPreview,
-    MessageService,
-    MessageActionTopicEdit,
-    MessageActionScreenshotTaken,
-    DocumentAttributeAudio,
-    DocumentAttributeSticker,
-    DocumentAttributeVideo,
-    DocumentAttributeAnimated
+    Message, MessageMediaPhoto, MessageMediaDocument, MessageMediaGeo,
+    MessageMediaVenue, MessageMediaPoll, MessageExtendedMedia,
+    MessageExtendedMediaPreview, DocumentAttributeAudio, DocumentAttributeSticker,
+    DocumentAttributeVideo, DocumentAttributeAnimated
 )
 
+# ----------------- تحديد نوع الرسالة -----------------
 def get_message_type(msg: Message) -> str:
     if msg is None:
         return "unknown"
 
-    # -------------------
-    # الرسائل النصية
+    # النصوص العادية
     if msg.message and not msg.media:
         return "text"
 
-    # -------------------
-    # MessageExtendedMedia / Preview
-    if isinstance(msg.media, MessageExtendedMediaPreview):
-        inner = msg.media.media
-        return get_message_type(Message(id=msg.id, media=inner))
-    if isinstance(msg.media, MessageExtendedMedia):
+    # التعامل مع MessageExtendedMedia / Preview
+    if isinstance(msg.media, MessageExtendedMediaPreview) or isinstance(msg.media, MessageExtendedMedia):
         inner = msg.media.media
         return get_message_type(Message(id=msg.id, media=inner))
 
-    # -------------------
     # الصور
     if isinstance(msg.media, MessageMediaPhoto):
         return "photo"
 
-    # -------------------
     # المستندات والفيديو/صوت/ملصق/GIF
     if isinstance(msg.media, MessageMediaDocument):
         mime = msg.media.document.mime_type or ""
@@ -52,7 +34,7 @@ def get_message_type(msg: Message) -> str:
         for attr in msg.media.document.attributes:
             # صوت أو فويس نوت
             if isinstance(attr, DocumentAttributeAudio):
-                return "voice" if getattr(attr, "voice", False) else "audio"
+                return "voice" if not getattr(attr, "voice", False) else "voice note"
 
             # ملصق
             if isinstance(attr, DocumentAttributeSticker):
@@ -60,21 +42,18 @@ def get_message_type(msg: Message) -> str:
 
             # فيديو
             if isinstance(attr, DocumentAttributeVideo):
-                # فيديو مدوّر → Voice note
                 if getattr(attr, "round_message", False):
-                    return "voice note"
-
-                # أي فيديو بدون صوت → GIF
+                    return "voice note"  # الفيديو المدور
                 has_audio = getattr(attr, "audio", None) is not None
                 if not has_audio:
-                    return "gif"
-
-                # الفيديو بصوت → video
-                return "video"
+                    return "gif"  # فيديو بدون صوت → GIF
+                return "video"  # الفيديو بصوت
 
             # GIF tgs/webm
             if isinstance(attr, DocumentAttributeAnimated):
-                return "gif"
+                # إذا لم يكن Sticker
+                if not any(isinstance(a, DocumentAttributeSticker) for a in msg.media.document.attributes):
+                    return "gif"
 
         # fallback حسب MIME
         if mime.startswith("image/"):
@@ -85,7 +64,6 @@ def get_message_type(msg: Message) -> str:
             return "audio"
         return "document"
 
-    # -------------------
     # المواقع والأماكن والاستطلاعات
     if isinstance(msg.media, MessageMediaGeo):
         return "location"
@@ -94,27 +72,11 @@ def get_message_type(msg: Message) -> str:
     if isinstance(msg.media, MessageMediaPoll):
         return "poll"
 
-    # -------------------
-    # الرسائل النظامية
-    if isinstance(msg, MessageService):
-        action_type = type(msg.action).__name__
-        return f"service_{action_type.lower()}"
-
-    # -------------------
-    # MessageActions محددة
-    if hasattr(msg, "action"):
-        if isinstance(msg.action, MessageActionTopicEdit):
-            return "topic_edit"
-        if isinstance(msg.action, MessageActionScreenshotTaken):
-            return "screenshot_taken"
-
     return "unknown"
 
-
+# ----------------- تحديث البيانات -----------------
 async def info(e, msg_type):
     f = 'info.json'
-
-    # إنشاء الملف إذا لم يكن موجود
     if not os.path.exists(f):
         with open(f, 'w', encoding='utf-8') as file:
             json.dump({}, file, ensure_ascii=False, indent=4)
@@ -139,17 +101,17 @@ async def info(e, msg_type):
 
     return data[chat][user_id]
 
-# الحدث الرئيسي للبوت
+# ----------------- الحدث الرئيسي للبوت -----------------
 @ABH.on(events.NewMessage)
 async def track_messages(e):
     m = e.message
     msg_type = get_message_type(m)
 
     # تحديث الإحصائيات تلقائيًا
-    user_stats = await info(e, msg_type)
+    await info(e, msg_type)
 
-    # إذا كتب المستخدم "مع" يتم إرسال التقرير
+    # إذا كتب المستخدم "مع" → إرسال التقرير
     if m.text == "مع":
-        import json
+        user_stats = await info(e, msg_type)  # تحديث وإرجاع البيانات
         stats_str = json.dumps(user_stats, ensure_ascii=False, indent=2)
         await e.reply(f"إحصائياتك حتى الآن:\n{stats_str}")
