@@ -16,8 +16,8 @@ async def info(e, x):
     chat = str(e.chat_id)
     if chat not in data:
         data[chat] = {}
-    if id not in data[chat] or not data[chat][id][x]:
-        data[chat][id] = {x: 0}
+    if x not in data[chat][id]:
+        data[chat][id][x] = 0
     data[chat][id][x] += 1
     with open(f, 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
