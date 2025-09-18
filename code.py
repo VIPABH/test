@@ -116,8 +116,14 @@ def get_message_type(msg: Message) -> str:
 async def set_my_info(e):
     m = e.message
     msg_type = get_message_type(m)
+    
+    # طباعة نوع الرسالة في الكونسول (اختياري)
     print(f"Message type: {msg_type}")
+    
+    # إذا كانت الرسالة "مع"
     if m.text == 'مع':
         x, xx = await info(e, msg_type)
-        await e.reply(f'{x}')
-        await e.reply(f'{xx}')
+        # تحويل القاموس إلى JSON منسق
+        xx_str = json.dumps(xx, ensure_ascii=False, indent=2)
+        # إرسال الرد مرة واحدة
+        await e.reply(f"عدد مرات {msg_type}: {x}\nجميع القيم:\n{xx_str}")
