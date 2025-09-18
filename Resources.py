@@ -16,6 +16,8 @@ async def info(e, x):
     chat = str(e.chat_id)
     if chat not in data:
         data[chat] = {}
+    if id not in data[chat]:
+        data[chat][id] = {}
     if x not in data[chat][id]:
         data[chat][id][x] = 0
     data[chat][id][x] += 1
