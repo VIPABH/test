@@ -6,51 +6,30 @@ from telethon.tl.types import (
     MessageExtendedMediaPreview, DocumentAttributeAudio, DocumentAttributeSticker,
     DocumentAttributeVideo, DocumentAttributeAnimated
 )
-
-# ----------------- قاعدة البيانات في الذاكرة -----------------
-chat_data = {}  # {chat_id: {user_id: {type: count}}}
-
-# ----------------- تحديد نوع الرسالة -----------------
-def get_message_type(msg: Message) -> str:
+chat_data={}
+def get_message_type(msg:Message)->str:
     if msg is None:
         return "unknown"
-
-    # نصوص
     if msg.message and not msg.media:
         return "text"
-
-    # MessageExtendedMedia / Preview
-    if isinstance(msg.media, MessageExtendedMediaPreview) or isinstance(msg.media, MessageExtendedMedia):
-        inner = msg.media.media
-        return get_message_type(Message(id=msg.id, media=inner))
-
-    # الصور
-    if isinstance(msg.media, MessageMediaPhoto):
+    if isinstance(msg.media,MessageExtendedMediaPreview) or isinstance(msg.media,MessageExtendedMedia):
+        inner=msg.media.media
+        return get_message_type(Message(id=msg.id,media=inner))
+    if isinstance(msg.media,MessageMediaPhoto):
         return "photo"
-
-    # المستندات والفيديو/صوت/ملصق/GIF
-    if isinstance(msg.media, MessageMediaDocument):
-        mime = msg.media.document.mime_type or ""
-        if isinstance(attr, DocumentAttributeAnimated):
-            return "gif"
-
-        if any(isinstance(attr, DocumentAttributeSticker) for attr in msg.media.document.attributes):
-            return "sticker"
-
+    if isinstance(msg.media,MessageMediaDocument):
+        mime=msg.media.document.mime_type or ""
         for attr in msg.media.document.attributes:
-            # صوت أو فويس نوت
-            if isinstance(attr, DocumentAttributeAudio):
-                if getattr(attr, "voice", False):
-                    return "voice"  # فلتر فويس
-                else:
-                    return "audio"  # فلتر audio
-            if isinstance(attr, DocumentAttributeVideo):
-                if getattr(attr, "round_message", False):
-                    return "voice note"  # فيديو مدور
-                return "video"  # فيديو عادي بصوت
-
-
-        # fallback حسب MIME
+            if isinstance(attr,DocumentAttributeAnimated):
+                return "gif"
+            if isinstance(attr,DocumentAttributeSticker):
+                return "sticker"
+            if isinstance(attr,DocumentAttributeAudio):
+                return "voice" if getattr(attr,"voice",False) else "audio"
+            if isinstance(attr,DocumentAttributeVideo):
+                if getattr(attr,"round_message",False):
+                    return "voice note"
+                return "video"
         if mime.startswith("image/"):
             return "image"
         elif mime.startswith("video/"):
@@ -58,41 +37,29 @@ def get_message_type(msg: Message) -> str:
         elif mime.startswith("audio/"):
             return "audio"
         return "document"
-
-    # المواقع والأماكن والاستطلاعات
-    if isinstance(msg.media, MessageMediaGeo):
+    if isinstance(msg.media,MessageMediaGeo):
         return "location"
-    if isinstance(msg.media, MessageMediaVenue):
+    if isinstance(msg.media,MessageMediaVenue):
         return "venue"
-    if isinstance(msg.media, MessageMediaPoll):
+    if isinstance(msg.media,MessageMediaPoll):
         return "poll"
-
     return "unknown"
-
-# ----------------- تحديث الإحصائيات في الذاكرة -----------------
-def update_stats(e, msg_type):
-    chat = e.chat_id
-    user = e.sender_id
-
+def update_stats(e,msg_type):
+    chat=e.chat_id
+    user=e.sender_id
     if chat not in chat_data:
-        chat_data[chat] = {}
+        chat_data[chat]={}
     if user not in chat_data[chat]:
-        chat_data[chat][user] = {}
-
+        chat_data[chat][user]={}
     if msg_type not in chat_data[chat][user]:
-        chat_data[chat][user][msg_type] = 0
-
-    chat_data[chat][user][msg_type] += 1
-    return chat_data[chat][user]  # إرجاع إحصائيات المستخدم
-
-# ----------------- الحدث الرئيسي للبوت -----------------
+        chat_data[chat][user][msg_type]=0
+    chat_data[chat][user][msg_type]+=1
+    return chat_data[chat][user]
 @ABH.on(events.NewMessage)
 async def track_messages(e):
-    m = e.message
-    msg_type = get_message_type(m)
-
-    user_stats = update_stats(e, msg_type)  
+    m=e.message
+    msg_type=get_message_type(m)
+    user_stats=update_stats(e,msg_type)
     await e.reply(f"تم تصنيف الرسالة: {msg_type}")
-
-    stats_str = "\n".join(f"{k}: {v}" for k, v in user_stats.items())
+    stats_str="\n".join(f"{k}: {v}" for k,v in user_stats.items())
     await e.reply(f"إحصائياتك الحالية:\n{stats_str}")
