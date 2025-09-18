@@ -31,14 +31,14 @@ def get_message_type(msg: Message) -> str:
     if isinstance(msg.media, MessageMediaDocument):
         mime = msg.media.document.mime_type or ""
 
+        # أي ملصق (ثابت أو متحرك) → Sticker فقط
+        if any(isinstance(attr, DocumentAttributeSticker) for attr in msg.media.document.attributes):
+            return "sticker"
+
         for attr in msg.media.document.attributes:
             # صوت أو فويس نوت
             if isinstance(attr, DocumentAttributeAudio):
                 return "voice" if not getattr(attr, "voice", False) else "voice note"
-
-            # ملصق ثابت
-            if isinstance(attr, DocumentAttributeSticker):
-                return "sticker"
 
             # فيديو عادي
             if isinstance(attr, DocumentAttributeVideo):
@@ -49,11 +49,9 @@ def get_message_type(msg: Message) -> str:
                     return "gif"  # فيديو بدون صوت
                 return "video"  # الفيديو بصوت
 
-            # فيديو Sticker متحرك (tgs/webm) → Video Sticker
+            # الرسوم المتحركة (GIF) فقط إذا لم يكن Sticker
             if isinstance(attr, DocumentAttributeAnimated):
-                if any(isinstance(a, DocumentAttributeSticker) for a in msg.media.document.attributes):
-                    return "video_sticker"
-                return "gif"  # الرسوم المتحركة العادية (GIF)
+                return "gif"
 
         # fallback حسب MIME
         if mime.startswith("image/"):
@@ -114,3 +112,4 @@ async def track_messages(e):
     user_stats = await info(e, msg_type)
     stats_str = json.dumps(user_stats, ensure_ascii=False, indent=2)
     await e.reply(f"إحصائياتك حتى الآن:\n{stats_str}")
+
