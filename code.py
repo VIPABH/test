@@ -51,7 +51,7 @@ def get_message_type(msg: Message) -> str:
 
             # الرسوم المتحركة (GIF) فقط إذا لم يكن Sticker
             if isinstance(attr, DocumentAttributeAnimated):
-                return "gif"
+                return "v"
 
         # fallback حسب MIME
         if mime.startswith("image/"):
