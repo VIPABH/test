@@ -38,7 +38,7 @@ def get_message_type(msg: Message) -> str:
         for attr in msg.media.document.attributes:
             # صوت أو فويس نوت
             if isinstance(attr, DocumentAttributeAudio):
-                return "voice" if not getattr(attr, "voice", False) else "voice note"
+                return "voice" 
 
             # فيديو عادي
             if isinstance(attr, DocumentAttributeVideo):
