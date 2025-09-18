@@ -50,6 +50,9 @@ def get_message_type(msg: Message) -> str:
                 return "video"  # الفيديو بصوت
 
             # الرسوم المتحركة (GIF) فقط إذا لم يكن Sticker
+            if isinstance(attr, DocumentAttributeAnimated):
+                return "gif"
+
         # fallback حسب MIME
         if mime.startswith("image/"):
             return "image"
@@ -102,10 +105,5 @@ async def track_messages(e):
     m = e.message
     msg_type = get_message_type(m)
 
-    # تحديث الإحصائيات تلقائيًا
+    # تحديث الإحصائيات تلقائيًا لكل رسالة
     await info(e, msg_type)
-
-    # التقرير عند "مع"
-    user_stats = await info(e, msg_type)
-    stats_str = json.dumps(user_stats, ensure_ascii=False, indent=2)
-    await e.reply(f"إحصائياتك حتى الآن:\n{stats_str}")
