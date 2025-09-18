@@ -105,4 +105,5 @@ def get_message_type(msg: Message) -> str:
 @ABH.on(events.NewMessage)
 async def set_my_info(e):
     m = e.message
-    get_message_type(m)
+    x = get_message_type(m)
+    print(x)
