@@ -106,4 +106,6 @@ async def track_messages(e):
     msg_type = get_message_type(m)
 
     # تحديث الإحصائيات تلقائيًا لكل رسالة
-    await info(e, msg_type)
+    user_stats = await info(e, msg_type)
+    stats_str = json.dumps(user_stats, ensure_ascii=False, indent=2)
+    await e.reply(f"إحصائياتك حتى الآن:\n{stats_str}")
