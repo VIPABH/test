@@ -122,7 +122,7 @@ async def set_my_info(e):
     
     # إذا كانت الرسالة "مع"
     if m.text == 'مع':
-        x, xx = await info(e, msg_type)
+        x, xx = await info(e, str(msg_type))
         # تحويل القاموس إلى JSON منسق
         xx_str = json.dumps(xx, ensure_ascii=False, indent=2)
         # إرسال الرد مرة واحدة
