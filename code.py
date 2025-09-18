@@ -1,3 +1,4 @@
+
 from telethon import events
 from Resources import info
 from ABH import ABH
@@ -117,5 +118,6 @@ async def set_my_info(e):
     msg_type = get_message_type(m)
     print(f"Message type: {msg_type}")
     if m.text == 'مع':
-        x = await info(e, msg_type)
+        x, xx = await info(e, msg_type)
         await e.reply(f'{x}')
+        await e.reply(f'{xx}')
