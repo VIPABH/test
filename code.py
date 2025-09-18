@@ -1,5 +1,3 @@
-from telethon import events
-from ABH import ABH
 from telethon.tl.types import (
     Message,
     MessageMediaPhoto,
@@ -7,6 +5,11 @@ from telethon.tl.types import (
     MessageMediaGeo,
     MessageMediaVenue,
     MessageMediaPoll,
+    MessageExtendedMedia,
+    MessageExtendedMediaPreview,
+    MessageService,
+    MessageActionTopicEdit,
+    MessageActionScreenshotTaken,
     DocumentAttributeAudio,
     DocumentAttributeSticker,
     DocumentAttributeVideo,
@@ -16,45 +19,54 @@ from telethon.tl.types import (
 def get_message_type(msg: Message) -> str:
     if msg is None:
         return "unknown"
-    
+
+    # -------------------
+    # الرسائل النصية
     if msg.message and not msg.media:
         return "text"
 
+    # -------------------
+    # MessageExtendedMedia / Preview
+    if isinstance(msg.media, MessageExtendedMediaPreview):
+        return "preview"
+    if isinstance(msg.media, MessageExtendedMedia):
+        inner = msg.media.media
+        return get_message_type(Message(id=msg.id, media=inner))
+
+    # -------------------
+    # الصور
     if isinstance(msg.media, MessageMediaPhoto):
         return "photo"
 
+    # -------------------
+    # المستندات والفيديو/صوت/ملصق/GIF
     if isinstance(msg.media, MessageMediaDocument):
         mime = msg.media.document.mime_type or ""
 
-        # 🎵 صوت/فويس
+        # تحقق من الـ Attributes
         for attr in msg.media.document.attributes:
+            # صوت أو فويس نوت
             if isinstance(attr, DocumentAttributeAudio):
                 return "voice" if getattr(attr, "voice", False) else "audio"
 
-        # 🏷️ ملصق
-        for attr in msg.media.document.attributes:
+            # ملصق
             if isinstance(attr, DocumentAttributeSticker):
                 return "sticker"
 
-        # 🎞️ فيديو / GIF
-        for attr in msg.media.document.attributes:
+            # فيديو
             if isinstance(attr, DocumentAttributeVideo):
-                # ✅ فيديو مدور → voice note
                 if getattr(attr, "round_message", False):
-                    return "voice note"
-
-                # ✅ فيديو mp4 بدون صوت → GIF
+                    return "voice note"  # فيديو مدوّر (Voice note)
+                # mp4 بدون صوت → GIF
                 if mime == "video/mp4" and not getattr(attr, "supports_streaming", False):
                     return "gif"
-
                 return "video"
 
-        # 🖼️ Animated GIF (tgs/webm)
-        for attr in msg.media.document.attributes:
+            # GIF tgs/webm
             if isinstance(attr, DocumentAttributeAnimated):
                 return "gif"
 
-        # fallback حسب الـ MIME
+        # fallback حسب MIME
         if mime.startswith("image/"):
             return "image"
         elif mime.startswith("video/"):
@@ -63,6 +75,8 @@ def get_message_type(msg: Message) -> str:
             return "audio"
         return "document"
 
+    # -------------------
+    # المواقع والأماكن والاستطلاعات
     if isinstance(msg.media, MessageMediaGeo):
         return "location"
     if isinstance(msg.media, MessageMediaVenue):
@@ -70,11 +84,19 @@ def get_message_type(msg: Message) -> str:
     if isinstance(msg.media, MessageMediaPoll):
         return "poll"
 
+    # -------------------
+    # الرسائل النظامية
+    if isinstance(msg, MessageService):
+        action_type = type(msg.action).__name__
+        return f"service_{action_type.lower()}"
+
+    # -------------------
+    # MessageActions محددة
+    if hasattr(msg, "action"):
+        if isinstance(msg.action, MessageActionTopicEdit):
+            return "topic_edit"
+        if isinstance(msg.action, MessageActionScreenshotTaken):
+            return "screenshot_taken"
+
+    # -------------------
     return "unknown"
-
-
-@ABH.on(events.NewMessage)
-async def set_my_info(e):
-    m = e.message
-    msg_type = get_message_type(m)
-    print(f"Message type: {msg_type}")
