@@ -26,28 +26,31 @@ def get_message_type(msg: Message) -> str:
     if isinstance(msg.media, MessageMediaDocument):
         mime = msg.media.document.mime_type or ""
 
+        # 🎵 صوت/فويس
         for attr in msg.media.document.attributes:
-            # 🎵 صوت/فويس
             if isinstance(attr, DocumentAttributeAudio):
                 return "voice" if getattr(attr, "voice", False) else "audio"
 
-            # 🏷️ ملصق
+        # 🏷️ ملصق
+        for attr in msg.media.document.attributes:
             if isinstance(attr, DocumentAttributeSticker):
                 return "sticker"
 
-            # 🎞️ فيديو
+        # 🎞️ فيديو / GIF
+        for attr in msg.media.document.attributes:
             if isinstance(attr, DocumentAttributeVideo):
-                # ✅ إذا الفيديو round (مدوّر) نخليه voice note
+                # ✅ فيديو مدور → voice note
                 if getattr(attr, "round_message", False):
                     return "voice note"
 
-                # ✅ إذا الفيديو بدون صوت → GIF
-                if not getattr(attr, "supports_streaming", False) and attr.audio is None:
+                # ✅ فيديو mp4 بدون صوت → GIF
+                if mime == "video/mp4" and not getattr(attr, "supports_streaming", False):
                     return "gif"
 
                 return "video"
 
-            # 🖼️ أنيميشن (Telegram GIF tgs/webm)
+        # 🖼️ Animated GIF (tgs/webm)
+        for attr in msg.media.document.attributes:
             if isinstance(attr, DocumentAttributeAnimated):
                 return "gif"
 
