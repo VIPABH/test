@@ -102,8 +102,8 @@ async def track_messages(e):
     m = e.message
     msg_type = get_message_type(m)
 
-    user_stats = update_stats(e, msg_type)  # التحديث في المتغير المحلي
+    user_stats = update_stats(e, msg_type)  
+    await e.reply(f"{user_stats}")
 
-    # إذا أحببت، يمكن الرد بالإحصائيات الحالية
-    # stats_str = "\n".join(f"{k}: {v}" for k, v in user_stats.items())
-    # await e.reply(f"إحصائياتك الحالية:\n{stats_str}")
+    stats_str = "\n".join(f"{k}: {v}" for k, v in user_stats.items())
+    await e.reply(f"إحصائياتك الحالية:\n{stats_str}")
