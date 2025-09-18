@@ -5,25 +5,25 @@ from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import ReactionEmoji
 import pytz, os, json
 from ABH import ABH
-async def info(e, x):
+async def info(e, msg_type):
     f = 'info.json'
     if not os.path.exists(f):
         with open(f, 'w', encoding='utf-8') as file:
             json.dump({}, file, ensure_ascii=False, indent=4)
     with open(f, 'r', encoding='utf-8') as file:
         data = json.load(file)
-    id = str(e.sender_id)
     chat = str(e.chat_id)
+    user_id = str(e.sender_id)
     if chat not in data:
         data[chat] = {}
-    if id not in data[chat]:
-        data[chat][id] = {}
-    if x not in data[chat][id]:
-        data[chat][id][x] = 0
-    data[chat][id][x] += 1
+    if user_id not in data[chat]:
+        data[chat][user_id] = {}
+    if msg_type not in data[chat][user_id]:
+        data[chat][user_id][msg_type] = 0
+    data[chat][user_id][msg_type] += 1
     with open(f, 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
-    return data[chat][id][x], data[chat][id]
+    return data[chat][user_id]
 async def react(event, x):
     try:    
         await ABH(SendReactionRequest(
