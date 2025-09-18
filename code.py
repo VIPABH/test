@@ -12,7 +12,7 @@ from telethon.tl.types import (
 # ----------------- تحديد نوع الرسالة -----------------
 def get_message_type(msg: Message) -> str:
     if msg is None:
-        return "unknown"
+        return 
 
     # نصوص
     if msg.message and not msg.media:
@@ -46,7 +46,7 @@ def get_message_type(msg: Message) -> str:
                     return "voice note"  # الفيديو المدور
                 has_audio = getattr(attr, "audio", None) is not None
                 if not has_audio:
-                    return "gif"  # فيديو بدون صوت
+                    return "vid"  # فيديو بدون صوت
                 return "video"  # الفيديو بصوت
 
             # الرسوم المتحركة (GIF) فقط إذا لم يكن Sticker
