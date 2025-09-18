@@ -12,7 +12,7 @@ from telethon.tl.types import (
 # ----------------- تحديد نوع الرسالة -----------------
 def get_message_type(msg: Message) -> str:
     if msg is None:
-        return 
+        return "unknown"
 
     # نصوص
     if msg.message and not msg.media:
@@ -31,27 +31,30 @@ def get_message_type(msg: Message) -> str:
     if isinstance(msg.media, MessageMediaDocument):
         mime = msg.media.document.mime_type or ""
 
-        # أي ملصق (ثابت أو متحرك) → Sticker فقط
+        # أي ملصق → sticker
         if any(isinstance(attr, DocumentAttributeSticker) for attr in msg.media.document.attributes):
             return "sticker"
 
         for attr in msg.media.document.attributes:
             # صوت أو فويس نوت
             if isinstance(attr, DocumentAttributeAudio):
-                return "voice" 
+                if getattr(attr, "voice", False):
+                    return "voice"  # فلتر فويس
+                else:
+                    return "audio"  # فلتر audio
 
             # فيديو عادي
             if isinstance(attr, DocumentAttributeVideo):
                 if getattr(attr, "round_message", False):
-                    return "voice note"  # الفيديو المدور
+                    return "voice note"  # فلتر voice note
                 has_audio = getattr(attr, "audio", None) is not None
                 if not has_audio:
-                    return "vid"  # فيديو بدون صوت
-                return "video"  # الفيديو بصوت
+                    return "gif"  # فلتر GIF للفيديو بدون صوت
+                return "video"  # فلتر فيديو للفيديو بصوت
 
-            # الرسوم المتحركة (GIF) فقط إذا لم يكن Sticker
+            # رسوم متحركة
             if isinstance(attr, DocumentAttributeAnimated):
-                return "gif"
+                return "gif"  # فلتر GIF
 
         # fallback حسب MIME
         if mime.startswith("image/"):
@@ -71,8 +74,6 @@ def get_message_type(msg: Message) -> str:
         return "poll"
 
     return "unknown"
-
-# ----------------- تحديث البيانات -----------------
 async def info(e, msg_type):
     f = 'info.json'
     if not os.path.exists(f):
@@ -105,8 +106,7 @@ async def track_messages(e):
     m = e.message
     msg_type = get_message_type(m)
 
-
+    # تحديث الإحصائيات تلقائيًا لكل رسالة
     user_stats = await info(e, msg_type)
-    await e.reply(f"{msg_type}")
     stats_str = json.dumps(user_stats, ensure_ascii=False, indent=2)
     await e.reply(f"إحصائياتك حتى الآن:\n{stats_str}")
