@@ -4,6 +4,8 @@ import uuid
 active_sessions = {}
 @ABH.on(events.NewMessage(pattern="^تعيين رقم$"))
 async def set_num(e):
+    if not e.is_group:
+        return
     session_id = str(uuid.uuid4())[:6]
     active_sessions[e.sender_id] = {"user_id": e.sender_id, "number": None}
     bot_username = (await ABH.get_me()).username
@@ -36,6 +38,8 @@ async def receive_number(e):
         ABH.remove_event_handler(save_number, events.NewMessage)
 @ABH.on(events.NewMessage)
 async def guess_number(e):
+    if not e.is_group:
+        return
     for _, session in active_sessions.items():
         if session["number"] and e.text == session["number"]:
             await e.reply(f"🎉 تهانينا! لقد حزرت الرقم الصحيح ({session['number']})")
