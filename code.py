@@ -3,6 +3,7 @@ from Resources import *
 from ABH import ABH
 import uuid
 async def saveNum(e, uid):
+    global NUM
     id = e.sender_id
     if not uid.startswith(str(id)):
         await e.reply("عذراً عزيزي لا يمكنك تعيين رقم")
@@ -19,7 +20,7 @@ async def setNUM(e):
     await e.reply("تم فتح جلسة لتعيين الرقم")
 @ABH.on(events.NewMessage)
 async def sdd(e):
-    if e.text == NUM:
+    if Num and e.text == NUM:
         await e.reply("تم حزرت الرقم")
     else:
         return
