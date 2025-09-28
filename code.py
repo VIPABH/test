@@ -18,7 +18,7 @@ async def set_num(e):
 async def receive_number(e):
     session_id = e.pattern_match.group(1)
     user_id = e.sender_id
-    if session_id not in active_sessions:
+    if user_id not in active_sessions:
         await e.reply("عذرا بس الجلسة انتهى وقتها , سوي جديده")
         return
     session = active_sessions[e.sender_id]
