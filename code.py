@@ -17,7 +17,7 @@ async def saveNum(e, uid):
 async def setNUM(e):
     id = str(uuid.uuid4())[:6]
     b = Button.url("اضغط لتعيين الرقم", url=f"https://t.me/{(await ABH.get_me()).username}?start={id}")
-    await e.reply("تم فتح جلسة لتعيين الرقم")
+    await e.reply("تم فتح جلسة لتعيين الرقم", button=b)
 @ABH.on(events.NewMessage)
 async def sdd(e):
     if Num and e.text == NUM:
