@@ -39,7 +39,7 @@ async def receive_number(e):
         session["number"] = ev.text
         await ev.reply(f"✅ تم حفظ الرقم: {ev.text}")
         x = session["msgid"]
-        await x.edit('تم تعيين الرقم ')
+        await x.edit('تم تعيين الرقم ', button=None)
         ABH.remove_event_handler(save_number, events.NewMessage)
 @ABH.on(events.NewMessage)
 async def guess_number(e):
