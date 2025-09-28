@@ -20,7 +20,7 @@ async def setNUM(e):
     await e.reply("تم فتح جلسة لتعيين الرقم", button=b)
 @ABH.on(events.NewMessage)
 async def sdd(e):
-    if Num and e.text == NUM:
+    if NUM and e.text == NUM:
         await e.reply("تم حزرت الرقم")
     else:
         return
