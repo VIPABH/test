@@ -40,7 +40,7 @@ async def receive_number(e):
     # ننتظر الرسالة التالية من نفس المستخدم لتعيين الرقم
     @ABH.on(events.NewMessage(from_users=user_id))
     async def save_number(ev):
-        if not ev.text.isdigit() and ev.text != "/start":
+        if not ev.text.isdigit() and ev.text == "/start":
             await ev.reply("❌ الرجاء إرسال رقم صالح فقط.")
             return
         session["number"] = ev.text
