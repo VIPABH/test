@@ -4,6 +4,7 @@ from ABH import ABH
 import uuid
 async def saveNum(e, uid):
     global NUM
+    NUM = None
     id = e.sender_id
     if not uid.startswith(str(id)):
         await e.reply("عذراً عزيزي لا يمكنك تعيين رقم")
