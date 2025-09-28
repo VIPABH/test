@@ -40,11 +40,11 @@ async def receive_number(e):
     # ننتظر الرسالة التالية من نفس المستخدم لتعيين الرقم
     @ABH.on(events.NewMessage(from_users=user_id))
     async def save_number(ev):
-        if ev.text.isdigit() and ev.text != "/start":
-            session["number"] = ev.text
-            await ev.reply(f"✅ تم حفظ الرقم: {ev.text}")
-        else:
+        if not ev.text.isdigit() and ev.text != "/start":
             await ev.reply("❌ الرجاء إرسال رقم صالح فقط.")
+            return
+        session["number"] = ev.text
+        await ev.reply(f"✅ تم حفظ الرقم: {ev.text}")
         
         # إزالة المعالج بعد التعيين لتجنب التكرار
         ABH.remove_event_handler(save_number, events.NewMessage)
