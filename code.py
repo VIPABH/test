@@ -7,12 +7,12 @@ async def set_num(e):
     if not e.is_group:
         return
     bot_username = (await ABH.get_me()).username
+    session_id = str(uuid.uuid4())[:6]
     button = Button.url(
         "اضغط لتعيين الرقم",
         url=f"https://t.me/{bot_username}?start={session_id}"
     )
     x = await e.reply("تم فتح جلسة لتعيين الرقم، اضغط على الزر لإرسال الرقم بالخاص", buttons=button)
-    session_id = str(uuid.uuid4())[:6]
     active_sessions[session_id] = {"group_id": e.chat_id, "user_id": e.sender_id, "msgid": x, "number": None}
 @ABH.on(events.NewMessage(pattern="^/start (.+)"))
 async def receive_number(e):
