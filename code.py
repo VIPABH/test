@@ -6,14 +6,14 @@ active_sessions = {}
 async def set_num(e):
     if not e.is_group:
         return
-    session_id = str(uuid.uuid4())[:6]
-    active_sessions[session_id] = {"group_id": e.chat_id, "user_id": e.sender_id, "number": None}
     bot_username = (await ABH.get_me()).username
     button = Button.url(
         "اضغط لتعيين الرقم",
         url=f"https://t.me/{bot_username}?start={session_id}"
     )
-    await e.reply("تم فتح جلسة لتعيين الرقم، اضغط على الزر لإرسال الرقم بالخاص", buttons=button)
+    x = await e.reply("تم فتح جلسة لتعيين الرقم، اضغط على الزر لإرسال الرقم بالخاص", buttons=button)
+    session_id = str(uuid.uuid4())[:6]
+    active_sessions[session_id] = {"group_id": e.chat_id, "user_id": e.sender_id, "msgid": x, "number": None}
 @ABH.on(events.NewMessage(pattern="^/start (.+)"))
 async def receive_number(e):
     session_id = e.pattern_match.group(1)
@@ -38,6 +38,8 @@ async def receive_number(e):
             return
         session["number"] = ev.text
         await ev.reply(f"✅ تم حفظ الرقم: {ev.text}")
+        x = session["msgid"]
+        await x.edit('تم تعيين الرقم ')
         ABH.remove_event_handler(save_number, events.NewMessage)
 @ABH.on(events.NewMessage)
 async def guess_number(e):
