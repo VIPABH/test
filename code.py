@@ -30,7 +30,7 @@ async def receive_number(e):
     async def save_number(ev):
         if ev.text.startswith("/start"):
             return
-        if not ev.text.isdigit() and ev.text == "/start":
+        if not ev.text.isdigit():
             await ev.reply("❌ الرجاء إرسال رقم صالح فقط.")
             return
         session["number"] = ev.text
