@@ -2,7 +2,7 @@ from telethon import events, Button
 from Resources import *
 from ABH import ABH
 import uuid
-def saveNum(e, uid):
+async def saveNum(e, uid):
     id = e.sender_id
     if not uid.startswith(str(id)):
         await e.reply("عذراً عزيزي لا يمكنك تعيين رقم")
