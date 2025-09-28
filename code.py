@@ -40,7 +40,7 @@ async def receive_number(e):
     # ننتظر الرسالة التالية من نفس المستخدم لتعيين الرقم
     @ABH.on(events.NewMessage(from_users=user_id))
     async def save_number(ev):
-        if ev.text.isdigit():
+        if ev.text.isdigit() and ev != "/start":
             session["number"] = ev.text
             await ev.reply(f"✅ تم حفظ الرقم: {ev.text}")
         else:
