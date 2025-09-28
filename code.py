@@ -12,7 +12,7 @@ def saveNum(e, uid):
         await e.reply("عزيزي حاول ترسل الرقم بدون اي كلام")
         return
     NUM = e.text
-@ABH.on(events.NewMessage(pattern="^تعيين رقم$))
+@ABH.on(events.NewMessage(pattern="^تعيين رقم$"))
 async def setNUM(e):
     id = str(uuid.uuid4())[:6]
     b = Button.url("اضغط لتعيين الرقم", url=f"https://t.me/{(await ABH.get_me()).username}?start={id}")
