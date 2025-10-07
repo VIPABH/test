@@ -1,7 +1,7 @@
 from telethon import events, Button
 from Resources import *
 from ABH import ABH
-import uuid, json
+import uuid, json, re
 @ABH.on(events.NewMessage(pattern=r'^مخفي اختار'))
 async def hidden_choice_handler(event):
     message = event.raw_text
