@@ -1,62 +1,53 @@
-from ABH import ABH, events, bot_token
-import json, asyncio, os, sys
-from datetime import datetime
-from code import *
-async def run_cmd(command: str):
-    process = await asyncio.create_subprocess_shell(
-        command,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
-    )
-    stdout, stderr = await process.communicate()
-    return stdout.decode().strip(), stderr.decode().strip(), process.returncode
-@ABH.on(events.NewMessage(pattern="^تحديث$", from_users=[1910015590]))
-async def update_repo(event):
-    stdout, stderr, code = await run_cmd("git pull")
-    if code == 0:
-        await event.reply(f" تحديث السورس بنجاح")
-        os.execv(sys.executable, [sys.executable, "p.py"])
-    else:
-        await event.reply(f" حدث خطأ أثناء التحديث:\n\n{stderr}")
-@ABH.on(events.NewMessage(pattern=r'^ارسل الملفات$', from_users=[1910015590]))
-async def send_all_files(event):
+import os
+from telethon import events
+from ABH import ABH
+from json_repair import repair_json
+
+@ABH.on(events.NewMessage(pattern=r'^تنظيف$'))
+async def clean_json_handler(event):
+    if not event.is_reply:
+        await event.reply("❌ يرجى الرد على ملف JSON المراد تنظيفه.")
+        return
+
+    reply_msg = await event.get_reply_message()
+
+    if not reply_msg.media:
+        await event.reply("❌ هذه الرسالة لا تحتوي على ملف.")
+        return
+
+    # تحميل الملف مؤقتًا
+    file_path = await reply_msg.download_media()
+    original_name = os.path.basename(file_path)
+
     try:
-        folder_path = "."
-        files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
-        if not files:
-            await event.reply("❗️لا توجد ملفات متاحة للإرسال في المجلد.")
-            return
-        await event.reply(f"📤 جارٍ إرسال {len(files)} ملفًا، يرجى الانتظار...")
-        for file_name in files:
-            file_path = os.path.join(folder_path, file_name)
-            await ABH.send_file(event.chat_id, file=file_path)
-        await event.reply("✅ تم إرسال جميع الملفات بنجاح.")
+        # قراءة النص الأصلي
+        with open(file_path, "r", encoding="utf-8") as f:
+            original_text = f.read()
+
+        # إصلاح الأخطاء تلقائيًا باستخدام json-repair
+        fixed_text = repair_json(original_text)
+
+        # حفظ الملف المصحح بنفس الاسم الأصلي
+        with open(original_name, "w", encoding="utf-8") as f:
+            f.write(fixed_text)
+
+        # إرسال الملف المصحح للمستخدم
+        caption = (
+            "✅ تم إصلاح ملف JSON بنجاح.\n"
+            "🧰 تم استخدام json-repair لمعالجة الأخطاء المعقدة."
+        )
+        await event.reply(file=original_name, message=caption)
+
     except Exception as e:
-        await event.reply(f"حدث خطأ أثناء إرسال الملفات: {e}")
-@ABH.on(events.NewMessage(pattern=r'^ارسل ملف (.+)$', from_users=[1910015590]))
-async def send_file(event):
-    file_name = event.pattern_match.group(1)
-    if not os.path.exists(file_name):
-        return await event.reply("❗️الملف غير موجود.")
-    await event.reply("📤 جاري ارسال الملف...")
-    await ABH.send_file(event.chat_id, file=file_name)
-@ABH.on(events.NewMessage(pattern=r'^حذف ملف (.+)$', from_users=[1910015590]))
-async def delete_file(event):
-    file_name = event.pattern_match.group(1)
-    if not os.path.exists(file_name):
-        return await event.reply("الملف غير موجود.")
-    os.remove(file_name)
-    await event.reply("✅ تم حذف الملف بنجاح.")
-@ABH.on(events.NewMessage(pattern=r'^الملفات$', from_users=[1910015590]))
-async def list_files(event):
-    files = os.listdir('.')
-    if not files:
-        return await event.reply("❗️لا توجد ملفات في المجلد الحالي.")
-    file_list = "\n" .join(files)
-    await event.reply(f"📂 قائمة الملفات\n{file_list}")
-def main():
-    print("config is starting...")
-    ABH.start(bot_token=bot_token)
-    ABH.run_until_disconnected()
-if __name__ == "__main__":
-    main()
+        await event.reply(f"❌ حدث خطأ أثناء معالجة الملف:\n`{str(e)}`")
+
+    finally:
+        # تنظيف الملفات المؤقتة
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        if os.path.exists(original_name):
+            os.remove(original_name)
+
+# تشغيل الكيان
+ABH.start()
+ABH.run_until_disconnected()
