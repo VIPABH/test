@@ -1,53 +1,92 @@
 import os
 from telethon import events
-from ABH import ABH
-from json_repair import repair_json
+from ABH import ABH as client
+import os
+import asyncio
+import tempfile
+import speech_recognition as sr
+from telethon import TelegramClient, events
+from pydub import AudioSegment
+import pyttsx3
 
-@ABH.on(events.NewMessage(pattern=r'^تنظيف$'))
-async def clean_json_handler(event):
-    if not event.is_reply:
-        await event.reply("❌ يرجى الرد على ملف JSON المراد تنظيفه.")
-        return
+# ===== إعدادات Telethon =====
 
-    reply_msg = await event.get_reply_message()
+# ===== إعداد مكتبة تحويل النص إلى صوت =====
+engine = pyttsx3.init()
+engine.setProperty('rate', 150)  # سرعة الصوت
+voices = engine.getProperty('voices')
 
-    if not reply_msg.media:
-        await event.reply("❌ هذه الرسالة لا تحتوي على ملف.")
-        return
+# محاولة تعيين صوت عربي إن وجد
+for voice in voices:
+    if "ar" in voice.id.lower() or "arabic" in voice.name.lower():
+        engine.setProperty('voice', voice.id)
+        break
 
-    # تحميل الملف مؤقتًا
-    file_path = await reply_msg.download_media()
-    original_name = os.path.basename(file_path)
-
+# ===== تحويل الصوت إلى نص =====
+def speech_to_text(path):
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(path) as source:
+        audio = recognizer.record(source)
     try:
-        # قراءة النص الأصلي
-        with open(file_path, "r", encoding="utf-8") as f:
-            original_text = f.read()
-
-        # إصلاح الأخطاء تلقائيًا باستخدام json-repair
-        fixed_text = repair_json(original_text)
-
-        # حفظ الملف المصحح بنفس الاسم الأصلي
-        with open(original_name, "w", encoding="utf-8") as f:
-            f.write(fixed_text)
-
-        # إرسال الملف المصحح للمستخدم
-        caption = (
-            "✅ تم إصلاح ملف JSON بنجاح.\n"
-            "🧰 تم استخدام json-repair لمعالجة الأخطاء المعقدة."
-        )
-        await event.reply(file=original_name, message=caption)
-
+        text = recognizer.recognize_sphinx(audio, language="ar")
+        return text
+    except sr.UnknownValueError:
+        return "❌ لم أتمكن من فهم الصوت"
     except Exception as e:
-        await event.reply(f"❌ حدث خطأ أثناء معالجة الملف:\n`{str(e)}`")
+        return f"⚠️ حدث خطأ أثناء التعرف: {e}"
 
-    finally:
-        # تنظيف الملفات المؤقتة
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        if os.path.exists(original_name):
-            os.remove(original_name)
+# ===== تحويل النص إلى صوت =====
+def text_to_speech(text, out_path):
+    engine.save_to_file(text, out_path)
+    engine.runAndWait()
+    return out_path
 
-# تشغيل الكيان
-ABH.start()
-ABH.run_until_disconnected()
+# ===== أمر تحويل الصوت إلى نص =====
+@client.on(events.NewMessage(pattern=r"^/transcribe$"))
+async def transcribe_audio(event):
+    if not event.is_reply:
+        await event.reply("🎙️ استخدم الأمر بالرد على رسالة صوتية.")
+        return
+
+    reply = await event.get_reply_message()
+    if not reply.media:
+        await event.reply("❌ لا توجد وسائط صوتية.")
+        return
+
+    await event.reply("🔍 جاري تحويل الصوت إلى نص...")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ogg_path = os.path.join(tmp, "voice.ogg")
+        wav_path = os.path.join(tmp, "voice.wav")
+
+        await client.download_media(reply, file=ogg_path)
+
+        # تحويل OGG إلى WAV (يدعمه Sphinx)
+        sound = AudioSegment.from_file(ogg_path)
+        sound = sound.set_frame_rate(16000).set_channels(1)
+        sound.export(wav_path, format="wav")
+
+        text = speech_to_text(wav_path)
+        await event.reply(f"📝 النص:\n{text}")
+
+# ===== أمر تحويل النص إلى صوت =====
+@client.on(events.NewMessage(pattern=r"^/say$"))
+async def say_text(event):
+    if not event.is_reply:
+        await event.reply("💬 استخدم الأمر بالرد على رسالة نصية.")
+        return
+
+    reply = await event.get_reply_message()
+    if not reply.text:
+        await event.reply("❌ لا يوجد نص لتحويله إلى صوت.")
+        return
+
+    text = reply.text
+    await event.reply("🎧 جاري تحويل النص إلى صوت...")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        out_path = os.path.join(tmp, "tts.wav")
+        text_to_speech(text, out_path)
+        await event.reply(file=out_path)
+
+# ===== تشغيل البوت =====
