@@ -1,39 +1,33 @@
 import os
-from telethon import events
-from ABH import ABH as client
-import os
-import asyncio
 import tempfile
 import speech_recognition as sr
-from telethon import TelegramClient, events
+from telethon import events
 from pydub import AudioSegment
 import pyttsx3
+from ABH import ABH  # استيراد الكلاينت من ملف ABH.py
 
-# ===== إعدادات Telethon =====
-
-# ===== إعداد مكتبة تحويل النص إلى صوت =====
+# ===== إعداد الصوت =====
 engine = pyttsx3.init()
-engine.setProperty('rate', 150)  # سرعة الصوت
-voices = engine.getProperty('voices')
+engine.setProperty('rate', 150)
 
-# محاولة تعيين صوت عربي إن وجد
-for voice in voices:
+# محاولة اختيار صوت عربي (إن وجد)
+for voice in engine.getProperty('voices'):
     if "ar" in voice.id.lower() or "arabic" in voice.name.lower():
         engine.setProperty('voice', voice.id)
         break
 
 # ===== تحويل الصوت إلى نص =====
 def speech_to_text(path):
-    recognizer = sr.Recognizer()
+    r = sr.Recognizer()
     with sr.AudioFile(path) as source:
-        audio = recognizer.record(source)
+        audio = r.record(source)
     try:
-        text = recognizer.recognize_sphinx(audio, language="ar")
+        text = r.recognize_sphinx(audio, language="ar")
         return text
     except sr.UnknownValueError:
-        return "❌ لم أتمكن من فهم الصوت"
+        return "❌ لم أفهم الصوت"
     except Exception as e:
-        return f"⚠️ حدث خطأ أثناء التعرف: {e}"
+        return f"⚠️ خطأ أثناء التعرف: {e}"
 
 # ===== تحويل النص إلى صوت =====
 def text_to_speech(text, out_path):
@@ -42,7 +36,7 @@ def text_to_speech(text, out_path):
     return out_path
 
 # ===== أمر تحويل الصوت إلى نص =====
-@client.on(events.NewMessage(pattern=r"^/transcribe$"))
+@ABH.on(events.NewMessage(pattern=r"^/transcribe$"))
 async def transcribe_audio(event):
     if not event.is_reply:
         await event.reply("🎙️ استخدم الأمر بالرد على رسالة صوتية.")
@@ -53,15 +47,14 @@ async def transcribe_audio(event):
         await event.reply("❌ لا توجد وسائط صوتية.")
         return
 
-    await event.reply("🔍 جاري تحويل الصوت إلى نص...")
+    await event.reply("🔍 جاري التعرف على الكلام...")
 
     with tempfile.TemporaryDirectory() as tmp:
         ogg_path = os.path.join(tmp, "voice.ogg")
         wav_path = os.path.join(tmp, "voice.wav")
 
-        await client.download_media(reply, file=ogg_path)
+        await ABH.download_media(reply, file=ogg_path)
 
-        # تحويل OGG إلى WAV (يدعمه Sphinx)
         sound = AudioSegment.from_file(ogg_path)
         sound = sound.set_frame_rate(16000).set_channels(1)
         sound.export(wav_path, format="wav")
@@ -70,7 +63,7 @@ async def transcribe_audio(event):
         await event.reply(f"📝 النص:\n{text}")
 
 # ===== أمر تحويل النص إلى صوت =====
-@client.on(events.NewMessage(pattern=r"^/say$"))
+@ABH.on(events.NewMessage(pattern=r"^/say$"))
 async def say_text(event):
     if not event.is_reply:
         await event.reply("💬 استخدم الأمر بالرد على رسالة نصية.")
@@ -89,4 +82,4 @@ async def say_text(event):
         text_to_speech(text, out_path)
         await event.reply(file=out_path)
 
-# ===== تشغيل البوت =====
+# ===== تشغيل البوت ====
