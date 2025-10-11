@@ -63,6 +63,8 @@ async def transcribe_audio(event):
         await event.reply(f"📝 النص:\n{text}")
 
 # ===== أمر تحويل النص إلى صوت =====
+from pydub import AudioSegment
+
 @ABH.on(events.NewMessage(pattern=r"^/say$"))
 async def say_text(event):
     if not event.is_reply:
@@ -78,8 +80,15 @@ async def say_text(event):
     await event.reply("🎧 جاري تحويل النص إلى صوت...")
 
     with tempfile.TemporaryDirectory() as tmp:
-        out_path = os.path.join(tmp, "tts.wav")
-        text_to_speech(text, out_path)
-        await event.reply(file=out_path)
+        wav_path = os.path.join(tmp, "tts.wav")
+        mp3_path = os.path.join(tmp, "tts.mp3")
 
-# ===== تشغيل البوت ====
+        # توليد الصوت بصيغة WAV
+        text_to_speech(text, wav_path)
+
+        # تحويل WAV إلى MP3 ليقبلها Telegram
+        audio = AudioSegment.from_wav(wav_path)
+        audio.export(mp3_path, format="mp3")
+
+        # إرسال الملف إلى Telegram
+        await event.reply(file=mp3_path)
