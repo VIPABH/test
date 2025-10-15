@@ -1,14 +1,13 @@
-from telethon import TelegramClient, events, types, functions
-
+from telethon import events, types, functions
 from ABH import ABH as client
+
 @client.on(events.NewMessage)
 async def auto_promote(event):
-    # تجاهل الرسائل الخاصة (خليها بس للمجموعات والقنوات)
+    # تجاهل الرسائل الخاصة
     if not (event.is_group or event.is_channel):
         return
 
     try:
-        # المستخدم اللي كتب الرسالة
         user = await event.get_sender()
         chat = await event.get_chat()
 
@@ -24,12 +23,7 @@ async def auto_promote(event):
             add_admins=False,
             anonymous=False,
             manage_call=False,
-            other=False,
-            manage_topics=False,
-            post_stories=False,
-            edit_stories=False,
-            delete_stories=False,
-            manage_direct_messages=False
+            other=False
         )
 
         # لقب المشرف
@@ -55,6 +49,4 @@ async def auto_promote(event):
         print(f"✅ تم رفع {user.first_name} في {chat.title} كلقب '{rank_title}' بدون صلاحيات.")
 
     except Exception as e:
-        # لتجنب FloodWait أو صلاحيات ناقصة
         print(f"⚠️ خطأ أثناء رفع المستخدم: {e}")
-
