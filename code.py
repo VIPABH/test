@@ -27,7 +27,7 @@ async def promote_ABHS(event):
     except Exception as e:
         print(f"❌ فشل الحصول على كيان {chat_id} بواسطة البوت الأساسي: {e}")
         return
-
+    try:
     # رفع كل البوتات
         rights = ChatAdminRights(
             add_admins=True,
@@ -41,4 +41,6 @@ async def promote_ABHS(event):
             rank="مشرف رئيسي"
             ))
         print(f"✅ تم رفع البوت {me.id} مشرف بالقناة")
-        
+    except Exception as e:
+        print(f"❌ فشل الحصول على كيان {chat_id} بواسطة البوت الأساسي: {e}")
+        return
