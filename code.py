@@ -1,52 +1,52 @@
-from telethon import events, types, functions
-from ABH import ABH as client
-
-@client.on(events.NewMessage)
-async def auto_promote(event):
-    # تجاهل الرسائل الخاصة
-    if not (event.is_group or event.is_channel):
+from telethon.tl.functions.channels import JoinChannelRequest
+from telethon.tl.functions.messages import ImportChatInviteRequest
+from telethon.tl.functions.messages import ExportChatInviteRequest
+from telethon.tl.functions.messages import SendReactionRequest
+from telethon.errors import UserAlreadyParticipantError
+from telethon.errors import ChatAdminRequiredError
+from telethon.tl.types import ReactionEmoji
+from telethon import events, TelegramClient
+from telethon.tl.types import PeerChannel
+import os, random, redis, re, asyncio
+import random
+from ABH import ABH
+from telethon.tl.functions.channels import EditAdminRequest
+from telethon.tl.types import ChatAdminRights, Channel
+from telethon import TelegramClient, events
+from telethon.tl.types import Channel, ChatAdminRights
+from telethon.errors import ChatAdminRequiredError
+from telethon import TelegramClient
+from telethon.tl.functions.channels import EditAdminRequest
+from telethon.tl.types import ChatAdminRights
+async def promote_ABHS(event):
+    if not ABHS:
+        print("❌ قائمة ABHS فارغة")
         return
 
     try:
-        user = await event.get_sender()
-        chat = await event.get_chat()
-
-        # إعداد صلاحيات فارغة (بدون أي صلاحيات)
-        rights = types.ChatAdminRights(
-            change_info=False,
-            post_messages=False,
-            edit_messages=False,
-            delete_messages=False,
-            ban_users=False,
-            invite_users=False,
-            pin_messages=False,
-            add_admins=False,
-            anonymous=False,
-            manage_call=False,
-            other=False
-        )
-
-        # لقب المشرف
-        rank_title = "مشرف ثانوي"
-
-        # تنفيذ الترقية
-        if isinstance(chat, types.Channel):
-            # القنوات والسوبر كروبات
-            await client(functions.channels.EditAdminRequest(
-                channel=chat,
-                user_id=user.id,
-                admin_rights=rights,
-                rank=rank_title
-            ))
-        else:
-            # المجموعات العادية (basic group)
-            await client(functions.messages.EditChatAdminRequest(
-                chat_id=chat.id,
-                user_id=user.id,
-                is_admin=True
-            ))
-
-        print(f"✅ تم رفع {user.first_name} في {chat.title} كلقب '{rank_title}' بدون صلاحيات.")
-
+        channel_entity = event.chat_id
     except Exception as e:
-        print(f"⚠️ خطأ أثناء رفع المستخدم: {e}")
+        print(f"❌ فشل الحصول على كيان {chat_id} بواسطة البوت الأساسي: {e}")
+        return
+
+    # رفع كل البوتات
+    for x in ABHS:
+        try:
+            me = await x.get_me()
+            if not me.bot:
+                print(f"⚠️ تخطي الحساب {me.id} لأنه مستخدم عادي")
+                continue
+            rights = ChatAdminRights(
+                add_admins=True,
+                change_info=True
+                
+            )
+            await x(EditAdminRequest(
+                channel=channel_entity,
+                user_id=me.id,
+                admin_rights=rights,
+                rank="مشرف رئيسي"
+            ))
+            print(f"✅ تم رفع البوت {me.id} مشرف بالقناة")
+        except Exception as e:
+            print(f"❌ خطأ أثناء رفع البوت {me.id}: {e}")
