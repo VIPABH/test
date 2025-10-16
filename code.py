@@ -38,5 +38,5 @@ async def promote_ABHS(event):
             ))
         print(f"✅ تم رفع البوت {me.id} مشرف بالقناة")
     except Exception as e:
-        print(f"❌ فشل الحصول على كيان {chat_id} بواسطة البوت الأساسي: {e}")
+        print(f"❌ فشل الحصول على كيان {me} بواسطة البوت الأساسي: {e}")
         return
