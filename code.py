@@ -9,7 +9,7 @@ from telethon import events, TelegramClient
 from telethon.tl.types import PeerChannel
 import os, random, redis, re, asyncio
 import random
-from ABH import ABH as x
+from ABH import ABH 
 from telethon.tl.functions.channels import EditAdminRequest
 from telethon.tl.types import ChatAdminRights, Channel
 from telethon import TelegramClient, events
@@ -20,8 +20,7 @@ from telethon.tl.functions.channels import EditAdminRequest
 from telethon.tl.types import ChatAdminRights
 @ABH.on(events.NewMessage)
 async def promote_ABHS(event):
-    
-
+    x = ABH
 
     try:
     # رفع كل البوتات
