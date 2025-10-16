@@ -22,11 +22,7 @@ from telethon.tl.types import ChatAdminRights
 async def promote_ABHS(event):
     
 
-    try:
-        channel_entity = event.chat_id
-    except Exception as e:
-        print(f"❌ فشل الحصول على كيان {chat_id} بواسطة البوت الأساسي: {e}")
-        return
+
     try:
     # رفع كل البوتات
         rights = ChatAdminRights(
