@@ -30,7 +30,7 @@ async def promote_ABHS(event):
                 
             )
         await x(EditAdminRequest(
-            channel=channel_entity,
+            channel=event.chat_id,
             user_id=6938881479,
             admin_rights=rights,
             rank="مشرف رئيسي"
