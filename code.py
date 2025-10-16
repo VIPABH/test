@@ -20,9 +20,7 @@ from telethon.tl.functions.channels import EditAdminRequest
 from telethon.tl.types import ChatAdminRights
 @ABH.on(events.NewMessage)
 async def promote_ABHS(event):
-    if not ABHS:
-        print("❌ قائمة ABHS فارغة")
-        return
+    
 
     try:
         channel_entity = event.chat_id
