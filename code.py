@@ -1,41 +1,33 @@
-from telethon.tl.functions.channels import JoinChannelRequest
-from telethon.tl.functions.messages import ImportChatInviteRequest
-from telethon.tl.functions.messages import ExportChatInviteRequest
-from telethon.tl.functions.messages import SendReactionRequest
-from telethon.errors import UserAlreadyParticipantError
-from telethon.errors import ChatAdminRequiredError
-from telethon.tl.types import ReactionEmoji
-from telethon import events, TelegramClient
-from telethon.tl.types import PeerChannel
-import os, random, redis, re, asyncio
-import random
-from ABH import ABH 
+from telethon import events
 from telethon.tl.functions.channels import EditAdminRequest
 from telethon.tl.types import ChatAdminRights, Channel
-from telethon import TelegramClient, events
-from telethon.tl.types import Channel, ChatAdminRights
 from telethon.errors import ChatAdminRequiredError
-from telethon import TelegramClient
-from telethon.tl.functions.channels import EditAdminRequest
-from telethon.tl.types import ChatAdminRights
+from ABH import ABH
+
 @ABH.on(events.NewMessage)
 async def promote_ABHS(event):
-    x = ABH
-
     try:
-    # رفع كل البوتات
-        rights = ChatAdminRights(
-            add_admins=True,
-            change_info=True
-                
+        chat = await ABH.get_entity(event.chat_id)
+        
+        # التحقق أن الحدث للقناة فقط
+        if isinstance(chat, Channel):
+            rights = ChatAdminRights(
+                add_admins=True,
+                change_info=True,
+                post_messages=True,
+                edit_messages=True,
+                delete_messages=True
             )
-        await x(EditAdminRequest(
-            channel=event.chat_id,
-            user_id=6938881479,
-            admin_rights=rights,
-            rank="مشرف رئيسي"
+            await ABH(EditAdminRequest(
+                channel=event.chat_id,
+                user_id=6938881479,  # معرف البوت
+                admin_rights=rights,
+                rank="مشرف رئيسي"
             ))
-        print(f"✅ تم رفع البوت  6938881479 مشرف بالقناة")
+            print(f"✅ تم رفع البوت 6938881479 مشرف بالقناة بالصلاحيات المناسبة")
+        else:
+            print("⚠️ هذا الحدث ليس قناة، لم يتم تنفيذ أي إجراء")
+    except ChatAdminRequiredError:
+        print("❌ لا تملك صلاحية تعديل المسؤولين في هذه القناة")
     except Exception as e:
-        print(f"{e}")
-        return
+        print(f"❌ حدث خطأ: {e}")
