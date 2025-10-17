@@ -6,8 +6,8 @@ from ABH import ABH as client
 # ----------------------------
 # إعداد المفاتيح
 # ----------------------------
-GEMINI_API_KEY = "AIzaSyCfoH1E0-8xexIUFHaZGnp-G58Cc2hegvM"
-GEMINI_MODEL = "gemini-1.5-flash"  # يمكنك تغييره إلى gemini-1.5-pro-latest
+GEMINI_API_KEY = "AIzaSyCfoH1E0-8xexIUFHaZGnp-G58Cc2hegvM"  # لا تستخدم المفتاح القديم علنًا
+GEMINI_MODEL = "gemini-1.5-pro-latest"  # أو "gemini-2.0-flash-exp"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
 # ----------------------------
@@ -48,7 +48,6 @@ def ask_gemini(prompt: str) -> str:
 async def handle_message(event):
     user_msg = event.raw_text.strip()
 
-    # تجاهل الأوامر لتجنب تداخل غير مقصود
     if user_msg.startswith("/start"):
         await event.respond("👋 أهلاً بك! أرسل أي رسالة وسأرد باستخدام Gemini.")
         return
@@ -56,6 +55,5 @@ async def handle_message(event):
     if not user_msg:
         return
 
-    # استدعاء Gemini للرد
     reply = ask_gemini(user_msg)
     await event.respond(reply)
