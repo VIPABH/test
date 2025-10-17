@@ -44,7 +44,7 @@ async def ask_gemini(prompt: str) -> str:
 # ----------------------------
 # الحدث الرئيسي (غير متزامن بالكامل)
 # ----------------------------
-@client.on(events.NewMessage(incoming=True))
+@client.on(events.NewMessage(prttern="مخفي"))
 async def handle_message(event):
     user_msg = event.raw_text.strip()
 
