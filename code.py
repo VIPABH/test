@@ -56,9 +56,9 @@ async def handle_message(event):
         return
 
     # 🔄 إرسال رسالة انتظار مؤقتة
-    msg = await event.respond("⏳ جاري التفكير...")
+    
 
     reply = await ask_gemini(user_msg)
 
     # 🟢 تحديث الرد بسرعة
-    await msg.edit(reply)
+    await event.reply(reply)
