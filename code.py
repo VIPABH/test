@@ -44,21 +44,22 @@ async def ask_gemini(prompt: str) -> str:
 # ----------------------------
 # الحدث الرئيسي (غير متزامن بالكامل)
 # ----------------------------
-@client.on(events.NewMessage(prttern="مخفي"))
-async def handle_message(event):
+@client.on(events.NewMessage(pattern=r"^مخفي\s+"))
+async def handle_hidden_message(event):
     user_msg = event.raw_text.strip()
+    
+    # إزالة كلمة "مخفي " من بداية الرسالة
+    prompt = user_msg[len("مخفي "):]
 
-    if not user_msg:
+    if not prompt:
+        await event.respond("⚠️ الرجاء كتابة نص بعد كلمة 'مخفي'.")
         return
 
-    if user_msg.startswith("/start"):
-        await event.respond("👋 مرحبًا! أرسل لي أي نص وسأرد باستخدام Gemini Flash Lite ⚡.")
-        return
-
-    # 🔄 إرسال رسالة انتظار مؤقتة
+    # إرسال رسالة انتظار مؤقتة
     
 
-    reply = await ask_gemini(user_msg)
+    # استدعاء Gemini
+    reply = await ask_gemini(prompt)
 
-    # 🟢 تحديث الرد بسرعة
+    # تحديث الرد النهائي
     await event.reply(reply)
