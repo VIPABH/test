@@ -4,14 +4,14 @@ import urllib.request
 from ABH import ABH as client
 
 # ----------------------------
-# إعداد المفاتيح
+# إعداد المفاتيح والموديل
 # ----------------------------
-GEMINI_API_KEY = "AIzaSyCfoH1E0-8xexIUFHaZGnp-G58Cc2hegvM"  # لا تستخدم المفتاح القديم علنًا
-GEMINI_MODEL = "gemini-1.5-pro-latest"  # أو "gemini-2.0-flash-exp"
+GEMINI_API_KEY = "YOUR_API_KEY"
+GEMINI_MODEL = "gemini-2.5-flash"  # ✅ النموذج المستقر حسب آخر تحديث
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
 # ----------------------------
-# دالة إرسال الرسالة إلى Gemini
+# دالة التواصل مع Gemini
 # ----------------------------
 def ask_gemini(prompt: str) -> str:
     headers = {
@@ -21,10 +21,7 @@ def ask_gemini(prompt: str) -> str:
 
     body = json.dumps({
         "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": prompt}]
-            }
+            {"role": "user", "parts": [{"text": prompt}]}
         ]
     }).encode()
 
@@ -34,22 +31,21 @@ def ask_gemini(prompt: str) -> str:
             data = json.loads(res.read().decode())
             return data["candidates"][0]["content"]["parts"][0]["text"]
     except urllib.error.HTTPError as e:
-        error_body = e.read().decode()
-        print("❌ HTTP Error:", e.code, error_body)
-        return f"⚠️ خطأ في استدعاء Gemini API (رمز: {e.code})"
+        print("❌ HTTP Error:", e.code, e.read().decode())
+        return f"⚠️ خطأ في الاتصال بخدمة Gemini API (رمز: {e.code})"
     except Exception as e:
         print("❌ Exception:", str(e))
-        return "⚠️ حدث خطأ أثناء الاتصال بخدمة Gemini API."
+        return "⚠️ حدث خطأ غير متوقع أثناء الاتصال بـ Gemini."
 
 # ----------------------------
-# الحدث الرئيسي (NewMessage)
+# الحدث الرئيسي في البوت
 # ----------------------------
 @client.on(events.NewMessage(incoming=True))
 async def handle_message(event):
     user_msg = event.raw_text.strip()
 
     if user_msg.startswith("/start"):
-        await event.respond("👋 أهلاً بك! أرسل أي رسالة وسأرد باستخدام Gemini.")
+        await event.respond("👋 مرحبًا! أرسل لي أي نص وسأرد باستخدام Google Gemini 2.5 Flash.")
         return
 
     if not user_msg:
