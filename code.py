@@ -27,7 +27,7 @@ def ask_gemini(prompt: str) -> str:
 # ----------------------------
 # الحدث الرئيسي (NewMessage)
 # ----------------------------
-&client.on(events.NewMessage(incoming=True))
+@client.on(events.NewMessage(incoming=True))
 async def handle_message(event):
     user_msg = event.raw_text.strip()
     chat_id = event.chat_id
