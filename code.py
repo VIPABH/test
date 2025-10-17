@@ -6,7 +6,7 @@ from ABH import ABH as client
 # ----------------------------
 # إعداد المفاتيح والموديل
 # ----------------------------
-GEMINI_API_KEY = "YOUR_API_KEY"
+GEMINI_API_KEY = "AIzaSyCfoH1E0-8xexIUFHaZGnp-G58Cc2hegvM"
 GEMINI_MODEL = "gemini-2.5-flash"  # ✅ النموذج المستقر حسب آخر تحديث
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
