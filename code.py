@@ -22,7 +22,7 @@ def ask_gemini(prompt: str) -> str:
             data = json.loads(res.read().decode())
             return data["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
-        return "⚠️ حدث خطأ أثناء الاتصال بخدمة Gemini API."
+        return f"⚠️ حدث خطأ أثناء الاتصال بخدمة Gemini APi {e}."
 
 # ----------------------------
 # الحدث الرئيسي (NewMessage)
