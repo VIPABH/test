@@ -1,65 +1,62 @@
-from telethon import events
-import aiohttp
-import asyncio
-import json
 from ABH import ABH as client
+from telethon import TelegramClient, events
+import instaloader
+import os
+import re
+import tempfile
 
-# ----------------------------
-# إعداد المفاتيح والموديل
-# ----------------------------
-GEMINI_API_KEY = "AIzaSyCfoH1E0-8xexIUFHaZGnp-G58Cc2hegvM"
-GEMINI_MODEL = "gemini-2.5-flash-lite"  # ⚡ أسرع إصدار من Gemini
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
-# ----------------------------
-# دالة غير متزامنة للتحدث مع Gemini
-# ----------------------------
-async def ask_gemini(prompt: str) -> str:
-    headers = {
-        "Content-Type": "application/json",
-        "x-goog-api-key": GEMINI_API_KEY
-    }
+# -------- إعدادات Instaloader --------
+TEMP_DIR = tempfile.gettempdir()
+L = instaloader.Instaloader(download_videos=True, download_pictures=True, download_comments=False, save_metadata=False, compress_json=False)
 
-    body = {
-        "contents": [
-            {"role": "user", "parts": [{"text": prompt}]}
-        ]
-    }
+# -------- إنشاء Client --------
 
+
+# -------- وظيفة تنزيل الإنستاغرام --------
+def download_instagram(url: str):
+    shortcode_match = re.search(r"(?:/p/|/reel/|/tv/)([\w-]+)", url)
+    if not shortcode_match:
+        return None
+    shortcode = shortcode_match.group(1)
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(GEMINI_URL, headers=headers, json=body, timeout=25) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data["candidates"][0]["content"]["parts"][0]["text"]
-                else:
-                    err = await resp.text()
-                    print(f"❌ HTTP Error {resp.status}: {err}")
-                    return f"⚠️ خطأ في الاتصال بخدمة Gemini API (رمز: {resp.status})"
-    except asyncio.TimeoutError:
-        return "⏱️ انتهت مهلة الاتصال، حاول مجددًا."
-    except Exception as e:
-        return f"⚠️ خطأ غير متوقع: {str(e)}"
+        post = instaloader.Post.from_shortcode(L.context, shortcode)
+    except instaloader.exceptions.InstaloaderException:
+        return None
 
-# ----------------------------
-# الحدث الرئيسي (غير متزامن بالكامل)
-# ----------------------------
-@client.on(events.NewMessage(pattern=r"^مخفي\s+"))
-async def handle_hidden_message(event):
-    user_msg = event.raw_text.strip()
-    
-    # إزالة كلمة "مخفي " من بداية الرسالة
-    prompt = user_msg[len("مخفي "):]
+    target_dir = os.path.join(TEMP_DIR, shortcode)
+    os.makedirs(target_dir, exist_ok=True)
+    L.download_post(post, target=target_dir)
 
-    if not prompt:
-        await event.respond("⚠️ الرجاء كتابة نص بعد كلمة 'مخفي'.")
+    for file in os.listdir(target_dir):
+        if file.lower().endswith((".mp4", ".mov", ".jpg", ".png")):
+            return os.path.join(target_dir, file)
+    return None
+
+# -------- حدث استقبال الرسائل --------
+@client.on(events.NewMessage)
+async def handler(event):
+    message_text = event.message.message.strip()
+    if message_text.lower() == "/start":
+        await event.reply("أرسل رابط منشور أو ريل إنستاغرام، وسيتم تنزيله وإرساله لك.")
         return
 
-    # إرسال رسالة انتظار مؤقتة
-    
+    await event.respond("جاري تنزيل الملف...")
 
-    # استدعاء Gemini
-    reply = await ask_gemini(prompt)
+    file_path = download_instagram(message_text)
+    if not file_path:
+        await event.reply("لم أتمكن من تنزيل الملف. تأكد أن المنشور عام (public).")
+        return
 
-    # تحديث الرد النهائي
-    await event.reply(reply)
+    try:
+        if file_path.lower().endswith((".mp4", ".mov")):
+            await client.send_file(event.sender_id, file_path, video_note=False)
+        else:
+            await client.send_file(event.sender_id, file_path)
+    except Exception as e:
+        await event.reply(f"حدث خطأ أثناء الإرسال: {str(e)}")
+    finally:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+# -------- تشغيل البوت --------
