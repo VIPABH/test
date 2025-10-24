@@ -1,62 +1,56 @@
-from ABH import ABH as client
+from ABH import ABH as bot
 from telethon import TelegramClient, events
-import instaloader
-import os
-import re
-import tempfile
+import requests
+import datetime
+
+# إعدادات البوت
 
 
-# -------- إعدادات Instaloader --------
-TEMP_DIR = tempfile.gettempdir()
-L = instaloader.Instaloader(download_videos=True, download_pictures=True, download_comments=False, save_metadata=False, compress_json=False)
+# دالة تحويل الوقت من Unix إلى تاريخ مقروء
+def to_date(timestamp):
+    if not timestamp:
+        return "غير متوفر"
+    return datetime.datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M")
 
-# -------- إنشاء Client --------
+# دالة لجلب بيانات اللاعب من Chess.com
+def get_chess_profile(username):
+    url = f"https://api.chess.com/pub/player/{username.lower()}"
+    headers = {"User-Agent": "TelegramChessBot/1.0 (contact@example.com)"}
+    r = requests.get(url, headers=headers, timeout=10)
 
-
-# -------- وظيفة تنزيل الإنستاغرام --------
-def download_instagram(url: str):
-    shortcode_match = re.search(r"(?:/p/|/reel/|/tv/)([\w-]+)", url)
-    if not shortcode_match:
+    if r.status_code == 404:
         return None
-    shortcode = shortcode_match.group(1)
-    try:
-        post = instaloader.Post.from_shortcode(L.context, shortcode)
-    except instaloader.exceptions.InstaloaderException:
-        return None
+    elif r.status_code != 200:
+        return {"error": f"حدث خطأ أثناء الاتصال: {r.status_code}"}
 
-    target_dir = os.path.join(TEMP_DIR, shortcode)
-    os.makedirs(target_dir, exist_ok=True)
-    L.download_post(post, target=target_dir)
+    return r.json()
 
-    for file in os.listdir(target_dir):
-        if file.lower().endswith((".mp4", ".mov", ".jpg", ".png")):
-            return os.path.join(target_dir, file)
-    return None
+# حدث الاستماع للأمر
+@bot.on(events.NewMessage(pattern=r"^/chess\s+(\w+)$"))
+async def chess_handler(event):
+    username = event.pattern_match.group(1)
+    await event.respond("⏳ جاري جلب معلومات اللاعب...")
 
-# -------- حدث استقبال الرسائل --------
-@client.on(events.NewMessage)
-async def handler(event):
-    message_text = event.message.message.strip()
-    if message_text.lower() == "/start":
-        await event.reply("أرسل رابط منشور أو ريل إنستاغرام، وسيتم تنزيله وإرساله لك.")
+    data = get_chess_profile(username)
+
+    if not data:
+        await event.respond("❌ لم يتم العثور على هذا المستخدم على Chess.com.")
+        return
+    if "error" in data:
+        await event.respond(data["error"])
         return
 
-    await event.respond("جاري تنزيل الملف...")
+    # تنسيق المعلومات
+    profile_text = (
+        f"♟ **معلومات اللاعب Chess.com** ♟\n\n"
+        f"👤 **الاسم:** {data.get('username', 'غير متوفر')}\n"
+        f"🏆 **اللقب:** {data.get('title', 'بدون')}\n"
+        f"🌍 **الدولة:** {data.get('country', '').split('/')[-1] if data.get('country') else 'غير معروف'}\n"
+        f"📅 **تاريخ الانضمام:** {to_date(data.get('joined'))}\n"
+        f"🕐 **آخر ظهور:** {to_date(data.get('last_online'))}\n"
+        f"🔗 [الملف الشخصي على Chess.com]({data.get('url')})"
+    )
 
-    file_path = download_instagram(message_text)
-    if not file_path:
-        await event.reply("لم أتمكن من تنزيل الملف. تأكد أن المنشور عام (public).")
-        return
+    await event.respond(profile_text, link_preview=False)
 
-    try:
-        if file_path.lower().endswith((".mp4", ".mov")):
-            await client.send_file(event.sender_id, file_path, video_note=False)
-        else:
-            await client.send_file(event.sender_id, file_path)
-    except Exception as e:
-        await event.reply(f"حدث خطأ أثناء الإرسال: {str(e)}")
-    finally:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-
-# -------- تشغيل البوت --------
+print("✅ البوت يعمل الآن...")
