@@ -28,8 +28,11 @@ async def chess_handler(event):
     if "error" in data:
         await event.respond(data["error"]);return
     s=data.get("stats",{})
-    def rating(mode): 
-        try: return s[f"chess_{mode}"]["last"]["rating"]
+    def rating(mode):
+        try:
+            r=s[f"chess_{mode}"]["last"]["rating"]
+            elo=s[f"chess_{mode}"]["best"]["rating"]
+            return f"{r} (Elo: {elo})"
         except: return "غير متوفر"
     profile_text=(
         f"♟ **معلومات اللاعب Chess.com** ♟\n\n"
