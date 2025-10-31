@@ -54,9 +54,11 @@ async def list_files(event):
         return await event.reply("❗️لا توجد ملفات في المجلد الحالي.")
     file_list = "\n" .join(files)
     await event.reply(f"📂 قائمة الملفات\n{file_list}")
-def main():
+async def main():
     print("config is starting...")
     ABH.start(bot_token=bot_token)
+    await ABH.send_message(1910015590, ".")
+    await asyncio.sleep(10)
     ABH.run_until_disconnected()
 if __name__ == "__main__":
-    main()
+    await main()
