@@ -1,53 +1,104 @@
-from ABH import ABH as bot
-from telethon import events
-import requests,datetime,redis
-r=redis.StrictRedis(host='localhost',port=6379,db=0,decode_responses=True)
-def to_date(timestamp):
- if not timestamp:return"غير متوفر"
- return datetime.datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M")
-def get_chess_profile(username):
- base=f"https://api.chess.com/pub/player/{username.lower()}"
- headers={"User-Agent":"TelegramChessBot/1.0 (contact@example.com)"}
- profile=requests.get(base,headers=headers,timeout=10)
- if profile.status_code==404:return None
- if profile.status_code!=200:return{"error":f"⚠️ خطأ في الاتصال: {profile.status_code}"}
- stats=requests.get(f"{base}/stats",headers=headers,timeout=10)
- stats_data=stats.json() if stats.status_code==200 else{}
- data=profile.json();data["stats"]=stats_data;return data
-@bot.on(events.NewMessage(pattern=r"^شطرنج\s+(\w+)$"))
-async def save_chess_user(event):
- username=event.pattern_match.group(1);user_id=str(event.sender_id)
- r.set(f"chess_user:{user_id}",username)
- await event.respond(f"✅ تم تعيين اسمك في شطرنج.com إلى **{username}**.\nالآن يمكنك استخدام الأمر `الايلو` لمعرفة تصنيفك.")
-@bot.on(events.NewMessage(pattern=r"^الايلو(?:\s+(\w+))?$"))
-async def get_elo(event):
- user_id=str(event.sender_id);username=event.pattern_match.group(1)
- if not username:
-  stored_username=r.get(f"chess_user:{user_id}")
-  if not stored_username:
-   await event.respond("❌ لم يتم تعيين اسمك بعد.\nاكتب مثلًا:\n`شطرنج k_4x1`");return
-  username=stored_username
- await event.respond(f"♟ جاري جلب معلومات اللاعب **{username}** ...")
- data=get_chess_profile(username)
- if not data:await event.respond("❌ لم يتم العثور على هذا المستخدم على Chess.com.");return
- if"error"in data:await event.respond(data["error"]);return
- s=data.get("stats",{})
- def rating(mode):
-  try:
-   r=s[f"chess_{mode}"]["last"]["rating"];elo=s[f"chess_{mode}"]["best"]["rating"];return f"{r} (Elo: {elo})"
-  except:return"غير متوفر"
- profile_text=(f"♟ **معلومات اللاعب Chess.com** ♟\n\n"
- f"👤 **الاسم:** {data.get('username','غير متوفر')}\n"
- f"🏆 **اللقب:** {data.get('title','بدون')}\n"
- f"🌍 **الدولة:** {data.get('country','').split('/')[-1] if data.get('country') else 'غير معروف'}\n"
- f"📅 **تاريخ الانضمام:** {to_date(data.get('joined'))}\n"
- f"🕐 **آخر ظهور:** {to_date(data.get('last_online'))}\n\n"
- f"📊 **التصنيفات:**\n"
- f"⚡ Blitz: {rating('blitz')}\n"
- f"🔥 Bullet: {rating('bullet')}\n"
- f"⏱ Rapid: {rating('rapid')}\n"
- f"🧩 Puzzle: {rating('puzzle')}\n"
- f"📬 Daily: {rating('daily')}\n\n"
- f"🔗 [الملف الشخصي على Chess.com]({data.get('url')})")
- await event.respond(profile_text,link_preview=False)
-print("✅ بوت الشطرنج k_4x1 يعمل الآن...")
+from telethon import TelegramClient, events
+from telethon.tl.functions.phone import (
+    CreateGroupCallRequest,
+    DiscardGroupCallRequest,
+    EditGroupCallParticipantRequest,
+    GetGroupCallRequest
+)
+from telethon.tl.functions.channels import GetFullChannelRequest
+from telethon.tl.types import InputGroupCall, InputPeerChannel
+from ABH import ABH as client
+
+# ──────────────────────────────
+# 🔹 دالة مساعده للحصول على الاتصال الحالي
+async def get_call(chat):
+    full = await client(GetFullChannelRequest(chat))
+    return full.full_chat.call
+
+# ──────────────────────────────
+# 🔸 فتح الاتصال
+@client.on(events.NewMessage(pattern=r'^/فتح_اتصال$'))
+async def open_call(event):
+    chat = await event.get_input_chat()
+    try:
+        await client(CreateGroupCallRequest(peer=chat, random_id=0))
+        await event.reply("✅ تم فتح الاتصال الصوتي بنجاح.")
+    except Exception as e:
+        await event.reply(f"❌ فشل فتح الاتصال:\n`{e}`")
+
+# ──────────────────────────────
+# 🔸 غلق الاتصال
+@client.on(events.NewMessage(pattern=r'^/اغلاق_اتصال$'))
+async def close_call(event):
+    chat = await event.get_input_chat()
+    try:
+        call = await get_call(chat)
+        if not call:
+            return await event.reply("❌ لا يوجد اتصال نشط.")
+        await client(DiscardGroupCallRequest(call=InputGroupCall(id=call.id, access_hash=call.access_hash)))
+        await event.reply("🔒 تم إغلاق الاتصال الصوتي.")
+    except Exception as e:
+        await event.reply(f"❌ خطأ أثناء الغلق:\n`{e}`")
+
+# ──────────────────────────────
+# 🔇 كتم عضو
+@client.on(events.NewMessage(pattern=r'^/كتم (\d+)$'))
+async def mute_user(event):
+    user_id = int(event.pattern_match.group(1))
+    chat = await event.get_input_chat()
+    call = await get_call(chat)
+    if not call:
+        return await event.reply("❌ لا يوجد اتصال نشط.")
+    try:
+        await client(EditGroupCallParticipantRequest(
+            call=InputGroupCall(id=call.id, access_hash=call.access_hash),
+            participant=user_id,
+            muted=True
+        ))
+        await event.reply(f"🔇 تم كتم المستخدم `{user_id}`.")
+    except Exception as e:
+        await event.reply(f"❌ خطأ:\n`{e}`")
+
+# ──────────────────────────────
+# 🔊 رفع الكتم
+@client.on(events.NewMessage(pattern=r'^/رفع_كتم (\d+)$'))
+async def unmute_user(event):
+    user_id = int(event.pattern_match.group(1))
+    chat = await event.get_input_chat()
+    call = await get_call(chat)
+    if not call:
+        return await event.reply("❌ لا يوجد اتصال نشط.")
+    try:
+        await client(EditGroupCallParticipantRequest(
+            call=InputGroupCall(id=call.id, access_hash=call.access_hash),
+            participant=user_id,
+            muted=False
+        ))
+        await event.reply(f"🔊 تم رفع الكتم عن `{user_id}`.")
+    except Exception as e:
+        await event.reply(f"❌ خطأ:\n`{e}`")
+
+# ──────────────────────────────
+# 🔈 تعيين مستوى الصوت
+@client.on(events.NewMessage(pattern=r'^/صوت (\d+) (\d+)$'))
+async def set_volume(event):
+    user_id = int(event.pattern_match.group(1))
+    volume = int(event.pattern_match.group(2))
+    chat = await event.get_input_chat()
+    call = await get_call(chat)
+    if not call:
+        return await event.reply("❌ لا يوجد اتصال نشط.")
+    if volume < 0 or volume > 200:
+        return await event.reply("⚠️ مستوى الصوت يجب أن يكون بين 0 و 200.")
+    try:
+        await client(EditGroupCallParticipantRequest(
+            call=InputGroupCall(id=call.id, access_hash=call.access_hash),
+            participant=user_id,
+            volume=volume
+        ))
+        await event.reply(f"🔉 تم تعيين مستوى الصوت للمستخدم `{user_id}` إلى `{volume}`.")
+    except Exception as e:
+        await event.reply(f"❌ خطأ:\n`{e}`")
+
+# ──────────────────────────────
+print("🚀 تم تشغيل البوت، بانتظار الأوامر...")
