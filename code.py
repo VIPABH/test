@@ -1,14 +1,16 @@
-import asyncio
-from ABH import ABH  # تأكد أن هذا الملف (ABH.py) موجود بنفس المجلد
-
-async def x():
-    await ABH.send_message(1910015590, ".")
-    print("تم إرسال الرسالة ✅")
-    await asyncio.sleep(10)
-
-async def main():
-    while True:
-        await x()
-
-if __name__ == "__main__":
-    asyncio.run(main())
+from telethon import events
+from ABH import *
+@ABH.on(events.ChatAction)
+async def on_chat_action(event):
+    if event.user_joined:
+        await event.reply("دخول")
+    elif event.user_added:
+        await event.reply("إضافة")
+    elif event.user_left:
+        await event.reply("مغادرة")
+    elif getattr(event, "kicked_by", None):
+        await event.reply("طرد")
+    elif getattr(event, "new_admin_rights", None):
+        await event.reply("رفع")
+    elif getattr(event, "banned_rights", None):
+        await event.reply("تقييد")
