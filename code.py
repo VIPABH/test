@@ -12,6 +12,6 @@ async def check_admin(event):
                 await event.reply("تم التأكد: البوت مشرف ✅")
             else:
                 await event.reply("البوت ليس مشرف! سأخرج ❌")
-                await ABH(LeaveChannelRequest(event.chat_id))
+                await bot(LeaveChannelRequest(event.chat_id))
         except Exception as e:
             print(f"خطأ عند التحقق من الصلاحيات: {e}")
