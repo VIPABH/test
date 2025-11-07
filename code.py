@@ -2,7 +2,6 @@ from telethon import events
 from ABH import *
 @ABH.on(events.ChatAction)
 async def on_chat_action(event):
-    if event.user_joined and event.user_added:
-        await event.reply("دخول")
-    elif event.user_added:
+    me = await ABH.get_me()
+    if event.user_added and event.user_id == me.id:
         await event.reply("إضافة")
