@@ -2,6 +2,7 @@ from telethon import events
 from telethon.tl.functions.channels import LeaveChannelRequest
 from ABH import ABH as bot
 
+print(" >>")  # أول خطوة
 @bot.on(events.ChatAction)
 async def monitor_admin(event):
     print("📢 حدث جديد تم التقاطه")  # أول خطوة
