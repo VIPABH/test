@@ -9,10 +9,10 @@ async def monitor_everything(event):
     try:
         print("🔹 حدث جديد تم استلامه")
 
-        # نتأكد أن هذا الحدث من نوع UpdateChannelParticipant فقط
-        if not isinstance(event, types.UpdateChannelParticipant):
-            print("⏩ هذا الحدث ليس UpdateChannelParticipant، تم تجاهله")
-            return
+        # # نتأكد أن هذا الحدث من نوع UpdateChannelParticipant فقط
+        # if not isinstance(event, types.UpdateChannelParticipant):
+        #     print("⏩ هذا الحدث ليس UpdateChannelParticipant، تم تجاهله")
+        #     return
 
         me = await ABH.get_me()
         channel_id = getattr(event, "channel_id", None)
