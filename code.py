@@ -10,10 +10,7 @@ async def get_current_group_link(event):
     chat_id = event.chat_id
 
     # التحقق من أن المجموعة ضمن المجموعات المخزّنة
-    if chat_id not in alert_ids:
-        await event.reply("⚠️ هذه المجموعة غير موجودة ضمن المجموعات المخزّنة.")
-        return
-
+    
     # التأكد إنها مجموعة فعلاً
     if not str(chat_id).startswith("-100"):
         await event.reply("❌ هذا الأمر يُستخدم فقط داخل المجموعات.")
