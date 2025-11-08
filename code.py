@@ -2,8 +2,8 @@ from telethon.tl.functions.channels import LeaveChannelRequest
 from telethon import types, events
 from Resources import *
 from ABH import ABH
-from telethon.tl.functions.messages import GetFullChatRequest, GetFullChannelRequest
-
+from telethon.tl.functions.messages import GetFullChatRequest
+from telethon.tl.functions.channels import GetFullChannelRequest
 @ABH.on(events.NewMessage(pattern=r"^رابط(?: المجموعة)?$"))
 async def get_current_group_link(event):
     """استرجاع رابط الدعوة الافتراضي للمجموعة الحالية فقط"""
