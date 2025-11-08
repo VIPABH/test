@@ -1,22 +1,22 @@
 from telethon import events
 from telethon.tl.types import UpdateChannelParticipant
 from telethon.tl.functions.channels import LeaveChannelRequest
-from ABH import ABH as bot
 from Resources import *
-@bot.on(events.Raw)
+from ABH import ABH
+@ABH.on(events.Raw)
 async def monitor_everything(event):
     try:
         print("📦 نوع التحديث:", type(event))
         if isinstance(event, UpdateChannelParticipant):
-            me = await bot.get_me()
+            me = await ABH.get_me()
             if event.user_id == me.id:
                 try:
-                    perms = await bot.get_permissions(event.channel_id, me.id)
+                    perms = await ABH.get_permissions(event.channel_id, me.id)
                     if perms.is_admin:
                         await event.reply(f"اشكرك على الاضافه {await mention(event)}")
                     else:
                         await event.reply(f'عذرا بس ماكدر ابقه هنا الا ترفعني مشرف')
-                        await bot(LeaveChannelRequest(event.channel_id))
+                        await ABH(LeaveChannelRequest(event.channel_id))
                 except Exception as e:
                     print(f"⚠️ خطأ أثناء التحقق من الصلاحيات: {e}")
         # else:
