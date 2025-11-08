@@ -7,6 +7,7 @@ from ABH import ABH
 import asyncio
 @ABH.on(events.Raw)
 async def monitor_everything(event):
+    print(type(event))
     me = await ABH.get_me()
     user_id = getattr(event, "user_id", getattr(getattr(event, "participant", None), "user_id", None))
     if not user_id == me.id:
