@@ -13,9 +13,16 @@ async def monitor_everything(event):
         return
 
     channel_id = getattr(event, "channel_id", None)
+    participant = getattr(event, "participant", None)
 
-    # تحقق فقط من الإضافة كمشرف أو عضو
-    if not isinstance(event.new_participant, (types.ChannelParticipant, types.ChannelParticipantAdmin)):
+    # تحقق فقط من إضافة/ترقية المشرفين أو الأعضاء
+    if not isinstance(participant, (types.ChannelParticipant, types.ChannelParticipantAdmin)):
+        # حالة تنزيل أو إزالة البوت
+        if isinstance(participant, (types.ChannelParticipantLeft, types.ChannelParticipantBanned)):
+            entity = await ABH.get_entity(channel_id)
+            await ABH.send_message(entity, "⚠️ عذرًا، تم تنزيل البوت أو طرده، سأغادر القناة.")
+            await asyncio.sleep(1)
+            await ABH(LeaveChannelRequest(channel_id))
         return
 
     entity = await ABH.get_entity(channel_id)
@@ -24,8 +31,6 @@ async def monitor_everything(event):
     # إذا البوت مشرف → يرسل رسالة شكر
     if perms.is_admin:
         await ABH.send_message(entity, f"✅ اشكرك على الإضافة ")
-
-    # إذا البوت لم يعد مشرف أو تم طرده/تقييده → يغادر أو يحظر
     else:
         await ABH.send_message(entity, "⚠️ عذرًا، لا أستطيع البقاء هنا إلا إذا كنت مشرفًا.")
         await asyncio.sleep(1)
