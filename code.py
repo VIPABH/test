@@ -10,17 +10,16 @@ async def monitor_everything(event):
         user_id = getattr(event, "user_id", getattr(getattr(event, "participant", None), "user_id", None))
         if not user_id == me.id:
             return
-        update = getattr(event, "update", event)
         channel_id = getattr(event, "channel_id", None)
         participant = getattr(event, "participant", None)
-        if not isinstance(participant, (types.ChannelParticipant, types.ChannelParticipantAdmin)):
-            return
-        if isinstance(participant, (types.ChannelParticipantLeft, types.ChannelParticipantBanned)):
-            entity = await ABH.get_entity(channel_id)
-            await ABH.send_message(entity, "😢")
-            await asyncio.sleep(1)
-            await ABH(LeaveChannelRequest(channel_id))
-            return
+        if isinstance(participant, (types.ChannelParticipant, types.ChannelParticipantAdmin)):
+            if isinstance(participant, (types.ChannelParticipantLeft, types.ChannelParticipantBanned)):
+                entity = await ABH.get_entity(channel_id)
+                await ABH.send_message(entity, "خلي يفيدوكم يله بيباي")
+                await asyncio.sleep(1)
+                await ABH(LeaveChannelRequest(channel_id))
+                return
+        update = getattr(event, "update", event)
         actor_id = getattr(update, "actor_id", None) or getattr(update, "user_id", None)
         actor = await ABH.get_entity(actor_id)
         mention = f"[{actor.first_name}](tg://user?id={actor.id})"
@@ -29,7 +28,7 @@ async def monitor_everything(event):
         if perms.is_admin:
             await ABH.send_message(entity, f"اشكرك على الاضافة وردة {mention}")
         else:
-            await ABH.send_message(entity, "خلي ييدوكم يله بيباي")
+            await ABH.send_message(entity, "😢")
             await asyncio.sleep(1)
             await ABH(LeaveChannelRequest(channel_id))
     except:
