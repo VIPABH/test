@@ -3,7 +3,6 @@ from telethon import types, events
 from Resources import *
 from ABH import ABH
 import asyncio
-
 @ABH.on(events.Raw)
 async def monitor_everything(event):
     print(type(event))
@@ -11,24 +10,17 @@ async def monitor_everything(event):
     user_id = getattr(event, "user_id", getattr(getattr(event, "participant", None), "user_id", None))
     if not user_id == me.id:
         return
-
     channel_id = getattr(event, "channel_id", None)
     participant = getattr(event, "participant", None)
-
-    # تحقق فقط من إضافة/ترقية المشرفين أو الأعضاء
-    if not isinstance(participant, (types.ChannelParticipant, types.ChannelParticipantAdmin)):
-        # حالة تنزيل أو إزالة البوت
+    if isinstance(participant, (types.ChannelParticipant, types.ChannelParticipantAdmin)):
         if isinstance(participant, (types.ChannelParticipantLeft, types.ChannelParticipantBanned)):
             entity = await ABH.get_entity(channel_id)
             await ABH.send_message(entity, "⚠️ عذرًا، تم تنزيل البوت أو طرده، سأغادر القناة.")
             await asyncio.sleep(1)
             await ABH(LeaveChannelRequest(channel_id))
-        return
-
+            return
     entity = await ABH.get_entity(channel_id)
     perms = await ABH.get_permissions(channel_id, me.id)
-
-    # إذا البوت مشرف → يرسل رسالة شكر
     if perms.is_admin:
         await ABH.send_message(entity, f"✅ اشكرك على الإضافة ")
     else:
