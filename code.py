@@ -48,7 +48,7 @@ async def monitor_bot_status(event):
                 else:
                     await ABH.send_message(entity, "⚠️ لا أستطيع البقاء إلا إذا كنت مشرفاً.")
                     await asyncio.sleep(1)
-                    await ABH(LeaveChannelRequest(update.chat_id)))
+                    await ABH(LeaveChannelRequest(update.chat_id))
 
     # =========================================================
     # 🟨 عند حذف البوت من مجموعة عادية
