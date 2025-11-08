@@ -11,7 +11,7 @@ async def monitor_everything(event):
     if not user_id == me.id:
         return
     channel_id = getattr(event, "channel_id", None)
-    if not isinstance(event.participant, (types.ChannelParticipant, types.ChannelParticipantAdmin)):
+    if not isinstance(event.new_participant, (types.ChannelParticipant, types.ChannelParticipantAdmin)):
         return
     entity = await ABH.get_entity(channel_id)
     perms = await ABH.get_permissions(channel_id, me.id)
