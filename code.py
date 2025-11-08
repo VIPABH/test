@@ -7,8 +7,8 @@ from ABH import ABH
 
 @ABH.on(events.Raw)
 async def monitor_everything(event):
-        me = await ABH.get_me()
-        user_id = getattr(event, "user_id", getattr(getattr(event, "participant", None), "user_id", None))
+    me = await ABH.get_me()
+    user_id = getattr(event, "user_id", getattr(getattr(event, "participant", None), "user_id", None))
     if not user_id == me.id:
         return
     if isinstance(event, UpdateChannelParticipant):
