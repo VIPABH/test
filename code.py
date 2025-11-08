@@ -25,10 +25,9 @@ async def monitor_everything(event):
         mention = f"[{actor.first_name}](tg://user?id={actor.id})"
         entity = await ABH.get_entity(channel_id)
         perms = await ABH.get_permissions(channel_id, me.id)
+        message = await ABH.get_messages("recoursec", ids=22)
         if perms.is_admin:
-            await ABH.send_file(
-                entity,
-                'resources/AnimatedSticker.tgs')
+            await ABH.send_file(entity, message.media)
             await ABH.send_message(entity, f"اشكرك على الاضافة وردة {mention}")
         else:
             await ABH.send_message(entity, "😢")
