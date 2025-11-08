@@ -1,9 +1,5 @@
 from telethon import events
-from telethon.tl.types import (
-    UpdateChannelParticipant,
-    UpdateChannelParticipantAdd,
-    UpdateChannelParticipantAdmin
-)
+from telethon.tl.types import UpdateChannelParticipant
 from telethon.tl.functions.channels import LeaveChannelRequest
 from telethon.utils import get_display_name
 from Resources import *
@@ -12,14 +8,13 @@ from ABH import ABH
 @ABH.on(events.Raw)
 async def monitor_everything(event):
     try:
-        # طباعة نوع التحديث والمعرفات لأغراض التصحيح
-        channel_id = getattr(event, "channel_id", getattr(getattr(event, "channel", None), "id", None))
-        user_id = getattr(event, "user_id", getattr(getattr(event, "participant", None), "user_id", None))
-        print(f"📦 نوع التحديث: {type(event)}, channel_id: {channel_id}, user_id: {user_id}")
-
-        # التحقق من أن الحدث يخص تغيير المشاركين
-        if isinstance(event, (UpdateChannelParticipant, UpdateChannelParticipantAdd, UpdateChannelParticipantAdmin)):
+        # التحقق من أن الحدث من نوع UpdateChannelParticipant فقط
+        if isinstance(event, UpdateChannelParticipant):
             me = await ABH.get_me()
+            
+            # استخراج معرف القناة والمستخدم بشكل آمن
+            channel_id = getattr(event, "channel_id", None)
+            user_id = getattr(event, "user_id", getattr(getattr(event, "participant", None), "user_id", None))
 
             # فقط إذا الحدث يخص البوت نفسه
             if user_id == me.id and channel_id:
@@ -28,7 +23,6 @@ async def monitor_everything(event):
                     perms = await ABH.get_permissions(channel_id, me.id)
 
                     if perms.is_admin:
-                        # جلب اسم المستخدم للترحيب
                         try:
                             user_entity = await ABH.get_entity(user_id)
                             user_name = get_display_name(user_entity)
