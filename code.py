@@ -8,21 +8,20 @@ import asyncio
 async def monitor_bot_status(event):
     """يراقب وضع البوت فقط عند التغيير بالإدارة أو الطرد"""
     me = await ABH.get_me()
-
     update = getattr(event, "update", event)
 
-    # ---------------------------------------------
-    # عند تعديل مشاركة البوت في القناة (رفع/تنزيل/طرد)
-    # ---------------------------------------------
+    # =========================================================
+    # 🟢 تحديثات القنوات (رفع، تنزيل، طرد، حظر)
+    # =========================================================
     if isinstance(update, types.UpdateChannelParticipant):
-        participant = update.participant
+        participant = getattr(update, "new_participant", None)
 
-        # 🟢 رفع البوت مشرف
+        # 🟩 رفع البوت مشرف
         if isinstance(participant, types.ChannelParticipantAdmin) and participant.user_id == me.id:
             entity = await ABH.get_entity(update.channel_id)
             await ABH.send_message(entity, "✅ تم رفع البوت كمشرف.")
 
-        # 🔴 تنزيل أو طرد البوت
+        # 🟥 تنزيل أو طرد أو حظر البوت
         elif isinstance(participant, (types.ChannelParticipantBanned, types.ChannelParticipantLeft)) and getattr(participant, "user_id", None) == me.id:
             try:
                 entity = await ABH.get_entity(update.channel_id)
@@ -32,9 +31,9 @@ async def monitor_bot_status(event):
             await asyncio.sleep(1)
             await ABH(LeaveChannelRequest(update.channel_id))
 
-    # ---------------------------------------------
-    # عند إضافة البوت إلى مجموعة عادية (غير قناة)
-    # ---------------------------------------------
+    # =========================================================
+    # 🟦 عند إضافة البوت إلى مجموعة عادية
+    # =========================================================
     elif isinstance(update, types.UpdateChatParticipantAdd):
         if update.user_id == me.id:
             entity = await ABH.get_entity(update.chat_id)
@@ -48,9 +47,9 @@ async def monitor_bot_status(event):
                 await asyncio.sleep(1)
                 await ABH(LeaveChannelRequest(update.chat_id))
 
-    # ---------------------------------------------
-    # عند حذف البوت من مجموعة عادية
-    # ---------------------------------------------
+    # =========================================================
+    # 🟨 عند حذف البوت من مجموعة عادية
+    # =========================================================
     elif isinstance(update, types.UpdateChatParticipantDelete):
         if update.user_id == me.id:
             entity = await ABH.get_entity(update.chat_id)
