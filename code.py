@@ -1,49 +1,49 @@
 from telethon import events
-from telethon.tl.types import UpdateChannelParticipant
+from telethon.tl.types import (
+    UpdateChannelParticipant,
+    UpdateChannelParticipantAdd,
+    UpdateChannelParticipantAdmin
+)
 from telethon.tl.functions.channels import LeaveChannelRequest
+from telethon.utils import get_display_name
 from Resources import *
 from ABH import ABH
 
 @ABH.on(events.Raw)
 async def monitor_everything(event):
     try:
-        print("📦 نوع التحديث:", type(event))
+        # طباعة نوع التحديث والمعرفات لأغراض التصحيح
+        channel_id = getattr(event, "channel_id", getattr(getattr(event, "channel", None), "id", None))
+        user_id = getattr(event, "user_id", getattr(getattr(event, "participant", None), "user_id", None))
+        print(f"📦 نوع التحديث: {type(event)}, channel_id: {channel_id}, user_id: {user_id}")
 
-        # نتحقق أن التحديث من نوع انضمام أو تغيير مشارك
-        if isinstance(event, UpdateChannelParticipant):
+        # التحقق من أن الحدث يخص تغيير المشاركين
+        if isinstance(event, (UpdateChannelParticipant, UpdateChannelParticipantAdd, UpdateChannelParticipantAdmin)):
             me = await ABH.get_me()
-
-            # استخراج معرف القناة والمستخدم بطريقة آمنة
-            channel_id = getattr(event, "channel_id", None)
-            user_id = getattr(event, "user_id", None)
-
-            # بعض الأنواع الفرعية من UpdateChannelParticipant تحتوي participant داخلي
-            if not user_id and hasattr(event, "participant"):
-                user_id = getattr(event.participant, "user_id", None)
 
             # فقط إذا الحدث يخص البوت نفسه
             if user_id == me.id and channel_id:
                 try:
-                    # نحاول جلب صلاحيات البوت داخل القناة
-                    perms = await ABH.get_permissions(channel_id, me.id)
                     entity = await ABH.get_entity(channel_id)
+                    perms = await ABH.get_permissions(channel_id, me.id)
 
                     if perms.is_admin:
-                        await ABH.send_message(
-                            entity,
-                            f"✅ اشكرك على الاضافه {await mention(event)}"
-                        )
+                        # جلب اسم المستخدم للترحيب
+                        try:
+                            user_entity = await ABH.get_entity(user_id)
+                            user_name = get_display_name(user_entity)
+                        except:
+                            user_name = "صديقي"
+                        await ABH.send_message(entity, f"✅ اشكرك على الاضافه {user_name}")
                     else:
-                        await ABH.send_message(
-                            entity,
-                            "⚠️ عذرًا، لا أستطيع البقاء هنا إلا إذا كنت مشرفًا."
-                        )
-                        await ABH(LeaveChannelRequest(channel_id))
-                except Exception as e:
-                    print(f"⚠️ خطأ أثناء التحقق من الصلاحيات: {e}")
+                        await ABH.send_message(entity, "⚠️ عذرًا، لا أستطيع البقاء هنا إلا إذا كنت مشرفًا.")
+                        try:
+                            await ABH(LeaveChannelRequest(channel_id))
+                        except Exception as leave_err:
+                            print(f"⚠️ خطأ أثناء مغادرة القناة: {leave_err}")
 
-        # else:
-        #     print("🧩 نوع تحديث آخر غير متعلق بالمشاركين.")
+                except Exception as e:
+                    print(f"⚠️ خطأ أثناء التحقق من الصلاحيات أو إرسال الرسائل: {e}")
 
     except Exception as e:
         print(f"🚨 حدث خطأ أثناء معالجة التحديث: {e}")
