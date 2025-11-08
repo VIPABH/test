@@ -28,8 +28,7 @@ async def monitor_everything(event):
         if perms.is_admin:
             await ABH.send_file(
                 entity,
-                'resources/AnimatedSticker.tgs',
-                mime_type='application/x-tgsticker')
+                'resources/AnimatedSticker.tgs')
             await ABH.send_message(entity, f"اشكرك على الاضافة وردة {mention}")
         else:
             await ABH.send_message(entity, "😢")
