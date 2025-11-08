@@ -7,12 +7,12 @@ from ABH import ABH
 
 @ABH.on(events.Raw)
 async def monitor_everything(event):
+        me = await ABH.get_me()
+        user_id = getattr(event, "user_id", getattr(getattr(event, "participant", None), "user_id", None))
     if not user_id == me.id:
         return
     if isinstance(event, UpdateChannelParticipant):
-        me = await ABH.get_me()
         channel_id = getattr(event, "channel_id", None)
-        user_id = getattr(event, "user_id", getattr(getattr(event, "participant", None), "user_id", None))
         participant = getattr(event, "participant", None)
         if (participant is None or isinstance(participant, ChannelParticipantBanned)):
             print(f"⚠️ البوت تم طرده أو حظره من القناة {channel_id}")
