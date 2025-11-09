@@ -42,8 +42,8 @@ async def monitor_everything(event):
                 print("[DEBUG] Bot is restricted!")
                 try:
                     await ABH.send_message(entity, "هاا تقييد؟ يله بيباي 👋")
-                except Exception as e:
-                    print(f"[DEBUG] Couldn't send message (maybe muted): {e}")
+                except:
+                    print(f"[DEBUG] return")
                 await asyncio.sleep(1)
                 await ABH(LeaveChannelRequest(channel_id))
                 return
