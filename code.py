@@ -1,7 +1,10 @@
 from telethon.errors import UserIsBlockedError, PeerIdInvalidError
 from telethon.tl.functions.channels import LeaveChannelRequest
+from telethon.tl.functions.messages import GetFullChatRequest
 from telethon import events, Button, types
 from ABH import ABH
+import asyncio
+
 @ABH.on(events.Raw)
 async def monitor_everything(event):
     try:
@@ -11,6 +14,8 @@ async def monitor_everything(event):
         user_id = getattr(event, "user_id", getattr(participant, "user_id", None))
         if user_id != me.id or channel_id is None or participant is None:
             return
+
+        # التحقق من تقييد البوت
         if isinstance(participant, types.ChannelParticipantRestricted):
             try:
                 entity = await ABH.get_entity(channel_id)
@@ -20,19 +25,28 @@ async def monitor_everything(event):
             await asyncio.sleep(1)
             await ABH(LeaveChannelRequest(channel_id))
             return
+
         update = getattr(event, "update", event)
         actor_id = getattr(update, "actor_id", None) or getattr(update, "user_id", None)
-        actor = await ABH.get_entity(actor_id)
-        mention = f"[{actor.first_name}](tg://user?id={actor.id})"
+
+        if actor_id:
+            actor = await ABH.get_entity(actor_id)
+            mention = f"[{actor.first_name}](tg://user?id={actor.id})"
+        else:
+            mention = "شخص مجهول"
+
         entity = await ABH.get_entity(channel_id)
         perms = await ABH.get_permissions(channel_id, me.id)
         message = await ABH.get_messages("recoursec", ids=22)
+
         chat = await event.get_input_chat()
         full_chat = await ABH(GetFullChatRequest(chat.chat_id))
         count = full_chat.full_chat.participants_count
+
         # if count < 50:
         #     await ABH(LeaveChannelRequest(channel_id))
         #     return
+
         if perms.is_admin:
             x = await ABH.send_file(entity, message.media)
             await ABH.send_message(entity, f"اشكرك على الاضافة وردة ( {mention} ) ", reply_to=x.id)
@@ -40,6 +54,7 @@ async def monitor_everything(event):
             await ABH.send_message(entity, "😢")
             await asyncio.sleep(1)
             await ABH(LeaveChannelRequest(channel_id))
+
     except Exception as e:
         print(e)
         return
