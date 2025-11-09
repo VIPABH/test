@@ -2,7 +2,8 @@ from telethon.errors import UserIsBlockedError, PeerIdInvalidError
 from telethon.tl.functions.channels import LeaveChannelRequest
 from telethon.tl.functions.messages import GetFullChatRequest
 from telethon.tl.functions.channels import GetFullChannelRequest
-from telethon import events, Button, types
+from telethon import events, Button
+from telethon.tl import types
 from ABH import ABH
 import asyncio
 import traceback
