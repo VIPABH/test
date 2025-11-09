@@ -55,6 +55,9 @@ async def monitor_restriction(event):
                 print("[STEP] البوت غادر القناة بسبب القيود")
         except Exception as err:
             print(type(event))
+            print(type(event))
+            print(type(event))
+            print(type(event))
             print(f"[ERROR] فشل الحصول على الصلاحيات: {err}")
 
     except Exception:
