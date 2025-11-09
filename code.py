@@ -30,19 +30,29 @@ async def monitor_bot_events(event):
             print(f"[DEBUG] Failed to get entity: {err}")
             return
 
-        # التحقق من تقييد البوت
+        # التحقق من التقييد بدقة أكبر
         try:
             perms = await ABH.get_permissions(entity, me.id)
             print(f"[DEBUG] Bot permissions: {perms}")
-            if getattr(perms, "banned_rights", None):
-                print("[DEBUG] Bot is restricted!")
-                try:
-                    await ABH.send_message(entity, "هاا تقييد؟ يله بيباي 👋")
-                except Exception as e:
-                    print(f"[DEBUG] Couldn't send message (maybe muted): {e}")
-                await asyncio.sleep(1)
-                await ABH(LeaveChannelRequest(channel_id))
-                return
+
+            banned = getattr(perms, "banned_rights", None)
+            if banned:
+                # تحقق من أي تقييد يخص إرسال الرسائل أو الوسائط أو الملصقات
+                restricted = (
+                    getattr(banned, "send_messages", True) is False or
+                    getattr(banned, "send_media", True) is False or
+                    getattr(banned, "send_stickers", True) is False
+                )
+                if restricted:
+                    print("[DEBUG] Bot is restricted in sending content!")
+                    try:
+                        await ABH.send_message(entity, "هاا تقييد؟ يله بيباي 👋")
+                    except Exception as e:
+                        print(f"[DEBUG] Couldn't send message (maybe muted): {e}")
+                    await asyncio.sleep(1)
+                    await ABH(LeaveChannelRequest(channel_id))
+                    return
+
         except Exception as err:
             print(f"[DEBUG] Failed to get permissions: {err}")
 
