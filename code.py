@@ -54,11 +54,11 @@ async def monitor_restriction(event):
                 await ABH(LeaveChannelRequest(channel_id))
                 print("[STEP] البوت غادر القناة بسبب القيود")
         except Exception as err:
+            print(type(event))
             print(f"[ERROR] فشل الحصول على الصلاحيات: {err}")
 
     except Exception:
-        print(type(event))
+        
         
         print("[ERROR] Exception occurred:")
         traceback.print_exc()
-
