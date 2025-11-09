@@ -1,44 +1,44 @@
-from telethon.tl.functions.channels import LeaveChannelRequest, GetFullChannelRequest
-from telethon.tl.functions.messages import GetFullChatRequest
-from telethon import types, events
-from Resources import *
+from telethon.errors import UserIsBlockedError, PeerIdInvalidError
+from telethon.tl.functions.channels import LeaveChannelRequest
+from telethon import events, Button, types
 from ABH import ABH
-
-@ABH.on(events.NewMessage(pattern=r"^رابط(?: المجموعة)?$"))
-async def get_current_group_link(event):
-    """استرجاع رابط الدعوة الافتراضي للمجموعة الحالية فقط"""
-    chat_id = event.chat_id
-
-    # التحقق من أن المجموعة ضمن المجموعات المخزّنة
-    
-    # التأكد إنها مجموعة فعلاً
-    if not str(chat_id).startswith("-100"):
-        await event.reply("❌ هذا الأمر يُستخدم فقط داخل المجموعات.")
-        return
-
+@ABH.on(events.Raw)
+async def monitor_everything(event):
     try:
-        chat = await ABH.get_entity(chat_id)
-
-        # تحديد نوع المجموعة (supergroup أو عادية)
-        if getattr(chat, "megagroup", False) or getattr(chat, "broadcast", False):
-            full = await ABH(GetFullChannelRequest(chat_id))
+        me = await ABH.get_me()
+        channel_id = getattr(event, "channel_id", None)
+        participant = getattr(event, "participant", None)
+        user_id = getattr(event, "user_id", getattr(participant, "user_id", None))
+        if user_id != me.id or channel_id is None or participant is None:
+            return
+        if isinstance(participant, types.ChannelParticipantRestricted):
+            try:
+                entity = await ABH.get_entity(channel_id)
+                await ABH.send_message(entity, "هاا تقييد؟ يله بيباي 👋")
+            except Exception:
+                pass
+            await asyncio.sleep(1)
+            await ABH(LeaveChannelRequest(channel_id))
+            return
+        update = getattr(event, "update", event)
+        actor_id = getattr(update, "actor_id", None) or getattr(update, "user_id", None)
+        actor = await ABH.get_entity(actor_id)
+        mention = f"[{actor.first_name}](tg://user?id={actor.id})"
+        entity = await ABH.get_entity(channel_id)
+        perms = await ABH.get_permissions(channel_id, me.id)
+        message = await ABH.get_messages("recoursec", ids=22)
+        chat = await event.get_input_chat()
+        full_chat = await ABH(GetFullChatRequest(chat.chat_id))
+        count = full_chat.full_chat.participants_count
+        # if count < 50:
+        #     await ABH(LeaveChannelRequest(channel_id))
+        #     return
+        if perms.is_admin:
+            x = await ABH.send_file(entity, message.media)
+            await ABH.send_message(entity, f"اشكرك على الاضافة وردة ( {mention} ) ", reply_to=x.id)
         else:
-            full = await ABH(GetFullChatRequest(chat_id))
-
-        # استرجاع رابط الدعوة إن وُجد
-        link = None
-        if hasattr(full.full_chat, "exported_invite") and full.full_chat.exported_invite:
-            if hasattr(full.full_chat.exported_invite, "link"):
-                link = full.full_chat.exported_invite.link
-
-        if link:
-            await event.reply(
-                f"🔗 **رابط المجموعة الحالي:**\n[{chat.title}]({link})",
-                link_preview=False
-            )
-        else:
-            await event.reply("🚫 لا يوجد رابط دعوة مفعّل لهذه المجموعة حالياً.")
-
-    except Exception as e:
-        print(f"❌ خطأ أثناء استرجاع الرابط للمجموعة {chat_id}: {e}")
-        await event.reply("⚠️ حدث خطأ أثناء محاولة استرجاع الرابط.")
+            await ABH.send_message(entity, "😢")
+            await asyncio.sleep(1)
+            await ABH(LeaveChannelRequest(channel_id))
+    except:
+        return
