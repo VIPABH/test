@@ -8,99 +8,67 @@ from ABH import ABH
 import asyncio
 import traceback
 
-@ABH.on(events.Raw)
-async def monitor_everything(event):
+@ABH.on(events.ChatAction)
+async def monitor_restrictions(event):
     try:
         me = await ABH.get_me()
         print(f"[DEBUG] Logged in as: {me.id} ({me.first_name})")
 
-        channel_id = getattr(event, "channel_id", None)
-        participant = getattr(event, "participant", None)
-        user_id = getattr(event, "user_id", getattr(participant, "user_id", None))
+        # نراقب فقط إضافتنا أو تغييراتنا
+        if event.user_added or event.user_joined or event.user_left or event.user_kicked:
+            # التأكد أن الحدث يخص البوت نفسه
+            affected_ids = [user.id for user in getattr(event, "users", [])] if hasattr(event, "users") else []
+            if me.id not in affected_ids:
+                print("[DEBUG] Skipped: event does not affect bot.")
+                return
 
-        print(f"[DEBUG] channel_id: {channel_id}")
-        print(f"[DEBUG] participant: {type(participant).__name__ if participant else None}")
-        print(f"[DEBUG] user_id: {user_id}")
+            channel_id = event.chat_id
+            print(f"[DEBUG] Event affects bot in chat: {channel_id}")
 
-        if user_id != me.id or channel_id is None:
-            print("[DEBUG] Skipped: not related to me or missing data.")
-            return
+            # الحصول على كيان المجموعة
+            try:
+                entity = await ABH.get_entity(channel_id)
+                print(f"[DEBUG] entity: {entity.id}")
+            except Exception as err:
+                print(f"[DEBUG] Failed to get entity: {err}")
+                return
 
-        # الحصول على كيان المجموعة
-        try:
-            entity = await ABH.get_entity(channel_id)
-            print(f"[DEBUG] entity: {entity.id}")
-        except Exception as err:
-            print(f"[DEBUG] Failed to get entity: {err}")
-            return
+            # التحقق من تقييد البوت باستخدام صلاحياته
+            try:
+                perms = await ABH.get_permissions(entity, me.id)
+                print(f"[DEBUG] permissions: {perms}")
+                if getattr(perms, "banned_rights", None):
+                    print("[DEBUG] Bot is restricted!")
+                    try:
+                        await ABH.send_message(entity, "هاا تقييد؟ يله بيباي 👋")
+                    except Exception as e:
+                        print(f"[DEBUG] Couldn't send message (maybe muted): {e}")
+                    await asyncio.sleep(1)
+                    await ABH(LeaveChannelRequest(channel_id))
+                    return
+            except Exception as err:
+                print(f"[DEBUG] Failed to get permissions: {err}")
 
-        # التحقق من تقييد البوت باستخدام صلاحياته
-        try:
-            perms = await ABH.get_permissions(entity, me.id)
-            print(f"[DEBUG] permissions: {perms}")
-            if getattr(perms, "banned_rights", None):
-                print("[DEBUG] Bot is restricted!")
+            # الرد على الإضافة أو الطرد
+            if getattr(perms, "is_admin", False):
+                print("[DEBUG] Bot is admin, sending thank-you message.")
                 try:
-                    await ABH.send_message(entity, "هاا تقييد؟ يله بيباي 👋")
+                    message = await ABH.get_messages("recoursec", ids=22)
+                    if message and getattr(message, "media", None):
+                        x = await ABH.send_file(entity, message.media)
+                        await ABH.send_message(entity, f"اشكرك على الاضافة ( {me.first_name} ) ", reply_to=x.id)
+                    else:
+                        await ABH.send_message(entity, f"اشكرك على الاضافة ( {me.first_name} )")
                 except Exception as e:
-                    print(f"[DEBUG] Couldn't send message (maybe muted): {e}")
+                    print(f"[DEBUG] Failed to send thank-you message: {e}")
+            else:
+                print("[DEBUG] Bot is not admin, leaving group.")
+                try:
+                    await ABH.send_message(entity, "😢")
+                except:
+                    pass
                 await asyncio.sleep(1)
                 await ABH(LeaveChannelRequest(channel_id))
-                return
-        except Exception as err:
-            print(f"[DEBUG] Failed to get permissions: {err}")
-
-        # التعامل مع actor
-        update = getattr(event, "update", event)
-        actor_id = getattr(update, "actor_id", None) or getattr(update, "user_id", None)
-        print(f"[DEBUG] actor_id: {actor_id}")
-
-        mention = "شخص مجهول"
-        if actor_id:
-            try:
-                actor = await ABH.get_entity(actor_id)
-                mention = f"[{getattr(actor, 'first_name', 'مستخدم')}](tg://user?id={actor.id})"
-                print(f"[DEBUG] actor: {actor.id} ({actor.first_name})")
-            except Exception as err:
-                print(f"[DEBUG] Failed to get actor entity: {err}")
-
-        # الحصول على الرسالة المرجعية
-        try:
-            message = await ABH.get_messages("recoursec", ids=22)
-            print(f"[DEBUG] message found: {bool(message)}")
-        except Exception as err:
-            print(f"[DEBUG] Failed to get message: {err}")
-            message = None
-
-        # الحصول على عدد المشاركين
-        count = None
-        try:
-            chat = await event.get_input_chat()
-            try:
-                full_chat = await ABH(GetFullChatRequest(chat.chat_id))
-                count = full_chat.full_chat.participants_count
-                print(f"[DEBUG] participants_count: {count}")
-            except Exception:
-                full_ch = await ABH(GetFullChannelRequest(channel=channel_id))
-                count = full_ch.full_chat.participants_count
-                print(f"[DEBUG] participants_count (channel): {count}")
-        except Exception as err:
-            print(f"[DEBUG] Failed to get participants count: {err}")
-            count = None
-
-        # إرسال الرسالة أو المغادرة حسب صلاحيات الادمن
-        if getattr(perms, "is_admin", False):
-            print("[DEBUG] Bot is admin, sending thank-you message.")
-            if message and getattr(message, "media", None):
-                x = await ABH.send_file(entity, message.media)
-                await ABH.send_message(entity, f"اشكرك على الاضافة وردة ( {mention} ) ", reply_to=x.id)
-            else:
-                await ABH.send_message(entity, f"اشكرك على الاضافة ( {mention} )")
-        else:
-            print("[DEBUG] Bot is not admin, leaving group.")
-            await ABH.send_message(entity, "😢")
-            await asyncio.sleep(1)
-            await ABH(LeaveChannelRequest(channel_id))
 
     except Exception:
         print("[ERROR] Exception occurred:")
