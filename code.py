@@ -6,9 +6,10 @@ import traceback
 
 @ABH.on(events.Raw)
 async def monitor_restriction(event):
+    if not type(event) == telethon.tl.types.UpdateChannelParticipant:
+        return
     try:
         me = await ABH.get_me()
-
         # استخراج channel_id و user_id
         channel_id = getattr(event, "channel_id", None)
         participant = getattr(event, "participant", None)
