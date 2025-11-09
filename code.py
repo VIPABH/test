@@ -22,7 +22,11 @@ async def monitor_restriction(event):
         perms = await ABH.get_permissions(entity, me.id)
         group_name = getattr(entity, "title", None)
         full = await ABH(GetFullChannelRequest(channel_id))
-        print(full)
+        link = getattr(full.full_chat, 'username', None)
+        if link:
+            link = f"https://t.me/{link}"
+        else:
+            link = "لا يوجد رابط عام"
         if not perms.is_admin:
             await ABH.send_message(entity, "ها صارت بيها تقييد مو😁؟ سهله")
             await hint(f"خرجت من مجموعة ( {group_name} ) \n ايديها ( {channel_id} ) \n الرابط ( {link} )")
