@@ -1,4 +1,5 @@
 from telethon.tl.functions.channels import LeaveChannelRequest
+from telethon.tl.types import UpdateChannelParticipant
 from telethon import events
 from ABH import ABH
 import asyncio
