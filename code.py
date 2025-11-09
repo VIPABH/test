@@ -17,13 +17,13 @@ async def monitor_restriction(event):
             channel_id = event.chat_id
         if user_id != me.id or channel_id is None:
             return
-        try:
-            entity = await ABH.get_entity(channel_id)
-            await ABH.send_message(entity, "البوت عنده قيود 👋")
-        except:
-            return
         perms = await ABH.get_permissions(entity, me.id)
         if not perms.is_admin:
+            try:
+                entity = await ABH.get_entity(channel_id)
+                await ABH.send_message(entity, "البوت عنده قيود 👋")
+            except:
+                return
             await asyncio.sleep(1)
             await ABH(LeaveChannelRequest(channel_id))
     except:
