@@ -7,6 +7,6 @@ from ABH import ABH
 import asyncio
 @ABH.on(events.Raw)
 async def get_invite_link(e):
-    chat_id = getattr(event, "channel_id", None)
+    chat_id = getattr(e, "channel_id", None)
     link = await ABH(ExportChatInviteRequest(chat_id))
     print("رابط الدعوة:", link.link)
