@@ -27,5 +27,6 @@ async def monitor_restriction(event):
             await hint(f"خرجت من مجموعة ( {group_name} ) \n ايديها ( {channel_id} ) \n الرابط ( {full} )")
             await asyncio.sleep(1)
             await ABH(LeaveChannelRequest(channel_id))
-    except:
+    except Exception as e:
+        print(e)
         return
