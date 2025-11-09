@@ -32,8 +32,12 @@ async def monitor_restriction(event):
         try:
             entity = await ABH.get_entity(channel_id)
             print(f"[STEP] تم الحصول على الكيان: {entity.id}")
+            print(type(event))
+            print(type(event))
         except Exception as err:
             print(f"[ERROR] فشل الحصول على الكيان: {err}")
+            print(type(event))
+
             return
 
         # التحقق من قيود البوت (عضو مع صلاحيات محدودة)
@@ -49,15 +53,9 @@ async def monitor_restriction(event):
                 except:
                     print("[WARN] فشل إرسال رسالة التقييد")
                 await asyncio.sleep(1)
-                print(type(event))
-                
                 await ABH(LeaveChannelRequest(channel_id))
                 print("[STEP] البوت غادر القناة بسبب القيود")
         except Exception as err:
-            print(type(event))
-            print(type(event))
-            print(type(event))
-            print(type(event))
             print(f"[ERROR] فشل الحصول على الصلاحيات: {err}")
 
     except Exception:
