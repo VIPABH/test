@@ -23,5 +23,6 @@ async def monitor_restriction(event):
             await ABH.send_message(entity, "البوت عنده قيود 👋")
             await asyncio.sleep(1)
             await ABH(LeaveChannelRequest(channel_id))
-    except:
+    except Exception as e:
+        print(e)
         return
