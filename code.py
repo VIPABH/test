@@ -1,9 +1,6 @@
 from telethon.errors import UserIsBlockedError, PeerIdInvalidError
 from telethon.tl.functions.channels import LeaveChannelRequest
-from telethon.tl.functions.messages import GetFullChatRequest
-from telethon.tl.functions.channels import GetFullChannelRequest
-from telethon import events, Button
-from telethon.tl import types
+from telethon import events
 from ABH import ABH
 import asyncio
 import traceback
@@ -14,19 +11,27 @@ async def monitor_everything(event):
         me = await ABH.get_me()
         print(f"[DEBUG] Logged in as: {me.id} ({me.first_name})")
 
+        # محاولة استخراج user_id و channel_id بأكثر من طريقة
         channel_id = getattr(event, "channel_id", None)
         participant = getattr(event, "participant", None)
-        user_id = getattr(event, "user_id", getattr(participant, "user_id", None))
+        user_id = getattr(event, "user_id", None) or getattr(participant, "user_id", None)
 
         print(f"[DEBUG] channel_id: {channel_id}")
         print(f"[DEBUG] participant: {type(participant).__name__ if participant else None}")
         print(f"[DEBUG] user_id: {user_id}")
 
+        # fallback: لو user_id غير موجود، نفحص إذا الحدث مرتبط بالبوت بطريقة أخرى
+        if user_id is None and hasattr(event, "chat_id"):
+            user_id = me.id
+            channel_id = event.chat_id
+            print(f"[DEBUG] Fallback: using chat_id as channel_id and bot's id as user_id")
+
+        # تجاهل الأحداث غير المتعلقة بالبوت أو بدون channel_id
         if user_id != me.id or channel_id is None:
             print("[DEBUG] Skipped: not related to me or missing data.")
             return
 
-        # الحصول على كيان المجموعة
+        # الحصول على كيان القناة أو المجموعة
         try:
             entity = await ABH.get_entity(channel_id)
             print(f"[DEBUG] entity: {entity.id}")
@@ -34,7 +39,7 @@ async def monitor_everything(event):
             print(f"[DEBUG] Failed to get entity: {err}")
             return
 
-        # التحقق من تقييد البوت باستخدام صلاحياته
+        # التحقق من تقييد البوت
         try:
             perms = await ABH.get_permissions(entity, me.id)
             print(f"[DEBUG] permissions: {perms}")
@@ -43,66 +48,13 @@ async def monitor_everything(event):
                 try:
                     await ABH.send_message(entity, "هاا تقييد؟ يله بيباي 👋")
                 except:
-                    print(f"[DEBUG] return")
+                    print("[DEBUG] Failed to send restriction message")
                 await asyncio.sleep(1)
                 await ABH(LeaveChannelRequest(channel_id))
                 return
         except Exception as err:
             print(f"[DEBUG] Failed to get permissions: {err}")
 
-        # # التعامل مع actor
-        # update = getattr(event, "update", event)
-        # actor_id = getattr(update, "actor_id", None) or getattr(update, "user_id", None)
-        # print(f"[DEBUG] actor_id: {actor_id}")
-
-        # mention = "شخص مجهول"
-        # if actor_id:
-        #     try:
-        #         actor = await ABH.get_entity(actor_id)
-        #         mention = f"[{getattr(actor, 'first_name', 'مستخدم')}](tg://user?id={actor.id})"
-        #         print(f"[DEBUG] actor: {actor.id} ({actor.first_name})")
-        #     except Exception as err:
-        #         print(f"[DEBUG] Failed to get actor entity: {err}")
-
-        # # الحصول على الرسالة المرجعية
-        # try:
-        #     message = await ABH.get_messages("recoursec", ids=22)
-        #     print(f"[DEBUG] message found: {bool(message)}")
-        # except Exception as err:
-        #     print(f"[DEBUG] Failed to get message: {err}")
-        #     message = None
-
-        # # الحصول على عدد المشاركين
-        # count = None
-        # try:
-        #     chat = await event.get_input_chat()
-        #     try:
-        #         full_chat = await ABH(GetFullChatRequest(chat.chat_id))
-        #         count = full_chat.full_chat.participants_count
-        #         print(f"[DEBUG] participants_count: {count}")
-        #     except Exception:
-        #         full_ch = await ABH(GetFullChannelRequest(channel=channel_id))
-        #         count = full_ch.full_chat.participants_count
-        #         print(f"[DEBUG] participants_count (channel): {count}")
-        # except Exception as err:
-        #     print(f"[DEBUG] Failed to get participants count: {err}")
-        #     count = None
-
-        # # إرسال الرسالة أو المغادرة حسب صلاحيات الادمن
-        # if getattr(perms, "is_admin", False):
-        #     print("[DEBUG] Bot is admin, sending thank-you message.")
-        #     if message and getattr(message, "media", None):
-        #         x = await ABH.send_file(entity, message.media)
-        #         await ABH.send_message(entity, f"اشكرك على الاضافة وردة ( {mention} ) ", reply_to=x.id)
-        #     else:
-        #         await ABH.send_message(entity, f"اشكرك على الاضافة ( {mention} )")
-        # else:
-        #     print("[DEBUG] Bot is not admin, leaving group.")
-        #     await ABH.send_message(entity, "😢")
-        #     await asyncio.sleep(1)
-        #     await ABH(LeaveChannelRequest(channel_id))
-
     except Exception:
         print("[ERROR] Exception occurred:")
         traceback.print_exc()
-        return
