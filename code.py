@@ -47,6 +47,8 @@ async def monitor_restriction(event):
                 except:
                     print("[WARN] فشل إرسال رسالة التقييد")
                 await asyncio.sleep(1)
+                print(type(event))
+                
                 await ABH(LeaveChannelRequest(channel_id))
                 print("[STEP] البوت غادر القناة بسبب القيود")
         except Exception as err:
