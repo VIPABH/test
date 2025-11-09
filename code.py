@@ -1,4 +1,3 @@
-from telethon.errors import UserIsBlockedError, PeerIdInvalidError
 from telethon.tl.functions.channels import LeaveChannelRequest
 from telethon import events
 from ABH import ABH
@@ -35,23 +34,25 @@ async def monitor_restriction(event):
             print(f"[ERROR] فشل الحصول على الكيان: {err}")
             return
 
-        # التحقق من صلاحيات البوت
+        # التحقق من قيود البوت (عضو مع صلاحيات محدودة)
         try:
             perms = await ABH.get_permissions(entity, me.id)
             print(f"[STEP] صلاحيات البوت تم الحصول عليها")
-            
-            if getattr(perms, "banned_rights", None):
-                print("[ALERT] تم تقييد البوت! 👋")
+
+            # إذا البوت ليس مدير، أي أنه عضو مع قيود
+            if not perms.is_admin:
+                print("[ALERT] البوت عضو مع قيود (res) 👋")
                 try:
-                    await ABH.send_message(entity, "هاا تقييد؟ يله بيباي 👋")
+                    await ABH.send_message(entity, "البوت عنده قيود 👋")
                 except:
                     print("[WARN] فشل إرسال رسالة التقييد")
                 await asyncio.sleep(1)
                 await ABH(LeaveChannelRequest(channel_id))
-                print("[STEP] البوت غادر القناة بعد التقييد")
+                print("[STEP] البوت غادر القناة بسبب القيود")
         except Exception as err:
             print(f"[ERROR] فشل الحصول على الصلاحيات: {err}")
 
     except Exception:
         print("[ERROR] Exception occurred:")
         traceback.print_exc()
+
