@@ -22,6 +22,7 @@ async def monitor_restriction(event):
         perms = await ABH.get_permissions(entity, me.id)
         group_name = getattr(entity, "title", None)
         full = await ABH(GetFullChannelRequest(channel_id))
+        link = None
         if hasattr(full.full_chat, "exported_invite") and full.full_chat.exported_invite:
             if hasattr(full.full_chat.exported_invite, "link"):
                 link = full.full_chat.exported_invite.link
