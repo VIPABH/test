@@ -40,5 +40,6 @@ async def monitor_everything(event):
             await ABH.send_message(entity, "😢")
             await asyncio.sleep(1)
             await ABH(LeaveChannelRequest(channel_id))
-    except:
+    except Exception as e:
+        print(e)
         return
