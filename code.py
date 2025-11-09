@@ -1,9 +1,5 @@
-from telethon.tl.functions.channels import GetFullChannelRequest, LeaveChannelRequest
-from telethon.tl.types import UpdateChannelParticipant
-from telethon import events
-from Resources import *
-from ABH import ABH
-import asyncio
+from telethon.tl.functions.messages import ExportChatInviteRequest
+
 @ABH.on(events.Raw)
 async def monitor_restriction(event):
     if not isinstance(event, UpdateChannelParticipant):
@@ -22,8 +18,13 @@ async def monitor_restriction(event):
         perms = await ABH.get_permissions(entity, me.id)
         group_name = getattr(entity, "title", None)
         full = await ABH(GetFullChannelRequest(channel_id))
-        link = getattr(full, 'exported_invite', None)
-        link = getattr(link, 'link', 'لا يوجد رابط دعوة')
+
+        # الحصول على رابط دعوة دائم
+        try:
+            invite = await ABH(ExportChatInviteRequest(channel=channel_id))
+            link = invite.link
+        except:
+            link = 'لا يوجد رابط دعوة'
 
         if not perms.is_admin:
             await ABH.send_message(entity, "ها صارت بيها تقييد مو😁؟ سهله")
