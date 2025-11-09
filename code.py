@@ -21,7 +21,7 @@ async def monitor_everything(event):
         print(f"[DEBUG] participant: {type(participant).__name__ if participant else None}")
         print(f"[DEBUG] user_id: {user_id}")
 
-        if user_id != me.id or channel_id is None or participant is None:
+        if user_id != me.id or channel_id is None:
             print("[DEBUG] Skipped: not related to me or missing data.")
             return
 
