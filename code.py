@@ -57,6 +57,8 @@ async def monitor_restriction(event):
             print(f"[ERROR] فشل الحصول على الصلاحيات: {err}")
 
     except Exception:
+        print(type(event))
+        
         print("[ERROR] Exception occurred:")
         traceback.print_exc()
 
