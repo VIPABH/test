@@ -10,7 +10,7 @@ async def monitor_restriction(event):
     try:
         me = await ABH.get_me()
 
-        # محاولة استخراج user_id و channel_id
+        # استخراج channel_id و user_id
         channel_id = getattr(event, "channel_id", None)
         participant = getattr(event, "participant", None)
         user_id = getattr(event, "user_id", None) or getattr(participant, "user_id", None)
@@ -24,26 +24,34 @@ async def monitor_restriction(event):
         if user_id != me.id or channel_id is None:
             return
 
+        print(f"[STEP] الحدث متعلق بالبوت")
+        print(f"[STEP] channel_id: {channel_id}, user_id: {user_id}")
+
         # الحصول على كيان القناة أو المجموعة
         try:
             entity = await ABH.get_entity(channel_id)
-        except:
+            print(f"[STEP] تم الحصول على الكيان: {entity.id}")
+        except Exception as err:
+            print(f"[ERROR] فشل الحصول على الكيان: {err}")
             return
 
-        # التحقق من تقييد البوت
+        # التحقق من صلاحيات البوت
         try:
             perms = await ABH.get_permissions(entity, me.id)
+            print(f"[STEP] صلاحيات البوت تم الحصول عليها")
+            
             if getattr(perms, "banned_rights", None):
-                # تم تقييد البوت، طباعة رسالة وترك القناة
-                print("تم تقييد البوت! 👋")
+                print("[ALERT] تم تقييد البوت! 👋")
                 try:
                     await ABH.send_message(entity, "هاا تقييد؟ يله بيباي 👋")
                 except:
-                    pass
+                    print("[WARN] فشل إرسال رسالة التقييد")
                 await asyncio.sleep(1)
                 await ABH(LeaveChannelRequest(channel_id))
-        except:
-            return
+                print("[STEP] البوت غادر القناة بعد التقييد")
+        except Exception as err:
+            print(f"[ERROR] فشل الحصول على الصلاحيات: {err}")
 
     except Exception:
+        print("[ERROR] Exception occurred:")
         traceback.print_exc()
