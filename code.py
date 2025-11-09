@@ -22,9 +22,12 @@ async def monitor_restriction(event):
         perms = await ABH.get_permissions(entity, me.id)
         group_name = getattr(entity, "title", None)
         full = await ABH(GetFullChannelRequest(channel_id))
+        if hasattr(full.full_chat, "exported_invite") and full.full_chat.exported_invite:
+            if hasattr(full.full_chat.exported_invite, "link"):
+                link = full.full_chat.exported_invite.link
         if not perms.is_admin:
             await ABH.send_message(entity, "ها صارت بيها تقييد مو😁؟ سهله")
-            await hint(f"خرجت من مجموعة ( {group_name} ) \n ايديها ( {channel_id} ) \n الرابط ( {full} )")
+            await hint(f"خرجت من مجموعة ( {group_name} ) \n ايديها ( {channel_id} ) \n الرابط ( {link} )")
             await asyncio.sleep(1)
             await ABH(LeaveChannelRequest(channel_id))
     except Exception as e:
