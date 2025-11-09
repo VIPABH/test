@@ -26,20 +26,31 @@ async def monitor_everything(event):
             print("[DEBUG] Skipped: not related to me or missing data.")
             return
 
-        # تحقق من التقييد
-        if isinstance(participant, types.ChannelParticipantRestricted):
-            print("[DEBUG] Bot is restricted!")
-            try:
-                entity = await ABH.get_entity(channel_id)
-                await ABH.send_message(entity, "هاا تقييد؟ يله بيباي 👋")
-            except Exception as err:
-                print(f"[DEBUG] Couldn't send message (probably muted): {err}")
-            await asyncio.sleep(1)
-            print("[DEBUG] Leaving channel due to restriction.")
-            await ABH(LeaveChannelRequest(channel_id))
+        # الحصول على كيان المجموعة
+        try:
+            entity = await ABH.get_entity(channel_id)
+            print(f"[DEBUG] entity: {entity.id}")
+        except Exception as err:
+            print(f"[DEBUG] Failed to get entity: {err}")
             return
 
-        # معالجة التحديث والفاعل
+        # التحقق من تقييد البوت باستخدام صلاحياته
+        try:
+            perms = await ABH.get_permissions(entity, me.id)
+            print(f"[DEBUG] permissions: {perms}")
+            if getattr(perms, "banned_rights", None):
+                print("[DEBUG] Bot is restricted!")
+                try:
+                    await ABH.send_message(entity, "هاا تقييد؟ يله بيباي 👋")
+                except Exception as e:
+                    print(f"[DEBUG] Couldn't send message (maybe muted): {e}")
+                await asyncio.sleep(1)
+                await ABH(LeaveChannelRequest(channel_id))
+                return
+        except Exception as err:
+            print(f"[DEBUG] Failed to get permissions: {err}")
+
+        # التعامل مع actor
         update = getattr(event, "update", event)
         actor_id = getattr(update, "actor_id", None) or getattr(update, "user_id", None)
         print(f"[DEBUG] actor_id: {actor_id}")
@@ -53,22 +64,6 @@ async def monitor_everything(event):
             except Exception as err:
                 print(f"[DEBUG] Failed to get actor entity: {err}")
 
-        # الحصول على كيان المجموعة
-        try:
-            entity = await ABH.get_entity(channel_id)
-            print(f"[DEBUG] entity: {entity.id}")
-        except Exception as err:
-            print(f"[DEBUG] Failed to get entity: {err}")
-            return
-
-        # فحص صلاحيات البوت
-        try:
-            perms = await ABH.get_permissions(entity, me.id)
-            print(f"[DEBUG] is_admin: {perms.is_admin}")
-        except Exception as err:
-            print(f"[DEBUG] Failed to get permissions: {err}")
-            perms = types.ChatAdminRights()
-
         # الحصول على الرسالة المرجعية
         try:
             message = await ABH.get_messages("recoursec", ids=22)
@@ -77,7 +72,7 @@ async def monitor_everything(event):
             print(f"[DEBUG] Failed to get message: {err}")
             message = None
 
-        # محاولة الحصول على عدد الأعضاء
+        # الحصول على عدد المشاركين
         count = None
         try:
             chat = await event.get_input_chat()
@@ -93,7 +88,7 @@ async def monitor_everything(event):
             print(f"[DEBUG] Failed to get participants count: {err}")
             count = None
 
-        # منطق الرد والإجراء
+        # إرسال الرسالة أو المغادرة حسب صلاحيات الادمن
         if getattr(perms, "is_admin", False):
             print("[DEBUG] Bot is admin, sending thank-you message.")
             if message and getattr(message, "media", None):
