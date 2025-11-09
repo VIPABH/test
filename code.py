@@ -6,7 +6,7 @@ import traceback
 
 @ABH.on(events.Raw)
 async def monitor_restriction(event):
-    if not type(event) == "telethon.tl.types.UpdateChannelParticipant":
+    if not isinstance(event, UpdateChannelParticipant):
         return
     try:
         me = await ABH.get_me()
