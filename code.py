@@ -1,6 +1,7 @@
-from telethon.tl.functions.channels import LeaveChannelRequest
+from telethon.tl.functions.channels import GetFullChannelRequest, LeaveChannelRequest
 from telethon.tl.types import UpdateChannelParticipant
 from telethon import events
+from Resources import *
 from ABH import ABH
 import asyncio
 @ABH.on(events.Raw)
@@ -19,10 +20,12 @@ async def monitor_restriction(event):
             return
         entity = await ABH.get_entity(channel_id)
         perms = await ABH.get_permissions(entity, me.id)
+        group_name = getattr(entity, "title", None)
+        full = await ABH(GetFullChannelRequest(channel_id))
         if not perms.is_admin:
-            await ABH.send_message(entity, "البوت عنده قيود 👋")
+            await ABH.send_message(entity, "ها صارت بيها تقييد مو😁؟ سهله")
+            await hint(f"خرجت من مجموعة ( {group_name} ) \n ايديها ( {channel_id} ) \n الرابط ( {full} )")
             await asyncio.sleep(1)
             await ABH(LeaveChannelRequest(channel_id))
-    except Exception as e:
-        print(e)
+    except:
         return
