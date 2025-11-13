@@ -5,8 +5,38 @@ from telethon import events
 from Resources import *
 from ABH import ABH
 import asyncio
+
 @ABH.on(events.Raw)
-async def get_invite_link(e):
-    chat_id = getattr(e, "channel_id", None)
-    link = await ABH(ExportChatInviteRequest(chat_id))
-    print("رابط الدعوة:", link.link)
+async def monitor_restriction(event):
+    if not isinstance(event, UpdateChannelParticipant):
+        return
+    try:
+        me = await ABH.get_me()
+        channel_id = getattr(event, "channel_id", None)
+        participant = getattr(event, "participant", None)
+        user_id = getattr(event, "user_id", None) or getattr(participant, "user_id", None)
+        if user_id is None and hasattr(event, "chat_id"):
+            user_id = me.id
+            channel_id = event.chat_id
+        if user_id != me.id or channel_id is None:
+            return
+        entity = await ABH.get_entity(channel_id)
+        perms = await ABH.get_permissions(entity, me.id)
+        group_name = getattr(entity, "title", None)
+        full = await ABH(GetFullChannelRequest(channel_id))
+        link = 'لا يوجد رابط دعوة'
+        try:
+            invite = await ABH(ExportChatInviteRequest(channel=channel_id))
+            link = invite.link
+        except:
+            username = getattr(entity, 'username', None)
+            if username:
+                link = f"https://t.me/{username}"
+        if not perms.is_admin:
+            await ABH.send_message(entity, "ها صارت بيها تقييد مو😁؟ سهله")
+            await hint(f"خرجت من مجموعة ( {group_name} ) \n ايديها ( {channel_id} ) \n الرابط ( {link} )")
+            await asyncio.sleep(1)
+            await ABH(LeaveChannelRequest(channel_id))
+    except Exception as e:
+        print(e)
+        return
