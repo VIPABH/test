@@ -3,40 +3,52 @@ from telethon.tl.functions.messages import ExportChatInviteRequest
 from telethon.tl.types import UpdateChannelParticipant
 from telethon import events
 from Resources import *
-from ABH import ABH
+from ABH import ABH as client
 import asyncio
+# run.py
+from telethon import TelegramClient, events
+import sys
+import os
 
-@ABH.on(events.Raw)
-async def monitor_restriction(event):
-    if not isinstance(event, UpdateChannelParticipant):
-        return
+# ------------------ دوال أمثلة ------------------
+# أي دالة تضيفها هنا تصبح أمر تلقائي
+async def تيست(e, args):
+    await e.reply(f"✅ دالة تيست تعمل، والمعاملات: {args}")
+
+async def مرحبا(e, args):
+    await e.reply("أهلاً وسهلاً بك ❤️")
+
+async def حساب(e, args):
     try:
-        me = await ABH.get_me()
-        channel_id = getattr(event, "channel_id", None)
-        participant = getattr(event, "participant", None)
-        user_id = getattr(event, "user_id", None) or getattr(participant, "user_id", None)
-        if user_id is None and hasattr(event, "chat_id"):
-            user_id = me.id
-            channel_id = event.chat_id
-        if user_id != me.id or channel_id is None:
-            return
-        entity = await ABH.get_entity(channel_id)
-        perms = await ABH.get_permissions(entity, me.id)
-        group_name = getattr(entity, "title", None)
-        full = await ABH(GetFullChannelRequest(channel_id))
-        link = 'لا يوجد رابط دعوة'
-        try:
-            invite = await ABH(ExportChatInviteRequest(channel=channel_id))
-            link = invite.link
-        except:
-            username = getattr(entity, 'username', None)
-            if username:
-                link = f"https://t.me/{username}"
-        if not perms.is_admin:
-            await ABH.send_message(entity, "ها صارت بيها تقييد مو😁؟ سهله")
-            await hint(f"خرجت من مجموعة ( {group_name} ) \n ايديها ( {channel_id} ) \n الرابط ( {link} )")
-            await asyncio.sleep(1)
-            await ABH(LeaveChannelRequest(channel_id))
-    except Exception as e:
-        print(e)
+        result = eval(args)
+        await e.reply(f"نتيجة الحساب: {result}")
+    except Exception as ex:
+        await e.reply(f"❌ خطأ في الحساب: {ex}")
+
+async def صورة(e, args):
+    await e.reply("😂 هذه دالة تجريبية لإرسال صورة")
+
+# ------------------ نظام تنفيذ الأوامر الذكي ------------------
+@client.on(events.NewMessage)
+async def executor(e):
+    text = e.text.strip()
+    if not text:
         return
+
+    parts = text.split(maxsplit=1)
+    cmd = parts[0]               # اسم الأمر
+    args = parts[1] if len(parts) > 1 else ""  # باقي النص
+
+    module = sys.modules[__name__]
+
+    if hasattr(module, cmd):
+        func = getattr(module, cmd)
+        if callable(func):
+            await func(e, args)
+            return
+
+    # إذا لم توجد الدالة
+    await e.reply("❌ هذا الأمر غير موجود في النظام")
+
+# ------------------ تشغيل البوت ------------------
+print("✅ البوت شغّال...")
