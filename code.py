@@ -1,18 +1,35 @@
 from ABH import *
 commands = {}
+user_state = {}  # لتخزين الحالة لكل مستخدم
+
 @ABH.on(events.NewMessage)
 async def handle_commands(e):
     t = e.text
-    if t == 'ا':
-        await e.reply('يجري تغيير الامر, ارسل الامر الاساسي')
-        o = (await ABH.wait_for(events.NewMessage(from_users=e.sender_id))).text
-        await e.reply('ارسل الامر المختصر')
-        n = (await ABH.wait_for(events.NewMessage(from_users=e.sender_id))).text
-        if n == o:
-            await e.reply('الامر المختصر لا يمكن أن يكون نفس الامر الاساسي')
+    uid = e.sender_id
+
+    if uid in user_state:
+        state = user_state[uid]
+        if state['step'] == 'await_old':
+            user_state[uid]['old'] = t
+            user_state[uid]['step'] = 'await_new'
+            await e.reply('ارسل الامر المختصر')
             return
-        commands[o] = n
-        await e.reply(f'تم اضافه الامر: {o} -> {n}')
+
+        elif state['step'] == 'await_new':
+            old = state['old']
+            new = t
+            if new == old:
+                await e.reply('الامر المختصر لا يمكن أن يكون نفس الامر الاساسي')
+            else:
+                commands[old] = new
+                await e.reply(f'تم اضافه الامر: {old} -> {new}')
+            del user_state[uid]  # إنهاء الحالة
+            return
+
+    if t == 'ا':
+        user_state[uid] = {'step': 'await_old'}
+        await e.reply('يجري تغيير الامر, ارسل الامر الاساسي')
+
     elif t == 'الاوامر':
         if not commands:
             await e.reply('لا توجد اوامر مضافة.')
