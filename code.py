@@ -25,11 +25,19 @@ async def handle_commands(e):
                 await e.reply(f'تم اضافه الامر: {old} -> {new}')
             del user_state[uid]  # إنهاء الحالة
             return
-
+    notf = []
+    if t == 'افحص':
+        for x in range(385, 491):
+            m = await ABH.get_messages('x04ou', ids=x)
+            if not m:
+                notf.append(x)
+        if notf:
+            await e.reply("الرسائل المفقودة:\n" + ", ".join(str(n) for n in notf))
+        else:
+            await e.reply("كل الرسائل موجودة")
     if t == 'ا':
         user_state[uid] = {'step': 'await_old'}
         await e.reply('يجري تغيير الامر, ارسل الامر الاساسي')
-
     elif t == 'الاوامر':
         if not commands:
             await e.reply('لا توجد اوامر مضافة.')
