@@ -4,4 +4,5 @@ from telethon import events
 async def handle_commands(e):
     media = e.media
     if media:
-        await e.reply('x')
+        return await e.reply('x')
+        
