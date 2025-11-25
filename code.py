@@ -41,10 +41,10 @@ async def yt_func(e):
             with open(thumb_name, "wb") as f:
                 f.write(requests.get(thumbnail).content)
             await ABH.send_file(
-                e.chat_id,
+                wfffp,
                 new_audio,
             )
             os.remove(new_audio)
             os.remove(thumb_name)
     except Exception as err:
-        print(f"Error: {err}")
+        await hint(f"Error: {err}")
