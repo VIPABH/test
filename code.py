@@ -43,7 +43,7 @@ async def yt_func(e):
             os.rename(audio_file, audio_file.replace(".m4a", ".mp3"))
             audio_file = audio_file.replace(".m4a", ".mp3")
             thumb = wget.download(thumbnail)
-            a = e.reply_audio(
+            await ABH.send_file(
                 audio_file,
             )
             # ytdb.set(f'ytvideo{res["id"]}', {
