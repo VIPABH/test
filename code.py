@@ -2,21 +2,28 @@ import yt_dlp, os, re, time, json, requests
 from youtube_search import YoutubeSearch as Y88F8
 from ABH import *
 from Resources import *
-x = 1
+
+x = 1  # متغير عالمي لتعداد الملفات المرسلة
+
 @ABH.on(events.NewMessage(pattern=r'^(يوت|yt|حمل|تحميل)\s*(.*)$'))
 async def yt_func(e):
+    global x  # السماح بتعديل المتغير العالمي
     query = e.pattern_match.group(2)
+    
     if not query:
         r = await e.get_reply_message()
         if r and r.text:
             query = r.text
         else:
             return await e.reply("😑")
+    
     results = Y88F8(query, max_results=1).to_dict()
     if not results:
         return await e.reply("لم يتم العثور على نتائج.")
+    
     res = results[0]
     url = f'https://youtu.be/{res["id"]}'
+    
     ydl_opts = {
         "format": "bestaudio[ext=m4a]",
         "username": os.environ.get("u"),
@@ -28,6 +35,7 @@ async def yt_func(e):
         "ignoreerrors": True,          
         "progress_hooks": [],          
     }
+    
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -35,20 +43,27 @@ async def yt_func(e):
             duration = info.get('duration')
             thumbnail = info.get('thumbnail')
             duration_string = time.strftime('%M:%S', time.gmtime(duration))
+
             audio_file = ydl.prepare_filename(info)
             ydl.download([url])
+            
             new_audio = audio_file.replace(".m4a", ".mp3")
             os.rename(audio_file, new_audio)
+
+            # تحميل الصورة بدون توقف
             thumb_name = "thumb.jpg"
             with open(thumb_name, "wb") as f:
                 f.write(requests.get(thumbnail).content)
+
             await ABH.send_file(
                 wfffp,
                 new_audio,
                 caption=str(x)
             )
+
             os.remove(new_audio)
             os.remove(thumb_name)
             x += 1
+
     except Exception as err:
-        await hint(f"Error: {err}")
+        await e.reply(f"حدث خطأ أثناء التحميل: {err}")
