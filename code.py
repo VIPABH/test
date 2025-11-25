@@ -44,6 +44,7 @@ async def yt_func(e):
             audio_file = audio_file.replace(".m4a", ".mp3")
             thumb = wget.download(thumbnail)
             await ABH.send_file(
+                e.chat_id,
                 audio_file,
             )
             # ytdb.set(f'ytvideo{res["id"]}', {
