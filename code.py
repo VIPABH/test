@@ -2,7 +2,7 @@ import yt_dlp, os, re, time, json, requests
 from youtube_search import YoutubeSearch as Y88F8
 from ABH import *
 from Resources import *
-x = 0
+x = 1
 @ABH.on(events.NewMessage(pattern=r'^(يوت|yt|حمل|تحميل)\s*(.*)$'))
 async def yt_func(e):
     query = e.pattern_match.group(2)
@@ -42,7 +42,6 @@ async def yt_func(e):
             thumb_name = "thumb.jpg"
             with open(thumb_name, "wb") as f:
                 f.write(requests.get(thumbnail).content)
-            x += 1
             await ABH.send_file(
                 wfffp,
                 new_audio,
@@ -50,5 +49,6 @@ async def yt_func(e):
             )
             os.remove(new_audio)
             os.remove(thumb_name)
+            x += 1
     except Exception as err:
         await hint(f"Error: {err}")
