@@ -1,6 +1,7 @@
 import yt_dlp, os, re, time, json, requests
 from youtube_search import YoutubeSearch as Y88F8
 from ABH import *
+from Resources import *
 @ABH.on(events.NewMessage(pattern=r'^(يوت|yt|حمل|تحميل)\s*(.*)$'))
 async def yt_func(e):
     query = e.pattern_match.group(2)
