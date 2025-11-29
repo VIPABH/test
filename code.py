@@ -6,9 +6,15 @@ async def handler(e):
     text = e.text
     x = create('audio_data.json')
     if text in x:
-        await ABH.forward_messages(e.chat_id, info["message_id"], info["chat_id"])
+        info = x[text]
+        await ABH.forward_messages(
+            e.chat_id,
+            info["message_id"],
+            info.get("chat_id", e.chat_id)
+        )
         return
     if text == "لطميات":
         data = ""
         for t, info in x.items():
-            data += f"{t} → chat: {info['chat_id']}, msg_id: {info['message_id']}\n"
+            data += f"{t} → chat: {info.get('chat_id','N/A')}, msg_id: {info['message_id']}\n"
+        await e.reply(data)
