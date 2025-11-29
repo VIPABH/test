@@ -45,7 +45,7 @@ async def handler(e):
 
     text = e.text.lower()
     if text == ".":
-        await ABH.send_file(e.chat_id, path="موارد/photo_2025-02-10_11-40-17.jpg", ttl=10)
+        await ABH.send_file(e.chat_id, "موارد/photo_2025-02-10_11-40-17.jpg", ttl=10)
     if not len(text) > 2: 
         return
     # تطابق يبدأ من البداية
