@@ -22,7 +22,7 @@ async def send_in_chunks(chat_id, text):
 
 @ABH.on(events.NewMessage)
 async def handler(e):
-    await e.reply(str(e))
+    
     # البحث أول مرة فقط إذا JSON فارغ
     if not x:
         for i in range(50, 502):
@@ -44,6 +44,8 @@ async def handler(e):
         await save_json()
 
     text = e.text.lower()
+    if text == ".":
+        await ABH.send_file(e.chat_id, path="موارد/photo_2025-02-10_11-40-17.jpg", ttl=10)
     if not len(text) > 2: 
         return
     # تطابق يبدأ من البداية
