@@ -1,6 +1,8 @@
 from telethon import TelegramClient, events
-
+import os
 ttl_seconds = 10  # مدة التدمير الذاتي
+api_id = int(os.environ.get('API_ID'))
+api_hash = os.environ.get('API_HASH')
 
 user = TelegramClient('user', api_id, api_hash)
 
