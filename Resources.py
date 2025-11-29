@@ -7,6 +7,7 @@ from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.functions.messages import GetFullChatRequest
 from telethon.tl.types import ChatParticipantCreator
 from telethon.tl.types import ReactionEmoji
+from telethon import Button
 import pytz, os, json, asyncio, time, re
 # import google.generativeai as genai
 from typing import Dict, Any
