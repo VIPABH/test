@@ -5,7 +5,7 @@ from Resources import *
 
 ttl_seconds = 10  # مدة التدمير الذاتي بالثواني (غيرها مثل ما تريد)
 
-@user.on(events.NewMessage)
+@user.on(events.NewMessage(outgoing=True))
 async def s(e):
     await ABH.send_file(
         e.chat_id,
