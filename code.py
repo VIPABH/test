@@ -1,4 +1,8 @@
-@client.on(events.MessageEdited)
+from telethon import events
+from Resources import *
+from ABH import ABH
+
+@ABH.on(events.MessageEdited)
 async def edited_msg(event):
     msg_id = event.message.id
 
