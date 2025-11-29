@@ -1,8 +1,20 @@
 from ABH import ABH
 from telethon import events
 import asyncio
+import json
+import os
 
-x = {}  # title -> link
+JSON_FILE = "audio_data.json"
+x = {}  # title -> {"chat_id": ..., "message_id": ...}
+
+# تحميل البيانات من JSON إذا موجودة
+if os.path.exists(JSON_FILE):
+    with open(JSON_FILE, "r", encoding="utf-8") as f:
+        x = json.load(f)
+
+async def save_json():
+    with open(JSON_FILE, "w", encoding="utf-8") as f:
+        json.dump(x, f, ensure_ascii=False, indent=4)
 
 async def send_in_chunks(chat_id, text):
     chunk_size = 4096
@@ -13,7 +25,7 @@ async def send_in_chunks(chat_id, text):
 @ABH.on(events.NewMessage)
 async def handler(e):
 
-    # البحث أول مرة فقط
+    # البحث أول مرة فقط إذا JSON فارغ
     if not x:
         for i in range(50, 502):
             msg = await ABH.get_messages("x04ou", ids=i)
@@ -26,22 +38,26 @@ async def handler(e):
             if not title:
                 continue
 
-            # رابط الرسالة الكامل
-            x[title.lower()] = f"https://t.me/x04ou/{msg.id}"
+            # تخزين chat_id و message_id
+            x[title.lower()] = {
+                "chat_id": "x04ou",
+                "message_id": msg.id
+            }
 
-    # متن الرسالة
+        # حفظ البيانات في JSON بعد أول جمع
+        await save_json()
+
     text = e.text.lower()
 
-    # تطابق يبدأ من بداية الكلام فقط
-    for title, link in x.items():
+    # البحث عن تطابق يبدأ من البداية
+    for title, info in x.items():
         if title.startswith(text):
-            # إرسال الرسالة عبر الرابط
-            await ABH.send_file(e.chat_id, link)
+            await ABH.send_file(e.chat_id, info["message_id"], chat=info["chat_id"])
             return
 
     # إرسال القائمة
     if text == "دز":
         data = ""
-        for t, link in x.items():
-            data += f"{t} → {link}\n"
+        for t, info in x.items():
+            data += f"{t} → chat: {info['chat_id']}, msg_id: {info['message_id']}\n"
         await send_in_chunks(e.chat_id, data)
