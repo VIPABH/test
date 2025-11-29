@@ -3,4 +3,4 @@ from Resources import *
 from ABH import ABH
 @ABH.on(events.MessageEdited)
 async def x(e):
-    print(e)
+    await hint(str(e))
