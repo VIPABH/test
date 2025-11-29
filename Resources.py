@@ -572,10 +572,6 @@ async def get_owner(event, client=ABH):
         await hint(f"Error in get_owner: {e}")
         return None
     return None
-timezone = pytz.timezone('Asia/Baghdad')
-GEMINI = "AIzaSyA5pzOpKVcMGm6Aek82KoB3Pk94dYg3LX4"
-genai.configure(api_key=GEMINI)
-model = genai.GenerativeModel("gemini-1.5-flash")
 group = -1001784332159
 hint_gid = -1002168230471
 bot = "Anymous"
