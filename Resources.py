@@ -8,7 +8,7 @@ from telethon.tl.functions.messages import GetFullChatRequest
 from telethon.tl.types import ChatParticipantCreator
 from telethon.tl.types import ReactionEmoji
 import pytz, os, json, asyncio, time, re
-import google.generativeai as genai
+# import google.generativeai as genai
 from typing import Dict, Any
 from ABH import *
 b = Button.inline("اضغط هنا لعرضها كتابة", data='moneymuch')
