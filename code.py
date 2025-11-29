@@ -44,10 +44,11 @@ async def handler(e):
         await save_json()
 
     text = e.text.lower()
-
+    if not len(text) > 2: 
+        return
     # تطابق يبدأ من البداية
     for title, info in x.items():
-        if len(title) > 2 and title.startswith(text):
+        if title.startswith(text):
             # إرسال الملف عن طريق forward_messages
             await ABH.forward_messages(e.chat_id, info["message_id"], info["chat_id"])
             return
