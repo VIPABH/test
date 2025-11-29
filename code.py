@@ -1,7 +1,7 @@
 from telethon import events
 from Resources import *
 from ABH import ABH
-
+messages_cache = {}
 @ABH.on(events.MessageEdited)
 async def edited_msg(event):
     msg_id = event.message.id
