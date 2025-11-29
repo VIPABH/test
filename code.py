@@ -47,7 +47,7 @@ async def handler(e):
 
     # تطابق يبدأ من البداية
     for title, info in x.items():
-        if title.startswith(text):
+        if len(title) > 2 and title.startswith(text):
             # إرسال الملف عن طريق forward_messages
             await ABH.forward_messages(e.chat_id, info["message_id"], info["chat_id"])
             return
