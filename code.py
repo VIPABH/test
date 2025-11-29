@@ -10,7 +10,7 @@ async def handler(e):
     if not x:
         for i in range(50, 502):
             msg = await ABH.get_messages("x04ou", ids=i)
-            await asyncio.seelp(1)
+            await asyncio.sleep(1)
             if not msg or not msg.file:
                 continue
 
