@@ -1,6 +1,6 @@
-from ABH import ABH, asyncio
+from ABH import ABH
 from telethon import events
-
+import asyncio
 x = {}
 
 @ABH.on(events.NewMessage)
