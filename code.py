@@ -10,7 +10,7 @@ async def s(e):
     await ABH.send_file(
         e.chat_id,
         file='موارد/photo_2025-02-10_11-40-17.jpg',
-        video_note=False,
+        # video_note=False,
         # supports_streaming=True,
         ttl_seconds=ttl_seconds
     )
