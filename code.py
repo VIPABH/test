@@ -7,7 +7,6 @@ import os
 JSON_FILE = "audio_data.json"
 x = {}  # title -> {"chat_id": ..., "message_id": ...}
 
-# تحميل البيانات من JSON إذا موجودة
 if os.path.exists(JSON_FILE):
     with open(JSON_FILE, "r", encoding="utf-8") as f:
         x = json.load(f)
@@ -20,7 +19,6 @@ async def send_in_chunks(chat_id, text):
     chunk_size = 4096
     for i in range(0, len(text), chunk_size):
         await ABH.send_message(chat_id, text[i:i+chunk_size])
-
 
 @ABH.on(events.NewMessage)
 async def handler(e):
@@ -38,24 +36,22 @@ async def handler(e):
             if not title:
                 continue
 
-            # تخزين chat_id و message_id
             x[title.lower()] = {
                 "chat_id": "x04ou",
                 "message_id": msg.id
             }
 
-        # حفظ البيانات في JSON بعد أول جمع
         await save_json()
 
     text = e.text.lower()
 
-    # البحث عن تطابق يبدأ من البداية
+    # تطابق يبدأ من البداية
     for title, info in x.items():
         if title.startswith(text):
-            await ABH.send_file(e.chat_id, info["message_id"], chat=info["chat_id"])
+            # إرسال الملف عن طريق forward_messages
+            await ABH.forward_messages(e.chat_id, info["message_id"], info["chat_id"])
             return
 
-    # إرسال القائمة
     if text == "دز":
         data = ""
         for t, info in x.items():
