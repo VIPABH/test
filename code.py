@@ -36,7 +36,7 @@ async def handler(e):
     for title, link in x.items():
         if title.startswith(text):
             # إرسال الرسالة عبر الرابط
-            await ABH.send_message(e.chat_id, link)
+            await ABH.send_file(e.chat_id, link)
             return
 
     # إرسال القائمة
