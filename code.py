@@ -1,12 +1,15 @@
 from telethon import events
 from Resources import *
 from ABH import ABH
+from rapidfuzz import fuzz, process
 @ABH.on(events.NewMessage)
 async def handler(e):
     text = e.text
     x = create('audio_data.json')
-    if text in x:
-        info = x[text]
+    keys = list(x.keys())
+    match, score, idx = process.extractOne(text, keys, scorer=fuzz.partial_ratio)
+    if score >= 70:
+        info = x[match]
         await ABH.forward_messages(
             e.chat_id,
             info["message_id"],
