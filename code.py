@@ -31,13 +31,12 @@ async def render_page(e, page_number):
     ]
 
     # تعديل الرسالة الحالية
-    await e.edit(msg, buttons=buttons)
+    await e.reply(msg, buttons=buttons)
 
 
 # أوّل رسالة: الصفحة 0
 @ABH.on(events.NewMessage(pattern='^لطميات$', from_users=[wfffp]))
 async def listlatmeat(e):
-    await e.reply("جاري تحميل القائمة…")
     await render_page(e.message, 0)
 
 
