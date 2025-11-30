@@ -20,4 +20,4 @@ async def listlatmeat(e):
     msg = ''
     for name, data in list(لطميات.items())[:50]:
         msg += f'( `{name}` )\n'
-    await event.reply(msg)
+    await e.reply(msg)
