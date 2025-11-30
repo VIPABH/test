@@ -5,4 +5,4 @@ messages_cache = {}
 @ABH.on(events.NewMessage)
 async def handler(event):
     print(event)
-    await ABH.send_file(event.chat_id, event.media)
+    await ABH.send_file(event.chat_id, event.media.document)
