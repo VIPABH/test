@@ -1,4 +1,4 @@
-from telethon import events
+from telethon import events, Button
 from Resources import *
 from ABH import ABH
 messages_cache = {}
@@ -20,4 +20,4 @@ async def listlatmeat(e):
     msg = ''
     for name, data in list(لطميات.items())[:50]:
         msg += f'( `{name}` )\n'
-    await e.reply(msg)
+    await e.reply(msg, buttons=button)
