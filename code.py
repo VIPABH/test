@@ -25,6 +25,7 @@ async def start(e):
 @ABH.on(events.callbackquery)
 async def callstart(e):
     data = e.data.decode('utf-8')
+    print(data)
     if data == 'setemil':
         await e.respond('ارسل الايميل')
         await setemil(e)
