@@ -1,7 +1,7 @@
 from telethon.tl.types import DocumentAttributeVideo
 from telethon import events
 
-@client.on(events.NewMessage)
+@ABH.on(events.NewMessage)
 async def start(e):
     if e.message.media:
         duration = None
