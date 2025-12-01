@@ -1,54 +1,36 @@
-from telethon import events, Button
-from Resources import *
-from ABH import ABH
-
-ITEMS_PER_PAGE = 50
-pages_db = {}
-
-async def render_page(client, chat_id, user_id, page_number):
-    start = page_number * ITEMS_PER_PAGE
-    end = start + ITEMS_PER_PAGE
-    page_items = list(لطميات.items())[start:end]
-    msg = ""
-    for name, data in page_items:
-        msg += f"- `{name}`\n"
-    buttons = [
-        [
-            Button.inline("◀️ السابق", data=f"back:{page_number}"),
-            Button.inline("▶️ التالي", data=f"next:{page_number}")
-        ]
-    ]
-    msg_id = pages_db[chat_id][user_id]["msg_id"]
-    await client.edit_message(chat_id, msg_id, msg, buttons=buttons)
-    pages_db[chat_id][user_id]["page"] = page_number
-@ABH.on(events.NewMessage(pattern='^لطميات$', from_users=[wfffp]))
-async def listlatmeat(e):
-    chat_id = e.chat_id
-    user_id = e.sender_id
-    msg = await e.reply("جاري التحميل...")
-    if chat_id not in pages_db:
-        pages_db[chat_id] = {}
-    pages_db[chat_id][user_id] = {
-        "page": 0,
-        "msg_id": msg.id
-    }
-    await render_page(ABH, chat_id, user_id, 0)
-@ABH.on(events.CallbackQuery)
-async def callbacklet(e):
-    chat_id = e.chat_id
-    user_id = e.sender_id
-    data = e.data.decode("utf-8")
-    if chat_id not in pages_db or user_id not in pages_db[chat_id]:
-        await e.answer()
-        return
-    if data.startswith("next:"):
-        current = int(data.split(":")[1])
-        await e.answer()
-        await render_page(ABH, chat_id, user_id, current + 1)
-    elif data.startswith("back:"):
-        current = int(data.split(":")[1])
-        if current == 0:
-            await e.answer()
-            return
-        await e.answer()
-        await render_page(ABH, chat_id, user_id, current - 1)
+from database import add_user_to_db, is_user_allowed, delete_user_from_db, get_allowed_users # type: ignore
+from telethon import TelegramClient, events, Button
+from email.mime.multipart import MIMEMultipart
+from models import Base, engine # type: ignore
+from email.mime.text import MIMEText
+from datetime import datetime
+import asyncio, smtplib, os
+default_smtp_server = "smtp.gmail.com"
+default_smtp_port = 465
+api_id = os.getenv('API_ID')
+api_hash = os.getenv('API_HASH')
+bot_token = os.getenv('BOT_TOKEN')
+user_states = {}
+ABH = TelegramClient('session_name', api_id, api_hash)
+async def setemil(e):
+    t = e.text
+    await e.reply(str(t))
+@ABH.on(events.NewMessage)
+async def start(e):
+    t = e.text
+    if t == '/start':
+        b = [Button.inline('تعيين كلايش', data='set')]
+        await e.reply('اهلا اخي , عندك طاقة تشد؟', button=b)
+    elif t in ('تعيين الكلايش',  'تعيين كلايش', '/start'):
+        b = [Button.inline('تعيين البريد والباسورد', data='setemil'), Button.inline('تعيين الرسالة', data='setmessage')]
+        await e.reply('اختار من الازرار حته نبدي', button=b)
+@ABH.on(events.callbackquery)
+async def callstart(e):
+    data = e.data.decode('utf-8')
+    if data == 'setemil':
+        await e.reply('ارسل الايميل')
+        await setemil(e)
+    # elif data == 'setmessage':
+        # await e.reply('ارسل الايميل')
+ABH.start(bot_token=bot_token)
+ABH.run_until_disconnected()
