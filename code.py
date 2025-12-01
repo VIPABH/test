@@ -1,7 +1,5 @@
-from database import add_user_to_db, is_user_allowed, delete_user_from_db, get_allowed_users # type: ignore
 from telethon import TelegramClient, events, Button
 from email.mime.multipart import MIMEMultipart
-from models import Base, engine # type: ignore
 from email.mime.text import MIMEText
 from datetime import datetime
 import asyncio, smtplib, os
