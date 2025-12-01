@@ -18,10 +18,10 @@ async def start(e):
     t = e.text
     if t == '/start':
         b = [Button.inline('تعيين كلايش', data='set')]
-        await e.respond('اهلا اخي , عندك طاقة تشد؟', button=b)
+        await e.respond('اهلا اخي , عندك طاقة تشد؟', buttons=b)
     elif t in ('تعيين الكلايش',  'تعيين كلايش', '/start'):
         b = [Button.inline('تعيين البريد والباسورد', data='setemil'), Button.inline('تعيين الرسالة', data='setmessage')]
-        await e.respond('اختار من الازرار حته نبدي', button=b)
+        await e.respond('اختار من الازرار حته نبدي', buttons=b)
 @ABH.on(events.callbackquery)
 async def callstart(e):
     data = e.data.decode('utf-8')
