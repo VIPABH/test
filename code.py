@@ -52,4 +52,4 @@ async def yt_func(e):
             os.remove(thumb)
     except Exception as e:
         print(f"حدث خطأ أثناء تحميل الفيديو: {e}")
-        m.reply("حدث خطأ أثناء التحميل، يرجى المحاولة لاحقًا.")
+        await e.reply("حدث خطأ أثناء التحميل، يرجى المحاولة لاحقًا.")
