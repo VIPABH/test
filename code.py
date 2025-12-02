@@ -42,10 +42,12 @@ async def yt_func(e):
                 e.chat_id,
                 audio_file,
                 caption="[ENJOY DEAR](https://t.me/VIPABH_BOT)"
-                )
+            )
             r.set(f'ytvideo{res["id"]}', {
                 "type": "audio",
-                "audio": a.audio.file_id,
+                "audio_id": a.audio.id,
+                "access_hash": a.audio.access_hash,
+                "file_reference": a.audio.file_reference.hex(),
                 "duration": a.audio.duration
             })
             os.remove(audio_file)
