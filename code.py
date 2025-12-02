@@ -3,7 +3,7 @@ from youtube_search import YoutubeSearch as Y88F8
 from threading import Thread
 from ABH import *
 @ABH.on(events.NewMessage(pattern=r'^(حمل|يوت|تحميل|yt) (.+)'))
-def ytdownloaderHandler(e):
+async def ytdownloaderHandler(e):
     asyncio.create_task(yt_func(e))
 async def yt_func(e):
     re = await e.get_reply_message()
