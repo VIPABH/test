@@ -119,5 +119,5 @@ async def yt_func(e):
         os.remove(mp3_file)
         os.remove(thumb)
 
-    except:
-        pass   # بدون Logs
+    except Exception as e:
+        print(e)
