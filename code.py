@@ -1,8 +1,9 @@
 import yt_dlp, os, time, wget, asyncio, json
 from youtube_search import YoutubeSearch as Y88F8
 from ABH import *
-from telethon.tl.types import DocumentAttributeAudio
+from telethon.tl.types import DocumentAttributeAudio, InputDocument
 from telethon import events
+
 
 @ABH.on(events.NewMessage(pattern=r'^(حمل|يوت|تحميل|yt) (.+)'))
 async def ytdownloaderHandler(e):
@@ -20,49 +21,44 @@ async def yt_func(e):
             else:
                 return await e.reply("شنو تحب احملك وانت ما كاتب بحث؟")
 
-        # ============================
-        #       البحث عن الفيديو
-        # ============================
-        try:
-            results = Y88F8(query, max_results=1).to_dict()
-        except Exception as err:
-            print(f"[SEARCH ERROR] {err}")
-            return await e.reply("صار خطأ أثناء البحث عن الفيديو.")
-
+        results = Y88F8(query, max_results=1).to_dict()
         if not results:
             return await e.reply("ما لكيت أي نتيجة!")
 
         res = results[0]
         vid_id = res["id"]
 
-        # ============================
-        #       كــاش الــفــيــديــو
-        # ============================
+        # =============== READ CACHE ===============
         try:
-            cache_raw = r.get(f'ytvideo{vid_id}')
-            cache = json.loads(cache_raw) if cache_raw else None
-        except Exception as err:
-            print(f"[REDIS READ ERROR] {err}")
+            raw = r.get(f"ytvideo{vid_id}")
+            cache = json.loads(raw) if raw else None
+        except:
             cache = None
 
+        # =============== SEND FROM CACHE ===============
         if cache:
             try:
+                file = InputDocument(
+                    id=cache["audio_id"],
+                    access_hash=cache["access_hash"],
+                    file_reference=bytes.fromhex(cache["file_reference"])
+                )
+
                 duration_string = time.strftime('%M:%S', time.gmtime(cache["duration"]))
 
                 await ABH.send_file(
                     e.chat_id,
-                    cache["audio_id"],
+                    file,
                     caption=f"[ENJOY DEAR](https://t.me/VIPABH_BOT) {duration_string}"
                 )
+
+                return
             except Exception as err:
                 print(f"[CACHE SEND ERROR] {err}")
-            return
 
+        # =============== DOWNLOAD NEW FILE ===============
         url = f"https://youtu.be/{vid_id}"
 
-        # ============================
-        #   إعدادات yt-dlp
-        # ============================
         ydl_ops = {
             "format": "bestaudio/best",
             "postprocessors": [{
@@ -74,64 +70,54 @@ async def yt_func(e):
             "quiet": True,
             "no_warnings": True,
             "cachedir": True,
-            "concurrent_fragment_downloads": 4,
+            "concurrent_fragment_downloads": 4
         }
 
         try:
-            # التحميل
             with yt_dlp.YoutubeDL(ydl_ops) as ydl:
                 info = ydl.extract_info(url, download=True)
                 duration = info.get("duration", 0)
                 thumbnail = info.get("thumbnail")
                 mp3_file = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
-
         except Exception as err:
             print(f"[YTDLP ERROR] {err}")
-            return await e.reply("صار خطأ أثناء تحميل الصوت.")
+            return await e.reply("خطأ أثناء التحميل!")
 
-        # تحميل الصورة
         try:
             thumb = wget.download(thumbnail)
-        except Exception as err:
-            print(f"[THUMBNAIL ERROR] {err}")
+        except:
             thumb = None
 
-        # ============================
-        #       إرسال الصوت
-        # ============================
-        try:
-            sent = await ABH.send_file(
-                e.chat_id,
-                mp3_file,
-                caption="[ENJOY DEAR](https://t.me/VIPABH_BOT)",
-                attributes=[
-                    DocumentAttributeAudio(
-                        duration=duration,
-                        title=info.get("title", ""),
-                        performer=info.get("uploader", "")
-                    )
-                ]
-            )
-        except Exception as err:
-            print(f"[SEND ERROR] {err}")
-            return await e.reply("خطأ أثناء إرسال الملف.")
+        # =============== SEND FILE ===============
+        sent = await ABH.send_file(
+            e.chat_id,
+            mp3_file,
+            caption="[ENJOY DEAR](https://t.me/VIPABH_BOT)",
+            attributes=[
+                DocumentAttributeAudio(
+                    duration=duration,
+                    title=info.get("title", ""),
+                    performer=info.get("uploader", "")
+                )
+            ]
+        )
 
-        # ============================
-        # استخراج معلومات الملف
-        # ============================
+        # =============== EXTRACT DATA ===============
         try:
+            # من نوع audio
             if sent.audio:
                 audio_id = sent.audio.id
                 access_hash = sent.audio.access_hash
                 file_ref = sent.audio.file_reference.hex()
                 dur = sent.audio.duration
 
+            # من نوع document
             else:
                 audio_id = sent.document.id
                 access_hash = sent.document.access_hash
                 file_ref = sent.document.file_reference.hex()
 
-                # استخراج duration من attributes
+                # duration
                 dur = duration
                 for attr in sent.document.attributes:
                     if isinstance(attr, DocumentAttributeAudio):
@@ -142,12 +128,10 @@ async def yt_func(e):
             print(f"[PARSE FILE ERROR] {err}")
             audio_id, access_hash, file_ref, dur = None, None, None, duration
 
-        # ============================
-        #     حفظ الكاش (JSON)
-        # ============================
+        # =============== SAVE CACHE ===============
         try:
             r.set(
-                f'ytvideo{vid_id}',
+                f"ytvideo{vid_id}",
                 json.dumps({
                     "audio_id": audio_id,
                     "access_hash": access_hash,
@@ -158,16 +142,14 @@ async def yt_func(e):
         except Exception as err:
             print(f"[REDIS SAVE ERROR] {err}")
 
-        # ============================
-        #     تنظيف الملفات
-        # ============================
+        # =============== CLEANUP ===============
         try:
             if os.path.exists(mp3_file):
                 os.remove(mp3_file)
             if thumb and os.path.exists(thumb):
                 os.remove(thumb)
-        except Exception as err:
-            print(f"[CLEANUP ERROR] {err}")
+        except:
+            pass
 
     except Exception as err:
         print(f"[GENERAL ERROR] {err}")
