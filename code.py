@@ -6,8 +6,8 @@ from telethon import events
 
 
 @ABH.on(events.NewMessage(pattern=r'^(حمل|يوت|تحميل|yt) (.+)'))
-async def ytdownloaderHandler(e):
-    asyncio.create_task(yt_func(e))
+# async def ytdownloaderHandler(e):
+#     asyncio.create_task(yt_func(e))
 
 
 async def yt_func(e):
