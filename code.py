@@ -29,30 +29,44 @@ async def yt_func(e):
         vid_id = res["id"]
 
         # =============== READ CACHE ===============
+        cache = None
         try:
             raw = r.get(f"ytvideo{vid_id}")
-            cache = json.loads(raw) if raw else None
+            if raw:
+                cache = json.loads(raw)
         except:
             cache = None
 
         # =============== SEND FROM CACHE ===============
         if cache:
             try:
-                file = InputDocument(
-                    id=cache["audio_id"],
-                    access_hash=cache["access_hash"],
-                    file_reference=bytes.fromhex(cache["file_reference"])
-                )
+                # منع fromhex(None)
+                if (
+                    cache.get("audio_id") and
+                    cache.get("access_hash") and
+                    cache.get("file_reference")
+                ):
+                    file = InputDocument(
+                        id=cache["audio_id"],
+                        access_hash=cache["access_hash"],
+                        file_reference=bytes.fromhex(cache["file_reference"])
+                    )
 
-                duration_string = time.strftime('%M:%S', time.gmtime(cache["duration"]))
+                    duration_string = time.strftime(
+                        '%M:%S',
+                        time.gmtime(cache.get("duration", 0))
+                    )
 
-                await ABH.send_file(
-                    e.chat_id,
-                    file,
-                    caption=f"[ENJOY DEAR](https://t.me/VIPABH_BOT) {duration_string}"
-                )
+                    await ABH.send_file(
+                        e.chat_id,
+                        file,
+                        caption=f"[ENJOY DEAR](https://t.me/VIPABH_BOT) {duration_string}"
+                    )
 
-                return
+                    return
+                else:
+                    print("[CACHE INVALID] missing fields, ignoring cache")
+
             except Exception as err:
                 print(f"[CACHE SEND ERROR] {err}")
 
@@ -69,7 +83,6 @@ async def yt_func(e):
             "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
-            "cachedir": True,
             "concurrent_fragment_downloads": 4
         }
 
@@ -79,10 +92,12 @@ async def yt_func(e):
                 duration = info.get("duration", 0)
                 thumbnail = info.get("thumbnail")
                 mp3_file = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
+
         except Exception as err:
             print(f"[YTDLP ERROR] {err}")
             return await e.reply("خطأ أثناء التحميل!")
 
+        # تحميل الصورة
         try:
             thumb = wget.download(thumbnail)
         except:
@@ -103,22 +118,23 @@ async def yt_func(e):
         )
 
         # =============== EXTRACT DATA ===============
+        audio_id = None
+        access_hash = None
+        file_ref = None
+        dur = duration
+
         try:
-            # من نوع audio
             if sent.audio:
                 audio_id = sent.audio.id
                 access_hash = sent.audio.access_hash
                 file_ref = sent.audio.file_reference.hex()
                 dur = sent.audio.duration
 
-            # من نوع document
             else:
                 audio_id = sent.document.id
                 access_hash = sent.document.access_hash
                 file_ref = sent.document.file_reference.hex()
 
-                # duration
-                dur = duration
                 for attr in sent.document.attributes:
                     if isinstance(attr, DocumentAttributeAudio):
                         dur = attr.duration
@@ -126,21 +142,24 @@ async def yt_func(e):
 
         except Exception as err:
             print(f"[PARSE FILE ERROR] {err}")
-            audio_id, access_hash, file_ref, dur = None, None, None, duration
 
         # =============== SAVE CACHE ===============
-        try:
-            r.set(
-                f"ytvideo{vid_id}",
-                json.dumps({
-                    "audio_id": audio_id,
-                    "access_hash": access_hash,
-                    "file_reference": file_ref,
-                    "duration": dur
-                })
-            )
-        except Exception as err:
-            print(f"[REDIS SAVE ERROR] {err}")
+        # نخزن فقط إذا كلشي موجود
+        if audio_id and access_hash and file_ref:
+            try:
+                r.set(
+                    f"ytvideo{vid_id}",
+                    json.dumps({
+                        "audio_id": audio_id,
+                        "access_hash": access_hash,
+                        "file_reference": file_ref,
+                        "duration": dur
+                    })
+                )
+            except Exception as err:
+                print(f"[REDIS SAVE ERROR] {err}")
+        else:
+            print("[CACHE NOT SAVED] Missing fields")
 
         # =============== CLEANUP ===============
         try:
