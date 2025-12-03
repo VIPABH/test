@@ -40,7 +40,6 @@ async def yt_func(e):
         # =============== SEND FROM CACHE ===============
         if cache:
             try:
-                # منع fromhex(None)
                 if (
                     cache.get("audio_id") and
                     cache.get("access_hash") and
@@ -65,10 +64,9 @@ async def yt_func(e):
 
                     return
                 else:
-                    print("[CACHE INVALID] missing fields, ignoring cache")
-
-            except Exception as err:
-                print(f"[CACHE SEND ERROR] {err}")
+                    pass  # تجاهل التحذير بدل الطباعة
+            except:
+                pass  # تجاهل أي خطأ أثناء إرسال الكاش
 
         # =============== DOWNLOAD NEW FILE ===============
         url = f"https://youtu.be/{vid_id}"
@@ -92,7 +90,6 @@ async def yt_func(e):
                 duration = info.get("duration", 0)
                 thumbnail = info.get("thumbnail")
                 mp3_file = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
-
         except Exception as err:
             print(f"[YTDLP ERROR] {err}")
             return await e.reply("خطأ أثناء التحميل!")
@@ -139,12 +136,10 @@ async def yt_func(e):
                     if isinstance(attr, DocumentAttributeAudio):
                         dur = attr.duration
                         break
-
-        except Exception as err:
-            print(f"[PARSE FILE ERROR] {err}")
+        except:
+            pass  # تجاهل أي خطأ في قراءة duration
 
         # =============== SAVE CACHE ===============
-        # نخزن فقط إذا كلشي موجود
         if audio_id and access_hash and file_ref:
             try:
                 r.set(
@@ -156,10 +151,8 @@ async def yt_func(e):
                         "duration": dur
                     })
                 )
-            except Exception as err:
-                print(f"[REDIS SAVE ERROR] {err}")
-        else:
-            print("[CACHE NOT SAVED] Missing fields")
+            except:
+                pass  # تجاهل أي خطأ في حفظ الكاش
 
         # =============== CLEANUP ===============
         try:
