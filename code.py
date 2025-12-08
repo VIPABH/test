@@ -1,7 +1,7 @@
 from Resources import mention
 from telethon import events
 from ABH import ABH
-import random
+import random, asyncio
 killamordersession = {}
 @ABH.on(events.NewMessage(pattern='(/killamorder|القاتل والمقتول)$'))
 async def killamorderstart(e):
@@ -32,13 +32,15 @@ async def useless(e):
     msg = 'اللاعبين 👇\n'
     if chat in killamordersession and killamordersession[chat]["players"]:
         for id, m in killamordersession[chat]["players"].items():
-            msg += f'اللاعب - ( {m} )'
+            msg += f'اللاعب - ( {m} )\n'
         await e.reply(str(msg))
 @ABH.on(events.NewMessage(pattern='تم'))
 async def useless(e):
     chat = e.chat_id
     if chat in killamordersession and killamordersession[chat]["players"]:
         await e.reply('تم بدء اللعبه ')
+        await asyncio.sleep(2)
+        await set_auto_killer(e)
 async def set_auto_killer(e):
     chat = e.chat_id
     players = list(killamordersession[chat]["players"].keys())
