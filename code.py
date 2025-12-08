@@ -42,6 +42,8 @@ async def useless(e):
         await asyncio.sleep(2)
         much = len(killamordersession[chat]['players'])
         for _ in range(much):
+            if much == 1:
+             
              await set_auto_killer(e)
 async def set_auto_killer(e):
     chat = e.chat_id
