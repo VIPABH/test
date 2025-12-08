@@ -11,6 +11,7 @@ async def killamorderstart(e):
         return
     m = await mention(e)
     killamorder[chat] = {"owner": id, 'players': {id: m}}
+    await e.reply('اتم بدء لعبة القاتل والمقتول ارسل انا للانضمام')
 @ABH.on(events.NewMessage(pattern='انا'))
 async def useless(e):
     chat = e.chat_id
