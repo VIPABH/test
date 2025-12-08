@@ -43,8 +43,9 @@ async def useless(e):
         much = len(killamordersession[chat]['players'])
         for _ in range(much):
             if much == 1:
-             
-             await set_auto_killer(e)
+                for id, m in killamordersession[chat]['players'].items():
+                    await e.reply(f'مبارك للاعب ( {m} ) فاز اللعبة')
+            await set_auto_killer(e)
 async def set_auto_killer(e):
     chat = e.chat_id
     players = list(killamordersession[chat]["players"].items())
