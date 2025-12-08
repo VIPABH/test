@@ -1,17 +1,30 @@
-from Resources import link, hint
+from Resources import mention
 from telethon import events
 from ABH import ABH
-editsession = {}
-@ABH.on(events.MessageEdited)
-async def start_edit(e):
-    if getattr(e, 'edit_hide', True) or e.sender_id is None:
+killamorder = {}
+@ABH.on(events.NewMessage(pattern='(/killamorder|القاتل والمقتول)$'))
+async def killamorderstart(e):
+    chat = e.chat_id
+    id = e.sender_id
+    if chat in killamorder:
+        await e.reply('اللعبة مشتغله مسبقا انتظرها تخلص')
         return
-    old_text = getattr(e, 'old_text', None)
-    new_text = getattr(e, 'text', None)
-    if old_text == new_text:
-        return
-    try:
-        result = str(await link(e))
-        await hint(result)
-    except Exception as ex:
-        print(f"Error handling edited message: {ex}")
+    m = await mention(e)
+    killamorder[chat] = {"owner": id, 'players': {id: m}}
+@ABH.on(events.NewMessage(pattern='انا'))
+async def useless(e):
+    chat = e.chat_id
+    id = e.sender_id
+    if chat in killamorder and id in killamorder[chat]["players"]:
+        await e.reply('سجلتك مسبقا')
+    else:
+        m = await mention(e)
+        killamorder[chat] = {'players': {id: m}}
+@ABH.on(events.NewMessage(pattern='اللاعبين'))
+async def useless(e):
+    chat = e.chat_id
+    msg = 'اللاعبين 👇\n'
+    if chat in killamorder and killamorder[chat]["players"]:
+        for id, m in killamorder[chat]["players"]:
+            msg += f'اللاعب - ( {m} )'
+        await e.reply(str(msg))
