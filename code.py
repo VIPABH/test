@@ -1,5 +1,5 @@
+from telethon import events, Button
 from Resources import mention
-from telethon import events
 from ABH import ABH
 import random, asyncio
 killamordersession = {}
@@ -40,10 +40,34 @@ async def useless(e):
     if chat in killamordersession and killamordersession[chat]["players"]:
         await e.reply('تم بدء اللعبه ')
         await asyncio.sleep(2)
-        await set_auto_killer(e)
+        much = len(killamordersession[chat]['players'])
+        for _ in range(much):
+             await set_auto_killer(e)
 async def set_auto_killer(e):
     chat = e.chat_id
-    players = list(killamordersession[chat]["players"].keys())
-    player = random.choice(players)
+    players = list(killamordersession[chat]["players"].items())
+    player, _ = random.choice(players)
+    killamordersession[chat]['killer'] = player
     m = killamordersession[chat]['players'][player]
-    await e.reply(f"عزيزي ( {m} ) انت القاتل ")
+    b = [Button.inline('تحديد الضحية', data="choice_to_kill"), Button.inline('قتل عشوائي', data="autokill")]
+    await e.reply(f"عزيزي ( {m} ) انت القاتل ", buttons=b)
+    await asyncio.sleep(2)
+    for uid, m in killamordersession[chat]['players'].items():
+        await e.reply(f'مبارك للاعب ( {m} ) فاز اللعبة')
+        del killamordersession[chat]
+@ABH.on(events.CallbackQuery)
+async def useless(e):
+    chat = e.chat_id
+    id = e.sender_id
+    killer = killamordersession[chat]['killer']
+    if killer and id != killer:
+        return
+    data = e.data.decode('utf-8')
+    if not data in ('autokill', 'choice_to_kill'):
+        return
+    players = list(killamordersession[chat]["players"].items())
+    if data == 'autokill':
+        player, m = random.choice(players)
+        del killamordersession[chat]["players"][player]
+        await e.edit(f'انتقل الى رحمة الله اللاعب ( {m} )')
+        del killamordersession[chat]['killer']
