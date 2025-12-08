@@ -26,6 +26,6 @@ async def useless(e):
     chat = e.chat_id
     msg = 'اللاعبين 👇\n'
     if chat in killamorder and killamorder[chat]["players"]:
-        for id, m in killamorder[chat]["players"]:
+        for id, m in killamorder[chat]["players"].items():
             msg += f'اللاعب - ( {m} )'
         await e.reply(str(msg))
