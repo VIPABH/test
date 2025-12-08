@@ -27,7 +27,7 @@ async def useless(e):
     chat = e.chat_id
     msg = 'اللاعبين 👇\n'
     if chat in killamordersession and killamordersession[chat]["players"]:
-        for id, m in killamordersession[chat]["players"]:
+        for id, m in killamordersession[chat]["players"].items():
             msg += f'اللاعب - ( {m} )'
         await e.reply(str(msg))
 @ABH.on(events.NewMessage(pattern='تم'))
