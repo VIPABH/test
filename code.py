@@ -38,7 +38,7 @@ async def useless(e):
 async def useless(e):
     chat = e.chat_id
     if chat in killamordersession and killamordersession[chat]["players"]:
-        await e.reply('تم بدء اللعبه ')
+        await e.reply('يتم بدء اللعبه ')
         await asyncio.sleep(2)
         much = len(killamordersession[chat]['players'])
         for _ in range(much):
@@ -69,5 +69,9 @@ async def useless(e):
     if data == 'autokill':
         player, m = random.choice(players)
         del killamordersession[chat]["players"][player]
+        if player == killer:
+            await e.reply(f'انتحر اللاعب ( {m} ) جان مختل عقليا للاسف')
+            del killamordersession[chat]['killer']
+            return
         await e.edit(f'انتقل الى رحمة الله اللاعب ( {m} )')
         del killamordersession[chat]['killer']
