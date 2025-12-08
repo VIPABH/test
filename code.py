@@ -13,15 +13,19 @@ async def killamorderstart(e):
     m = await mention(e)
     killamordersession[chat] = {"owner": id, 'players': {id: m}}
     await e.reply('اتم تشغيل لعبة القاتل والمقتول ارسل انا للانضمام')
-@ABH.on(events.NewMessage(pattern='انا'))
-async def useless(e):
-    chat = e.chat_id
-    id = e.sender_id
-    if chat in killamordersession and id in killamordersession[chat]["players"]:
-        await e.reply('سجلتك مسبقا')
+@ABH.on(events.NewMessage(pattern=r'^انا$'))
+async def register_player(e):
+    chat_id = e.chat_id
+    user_id = e.sender_id
+    if chat_id not in killamordersession:
+        killamordersession[chat_id] = {'players': {}}
+    players = killamordersession[chat_id]['players']
+    if user_id in players:
+        await e.reply('سجلتك مسبقًا ✅')
     else:
-        m = await mention(e)
-        killamordersession[chat] = {'players': {id: m}}
+        m = await mention(e)  
+        players[user_id] = m
+        await e.reply(f'تم تسجيلك كلاعب: {m}')
 @ABH.on(events.NewMessage(pattern='اللاعبين'))
 async def useless(e):
     chat = e.chat_id
