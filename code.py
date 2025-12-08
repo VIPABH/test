@@ -1,31 +1,43 @@
 from Resources import mention
 from telethon import events
 from ABH import ABH
-killamorder = {}
+import random
+killamordersession = {}
 @ABH.on(events.NewMessage(pattern='(/killamorder|القاتل والمقتول)$'))
 async def killamorderstart(e):
     chat = e.chat_id
     id = e.sender_id
-    if chat in killamorder:
+    if chat in killamordersession:
         await e.reply('اللعبة مشتغله مسبقا انتظرها تخلص')
         return
     m = await mention(e)
-    killamorder[chat] = {"owner": id, 'players': {id: m}}
-    await e.reply('اتم بدء لعبة القاتل والمقتول ارسل انا للانضمام')
+    killamordersession[chat] = {"owner": id, 'players': {id: m}}
+    await e.reply('اتم تشغيل لعبة القاتل والمقتول ارسل انا للانضمام')
 @ABH.on(events.NewMessage(pattern='انا'))
 async def useless(e):
     chat = e.chat_id
     id = e.sender_id
-    if chat in killamorder and id in killamorder[chat]["players"]:
+    if chat in killamordersession and id in killamordersession[chat]["players"]:
         await e.reply('سجلتك مسبقا')
     else:
         m = await mention(e)
-        killamorder[chat] = {'players': {id: m}}
+        killamordersession[chat] = {'players': {id: m}}
 @ABH.on(events.NewMessage(pattern='اللاعبين'))
 async def useless(e):
     chat = e.chat_id
     msg = 'اللاعبين 👇\n'
-    if chat in killamorder and killamorder[chat]["players"]:
-        for id, m in killamorder[chat]["players"].items():
+    if chat in killamordersession and killamordersession[chat]["players"]:
+        for id, m in killamordersession[chat]["players"]:
             msg += f'اللاعب - ( {m} )'
         await e.reply(str(msg))
+@ABH.on(events.NewMessage(pattern='تم'))
+async def useless(e):
+    chat = e.chat_id
+    if chat in killamordersession and killamordersession[chat]["players"]:
+        await e.reply('تم بدء اللعبه ')
+async def set_auto_killer(e):
+    chat = e.chat_id
+    players = list(killamordersession[chat]["players"].keys())
+    player = random.choice(players)
+    m = killamordersession[chat]['players'][player]
+    await e.reply(f"عزيزي ( {m} ) انت القاتل ")
