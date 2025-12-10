@@ -18,6 +18,7 @@ async def killamorderstart(e):
 async def register_player(e):
     chat_id = e.chat_id
     user_id = e.sender_id
+    msg = 'تم تشغيل لعبة القاتل والمقتول ارسل انا للانضمام\n'
     if chat_id not in killamordersession:
         killamordersession[chat_id] = {'players': {}}
     players = killamordersession[chat_id]['players']
@@ -28,7 +29,6 @@ async def register_player(e):
         players[user_id] = m
         await e.reply(f'تم تسجيلك كلاعب: {m}')
         x = killamordersession[chat_id]['edit']
-        msg = 'تم تشغيل لعبة القاتل والمقتول ارسل انا للانضمام\n'
         msg += f'اللاعب ~ {m}'
         await ABH.edit_message(chat_id, x, msg)
 @ABH.on(events.NewMessage(pattern='اللاعبين'))
@@ -61,7 +61,7 @@ async def set_auto_killer(e):
     m = killamordersession[chat]['players'][player]
     b = [Button.inline('تحديد الضحية', data="choice_to_kill"), Button.inline('قتل عشوائي', data="autokill")]
     await e.reply(f"عزيزي ( {m} ) انت القاتل ", buttons=b)
-    await asyncio.sleep(7)
+    await asyncio.sleep(10)
 @ABH.on(events.CallbackQuery)
 async def useless(e):
     chat = e.chat_id
