@@ -12,7 +12,8 @@ async def killamorderstart(e):
         return
     m = await mention(e)
     killamordersession[chat] = {"owner": id, 'players': {id: m}}
-    await e.reply('اتم تشغيل لعبة القاتل والمقتول ارسل انا للانضمام')
+    msg = await e.reply('تم تشغيل لعبة القاتل والمقتول ارسل انا للانضمام')
+    killamordersession[chat]['edit'] = msg.id
 @ABH.on(events.NewMessage(pattern=r'^انا$'))
 async def register_player(e):
     chat_id = e.chat_id
@@ -21,11 +22,15 @@ async def register_player(e):
         killamordersession[chat_id] = {'players': {}}
     players = killamordersession[chat_id]['players']
     if user_id in players:
-        await e.reply('سجلتك مسبقًا ✅')
+        await e.reply('سجلتك مسبقًا')
     else:
         m = await mention(e)  
         players[user_id] = m
         await e.reply(f'تم تسجيلك كلاعب: {m}')
+        x = killamordersession[chat_id]['edit']
+        msg = 'تم تشغيل لعبة القاتل والمقتول ارسل انا للانضمام\n'
+        msg += f'اللاعب ~ {m}'
+        await ABH.edit_message(chat_id, x, msg)
 @ABH.on(events.NewMessage(pattern='اللاعبين'))
 async def useless(e):
     chat = e.chat_id
@@ -40,7 +45,7 @@ async def useless(e):
     if chat in killamordersession and killamordersession[chat]["players"]:
         await e.reply('يتم بدء اللعبه ')
         # await asyncio.sleep(2)
-        much = len(killamordersession[chat]['players'])
+        much = len(killamordersession[chat]['players']) * 2
         for _ in range(much):
             await set_auto_killer(e)
 async def set_auto_killer(e):
@@ -72,7 +77,7 @@ async def useless(e):
         player, m = random.choice(players)
         del killamordersession[chat]["players"][player]
         if player == killer:
-            await e.reply(f'انتحر اللاعب ( {m} ) جان مختل عقليا للاسف')
+            await e.edit(f'انتحر اللاعب ( {m} ) جان مختل عقليا للاسف')
             del killamordersession[chat]['killer']
             return
         await e.edit(f'انتقل الى رحمة الله اللاعب ( {m} )')
