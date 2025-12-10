@@ -27,7 +27,7 @@ async def register_player(e):
     else:
         m = await mention(e)  
         players[user_id] = m
-        players[user_id]['points'] = 2
+        players[int(user_id)]['points'] = 2
         await e.reply(f'تم تسجيلك كلاعب: {m}')
         x = killamordersession[chat_id]['edit']
         msg += f'اللاعب ~ {m}'
