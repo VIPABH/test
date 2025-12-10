@@ -27,6 +27,7 @@ async def register_player(e):
     else:
         m = await mention(e)  
         players[user_id] = m
+        players[user_id]['points'] = 2
         await e.reply(f'تم تسجيلك كلاعب: {m}')
         x = killamordersession[chat_id]['edit']
         msg += f'اللاعب ~ {m}'
@@ -51,17 +52,23 @@ async def useless(e):
 async def set_auto_killer(e):
     chat = e.chat_id
     much = killamordersession[chat]['players']
+    points = killamordersession[chat]['players'][player]['points'] 
     players = list(much.items())
+    player, m = random.choice(players)
+    if points == 0:
+        await e.reply(f'الله يرحمك اخي ( {m} ) لدغته الحيه ومات')
+        return
     if len(much) == 1:
         for id, m in killamordersession[chat]['players'].items():
             await e.reply(f'مبارك للاعب ( {m} ) فاز اللعبة')
             del killamordersession[chat]
-    player, _ = random.choice(players)
     killamordersession[chat]['killer'] = player
-    m = killamordersession[chat]['players'][player]
+    # m = killamordersession[chat]['players'][player]
     b = [Button.inline('تحديد الضحية', data="choice_to_kill"), Button.inline('قتل عشوائي', data="autokill")]
     await e.reply(f"عزيزي ( {m} ) انت القاتل ", buttons=b)
     await asyncio.sleep(10)
+    if points > 0:
+        points =- 1
 @ABH.on(events.CallbackQuery)
 async def useless(e):
     chat = e.chat_id
