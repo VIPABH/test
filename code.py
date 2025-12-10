@@ -81,4 +81,4 @@ async def useless(e):
             del killamordersession[chat]['killer']
             return
         await e.edit(f'انتقل الى رحمة الله اللاعب ( {m} )')
-        del killamordersession[chat]['killer']
+        killamordersession[chat]['killer'] = None
