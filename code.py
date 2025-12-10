@@ -47,16 +47,16 @@ async def set_auto_killer(e):
     chat = e.chat_id
     much = killamordersession[chat]['players']
     players = list(much.items())
+    if len(much) == 1:
+        for id, m in killamordersession[chat]['players'].items():
+            await e.reply(f'مبارك للاعب ( {m} ) فاز اللعبة')
+            del killamordersession[chat]
     player, _ = random.choice(players)
     killamordersession[chat]['killer'] = player
     m = killamordersession[chat]['players'][player]
     b = [Button.inline('تحديد الضحية', data="choice_to_kill"), Button.inline('قتل عشوائي', data="autokill")]
     await e.reply(f"عزيزي ( {m} ) انت القاتل ", buttons=b)
     await asyncio.sleep(7)
-    if len(much) == 1:
-        for id, m in killamordersession[chat]['players'].items():
-            await e.reply(f'مبارك للاعب ( {m} ) فاز اللعبة')
-            del killamordersession[chat]
 @ABH.on(events.CallbackQuery)
 async def useless(e):
     chat = e.chat_id
