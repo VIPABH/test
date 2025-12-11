@@ -2,90 +2,169 @@ from telethon import events, Button
 from Resources import mention
 from ABH import ABH
 import random, asyncio
+
 killamordersession = {}
+
 @ABH.on(events.NewMessage(pattern='(/killamorder|القاتل والمقتول)$'))
 async def killamorderstart(e):
     chat = e.chat_id
-    id = e.sender_id
+    user = e.sender_id
+    
     if chat in killamordersession:
-        await e.reply('اللعبة مشتغله مسبقا انتظرها تخلص')
-        return
+        return await e.reply("اللعبة قيد التشغيل بالفعل")
+
     m = await mention(e)
-    killamordersession[chat] = {"owner": id, 'players': {id: m}}
-    msg = await e.reply('تم تشغيل لعبة القاتل والمقتول ارسل انا للانضمام')
-    killamordersession[chat]['edit'] = msg.id
+    killamordersession[chat] = {
+        "owner": user,
+        "players": {user: {"name": m, "points": 2}},
+    }
+
+    msg = await e.reply("تم تشغيل لعبة القاتل والمقتول — أرسل (انا) للانضمام")
+    killamordersession[chat]["edit"] = msg.id
+
+
 @ABH.on(events.NewMessage(pattern=r'^انا$'))
 async def register_player(e):
-    chat_id = e.chat_id
-    user_id = e.sender_id
-    msg = 'تم تشغيل لعبة القاتل والمقتول ارسل انا للانضمام\n'
-    if chat_id not in killamordersession:
-        killamordersession[chat_id] = {'players': {}}
-    players = killamordersession[chat_id]['players']
-    if user_id in players:
-        await e.reply('سجلتك مسبقًا')
-    else:
-        m = await mention(e)  
-        players[user_id] = m
-        players[int(user_id)]['points'] = 2
-        await e.reply(f'تم تسجيلك كلاعب: {m}')
-        x = killamordersession[chat_id]['edit']
-        msg += f'اللاعب ~ {m}'
-        await ABH.edit_message(chat_id, x, msg)
+    chat = e.chat_id
+    user = e.sender_id
+    
+    if chat not in killamordersession:
+        return
+
+    players = killamordersession[chat]["players"]
+
+    if user in players:
+        return await e.reply("سجلتك مسبقًا")
+
+    m = await mention(e)
+    players[user] = {"name": m, "points": 2}
+
+    # تحديث قائمة اللاعبين
+    msg = "تم تشغيل لعبة القاتل والمقتول — أرسل (انا) للانضمام\n"
+    for P in players.values():
+        msg += f"اللاعب: {P['name']}\n"
+
+    await ABH.edit_message(chat, killamordersession[chat]["edit"], msg)
+    await e.reply(f"تم تسجيلك: {m}")
+
+
 @ABH.on(events.NewMessage(pattern='اللاعبين'))
-async def useless(e):
+async def show_players(e):
     chat = e.chat_id
-    msg = 'اللاعبين 👇\n'
-    if chat in killamordersession and killamordersession[chat]["players"]:
-        for id, m in killamordersession[chat]["players"].items():
-            msg += f'اللاعب - ( {m} )\n'
-        await e.reply(str(msg))
+
+    if chat not in killamordersession:
+        return await e.reply("لا توجد لعبة شغالة")
+
+    msg = "اللاعبين:\n"
+    for p in killamordersession[chat]["players"].values():
+        msg += f"- {p['name']}\n"
+
+    await e.reply(msg)
+
+
 @ABH.on(events.NewMessage(pattern='تم', incoming=True))
-async def useless(e):
+async def start_game(e):
     chat = e.chat_id
-    if chat in killamordersession and killamordersession[chat]["players"]:
-        await e.reply('يتم بدء اللعبه ')
-        # await asyncio.sleep(2)
-        much = len(killamordersession[chat]['players']) * 2
-        for _ in range(much):
-            await set_auto_killer(e)
+
+    if chat not in killamordersession:
+        return
+
+    await e.reply("يتم بدء اللعبة ...")
+    players_count = len(killamordersession[chat]["players"]) * 2
+
+    for _ in range(players_count):
+        await set_auto_killer(e)
+        await asyncio.sleep(1)
+
+
 async def set_auto_killer(e):
     chat = e.chat_id
-    much = killamordersession[chat]['players']
-    points = killamordersession[chat]['players'][player]['points'] 
-    players = list(much.items())
-    player, m = random.choice(players)
-    if points == 0:
-        await e.reply(f'الله يرحمك اخي ( {m} ) لدغته الحيه ومات')
+    session = killamordersession[chat]
+    players = session["players"]
+
+    # لا يوجد لاعبين
+    if not players:
+        del killamordersession[chat]
         return
-    if len(much) == 1:
-        for id, m in killamordersession[chat]['players'].items():
-            await e.reply(f'مبارك للاعب ( {m} ) فاز اللعبة')
-            del killamordersession[chat]
-    killamordersession[chat]['killer'] = player
-    # m = killamordersession[chat]['players'][player]
-    b = [Button.inline('تحديد الضحية', data="choice_to_kill"), Button.inline('قتل عشوائي', data="autokill")]
-    await e.reply(f"عزيزي ( {m} ) انت القاتل ", buttons=b)
-    await asyncio.sleep(10)
-    if points > 0:
-        points =- 1
+
+    # فائز وحيد
+    if len(players) == 1:
+        winner = next(iter(players.values()))["name"]
+        await e.reply(f"🎉 مبروك! الفائز هو: {winner}")
+        del killamordersession[chat]
+        return
+
+    # اختيار القاتل
+    player_id, pdata = random.choice(list(players.items()))
+    killer_name = pdata["name"]
+    points = pdata["points"]
+
+    # ان مات (0 نقاط)
+    if points <= 0:
+        await e.reply(f"الله يرحمك ( {killer_name} ) — ماتت نقاطك")
+        del players[player_id]
+        return
+
+    # حفظ القاتل
+    session["killer"] = player_id
+
+    # أزرار
+    btns = [
+        Button.inline("تحديد الضحية", data="choice_to_kill"),
+        Button.inline("قتل عشوائي", data="autokill")
+    ]
+
+    await e.reply(f"أنت القاتل يا ( {killer_name} ) — اختر نوع القتل", buttons=btns)
+
+    # إنقاص النقاط
+    session["players"][player_id]["points"] -= 1
+
+
 @ABH.on(events.CallbackQuery)
-async def useless(e):
+async def kill_callback(e):
     chat = e.chat_id
-    id = e.sender_id
-    killer = killamordersession[chat]['killer']
-    if killer and id != killer:
+    session = killamordersession.get(chat)
+    if not session:
         return
-    data = e.data.decode('utf-8')
-    if not data in ('autokill', 'choice_to_kill'):
+
+    killer = session.get("killer")
+    if not killer or e.sender_id != killer:
         return
-    players = list(killamordersession[chat]["players"].items())
-    if data == 'autokill':
-        player, m = random.choice(players)
-        del killamordersession[chat]["players"][player]
-        if player == killer:
-            await e.edit(f'انتحر اللاعب ( {m} ) جان مختل عقليا للاسف')
-            del killamordersession[chat]['killer']
+
+    data = e.data.decode()
+
+    players = session["players"]
+
+    if data == "autokill":  # قتل عشوائي
+        victim_id, victim_data = random.choice(list(players.items()))
+
+        if victim_id == killer:
+            await e.edit(f"انتحر اللاعب ( {victim_data['name']} ) 🤦‍♂️")
+            del players[victim_id]
+            session["killer"] = None
             return
-        await e.edit(f'انتقل الى رحمة الله اللاعب ( {m} )')
-        killamordersession[chat]['killer'] = None
+
+        await e.edit(f"تم قتل اللاعب ( {victim_data['name']} )")
+        del players[victim_id]
+        session["killer"] = None
+        return
+
+    if data == "choice_to_kill":  # تحديد ضحية
+        txt = "اختر الضحية:\n"
+        btns = []
+
+        for uid, pdata in players.items():
+            if uid != killer:
+                btns.append([Button.inline(pdata["name"], data=f"kill:{uid}")])
+
+        await e.edit(txt, buttons=btns)
+        return
+
+    # تحديد قتيل معيّن
+    if data.startswith("kill:"):
+        victim_id = int(data.split(":")[1])
+        victim = players[victim_id]["name"]
+
+        del players[victim_id]
+        await e.edit(f"تم قتل ( {victim} ) بنجاح")
+        session["killer"] = None
