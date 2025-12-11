@@ -74,7 +74,7 @@ async def start_game(e):
 
     for _ in range(players_count):
         await set_auto_killer(e)
-        await asyncio.sleep(1)
+        await asyncio.sleep(10)
 
 
 async def set_auto_killer(e):
@@ -148,7 +148,6 @@ async def kill_callback(e):
         del players[victim_id]
         session["killer"] = None
         return
-
     if data == "choice_to_kill":  # تحديد ضحية
         txt = "اختر الضحية:\n"
         btns = []
@@ -156,15 +155,11 @@ async def kill_callback(e):
         for uid, pdata in players.items():
             if uid != killer:
                 btns.append([Button.inline(pdata["name"], data=f"kill:{uid}")])
-
         await e.edit(txt, buttons=btns)
         return
-
-    # تحديد قتيل معيّن
     if data.startswith("kill:"):
         victim_id = int(data.split(":")[1])
         victim = players[victim_id]["name"]
-
         del players[victim_id]
         await e.edit(f"تم قتل ( {victim} ) بنجاح")
         session["killer"] = None
