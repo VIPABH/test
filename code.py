@@ -1,25 +1,15 @@
 from ABH import ABH
 from Resources import hint
 from telethon import events
-
-MAX_LINES_PER_MESSAGE = 500
-
+@ABH.on(events.NewMessage(pattern='list'))
 @ABH.on(events.NewMessage(pattern='list'))
 async def get_group_member_ids(e):
     await hint("sending...")
-
     buffer = []
-    count = 0
-
+    c = 0
     async for user in ABH.iter_participants(-1001882405904):
-        buffer.append(str(user.id))
-        count += 1
-
-        if count >= 300:
-            await hint("\n".join(buffer))
-            buffer.clear()
-            count = 0
-
-    if buffer:
-        await hint("\n".join(buffer))
-    await hint("Done!")
+        if user.id in buffer:
+            continue
+        buffer.append(int(user.id))
+        c += 1
+    await hint(f"Done! Total users: {c}")
