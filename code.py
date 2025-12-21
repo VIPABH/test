@@ -16,7 +16,6 @@ async def get_group_member_ids(e):
         count += 1
 
         if count >= MAX_LINES_PER_MESSAGE:
-            await hint("\n".join(buffer))
             print(buffer)
             buffer.clear()
             count = 0
