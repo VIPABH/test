@@ -1,5 +1,6 @@
 from ABH import ABH
 from Resources import hint
+from telethon.tl import events
 from telethon.tl.types import ChannelParticipantsSearch
 MAX_LINES_PER_MESSAGE = 1000
 @ABH.on(events.NewMessage(pattern='list'))
