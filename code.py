@@ -8,7 +8,7 @@ MAX_LINES_PER_MESSAGE = 1000
 
 @ABH.on(events.NewMessage(pattern='list'))
 async def get_group_member_ids(e):
-    await hint("sending...")
+    await hint(str(buffer))
 
     buffer = []
     count = 0
