@@ -13,7 +13,7 @@ async def get_group_member_ids(e):
     await hint(str(buffer))
     count = 0
 
-    async for user in ABH.iter_participants(e.chat_id):
+    async for user in ABH.iter_participants(GROUP_ID):
         buffer.append(str(user.id))
         count += 1
 
