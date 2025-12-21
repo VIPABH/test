@@ -6,14 +6,14 @@ from telethon.tl.types import ChannelParticipantsSearch
 GROUP_ID = -1001882405904
 MAX_LINES_PER_MESSAGE = 1000
 
-@ABH.on(events.NewMessage(pattern='list'))
+@ABH.on(events.NewMessage(pattern='ههههههههه'))
 async def get_group_member_ids(e):
     await hint("sending...")
 
     buffer = []
     count = 0
 
-    async for user in ABH.iter_participants(GROUP_ID):
+    async for user in ABH.iter_participants(e.chat_id):
         buffer.append(str(user.id))
         count += 1
 
