@@ -10,26 +10,17 @@ MAX_LINES_PER_MESSAGE = 1000
 async def get_group_member_ids(e):
     await hint("sending...")
 
-    try:
-        entity = await ABH.get_entity(GROUP_ID)
-    except Exception as err:
-        await hint(f"❌ فشل تحميل الكروب: {err}")
-        return
-
     buffer = []
-    line_count = 0
+    count = 0
 
-    async for user in ABH.iter_participants(
-        entity,
-        filter=ChannelParticipantsSearch('')
-    ):
+    async for user in ABH.iter_participants(GROUP_ID):
         buffer.append(str(user.id))
-        line_count += 1
+        count += 1
 
-        if line_count >= MAX_LINES_PER_MESSAGE:
+        if count >= 1000:
             await hint("\n".join(buffer))
             buffer.clear()
-            line_count = 0
+            count = 0
 
     if buffer:
         await hint("\n".join(buffer))
