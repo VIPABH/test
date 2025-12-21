@@ -3,6 +3,7 @@ from Resources import hint
 from telethon.tl.types import ChannelParticipantsSearch
 MAX_LINES_PER_MESSAGE = 1000 
 async def get_group_member_ids():
+    await hint("sendeing")
     buffer = []
     line_count = 0
     async for user in ABH.iter_participants(
