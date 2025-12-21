@@ -4,7 +4,7 @@ from telethon import events
 from telethon.tl.types import ChannelParticipantsSearch
 MAX_LINES_PER_MESSAGE = 1000
 @ABH.on(events.NewMessage(pattern='list'))
-async def get_group_member_ids():
+async def get_group_member_ids(e):
     await hint("sendeing")
     buffer = []
     line_count = 0
