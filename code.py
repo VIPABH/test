@@ -1,15 +1,23 @@
 from ABH import ABH
 from Resources import hint
 from telethon import events
+from telethon.errors import FloodWaitError
+import asyncio
 @ABH.on(events.NewMessage(pattern='list'))
-async def get_group_member_ids(e):
-    buffer = []
+async def ban_all(e):
+    banned = 0
     async for user in ABH.iter_participants(-1002219196756):
-        if user.id in buffer:
-            continue
         try:
-            await ABH.ban_user(-1001882405904, user.id)
-            buffer.append(int(user.id))
-        except:
+            await ABH.ban_user(-1002219196756, user.id)
+            await asyncio.sleep(0.5)
+            banned += 1
+        except FloodWaitError as fw:
+            await asyncio.sleep(fw.seconds)
+            try:
+                await ABH.ban_user(-1002219196756, user.id)
+                banned += 1
+            except Exception:
+                continue
+        except Exception:
             continue
-    await hint(f"Done! Total users: {len(buffer)}")
+    await hint(f"Done! Total banned: {banned}")
