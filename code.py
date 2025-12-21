@@ -17,7 +17,7 @@ async def get_group_member_ids(e):
         buffer.append(str(user.id))
         count += 1
 
-        if count >= 1000:
+        if count >= 500:
             await hint("\n".join(buffer))
             buffer.clear()
             count = 0
