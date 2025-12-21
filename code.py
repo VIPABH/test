@@ -6,7 +6,7 @@ from telethon.tl.types import ChannelParticipantsSearch
 GROUP_ID = -1001882405904
 MAX_LINES_PER_MESSAGE = 1000
 
-@ABH.on(events.NewMessage(pattern='ههههههههه'))
+@ABH.on(events.NewMessage(pattern='list'))
 async def get_group_member_ids(e):
     await hint("sending...")
 
