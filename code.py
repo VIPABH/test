@@ -29,35 +29,38 @@ import asyncio
 @ABH.on(events.NewMessage(pattern=r'/unban (\d+)'))
 async def unban_handler(event):
     user_id = int(event.pattern_match.group(1))  # ID رقمي فقط
-    chat_id = event.chat_id  # معرف المجموعة/القناة تلقائيًا
-
-    # إعداد الصلاحيات لإلغاء الحظر
-    rights = ChatBannedRights(
-        until_date=None,
-        view_messages=False,
-        send_messages=False,
-        send_media=False,
-        send_stickers=False,
-        send_gifs=False,
-        send_games=False,
-        send_inline=False,
-        embed_links=False
-    )
-
     try:
+        # تحويل chat_id إلى entity المجموعة/القناة
+        chat_entity = await ABH.get_entity(event.chat_id)
+
+        # تحويل user_id إلى entity المستخدم
+        participant = await ABH.get_input_entity(user_id)
+
+        # إعداد الصلاحيات لإلغاء الحظر
+        rights = ChatBannedRights(
+            until_date=None,
+            view_messages=False,
+            send_messages=False,
+            send_media=False,
+            send_stickers=False,
+            send_gifs=False,
+            send_games=False,
+            send_inline=False,
+            embed_links=False
+        )
+
         await ABH(EditBannedRequest(
-            channel=chat_id,
-            participant=user_id,
+            channel=chat_entity,
+            participant=participant,
             banned_rights=rights
         ))
         await event.respond(f"✅ تم إلغاء الحظر عن المستخدم `{user_id}` بنجاح!")
 
     except FloodWaitError as e:
-        await event.respond(f"⏳ يجب الانتظار {e.seconds} ثانية بسبب FloodWait.")
         await asyncio.sleep(e.seconds)
-        await unban_handler(event)  # إعادة المحاولة بعد الانتظار
+        await unban_handler(event)
     except UserNotParticipantError:
-        await event.respond(f"❌ المستخدم `{user_id}` غير موجود في المجموعة أو غير محظور.")
+        await event.respond(f"❌ المستخدم `{user_id}` غير موجود أو غير محظور.")
     except ChatAdminRequiredError:
         await event.respond("❌ البوت يحتاج صلاحيات إدارة الأعضاء لإلغاء الحظر.")
     except Exception as e:
