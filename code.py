@@ -34,7 +34,10 @@ async def unban_handler(event):
     target = event.pattern_match.group(1)
 
     try:
-        # تحويل الـ username إلى participant
+        # تحويل GROUP_ID إلى entity
+        group_entity = await ABH.get_entity(GROUP_ID)
+
+        # تحويل الـ username أو ID إلى participant
         if target.startswith('@'):
             participant = await ABH.get_entity(target)
         else:
@@ -54,7 +57,7 @@ async def unban_handler(event):
         )
 
         await ABH(EditBannedRequest(
-            channel=GROUP_ID,
+            channel=group_entity,
             participant=participant,
             banned_rights=rights
         ))
