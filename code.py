@@ -17,68 +17,14 @@ ban_rights = ChatBannedRights(
     embed_links=True
 )
 msg = None
-def ban_rights():
-    """
-    تعيد ChatBannedRights مهيأة لحظر المستخدم بالكامل بشكل دائم
-    """
-    return ChatBannedRights(
-        until_date=0,  # حظر دائم
-        view_messages=True,
-        send_messages=True,
-        send_media=True,
-        send_stickers=True,
-        send_gifs=True,
-        send_games=True,
-        send_inline=True,
-        embed_links=True,
-        send_polls=True,
-        change_info=True,
-        invite_users=True,
-        pin_messages=True,
-        manage_topics=True,
-        send_photos=True,
-        send_videos=True,
-        send_roundvideos=True,
-        send_audios=True,
-        send_voices=True,
-        send_docs=True,
-        send_plain=True
-    )
-
-def unban_rights():
-    """
-    تعيد ChatBannedRights مهيأة لرفع الحظر عن المستخدم نهائيًا
-    """
-    return ChatBannedRights(
-        until_date=0,  # رفع الحظر نهائيًا
-        view_messages=False,
-        send_messages=False,
-        send_media=False,
-        send_stickers=False,
-        send_gifs=False,
-        send_games=False,
-        send_inline=False,
-        embed_links=False,
-        send_polls=False,
-        change_info=False,
-        invite_users=False,
-        pin_messages=False,
-        manage_topics=False,
-        send_photos=False,
-        send_videos=False,
-        send_roundvideos=False,
-        send_audios=False,
-        send_voices=False,
-        send_docs=False,
-        send_plain=False
-    )
+from telethon import events
 from telethon.tl.types import ChatBannedRights
 
 @ABH.on(events.NewMessage(pattern=r'unban (\d+)'))
-async def unban_user(event):
-    user_id = int(event.pattern_match.group(1))
-
-    # رفع الحظر: until_date = None عند unban
+async def unban_user(e):
+    user_id = int(e.pattern_match.group(1))
+    
+    # إعداد صلاحيات رفع الحظر
     rights = ChatBannedRights(
         until_date=None,  # رفع الحظر نهائيًا
         view_messages=False,
@@ -105,10 +51,9 @@ async def unban_user(event):
 
     try:
         await ABH.edit_permissions(GROUP_ID, user_id, rights)
-        await event.respond(f"✅ User {user_id} has been unbanned successfully.")
-    except Exception as e:
-        await event.respond(f"❌ Failed to unban user {user_id}: {e}")
-
+        await e.respond(f"✅ User {user_id} has been unbanned successfully.")
+    except Exception as exc:
+        await e.respond(f"❌ Failed to unban user {user_id}: {exc}")
 @ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
