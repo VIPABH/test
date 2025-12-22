@@ -19,24 +19,23 @@ ban_rights = ChatBannedRights(
 msg = None
 from telethon import events
 from telethon.tl.functions.channels import EditBannedRequest
-from telethon.tl.functions.messages import EditChatForbiddenRightsRequest
 from telethon.tl.types import ChatBannedRights, Channel, Chat
 from telethon.errors import FloodWaitError, ChatAdminRequiredError
 import asyncio
 
+# دالة فك الحظر
 @ABH.on(events.NewMessage(pattern=r'/unban (\d+)'))
 async def unban_handler(event):
     user_id = int(event.pattern_match.group(1))
     
     try:
-        # الحصول على معلومات الدردشة الكاملة لتحديد نوعها
-        chat = await event.get_input_chat()
+        # الحصول على الكيان (Entity) للتأكد من نوع المجموعة
         entity = await event.get_chat()
 
-        # إعداد حقوق "مفتوحة" (إلغاء حظر)
+        # إعداد حقوق "سماح بالكل"
         rights = ChatBannedRights(
             until_date=None,
-            view_messages=False, # False تعني مسموح له بالرؤية
+            view_messages=False, # False يعني غير ممنوع من الرؤية (فك حظر)
             send_messages=False,
             send_media=False,
             send_stickers=False,
@@ -46,37 +45,33 @@ async def unban_handler(event):
             embed_links=False
         )
 
-        if isinstance(entity, Channel):
-            # إذا كانت قناة أو مجموعة خارقة (Supergroup)
+        if isinstance(entity, (Channel,)):
+            # للمجموعات الخارقة والقنوات
             await ABH(EditBannedRequest(entity, user_id, rights))
-            
+            await event.respond(f"✅ تم فك الحظر (Supergroup/Channel) عن: `{user_id}`")
+        
         elif isinstance(entity, Chat):
-            # إذا كانت مجموعة عادية (Small Group)
-            # في المجموعات العادية، إلغاء الحظر يتم أحياناً بإضافة المستخدم مرة أخرى أو استدعاء دالة الحقوق العامة
+            # للمجموعات العادية: الحل هو حذف المستخدم من قائمة المحظورين
+            # أو استخدام edit_permissions المبسطة للمجموعات
             try:
-                from telethon.tl.functions.messages import DeleteChatUserRequest
-                # في المجموعات العادية، أحياناً يجب حذف المستخدم من القائمة السوداء
-                await ABH(EditBannedRequest(entity, user_id, rights)) 
-            except:
-                # محاولة فك القيود فقط
-                await ABH.edit_permissions(entity, user_id, view_messages=True)
-
-        await event.respond(f"✅ تم فك الحظر عن `{user_id}` بنجاح!")
-
+                await ABH.edit_permissions(entity.id, user_id, view_messages=True)
+                await event.respond(f"✅ تم فك الحظر (Normal Group) عن: `{user_id}`")
+            except Exception as e:
+                await event.respond(f"⚠️ المجموعة عادية، يرجى دعوة المستخدم يدوياً.")
+        
     except FloodWaitError as e:
         await asyncio.sleep(e.seconds)
         return await unban_handler(event)
     except ChatAdminRequiredError:
-        await event.respond("❌ خطأ: أحتاج صلاحيات أدمن (حظر المستخدمين).")
+        await event.respond("❌ لا أملك صلاحيات أدمن لحظر/فك حظر المستخدمين.")
     except Exception as e:
-        # محاولة أخيرة "عميانية" إذا فشل تحديد النوع
-        try:
-            await ABH.edit_permissions(event.chat_id, user_id, view_messages=True)
-            await event.respond(f"✅ تم فك الحظر (طريقة احتياطية) عن `{user_id}`")
-        except Exception as final_e:
-            await event.respond(f"❌ خطأ غير معروف: {str(final_e)}")
-@ABH.on(events.NewMessage(pattern='del (.+)'))
-async def delete_message(e):
+        await event.respond(f"❌ خطأ غير متوقع: {str(e)}")
+
+# تأكد من عدم وجود علامة @ ملتصقة بالأمر التالي
+@ABH.on(events.NewMessage(pattern=r'/del (.+)'))
+async def delete_handler(event):
+    # كود الحذف الخاص بك هنا
+    passasync def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
     await ABH.delete_messages(GROUP_ID, message_ids)
     await hint(f"✅ Deleted messages with IDs: {message_ids}")
