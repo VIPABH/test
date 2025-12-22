@@ -17,11 +17,27 @@ ban_rights = ChatBannedRights(
     embed_links=True
 )
 msg = None
-@ABH.on(events.NewMessage(pattern='unban (.+)'))
-async def unban_message(e):
-    message_ids = int(e.pattern_match.group(1))
-    await ABH.edit_permissions(GROUP_ID, message_ids, view_messages=True, send_messages=True, send_media=True, send_stickers=True, send_gifs=True, send_games=True, send_inline=True, embed_links=True)
-    await hint(f"✅ Unbanned messages with IDs: {message_ids}")
+from telethon.tl.types import ChatBannedRights
+
+@ABH.on(events.NewMessage(pattern='unban (\d+)'))
+async def unban_user(e):
+    user_id = int(e.pattern_match.group(1))
+    
+    # إعداد صلاحيات رفع الحظر
+    rights = ChatBannedRights(
+        until_date=None,
+        view_messages=False,
+        send_messages=False,
+        send_media=False,
+        send_stickers=False,
+        send_gifs=False,
+        send_games=False,
+        send_inline=False,
+        embed_links=False
+    )
+
+    await ABH.edit_permissions(GROUP_ID, user_id, rights)
+    await e.respond(f"✅ User {user_id} has been unbanned.")
 @ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
