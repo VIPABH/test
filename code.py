@@ -28,10 +28,10 @@ import asyncio
 
 @ABH.on(events.NewMessage(pattern=r'/unban (\d+)'))
 async def unban_handler(event):
-    try:
-        user_id = int(event.pattern_match.group(1))  # فقط ID رقمي
-        chat_id = event.chat_id  # معرف المجموعة/القناة تلقائيًا
+    user_id = int(event.pattern_match.group(1))  # ID رقمي فقط
+    chat_id = event.chat_id  # معرف المجموعة/القناة تلقائيًا
 
+    try:
         # تحويل user_id إلى InputPeerUser
         participant = await ABH.get_input_entity(user_id)
 
@@ -57,9 +57,8 @@ async def unban_handler(event):
         await event.respond(f"✅ تم إلغاء الحظر عن المستخدم `{user_id}` بنجاح!")
 
     except FloodWaitError as e:
-        await event.respond(f"⏳ يجب الانتظار {e.seconds} ثانية بسبب FloodWait.")
         await asyncio.sleep(e.seconds)
-        await unban_handler(event)
+        await unban_handler(event)  # إعادة المحاولة بعد الانتظار
     except UserNotParticipantError:
         await event.respond("❌ المستخدم غير موجود في المجموعة أو غير محظور.")
     except Exception as e:
