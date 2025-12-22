@@ -24,8 +24,9 @@ from telethon.tl.types import ChatBannedRights
 async def unban_user(e):
     user_id = int(e.pattern_match.group(1))
 
-    # رفع الحظر: لا تمرر until_date إطلاقًا
+    # رفع الحظر: until_date=0 مع جميع الحقوق False
     rights = ChatBannedRights(
+        until_date=0,  # 0 = رفع الحظر نهائيًا
         view_messages=False,
         send_messages=False,
         send_media=False,
