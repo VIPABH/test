@@ -29,7 +29,7 @@ import asyncio
 @ABH.on(events.NewMessage(pattern=r'/unban (\d+)'))
 async def unban_handler(event):
     user_id = int(event.pattern_match.group(1))  # ID رقمي فقط
-    chat_id = event.chat_id  # معرف المجموعة/القناة تلقائيًا
+    chat_id = await ABH.get_input_entity(event.chat_id)  # معرف المجموعة/القناة تلقائيًا
 
     try:
         # إعداد الصلاحيات لإلغاء الحظر
