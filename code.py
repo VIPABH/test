@@ -24,7 +24,7 @@ from telethon.errors import FloodWaitError, UserNotParticipantError
 import asyncio
 
 # إعدادات الاتصال
-# ضع هنا إعدادات العميل حسب ما عندك
+# افترض أن ABH هو العميل:
 # ABH = TelegramClient(...).start(...)
 
 GROUP_ID = -1001234567890  # ضع هنا معرف المجموعة أو القناة
@@ -34,12 +34,11 @@ async def unban_handler(event):
     target = event.pattern_match.group(1)
 
     try:
-        # تحويل الـ username إلى user_id إذا كان موجود
+        # تحويل الـ username إلى participant
         if target.startswith('@'):
-            user = await ABH.get_entity(target)
-            user_id = user.id
+            participant = await ABH.get_entity(target)
         else:
-            user_id = int(target)
+            participant = int(target)
 
         # إعداد الصلاحيات لإلغاء الحظر
         rights = ChatBannedRights(
@@ -56,11 +55,11 @@ async def unban_handler(event):
 
         await ABH(EditBannedRequest(
             channel=GROUP_ID,
-            user_id=user_id,
+            participant=participant,
             banned_rights=rights
         ))
 
-        await event.respond(f"✅ تم إلغاء الحظر عن المستخدم `{user_id}` بنجاح!")
+        await event.respond(f"✅ تم إلغاء الحظر عن المستخدم `{participant}` بنجاح!")
 
     except FloodWaitError as e:
         await event.respond(f"⏳ يجب الانتظار {e.seconds} ثانية بسبب FloodWait.")
