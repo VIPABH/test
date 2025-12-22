@@ -38,7 +38,8 @@ async def s(e):
         except Exception as err:
             await e.respond(f"❌ فشل التحويل: {str(err)}")
     else:
-        await e.respond("⚠️ يرجى الرد على الرسالة التي تريد تحويلها.")msg = None
+        await e.respond("⚠️ يرجى الرد على الرسالة التي تريد تحويلها.")
+msg = None
 from telethon import events
 from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights
