@@ -18,55 +18,66 @@ ban_rights = ChatBannedRights(
 )
 msg = None
 from telethon import events
-from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights, Channel, Chat
-from telethon.errors import FloodWaitError, ChatAdminRequiredError
+from telethon.errors import FloodWaitError, ChatAdminRequiredError, UserAdminInvalidError
 import asyncio
 
-# دالة فك الحظر
-@ABH.on(events.NewMessage(pattern=r'/unban (\d+)'))
+# دالة فك الحظر (بالرد أو بالمعرف)
+@ABH.on(events.NewMessage(pattern=r'/unban(?: (\d+))?'))
 async def unban_handler(event):
-    user_id = int(event.pattern_match.group(1))
+    user_id = None
     
+    # 1. جلب الـ ID سواء من الرد أو من الرقم المكتوب
+    if event.reply_to_msg_id:
+        reply_msg = await event.get_reply_message()
+        user_id = reply_msg.sender_id
+    elif event.pattern_match.group(1):
+        user_id = int(event.pattern_match.group(1))
+    
+    if not user_id:
+        return await event.respond("⚠️ يرجى الرد على رسالة المستخدم أو كتابة الـ ID الخاص به.")
+
     try:
-        # الحصول على الكيان (Entity) للتأكد من نوع المجموعة
-        entity = await event.get_chat()
+        # 2. الحصول على كيان الدردشة
+        chat_entity = await event.get_chat()
 
-        # إعداد حقوق "سماح بالكل"
-        rights = ChatBannedRights(
+        # 3. الطريقة الأكثر استقراراً لفك الحظر في Telethon
+        # نرسل كائن حقوق فارغ تماماً (كل شيء مسموح)
+        await ABH.edit_permissions(
+            chat_entity,
+            user_id,
             until_date=None,
-            view_messages=False, # False يعني غير ممنوع من الرؤية (فك حظر)
-            send_messages=False,
-            send_media=False,
-            send_stickers=False,
-            send_gifs=False,
-            send_games=False,
-            send_inline=False,
-            embed_links=False
+            view_messages=True,
+            send_messages=True,
+            send_media=True,
+            send_stickers=True,
+            send_gifs=True,
+            send_games=True,
+            send_inline=True,
+            embed_links=True
         )
+        
+        await event.respond(f"✅ تم بنجاح فك الحظر/القيود عن: `{user_id}`")
 
-        if isinstance(entity, (Channel,)):
-            # للمجموعات الخارقة والقنوات
-            await ABH(EditBannedRequest(entity, user_id, rights))
-            await event.respond(f"✅ تم فك الحظر (Supergroup/Channel) عن: `{user_id}`")
-        
-        elif isinstance(entity, Chat):
-            # للمجموعات العادية: الحل هو حذف المستخدم من قائمة المحظورين
-            # أو استخدام edit_permissions المبسطة للمجموعات
-            try:
-                await ABH.edit_permissions(entity.id, user_id, view_messages=True)
-                await event.respond(f"✅ تم فك الحظر (Normal Group) عن: `{user_id}`")
-            except Exception as e:
-                await event.respond(f"⚠️ المجموعة عادية، يرجى دعوة المستخدم يدوياً.")
-        
+    except ValueError:
+        # هذا هو حل مشكلة "You must pass either a channel or a supergroup"
+        # للمجموعات العادية: نقوم بإزالة المستخدم من قائمة المحظورين عبر إزالته من الدردشة (إجراء شكلي لفك الحظر)
+        try:
+            from telethon.tl.functions.messages import DeleteChatUserRequest
+            await ABH(DeleteChatUserRequest(event.chat_id, user_id))
+            await event.respond(f"✅ تم فك حظر المستخدم من المجموعة العادية.")
+        except Exception as e:
+            await event.respond(f"❌ فشل فك الحظر في المجموعة العادية: {str(e)}")
+
+    except ChatAdminRequiredError:
+        await event.respond("❌ خطأ: الحساب لا يملك صلاحيات مسؤول (حظر الأعضاء).")
+    except UserAdminInvalidError:
+        await event.respond("❌ لا يمكنني تعديل صلاحيات هذا المستخدم (قد يكون مسؤولاً بالفعل).")
     except FloodWaitError as e:
         await asyncio.sleep(e.seconds)
         return await unban_handler(event)
-    except ChatAdminRequiredError:
-        await event.respond("❌ لا أملك صلاحيات أدمن لحظر/فك حظر المستخدمين.")
     except Exception as e:
-        await event.respond(f"❌ خطأ غير متوقع: {str(e)}")
-
+        await event.respond(f"❌ حدث خطأ غير متوقع: {str(e)}")
 # تأكد من عدم وجود علامة @ ملتصقة بالأمر التالي
 @ABH.on(events.NewMessage(pattern=r'/del (.+)'))
 async def delete_handler(event):
