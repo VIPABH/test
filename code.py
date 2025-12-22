@@ -67,8 +67,6 @@ async def unban_handler(event):
         await unban_handler(event)
     except UserNotParticipantError:
         await event.respond("❌ المستخدم غير موجود في المجموعة أو غير محظور.")
-    except ValueError:
-        await event.respond("❌ يجب إدخال معرف رقمي صالح أو @username.")
     except Exception as e:
         await event.respond(f"❌ حدث خطأ: {e}")
 
