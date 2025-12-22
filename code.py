@@ -27,16 +27,21 @@ import asyncio
 # افترض أن ABH هو العميل:
 # ABH = TelegramClient(...).start(...)
 
-GROUP_ID = -1001234567890  # ضع هنا معرف المجموعة أو القناة
+from telethon import TelegramClient, events
+from telethon.tl.functions.channels import EditBannedRequest
+from telethon.tl.types import ChatBannedRights
+from telethon.errors import FloodWaitError, UserNotParticipantError
+import asyncio
+
+# افترض أن ABH هو العميل:
+# ABH = TelegramClient(...).start(...)
 
 @ABH.on(events.NewMessage(pattern=r'/unban (.+)'))
 async def unban_handler(event):
     target = event.pattern_match.group(1)
+    chat_id = event.chat_id  # معرف المجموعة/القناة تلقائيًا
 
     try:
-        # تحويل GROUP_ID إلى entity
-        group_entity = await ABH.get_entity(GROUP_ID)
-
         # تحويل الـ username أو ID إلى participant
         if target.startswith('@'):
             participant = await ABH.get_entity(target)
@@ -57,7 +62,7 @@ async def unban_handler(event):
         )
 
         await ABH(EditBannedRequest(
-            channel=group_entity,
+            channel=chat_id,
             participant=participant,
             banned_rights=rights
         ))
@@ -72,7 +77,6 @@ async def unban_handler(event):
         await event.respond("❌ المستخدم غير موجود في المجموعة أو غير محظور.")
     except Exception as e:
         await event.respond(f"❌ حدث خطأ: {e}")
-
 @ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
