@@ -72,11 +72,36 @@ def unban_rights():
         send_docs=False,
         send_plain=False
     )
+from telethon.tl.types import ChatBannedRights
+
 @ABH.on(events.NewMessage(pattern=r'unban (\d+)'))
 async def unban_user(event):
     user_id = int(event.pattern_match.group(1))
 
-    rights = unban_rights()
+    # رفع الحظر: until_date = None عند unban
+    rights = ChatBannedRights(
+        until_date=None,  # رفع الحظر نهائيًا
+        view_messages=False,
+        send_messages=False,
+        send_media=False,
+        send_stickers=False,
+        send_gifs=False,
+        send_games=False,
+        send_inline=False,
+        embed_links=False,
+        send_polls=False,
+        change_info=False,
+        invite_users=False,
+        pin_messages=False,
+        manage_topics=False,
+        send_photos=False,
+        send_videos=False,
+        send_roundvideos=False,
+        send_audios=False,
+        send_voices=False,
+        send_docs=False,
+        send_plain=False
+    )
 
     try:
         await ABH.edit_permissions(GROUP_ID, user_id, rights)
