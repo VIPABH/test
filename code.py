@@ -17,11 +17,28 @@ ban_rights = ChatBannedRights(
     embed_links=True
 )
 
-@ABH.on(events.NewMessage(pattern=r'forward')))
+from telethon import events
+
+# تأكد من وضع ID المجموعة الصحيح هنا (رقمي)
+# GROUP_ID = -100123456789
+
+@ABH.on(events.NewMessage(pattern=r'forward'))
 async def s(e):
-    r = await e.get_reply_message()
-    await ABH.forward_messages(GROUP_ID, r)
-msg = None
+    # التحقق مما إذا كانت الرسالة رداً على رسالة أخرى
+    if e.is_reply:
+        try:
+            # الحصول على الرسالة التي تم الرد عليها
+            reply_msg = await e.get_reply_message()
+            
+            # تحويل الرسالة (Forward)
+            # نمرر ID المجموعة، ثم ID الرسالة المراد تحويلها، ثم ID المحادثة الأصلية
+            await ABH.forward_messages(GROUP_ID, reply_msg)
+            
+            await e.respond("✅ تم تحويل الرسالة بنجاح!")
+        except Exception as err:
+            await e.respond(f"❌ فشل التحويل: {str(err)}")
+    else:
+        await e.respond("⚠️ يرجى الرد على الرسالة التي تريد تحويلها.")msg = None
 from telethon import events
 from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights
