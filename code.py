@@ -18,54 +18,49 @@ ban_rights = ChatBannedRights(
 )
 msg = None
 from telethon import events
-from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights
-from telethon.errors import FloodWaitError, UserNotParticipantError, ChatAdminRequiredError
+from telethon.errors import FloodWaitError, ChatAdminRequiredError
 import asyncio
 
-# افترض أن ABH هو العميل:
-# ABH = TelegramClient(...).start(...)
+# ملاحظة: تأكد أن ABH معرف مسبقاً في ملفك الأساسي
+# @ABH.on...
 
 @ABH.on(events.NewMessage(pattern=r'/unban (\d+)'))
 async def unban_handler(event):
-    user_id = int(event.pattern_match.group(1))  # ID رقمي فقط
+    # الحصول على ID المستخدم من الرسالة
+    user_id = int(event.pattern_match.group(1))
+    # الحصول على ID المجموعة الحالية تلقائياً
+    chat_id = event.chat_id 
+
     try:
-        # تحويل chat_id إلى entity المجموعة/القناة
-        chat_entity = await ABH.get_entity(GROUP_ID)
-
-        # تحويل user_id إلى entity المستخدم
-        participant = await ABH.get_input_entity(chat_entity)
-
-        # إعداد الصلاحيات لإلغاء الحظر
-        rights = ChatBannedRights(
-            until_date=None,
-            view_messages=False,
-            send_messages=False,
-            send_media=False,
-            send_stickers=False,
-            send_gifs=False,
-            send_games=False,
-            send_inline=False,
-            embed_links=False
+        # الطريقة الأبسط والأضمن لإلغاء الحظر في Telethon
+        # نضع كل الصلاحيات كـ False لإلغاء أي قيود (Unban/Unmute)
+        await ABH.edit_permissions(
+            chat_id, 
+            user_id, 
+            view_messages=True, # السماح له برؤية الرسائل (إلغاء الحظر الكلي)
+            send_messages=True, 
+            send_media=True, 
+            send_stickers=True, 
+            send_gifs=True, 
+            send_games=True, 
+            send_inline=True, 
+            embed_links=True
         )
-
-        await ABH(EditBannedRequest(
-            channel=chat_entity,
-            participant=participant,
-            banned_rights=rights
-        ))
-        await event.respond(f"✅ تم إلغاء الحظر عن المستخدم `{user_id}` بنجاح!")
+        
+        await event.respond(f"✅ تم إلغاء الحظر عن المستخدم `{user_id}` في هذه المجموعة.")
 
     except FloodWaitError as e:
+        # الانتظار في حال وجود حماية من التلغرام (Flood)
         await asyncio.sleep(e.seconds)
-        await unban_handler(event)
-    except UserNotParticipantError:
-        await event.respond(f"❌ المستخدم `{user_id}` غير موجود أو غير محظور.")
+        return await unban_handler(event)
+        
     except ChatAdminRequiredError:
-        await event.respond("❌ البوت يحتاج صلاحيات إدارة الأعضاء لإلغاء الحظر.")
+        await event.respond("❌ خطأ: الحساب لا يملك صلاحيات 'حظر المستخدمين' هنا.")
+        
     except Exception as e:
-        await event.respond(f"❌ حدث خطأ غير متوقع: {e}")
-@ABH.on(events.NewMessage(pattern='del (.+)'))
+        # معالجة أي خطأ آخر بصمت أو برسالة بسيطة
+        await event.respond(f"❌ لم أتمكن من إلغاء الحظر. السبب: {str(e)}")@ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
     await ABH.delete_messages(GROUP_ID, message_ids)
