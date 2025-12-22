@@ -17,15 +17,15 @@ ban_rights = ChatBannedRights(
     embed_links=True
 )
 msg = None
-from telethon.tl.types import ChatBannedRights
-
 from telethon import TelegramClient, events
-from telethon.tl.functions.channels import UnbanParticipant
+from telethon.tl.functions.channels import EditBannedRequest
+from telethon.tl.types import ChatBannedRights
 from telethon.errors import FloodWaitError, UserNotParticipantError
 import asyncio
 
 # إعدادات الاتصال
-
+# ضع هنا إعدادات العميل حسب ما عندك
+# ABH = TelegramClient(...).start(...)
 
 GROUP_ID = -1001234567890  # ضع هنا معرف المجموعة أو القناة
 
@@ -34,23 +34,38 @@ async def unban_handler(event):
     target = event.pattern_match.group(1)
 
     try:
-        # محاولة تحويل الـ username إلى user_id إذا كان موجود
+        # تحويل الـ username إلى user_id إذا كان موجود
         if target.startswith('@'):
             user = await ABH.get_entity(target)
             user_id = user.id
         else:
             user_id = int(target)
 
-        await ABH(UnbanParticipant(
+        # إعداد الصلاحيات لإلغاء الحظر
+        rights = ChatBannedRights(
+            until_date=None,
+            view_messages=False,
+            send_messages=False,
+            send_media=False,
+            send_stickers=False,
+            send_gifs=False,
+            send_games=False,
+            send_inline=False,
+            embed_links=False
+        )
+
+        await ABH(EditBannedRequest(
             channel=GROUP_ID,
-            user_id=user_id
+            user_id=user_id,
+            banned_rights=rights
         ))
+
         await event.respond(f"✅ تم إلغاء الحظر عن المستخدم `{user_id}` بنجاح!")
-    
+
     except FloodWaitError as e:
         await event.respond(f"⏳ يجب الانتظار {e.seconds} ثانية بسبب FloodWait.")
         await asyncio.sleep(e.seconds)
-        await unban_handler(event)  # محاولة ثانية بعد الانتظار
+        await unban_handler(event)
     except UserNotParticipantError:
         await event.respond("❌ المستخدم غير موجود في المجموعة أو غير محظور.")
     except ValueError:
@@ -58,8 +73,6 @@ async def unban_handler(event):
     except Exception as e:
         await event.respond(f"❌ حدث خطأ: {e}")
 
-print("Bot is running...")
-client.run_until_disconnected()
 @ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
