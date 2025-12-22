@@ -18,16 +18,16 @@ ban_rights = ChatBannedRights(
 )
 msg = None
 from telethon import events
-from telethon.tl.types import ChatBannedRights, Channel, Chat
+from telethon.tl.functions.channels import EditBannedRequest
+from telethon.tl.types import ChatBannedRights
 from telethon.errors import FloodWaitError, ChatAdminRequiredError, UserAdminInvalidError
 import asyncio
 
-# دالة فك الحظر (بالرد أو بالمعرف)
 @ABH.on(events.NewMessage(pattern=r'/unban(?: (\d+))?'))
 async def unban_handler(event):
     user_id = None
     
-    # 1. جلب الـ ID سواء من الرد أو من الرقم المكتوب
+    # 1. جلب ID المستخدم (من الرد أو الرقم المكتوب)
     if event.reply_to_msg_id:
         reply_msg = await event.get_reply_message()
         user_id = reply_msg.sender_id
@@ -35,51 +35,39 @@ async def unban_handler(event):
         user_id = int(event.pattern_match.group(1))
     
     if not user_id:
-        return await event.respond("⚠️ يرجى الرد على رسالة المستخدم أو كتابة الـ ID الخاص به.")
+        return await event.respond("⚠️ ارسل الـ ID مع الأمر أو قم بالرد على رسالة الشخص.")
+
+    # 2. إنشاء كائن الحقوق "الخام" (الكل False لإلغاء الحظر)
+    # هذا يحل مشكلة الكلمات المحجوزة مثل embed_links
+    unban_rights = ChatBannedRights(
+        until_date=None,
+        view_messages=False,
+        send_messages=False,
+        send_media=False,
+        send_stickers=False,
+        send_gifs=False,
+        send_games=False,
+        send_inline=False,
+        embed_links=False
+    )
 
     try:
-        # 2. الحصول على كيان الدردشة
-        chat_entity = await event.get_chat()
+        # محاولة فك الحظر باستخدام الطلب المباشر (الأكثر توافقاً)
+        await ABH(EditBannedRequest(event.chat_id, user_id, unban_rights))
+        await event.respond(f"✅ تم فك الحظر عن: `{user_id}`")
 
-        # 3. الطريقة الأكثر استقراراً لفك الحظر في Telethon
-        # نرسل كائن حقوق فارغ تماماً (كل شيء مسموح)
-        await ABH.edit_permissions(
-            chat_entity,
-            user_id,
-            until_date=None,
-            view_messages=True,
-            send_messages=True,
-            send_media=True,
-            send_stickers=True,
-            send_gifs=True,
-            send_games=True,
-            send_inline=True,
-            embed_links=True
-        )
-        
-        await event.respond(f"✅ تم بنجاح فك الحظر/القيود عن: `{user_id}`")
-
-    except ValueError:
-        # هذا هو حل مشكلة "You must pass either a channel or a supergroup"
-        # للمجموعات العادية: نقوم بإزالة المستخدم من قائمة المحظورين عبر إزالته من الدردشة (إجراء شكلي لفك الحظر)
+    except Exception as e:
+        # 3. خطة الطوارئ للمجموعات العادية (ValueError: You must pass either a channel...)
         try:
-            from telethon.tl.functions.messages import DeleteChatUserRequest
-            await ABH(DeleteChatUserRequest(event.chat_id, user_id))
-            await event.respond(f"✅ تم فك حظر المستخدم من المجموعة العادية.")
-        except Exception as e:
-            await event.respond(f"❌ فشل فك الحظر في المجموعة العادية: {str(e)}")
+            # استخدام الدالة المختصرة بدون معاملات نصية لتجنب أخطاء الإصدارات
+            await ABH.edit_permissions(event.chat_id, user_id, view_messages=True)
+            await event.respond(f"✅ تم فك القيود عن: `{user_id}`")
+        except Exception as final_e:
+            await event.respond(f"❌ تعذر فك الحظر: {str(final_e)}")
 
-    except ChatAdminRequiredError:
-        await event.respond("❌ خطأ: الحساب لا يملك صلاحيات مسؤول (حظر الأعضاء).")
-    except UserAdminInvalidError:
-        await event.respond("❌ لا يمكنني تعديل صلاحيات هذا المستخدم (قد يكون مسؤولاً بالفعل).")
     except FloodWaitError as e:
         await asyncio.sleep(e.seconds)
-        return await unban_handler(event)
-    except Exception as e:
-        await event.respond(f"❌ حدث خطأ غير متوقع: {str(e)}")
-# تأكد من عدم وجود علامة @ ملتصقة بالأمر التالي
-@ABH.on(events.NewMessage(pattern=r'/del (.+)'))
+        return await unban_handler(event)@ABH.on(events.NewMessage(pattern=r'/del (.+)'))
 async def delete_handler(event):
     # كود الحذف الخاص بك هنا
     message_ids = int(e.pattern_match.group(1))
