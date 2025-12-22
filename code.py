@@ -18,49 +18,49 @@ ban_rights = ChatBannedRights(
 )
 msg = None
 from telethon import events
-from telethon.tl.types import ChatBannedRights
-from telethon.errors import FloodWaitError, ChatAdminRequiredError
+from telethon.errors import FloodWaitError, ChatAdminRequiredError, UserAdminInvalidError
 import asyncio
 
 @ABH.on(events.NewMessage(pattern=r'/unban (\d+)'))
 async def unban_handler(event):
     user_id = int(event.pattern_match.group(1))
-    chat_id = event.chat_id 
-
+    
     try:
-        # إنشاء كائن حقوق "فارغ" يعني السماح بكل شيء وإلغاء الحظر
+        # استخدام edit_permissions بدون تسمية المعاملات المختلف عليها
+        # وضع القيم كـ True هنا في دالة edit_permissions (التابعة للعميل) يعني "السماح"
         await ABH.edit_permissions(
-            chat_id, 
-            user_id, 
-            until_date=None,
-            view_messages=True, # هذا السطر هو الأهم لفك الحظر الكلي
+            event.chat_id,
+            user_id,
+            view_messages=True,
             send_messages=True,
             send_media=True,
             send_stickers=True,
             send_gifs=True,
             send_games=True,
             send_inline=True,
-            # قمنا بإزالة المعامل المسبب للمشكلة واستبداله بالحقوق الافتراضية
+            embed_links=True
         )
         
-        await event.respond(f"✅ تم بنجاح فك الحظر عن: `{user_id}`")
+        await event.respond(f"✅ تم فك الحظر بنجاح عن: `{user_id}`")
 
-    except FloodWaitError as e:
-        await asyncio.sleep(e.seconds)
-        return await unban_handler(event)
+    except UserAdminInvalidError:
+        # هذا الخطأ يحدث أحياناً إذا كان المستخدم أدمن أو هناك تضارب في الصلاحيات
+        await event.respond("❌ لا يمكنني تعديل صلاحيات هذا المستخدم (قد يكون أدمن أو غير موجود).")
         
     except ChatAdminRequiredError:
-        await event.respond("❌ خطأ: الحساب لا يملك صلاحيات 'حظر المستخدمين'.")
-        
+        await event.respond("❌ الحساب ليس لديه صلاحيات أدمن كافية.")
+
     except Exception as e:
-        # محاولة أخيرة باستخدام الطريقة الخام (Raw API) إذا فشلت الدالة المختصرة
+        # الحل الأخير للمجموعات العادية (Small Groups)
         try:
-            from telethon.tl.functions.channels import EditBannedRequest
-            await ABH(EditBannedRequest(chat_id, user_id, ChatBannedRights(until_date=None, view_messages=False)))
-            await event.respond(f"✅ تم فك الحظر عن `{user_id}` (عبر الطلب المباشر).")
-        except Exception as last_error:
-            await event.respond(f"❌ فشل إلغاء الحظر: {str(last_error)}")
-@ABH.on(events.NewMessage(pattern='del (.+)'))
+            from telethon.tl.functions.messages import EditChatDefaultBannedRightsRequest
+            from telethon.tl.types import ChatBannedRights
+            
+            # محاولة فك الحظر عبر إزاحته من قائمة المحظورين نهائياً
+            await ABH.edit_permissions(event.chat_id, user_id, view_messages=True)
+            await event.respond(f"✅ تم فك الحظر عن `{user_id}`")
+        except Exception as final_e:
+            await event.respond(f"❌ فشل نهائي: {str(final_e)}")@ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
     await ABH.delete_messages(GROUP_ID, message_ids)
