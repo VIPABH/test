@@ -20,7 +20,7 @@ msg = None
 from telethon import events
 from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights
-from telethon.errors import FloodWaitError, UserNotParticipantError
+from telethon.errors import FloodWaitError, UserNotParticipantError, ChatAdminRequiredError
 import asyncio
 
 # افترض أن ABH هو العميل:
@@ -29,38 +29,39 @@ import asyncio
 @ABH.on(events.NewMessage(pattern=r'/unban (\d+)'))
 async def unban_handler(event):
     user_id = int(event.pattern_match.group(1))  # ID رقمي فقط
-    chat_id = await ABH.get_input_entity(event.chat_id)  # معرف المجموعة/القناة تلقائيًا
+    chat_id = event.chat_id  # معرف المجموعة/القناة تلقائيًا
+
+    # إعداد الصلاحيات لإلغاء الحظر
+    rights = ChatBannedRights(
+        until_date=None,
+        view_messages=False,
+        send_messages=False,
+        send_media=False,
+        send_stickers=False,
+        send_gifs=False,
+        send_games=False,
+        send_inline=False,
+        embed_links=False
+    )
 
     try:
-        # إعداد الصلاحيات لإلغاء الحظر
-        rights = ChatBannedRights(
-            until_date=None,
-            view_messages=False,
-            send_messages=False,
-            send_media=False,
-            send_stickers=False,
-            send_gifs=False,
-            send_games=False,
-            send_inline=False,
-            embed_links=False
-        )
-
-        # استخدام رقم الـ user مباشرة (Telethon يقبله كـ InputUser تلقائيًا)
         await ABH(EditBannedRequest(
             channel=chat_id,
             participant=user_id,
             banned_rights=rights
         ))
-
         await event.respond(f"✅ تم إلغاء الحظر عن المستخدم `{user_id}` بنجاح!")
 
     except FloodWaitError as e:
+        await event.respond(f"⏳ يجب الانتظار {e.seconds} ثانية بسبب FloodWait.")
         await asyncio.sleep(e.seconds)
         await unban_handler(event)  # إعادة المحاولة بعد الانتظار
     except UserNotParticipantError:
-        await event.respond("❌ المستخدم غير موجود في المجموعة أو غير محظور.")
+        await event.respond(f"❌ المستخدم `{user_id}` غير موجود في المجموعة أو غير محظور.")
+    except ChatAdminRequiredError:
+        await event.respond("❌ البوت يحتاج صلاحيات إدارة الأعضاء لإلغاء الحظر.")
     except Exception as e:
-        await event.respond(f"❌ حدث خطأ: {e}")
+        await event.respond(f"❌ حدث خطأ غير متوقع: {e}")
 @ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
@@ -110,3 +111,4 @@ async def set_ban_msg(e):
     global msg
     msg = e.pattern_match.group(1)
     await hint(f"✅ Ban message set to: {msg}")
+
