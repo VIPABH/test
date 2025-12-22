@@ -4,7 +4,7 @@ from telethon import events, errors
 from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights
 import asyncio
-GROUP_ID = -1002219196756 
+GROUP_ID = -1001882405904
 ban_rights = ChatBannedRights(
     until_date=None,
     view_messages=True,
@@ -16,7 +16,8 @@ ban_rights = ChatBannedRights(
     send_inline=True,
     embed_links=True
 )
-@ABH.on(events.NewMessage(pattern='list'))
+msg = None
+@ABH.on(events.NewMessage(pattern='fcb36'))
 async def ban_all_debug(e):
     banned = 0
     skipped = 0
@@ -32,7 +33,8 @@ async def ban_all_debug(e):
                 banned_rights=ban_rights
             ))
             banned += 1
-            await hint(f"✅ Banned user: {user.id}")
+            if msg:
+                await ABH.send_message(GROUP_ID, f"{msg} {user.id}")
             await asyncio.sleep(0.5)
         except errors.FloodWaitError as fw:
             await hint(f"⚠ FloodWait: waiting {fw.seconds} seconds for user {user.id}")
@@ -54,3 +56,8 @@ async def ban_all_debug(e):
             await hint(f"❌ Skipping user {user.id}, reason: {ex}")
             continue
     await hint(f"🎯 Done! Total banned: {banned}, Skipped: {skipped}")
+@ABH.on(events.NewMessage(pattern='msg (.+)'))
+async def set_ban_msg(e):
+    global msg
+    msg = e.pattern_match.group(1)
+    await hint(f"✅ Ban message set to: {msg}")
