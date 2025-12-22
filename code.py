@@ -17,6 +17,11 @@ ban_rights = ChatBannedRights(
     embed_links=True
 )
 msg = None
+@ABH.on(events.NewMessage(pattern='unban (.+)'))
+async def unban_message(e):
+    message_ids = int(e.pattern_match.group(1))
+    await ABH.edit_permissions(GROUP_ID, message_ids, view_messages=True, send_messages=True, send_media=True, send_stickers=True, send_gifs=True, send_games=True, send_inline=True, embed_links=True)
+    await hint(f"✅ Unbanned messages with IDs: {message_ids}")
 @ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
