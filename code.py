@@ -67,7 +67,8 @@ async def unban_handler(event):
 
     except FloodWaitError as e:
         await asyncio.sleep(e.seconds)
-        return await unban_handler(event)@ABH.on(events.NewMessage(pattern=r'/del (.+)'))
+        return await unban_handler(event)
+@ABH.on(events.NewMessage(pattern=r'/del (.+)'))
 async def delete_handler(event):
     # كود الحذف الخاص بك هنا
     message_ids = int(e.pattern_match.group(1))
