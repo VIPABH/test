@@ -32,9 +32,6 @@ async def unban_handler(event):
     chat_id = event.chat_id  # معرف المجموعة/القناة تلقائيًا
 
     try:
-        # تحويل user_id إلى InputPeerUser
-        participant = await ABH.get_input_entity(user_id)
-
         # إعداد الصلاحيات لإلغاء الحظر
         rights = ChatBannedRights(
             until_date=None,
@@ -48,9 +45,10 @@ async def unban_handler(event):
             embed_links=False
         )
 
+        # استخدام رقم الـ user مباشرة (Telethon يقبله كـ InputUser تلقائيًا)
         await ABH(EditBannedRequest(
             channel=chat_id,
-            participant=participant,
+            participant=user_id,
             banned_rights=rights
         ))
 
