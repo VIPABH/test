@@ -17,25 +17,6 @@ ban_rights = ChatBannedRights(
     embed_links=True
 )
 msg = None
-from telethon import TelegramClient, events
-from telethon.tl.functions.channels import EditBannedRequest
-from telethon.tl.types import ChatBannedRights
-from telethon.errors import FloodWaitError, UserNotParticipantError
-import asyncio
-
-# إعدادات الاتصال
-# افترض أن ABH هو العميل:
-# ABH = TelegramClient(...).start(...)
-
-from telethon import TelegramClient, events
-from telethon.tl.functions.channels import EditBannedRequest
-from telethon.tl.types import ChatBannedRights
-from telethon.errors import FloodWaitError, UserNotParticipantError
-import asyncio
-
-# افترض أن ABH هو العميل:
-# ABH = TelegramClient(...).start(...)
-
 from telethon import events
 from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights
@@ -50,6 +31,9 @@ async def unban_handler(event):
     try:
         user_id = int(event.pattern_match.group(1))  # فقط ID رقمي
         chat_id = event.chat_id  # معرف المجموعة/القناة تلقائيًا
+
+        # تحويل user_id إلى InputPeerUser
+        participant = await ABH.get_input_entity(user_id)
 
         # إعداد الصلاحيات لإلغاء الحظر
         rights = ChatBannedRights(
@@ -66,7 +50,7 @@ async def unban_handler(event):
 
         await ABH(EditBannedRequest(
             channel=chat_id,
-            participant=user_id,
+            participant=participant,
             banned_rights=rights
         ))
 
