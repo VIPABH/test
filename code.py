@@ -24,36 +24,36 @@ from telethon.tl.types import ChatBannedRights
 async def unban_user(e):
     user_id = int(e.pattern_match.group(1))
 
-    # رفع الحظر: until_date=0 مع جميع الحقوق False
+    # رفع الحظر جزئي: يسمح بالمراسلة النصية فقط، لكن يمنع إرسال الملفات والوسائط
     rights = ChatBannedRights(
         until_date=0,  # 0 = رفع الحظر نهائيًا
-        view_messages=False,
-        send_messages=False,
-        send_media=False,
-        send_stickers=False,
-        send_gifs=False,
-        send_games=False,
-        send_inline=False,
-        embed_links=False,
-        send_polls=False,
+        view_messages=False,          # يستطيع رؤية الرسائل
+        send_messages=False,          # إذا تريد السماح بالنص، اجعله False
+        send_media=True,              # True = ممنوع إرسال أي وسائط
+        send_stickers=True,
+        send_gifs=True,
+        send_games=True,
+        send_inline=True,
+        embed_links=True,
+        send_polls=True,
         change_info=False,
         invite_users=False,
         pin_messages=False,
         manage_topics=False,
-        send_photos=False,
-        send_videos=False,
-        send_roundvideos=False,
-        send_audios=False,
-        send_voices=False,
-        send_docs=False,
-        send_plain=False
+        send_photos=True,
+        send_videos=True,
+        send_roundvideos=True,
+        send_audios=True,
+        send_voices=True,
+        send_docs=True,
+        send_plain=False               # يسمح بإرسال النصوص
     )
 
     try:
         await ABH.edit_permissions(GROUP_ID, user_id, rights)
-        await e.respond(f"✅ User {user_id} has been unbanned successfully.")
+        await e.respond(f"✅ User {user_id} has been partially unbanned (cannot send files/media).")
     except Exception as exc:
-        await e.respond(f"❌ Failed to unban user {user_id}: {exc}")
+        await e.respond(f"❌ Failed to update permissions for user {user_id}: {exc}")
 @ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
