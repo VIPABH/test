@@ -17,12 +17,40 @@ ban_rights = ChatBannedRights(
     embed_links=True
 )
 msg = None
-@ABH.on(events.NewMessage(pattern=r'unban (\d+)'))
-async def unban_user(event):
-    user_id = int(event.pattern_match.group(1))
+def ban_rights():
+    """
+    تعيد ChatBannedRights مهيأة لحظر المستخدم بالكامل بشكل دائم
+    """
+    return ChatBannedRights(
+        until_date=0,  # حظر دائم
+        view_messages=True,
+        send_messages=True,
+        send_media=True,
+        send_stickers=True,
+        send_gifs=True,
+        send_games=True,
+        send_inline=True,
+        embed_links=True,
+        send_polls=True,
+        change_info=True,
+        invite_users=True,
+        pin_messages=True,
+        manage_topics=True,
+        send_photos=True,
+        send_videos=True,
+        send_roundvideos=True,
+        send_audios=True,
+        send_voices=True,
+        send_docs=True,
+        send_plain=True
+    )
 
-    # رفع جميع القيود
-    rights = banned_rights(
+def unban_rights():
+    """
+    تعيد ChatBannedRights مهيأة لرفع الحظر عن المستخدم نهائيًا
+    """
+    return ChatBannedRights(
+        until_date=0,  # رفع الحظر نهائيًا
         view_messages=False,
         send_messages=False,
         send_media=False,
@@ -44,9 +72,18 @@ async def unban_user(event):
         send_docs=False,
         send_plain=False
     )
-    await ABH.edit_permissions(GROUP_ID, user_id, rights)
+@ABH.on(events.NewMessage(pattern=r'unban (\d+)'))
+async def unban_user(event):
+    user_id = int(event.pattern_match.group(1))
 
-    await event.respond(f"✅ User {user_id} has been unbanned.")
+    rights = unban_rights()
+
+    try:
+        await ABH.edit_permissions(GROUP_ID, user_id, rights)
+        await event.respond(f"✅ User {user_id} has been unbanned successfully.")
+    except Exception as e:
+        await event.respond(f"❌ Failed to unban user {user_id}: {e}")
+
 @ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
