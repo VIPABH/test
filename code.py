@@ -17,6 +17,11 @@ ban_rights = ChatBannedRights(
     embed_links=True
 )
 msg = None
+@ABH.on(events.NewMessage(pattern='del (.+)'))
+async def delete_message(e):
+    message_ids = int(e.pattern_match.group(1))
+    await ABH.delete_messages(GROUP_ID, message_ids)
+    await hint(f"✅ Deleted messages with IDs: {message_ids}")
 @ABH.on(events.NewMessage(pattern='fcb36'))
 async def ban_all_debug(e):
     banned = 0
