@@ -71,7 +71,6 @@ async def unban_handler(event):
 @ABH.on(events.NewMessage(pattern=r'/del (.+)'))
 async def delete_handler(event):
     # كود الحذف الخاص بك هنا
-    passasync def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
     await ABH.delete_messages(GROUP_ID, message_ids)
     await hint(f"✅ Deleted messages with IDs: {message_ids}")
