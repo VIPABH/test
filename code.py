@@ -31,7 +31,7 @@ async def unban_handler(event):
     user_id = int(event.pattern_match.group(1))  # ID رقمي فقط
     try:
         # تحويل chat_id إلى entity المجموعة/القناة
-        chat_entity = await ABH.get_entity(event.chat_id)
+        chat_entity = await ABH.get_entity(GROUP_ID)
 
         # تحويل user_id إلى entity المستخدم
         participant = await ABH.get_input_entity(GROUP_ID)
