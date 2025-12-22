@@ -21,7 +21,23 @@ from telethon import events
 
 # تأكد من وضع ID المجموعة الصحيح هنا (رقمي)
 # GROUP_ID = -100123456789
-
+@ABH.on(events.NewMessage(pattern=r'pin '))
+async def pin_handler(e):
+    pattern = r'pin(?:\s+(.+))?'
+    try:
+        # التحقق مما إذا كانت الرسالة رد على رسالة أخرى
+        if e.is_reply:
+            reply_msg = await e.get_reply_message()
+            # تثبيت الرسالة التي تم الرد عليها
+            await ABH.pin_message(GROUP_ID, pattern, notify=False)
+            
+            await e.respond("✅ تم تثبيت الرسالة بنجاح!")
+        else:
+            await e.respond("⚠️ يرجى الرد على الرسالة التي تريد تثبيتها.")
+    except errors.ChatAdminRequiredError:
+        await e.respond("❌ لا أملك صلاحيات أدمن لتثبيت الرسائل.")
+    except Exception as err:
+        await e.respond(f"❌ فشل التثبيت: {str(err)}")
 @ABH.on(events.NewMessage(pattern=r'forward'))
 async def s(e):
     # التحقق مما إذا كانت الرسالة رداً على رسالة أخرى
