@@ -20,7 +20,7 @@ msg = None
 from telethon import events
 from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights
-from telethon.errors import FloodWaitError, ChatAdminRequiredError, UserAdminInvalidError
+from telethon.errors import FloodWaitError, ChatAdminRequiredError
 import asyncio
 
 @ABH.on(events.NewMessage(pattern=r'/unban(?: (\d+))?'))
@@ -35,10 +35,10 @@ async def unban_handler(event):
         user_id = int(event.pattern_match.group(1))
     
     if not user_id:
-        return await event.respond("⚠️ ارسل الـ ID مع الأمر أو قم بالرد على رسالة الشخص.")
+        return await event.respond("⚠️ يرجى الرد على رسالة الشخص أو وضع الأيدي الخاص به.")
 
-    # 2. إنشاء كائن الحقوق "الخام" (الكل False لإلغاء الحظر)
-    # هذا يحل مشكلة الكلمات المحجوزة مثل embed_links
+    # 2. إعداد حقوق "فارغة" (إلغاء كل أنواع الحظر والكتم)
+    # ملاحظة: view_messages=False تعني أن المستخدم "غير ممنوع" من الرؤية
     unban_rights = ChatBannedRights(
         until_date=None,
         view_messages=False,
@@ -52,18 +52,32 @@ async def unban_handler(event):
     )
 
     try:
-        # محاولة فك الحظر باستخدام الطلب المباشر (الأكثر توافقاً)
-        await ABH(EditBannedRequest(event.chat_id, user_id, unban_rights))
-        await event.respond(f"✅ تم فك الحظر عن: `{user_id}`")
+        # المحاولة الأولى: إلغاء الحظر المباشر
+        await ABH(EditBannedRequest(GROUP_ID, user_id, unban_rights))
+        
+        # المحاولة الثانية (للضمان): استخدام دالة edit_permissions الشاملة
+        # نجعل كل شيء True للسماح له بالدخول والمشاركة
+        await ABH.edit_permissions(
+            GROUP_ID, 
+            user_id, 
+            view_messages=True, 
+            send_messages=True,
+            send_media=True
+        )
+        
+        await event.respond(f"✅ تم فك الحظر فعلياً عن `{user_id}`.\nيمكنه الآن الدخول للمجموعة.")
 
+    except ChatAdminRequiredError:
+        await event.respond("❌ لا أملك صلاحيات أدمن (حظر المستخدمين).")
     except Exception as e:
-        # 3. خطة الطوارئ للمجموعات العادية (ValueError: You must pass either a channel...)
+        # إذا كانت مجموعة عادية أو حدث خطأ في التوافق
         try:
-            # استخدام الدالة المختصرة بدون معاملات نصية لتجنب أخطاء الإصدارات
-            await ABH.edit_permissions(event.chat_id, user_id, view_messages=True)
-            await event.respond(f"✅ تم فك القيود عن: `{user_id}`")
+            # الطريقة التقليدية: مسح القيود عبر المعرف المباشر
+            from telethon.tl.functions.messages import EditChatDefaultBannedRightsRequest
+            await ABH.edit_permissions(GROUP_ID, user_id, view_messages=True)
+            await event.respond(f"✅ تم فك قيود المستخدم `{user_id}`")
         except Exception as final_e:
-            await event.respond(f"❌ تعذر فك الحظر: {str(final_e)}")
+            await event.respond(f"❌ فشل فك الحظر: {str(final_e)}")
 
     except FloodWaitError as e:
         await asyncio.sleep(e.seconds)
@@ -118,4 +132,3 @@ async def set_ban_msg(e):
     global msg
     msg = e.pattern_match.group(1)
     await hint(f"✅ Ban message set to: {msg}")
-
