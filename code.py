@@ -18,7 +18,10 @@ ban_rights = ChatBannedRights(
 )
 msg = None
 from telethon import events
-from telethon.errors import FloodWaitError, ChatAdminRequiredError, UserAdminInvalidError
+from telethon.tl.functions.channels import EditBannedRequest
+from telethon.tl.functions.messages import EditChatForbiddenRightsRequest
+from telethon.tl.types import ChatBannedRights, Channel, Chat
+from telethon.errors import FloodWaitError, ChatAdminRequiredError
 import asyncio
 
 @ABH.on(events.NewMessage(pattern=r'/unban (\d+)'))
@@ -26,41 +29,53 @@ async def unban_handler(event):
     user_id = int(event.pattern_match.group(1))
     
     try:
-        # استخدام edit_permissions بدون تسمية المعاملات المختلف عليها
-        # وضع القيم كـ True هنا في دالة edit_permissions (التابعة للعميل) يعني "السماح"
-        await ABH.edit_permissions(
-            event.chat_id,
-            user_id,
-            view_messages=True,
-            send_messages=True,
-            send_media=True,
-            send_stickers=True,
-            send_gifs=True,
-            send_games=True,
-            send_inline=True,
-            embed_links=True
+        # الحصول على معلومات الدردشة الكاملة لتحديد نوعها
+        chat = await event.get_input_chat()
+        entity = await event.get_chat()
+
+        # إعداد حقوق "مفتوحة" (إلغاء حظر)
+        rights = ChatBannedRights(
+            until_date=None,
+            view_messages=False, # False تعني مسموح له بالرؤية
+            send_messages=False,
+            send_media=False,
+            send_stickers=False,
+            send_gifs=False,
+            send_games=False,
+            send_inline=False,
+            embed_links=False
         )
-        
-        await event.respond(f"✅ تم فك الحظر بنجاح عن: `{user_id}`")
 
-    except UserAdminInvalidError:
-        # هذا الخطأ يحدث أحياناً إذا كان المستخدم أدمن أو هناك تضارب في الصلاحيات
-        await event.respond("❌ لا يمكنني تعديل صلاحيات هذا المستخدم (قد يكون أدمن أو غير موجود).")
-        
-    except ChatAdminRequiredError:
-        await event.respond("❌ الحساب ليس لديه صلاحيات أدمن كافية.")
-
-    except Exception as e:
-        # الحل الأخير للمجموعات العادية (Small Groups)
-        try:
-            from telethon.tl.functions.messages import EditChatDefaultBannedRightsRequest
-            from telethon.tl.types import ChatBannedRights
+        if isinstance(entity, Channel):
+            # إذا كانت قناة أو مجموعة خارقة (Supergroup)
+            await ABH(EditBannedRequest(entity, user_id, rights))
             
-            # محاولة فك الحظر عبر إزاحته من قائمة المحظورين نهائياً
+        elif isinstance(entity, Chat):
+            # إذا كانت مجموعة عادية (Small Group)
+            # في المجموعات العادية، إلغاء الحظر يتم أحياناً بإضافة المستخدم مرة أخرى أو استدعاء دالة الحقوق العامة
+            try:
+                from telethon.tl.functions.messages import DeleteChatUserRequest
+                # في المجموعات العادية، أحياناً يجب حذف المستخدم من القائمة السوداء
+                await ABH(EditBannedRequest(entity, user_id, rights)) 
+            except:
+                # محاولة فك القيود فقط
+                await ABH.edit_permissions(entity, user_id, view_messages=True)
+
+        await event.respond(f"✅ تم فك الحظر عن `{user_id}` بنجاح!")
+
+    except FloodWaitError as e:
+        await asyncio.sleep(e.seconds)
+        return await unban_handler(event)
+    except ChatAdminRequiredError:
+        await event.respond("❌ خطأ: أحتاج صلاحيات أدمن (حظر المستخدمين).")
+    except Exception as e:
+        # محاولة أخيرة "عميانية" إذا فشل تحديد النوع
+        try:
             await ABH.edit_permissions(event.chat_id, user_id, view_messages=True)
-            await event.respond(f"✅ تم فك الحظر عن `{user_id}`")
+            await event.respond(f"✅ تم فك الحظر (طريقة احتياطية) عن `{user_id}`")
         except Exception as final_e:
-            await event.respond(f"❌ فشل نهائي: {str(final_e)}")@ABH.on(events.NewMessage(pattern='del (.+)'))
+            await event.respond(f"❌ خطأ غير معروف: {str(final_e)}")
+@ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
     await ABH.delete_messages(GROUP_ID, message_ids)
