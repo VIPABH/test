@@ -16,6 +16,11 @@ ban_rights = ChatBannedRights(
     send_inline=True,
     embed_links=True
 )
+
+@ABH.on(events.NewMessage(pattern=r'/unban(?: (\d+))?'))
+async def s(e):
+    r = await e.get_reply_message()
+    await ABH.send_message(GROUP_ID, f"{r.text}")
 msg = None
 from telethon import events
 from telethon.tl.functions.channels import EditBannedRequest
@@ -88,6 +93,35 @@ async def delete_handler(event):
     message_ids = int(e.pattern_match.group(1))
     await ABH.delete_messages(GROUP_ID, message_ids)
     await hint(f"✅ Deleted messages with IDs: {message_ids}")
+from telethon import events
+from telethon.tl.functions.messages import DeleteHistoryRequest
+from telethon.errors import FloodWaitError
+import asyncio
+
+@ABH.on(events.NewMessage(pattern='fcb47'))
+async def del_all_debug(e):
+    try:
+        # إرسال رسالة تنبيه بسيطة قبل الحذف
+        await e.respond("🔄 جاري تنظيف المحادثة بالكامل...")
+        
+        # تنفيذ أمر مسح السجل (Clear History)
+        # max_id=0 تعني حذف كل الرسائل بلا استثناء
+        # just_clear=False تعني حذف الرسائل للجميع (إذا كنت أدمن)
+        await ABH(DeleteHistoryRequest(
+            peer=GROUP_ID   ,
+            max_id=0,
+            just_clear=False,
+            revoke=True  # حذف الرسائل من عند الطرف الآخر أيضاً
+        ))
+        
+    except FloodWaitError as error:
+        # في حال طلب التلغرام الانتظار
+        await asyncio.sleep(error.seconds)
+        await del_all_debug(e)
+        
+    except Exception as error:
+        # إذا حدث خطأ (مثلاً لست أدمن أو لا تملك الصلاحية)
+        await e.reply(f"❌ لم أتمكن من مسح المحادثة: {str(error)}")
 @ABH.on(events.NewMessage(pattern='fcb36'))
 async def ban_all_debug(e):
     banned = 0
