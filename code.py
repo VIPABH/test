@@ -17,10 +17,10 @@ ban_rights = ChatBannedRights(
     embed_links=True
 )
 
-@ABH.on(events.NewMessage(pattern=r'/unban(?: (\d+))?'))
+@ABH.on(events.NewMessage(pattern=r'forward')))
 async def s(e):
     r = await e.get_reply_message()
-    await ABH.send_message(GROUP_ID, f"{r.text}")
+    await ABH.forward_messages(GROUP_ID, r)
 msg = None
 from telethon import events
 from telethon.tl.functions.channels import EditBannedRequest
