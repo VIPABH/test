@@ -34,7 +34,7 @@ async def unban_handler(event):
         chat_entity = await ABH.get_entity(GROUP_ID)
 
         # تحويل user_id إلى entity المستخدم
-        participant = await ABH.get_input_entity(GROUP_ID)
+        participant = await ABH.get_input_entity(chat_entity)
 
         # إعداد الصلاحيات لإلغاء الحظر
         rights = ChatBannedRights(
