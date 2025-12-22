@@ -17,43 +17,49 @@ ban_rights = ChatBannedRights(
     embed_links=True
 )
 msg = None
-from telethon import events
 from telethon.tl.types import ChatBannedRights
 
-@ABH.on(events.NewMessage(pattern=r'unban (\d+)'))
-async def unban_user(e):
-    user_id = int(e.pattern_match.group(1))
+from telethon import TelegramClient, events
+from telethon.tl.functions.channels import UnbanParticipant
+from telethon.errors import FloodWaitError, UserNotParticipantError
+import asyncio
 
-    # رفع الحظر جزئي: يسمح بالمراسلة النصية فقط، لكن يمنع إرسال الملفات والوسائط
-    rights = ChatBannedRights(
-        until_date=0,  # 0 = رفع الحظر نهائيًا
-        view_messages=False,          # يستطيع رؤية الرسائل
-        send_messages=False,          # إذا تريد السماح بالنص، اجعله False
-        send_media=True,              # True = ممنوع إرسال أي وسائط
-        send_stickers=True,
-        send_gifs=True,
-        send_games=True,
-        send_inline=True,
-        embed_links=True,
-        send_polls=True,
-        change_info=False,
-        invite_users=False,
-        pin_messages=False,
-        manage_topics=False,
-        send_photos=True,
-        send_videos=True,
-        send_roundvideos=True,
-        send_audios=True,
-        send_voices=True,
-        send_docs=True,
-        send_plain=False               # يسمح بإرسال النصوص
-    )
+# إعدادات الاتصال
+
+
+GROUP_ID = -1001234567890  # ضع هنا معرف المجموعة أو القناة
+
+@ABH.on(events.NewMessage(pattern=r'/unban (.+)'))
+async def unban_handler(event):
+    target = event.pattern_match.group(1)
 
     try:
-        await ABH.edit_permissions(GROUP_ID, user_id, rights)
-        await e.respond(f"✅ User {user_id} has been partially unbanned (cannot send files/media).")
-    except Exception as exc:
-        await e.respond(f"❌ Failed to update permissions for user {user_id}: {exc}")
+        # محاولة تحويل الـ username إلى user_id إذا كان موجود
+        if target.startswith('@'):
+            user = await ABH.get_entity(target)
+            user_id = user.id
+        else:
+            user_id = int(target)
+
+        await ABH(UnbanParticipant(
+            channel=GROUP_ID,
+            user_id=user_id
+        ))
+        await event.respond(f"✅ تم إلغاء الحظر عن المستخدم `{user_id}` بنجاح!")
+    
+    except FloodWaitError as e:
+        await event.respond(f"⏳ يجب الانتظار {e.seconds} ثانية بسبب FloodWait.")
+        await asyncio.sleep(e.seconds)
+        await unban_handler(event)  # محاولة ثانية بعد الانتظار
+    except UserNotParticipantError:
+        await event.respond("❌ المستخدم غير موجود في المجموعة أو غير محظور.")
+    except ValueError:
+        await event.respond("❌ يجب إدخال معرف رقمي صالح أو @username.")
+    except Exception as e:
+        await event.respond(f"❌ حدث خطأ: {e}")
+
+print("Bot is running...")
+client.run_until_disconnected()
 @ABH.on(events.NewMessage(pattern='del (.+)'))
 async def delete_message(e):
     message_ids = int(e.pattern_match.group(1))
