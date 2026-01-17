@@ -5,57 +5,64 @@ import io
 import re
 from ABH import ABH as client
 
-# رابط API جديد ومستقر (يقدم استجابة سريعة)
+# API جديد (سريع ومباشر)
 URL = "https://api.paxsenix.biz.id/ai/gpt4"
 
-print("--- البوت شغال الآن (بواسطة API جديد) ---")
+print("--- البوت شغال الآن ---")
 
 @client.on(events.NewMessage(incoming=True))
 async def handler(event):
-    # تجاهل الرسائل الفارغة أو الصادرة من البوت
     if not event.raw_text or event.out:
         return
 
-    user_text = event.raw_text
-    
-    # إظهار حالة الكتابة
+    # إظهار حالة الكتابة للمستخدم
     async with client.action(event.chat_id, 'typing'):
         try:
-            # طلب بسيط جداً للـ API الجديد
-            async with httpx.AsyncClient() as http:
-                response = await http.get(f"{URL}?text={user_text}", timeout=30.0)
+            # محاولة جلب الرد
+            async with httpx.AsyncClient(follow_redirects=True) as http:
+                # استخدمنا params لتجنب مشاكل الرموز في الرابط
+                response = await http.get(URL, params={'text': event.raw_text}, timeout=25.0)
+                
+                # طباعة الحالة في الكونسول للمطور (لك أنت)
+                print(f"Status Code: {response.status_code}")
                 
                 if response.status_code != 200:
-                    await event.reply("⚠️ عذراً، السيرفر لا يستجيب حالياً.")
+                    await event.reply("⚠️ السيرفر لا يستجيب، سأحاول مرة أخرى.")
                     return
 
                 data = response.json()
-                # استخراج الرد (API Paxsenix عادة يرجع النتيجة في حقل 'message' أو 'result')
-                answer = data.get('message', data.get('result', 'لم أجد رداً.'))
+                # جلب الرد من الحقل المتوقع
+                await e.reply(str(data))
+                answer = data.get('message', data.get('result', data.get('answer', '')))
 
-            # التعامل مع الأكواد (إذا وجد كود يرسله كملف)
+            if not answer:
+                await event.reply("⚠️ لم أتمكن من الحصول على رد مفيد.")
+                return
+
+            # التعامل مع الأكواد
             if "```" in answer:
-                # استخراج النص قبل الكود
-                text_before = answer.split("```")[0].strip()
-                if text_before:
-                    await event.reply(text_before)
+                # استخراج النصوص والأكواد
+                text_parts = re.split(r'```(?:\w+)?', answer)
+                main_text = text_parts[0].strip()
                 
-                # استخراج محتوى الكود
+                if main_text:
+                    await event.reply(main_text)
+                
+                # استخراج أول كود تجده
                 code_match = re.search(r'```(?:\w+)?\n(.*?)\n```', answer, re.DOTALL)
                 if code_match:
                     code_content = code_match.group(1)
-                else:
-                    code_content = answer.split("```")[1]
-
-                file = io.BytesIO(code_content.strip().encode('utf-8'))
-                file.name = "code.py"
-                await client.send_file(event.chat_id, file, caption="✅ تم استخراج الكود بنجاح")
+                    file = io.BytesIO(code_content.strip().encode('utf-8'))
+                    file.name = "code.py"
+                    await client.send_file(event.chat_id, file, caption="✅ تم استخراج الكود بنجاح.")
             else:
                 await event.reply(answer)
 
+        except httpx.ConnectError:
+            await event.reply("❌ فشل الاتصال بالسيرفر، تأكد من اتصال الإنترنت لديك.")
         except Exception as e:
-            print(f"Error: {e}")
-            await event.reply("❌ حدث خطأ في الاتصال، حاول مرة أخرى.")
+            print(f"Error Detail: {e}") # هذا سيظهر لك في الشاشة السوداء
+            await event.reply("⚠️ حدث خطأ تقني، يرجى المحاولة لاحقاً.")
 
-# تشغيل البوت
+# بدء التشغيل
 client.run_until_disconnected()
