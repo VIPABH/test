@@ -2,7 +2,7 @@ from telethon import TelegramClient, events
 import httpx
 import asyncio
 import io
-from ABH imbort ABH as client
+from ABH import ABH as client
 # إعدادات البوت - ضع معلوماتك هنا
 URL = "https://us-central1-amor-ai.cloudfunctions.net/chatWithGPT"
 
