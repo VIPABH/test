@@ -1,66 +1,90 @@
-from telethon import events
-import httpx
 import asyncio
-import io
+import json
 import re
+import io
+from telethon import TelegramClient, events
+from colorama import Fore, Back, Style, init
+from rich.console import Console
+from rich.syntax import Syntax
+from rich.panel import Panel
+import httpx 
 from ABH import ABH as client
 
-# API جديد (سريع ومباشر)
-URL = "https://api.paxsenix.biz.id/ai/gpt4"
+init(autoreset=True)
+console = Console()
 
-print("--- البوت شغال الآن ---")
+# إعدادات الـ API
+URL = "https://us-central1-amor-ai.cloudfunctions.net/chatWithGPT"
+HEADERS = {
+    'User-Agent': "okhttp/5.0.0-alpha.2",
+    'Accept-Encoding': "gzip",
+    'content-type': "application/json; charset=utf-8"
+}
 
-@client.on(events.NewMessage(incoming=True))
-async def handler(event):
-    if not event.raw_text or event.out:
-        return
+conversation_history = []
+code_counter = 0
 
-    # إظهار حالة الكتابة للمستخدم
+supported_languages = {
+    'python': 'py', 'html': 'html', 'css': 'css', 'javascript': 'js',
+    'js': 'js', 'java': 'java', 'c++': 'cpp', 'php': 'php',
+    'ruby': 'rb', 'go': 'go', 'bash': 'sh', 'kotlin': 'kt'
+}
+
+async def handle_gpt_request(user_message):
+    global code_counter
+    conversation_history.append({"role": "user", "content": user_message})
+    
+    payload = {"data": {"messages": conversation_history}}
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(URL, json=payload, headers=HEADERS, timeout=30.0)
+            response_data = response.json()
+
+        # فحص وجود البيانات لتجنب خطأ 'result'
+        if response_data and 'result' in response_data and 'choices' in response_data['result']:
+            content = response_data['result']['choices'][0]['message']['content']
+            conversation_history.append({"role": "assistant", "content": content})
+            return content
+    except Exception as e:
+        console.print(Fore.RED + f"خطأ في الطلب: {e}")
+    return None
+
+async def process_and_reply(event, content):
+    global code_counter
+    code_blocks = re.findall(r'```(.*?)\n(.*?)```', content, re.DOTALL)
+    non_code_text = re.sub(r'```.*?```', '', content, flags=re.DOTALL).strip()
+
+    if non_code_text:
+        console.print(Fore.GREEN + "رد السيرفر:\n" + Style.RESET_ALL + non_code_text)
+        await event.reply(non_code_text)
+
+    for language, code_block in code_blocks:
+        code_counter += 1
+        language = language.strip().lower()
+        ext = supported_languages.get(language, 'py')
+        
+        syntax = Syntax(code_block.strip(), language if language in supported_languages else "python", theme="dracula", line_numbers=True)
+        console.print(Panel(syntax, title=f"Code {code_counter}"))
+
+        file_stream = io.BytesIO(code_block.strip().encode('utf-8'))
+        file_stream.name = f"code_{code_counter}.{ext}"
+        await event.client.send_file(event.chat_id, file_stream, caption=f"ملف الكود رقم {code_counter}")
+
+# إعدادات الدخول (Telethon)
+
+@client.on(events.NewMessage(pattern='/start'))
+async def start(event):
+    await event.reply("مرحباً بك! أنا بوت GPT المطور بـ Telethon. أرسل سؤالك الآن.")
+
+@client.on(events.NewMessage(incoming=True, func=lambda e: not e.text.startswith('/')))
+async def chatter(event):
     async with client.action(event.chat_id, 'typing'):
-        try:
-            # محاولة جلب الرد
-            async with httpx.AsyncClient(follow_redirects=True) as http:
-                # استخدمنا params لتجنب مشاكل الرموز في الرابط
-                response = await http.get(URL, params={'text': event.raw_text}, timeout=25.0)
-                
-                # طباعة الحالة في الكونسول للمطور (لك أنت)
-                print(f"Status Code: {response.status_code}")
-                
-                if response.status_code != 200:
-                    await event.reply("⚠️ السيرفر لا يستجيب، سأحاول مرة أخرى.")
-                    return
+        response_content = await handle_gpt_request(event.text)
+        if response_content:
+            await process_and_reply(event, response_content)
+        else:
+            await event.reply("⚠️ السيرفر مشغول أو لم يرسل بيانات صحيحة.")
 
-                data = response.json()
-                # جلب الرد من الحقل المتوقع
-                await e.reply(str(data))
-                answer = data.get('message', data.get('result', data.get('answer', '')))
-
-            if not answer:
-                await event.reply("⚠️ لم أتمكن من الحصول على رد مفيد.")
-                return
-
-            # التعامل مع الأكواد
-            if "```" in answer:
-                # استخراج النصوص والأكواد
-                text_parts = re.split(r'```(?:\w+)?', answer)
-                main_text = text_parts[0].strip()
-                
-                if main_text:
-                    await event.reply(main_text)
-                
-                # استخراج أول كود تجده
-                code_match = re.search(r'```(?:\w+)?\n(.*?)\n```', answer, re.DOTALL)
-                if code_match:
-                    code_content = code_match.group(1)
-                    file = io.BytesIO(code_content.strip().encode('utf-8'))
-                    file.name = "code.py"
-                    await client.send_file(event.chat_id, file, caption="✅ تم استخراج الكود بنجاح.")
-            else:
-                await event.reply(answer)
-
-        except Exception as e:
-            print(f"Error Detail: {e}") # هذا سيظهر لك في الشاشة السوداء
-            await event.reply("⚠️ حدث خطأ تقني، يرجى المحاولة لاحقاً.")
-
-# بدء التشغيل
+console.print(Fore.GREEN + "البوت يعمل الآن عبر Telethon...")
 client.run_until_disconnected()
