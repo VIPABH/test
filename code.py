@@ -58,8 +58,6 @@ async def handler(event):
             else:
                 await event.reply(answer)
 
-        except httpx.ConnectError:
-            await event.reply("❌ فشل الاتصال بالسيرفر، تأكد من اتصال الإنترنت لديك.")
         except Exception as e:
             print(f"Error Detail: {e}") # هذا سيظهر لك في الشاشة السوداء
             await event.reply("⚠️ حدث خطأ تقني، يرجى المحاولة لاحقاً.")
