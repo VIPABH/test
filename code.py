@@ -4,57 +4,76 @@ import asyncio
 import io
 from ABH import ABH as client
 
-# إعدادات الرابط
+# الرابط والمعدات
 URL = "https://us-central1-amor-ai.cloudfunctions.net/chatWithGPT"
 HEADERS = {
     'User-Agent': "okhttp/5.0.0-alpha.2",
-    'Content-Type': "application/json; charset=utf-8"
+    'Content-Type': "application/json; charset=utf-8",
+    'Accept': "application/json"
 }
 
-print("--- البوت شغال الآن (تليثون) ---")
+print("--- البوت شغال الآن (نسخة Telethon المستقرة) ---")
 
 @client.on(events.NewMessage(incoming=True))
 async def handler(event):
-    # تجاهل الرسائل إذا لم يكن لها نص
     if not event.raw_text:
         return
 
-    user_text = event.raw_text
-    
     async with client.action(event.chat_id, 'typing'):
         try:
-            payload = {"data": {"messages": [{"role": "user", "content": user_text}]}}
+            # تجهيز البيانات
+            payload = {
+                "data": {
+                    "messages": [
+                        {"role": "user", "content": event.raw_text}
+                    ]
+                }
+            }
             
             async with httpx.AsyncClient() as http:
+                # محاولة إرسال الطلب
                 response = await http.post(URL, json=payload, headers=HEADERS, timeout=30.0)
-                data = response.json()
-
-                # فحص وجود 'result' لتجنب KeyError
-                if 'result' in data and 'choices' in data['result']:
-                    answer = data['result']['choices'][0]['message']['content']
-                else:
-                    await event.reply("⚠️ اعتذر، لم أتمكن من معالجة طلبك حالياً.")
+                
+                # فحص إذا كان الرد ناجحاً (200 OK)
+                if response.status_code != 200:
+                    await event.reply("⚠️ السيرفر مشغول حالياً، جرب لاحقاً.")
                     return
 
-            # معالجة النصوص والأكواد
+                data = response.json()
+
+                # استخراج الرد مع الحماية من KeyError
+                try:
+                    result = data.get('result', {})
+                    choices = result.get('choices', [])
+                    if not choices:
+                        await event.reply("❌ لم أتمكن من الحصول على رد من الذكاء الاصطناعي.")
+                        return
+                        
+                    answer = choices[0].get('message', {}).get('content', '')
+                except (AttributeError, IndexError):
+                    await event.reply("⚙️ حدث تغيير في إعدادات السيرفر، يرجى تحديث الكود.")
+                    return
+
+            # التعامل مع الأكواد والنصوص
             if "```" in answer:
+                # تقسيم النص للحصول على الكلام قبل الكود
                 parts = answer.split("```")
-                text_part = parts[0].strip()
-                code_part = parts[1].split("\n", 1)[-1] if "\n" in parts[1] else parts[1] # تنظيف لغة البرمجة إن وجدت
+                desc = parts[0].strip()
+                code_content = parts[1].split("\n", 1)[-1] if "\n" in parts[1] else parts[1]
                 
-                if text_part:
-                    await event.reply(text_part)
+                if desc:
+                    await event.reply(desc)
                 
-                file = io.BytesIO(code_part.strip().encode())
-                file.name = "code.py"
-                await client.send_file(event.chat_id, file, caption="✅ تم استخراج الكود بنجاح")
+                # تحويل الكود لملف وإرساله
+                file_data = io.BytesIO(code_content.strip().encode('utf-8'))
+                file_data.name = "code.py"
+                await client.send_file(event.chat_id, file_data, caption="✅ تم استخراج الكود")
             else:
                 await event.reply(answer)
 
         except Exception as e:
-            # طباعة الخطأ في الكونسول للتصحيح وإرسال رسالة بسيطة للمستخدم
-            print(f"Error: {e}")
-            await event.reply("حدث خطأ في الاتصال بالسيرفر، حاول مجدداً لاحقاً.")
+            print(f"DEBUG ERROR: {e}")
+            await event.reply("⚠️ حدث خطأ تقني بسيط، أعد المحاولة.")
 
-# لا حاجة لـ client.run_until_disconnected() إذا كان ملف ABH يتعامل مع هذا بالفعل
+# التشغيل
 client.run_until_disconnected()
