@@ -40,6 +40,7 @@ async def handle_gpt_request(user_message):
         async with httpx.AsyncClient() as client:
             response = await client.post(URL, json=payload, headers=HEADERS, timeout=30.0)
             response_data = response.json()
+            print(response_data)
 
         # فحص وجود البيانات لتجنب خطأ 'result'
         if response_data and 'result' in response_data and 'choices' in response_data['result']:
