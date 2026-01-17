@@ -1,50 +1,60 @@
-from telethon import TelegramClient, events
+from telethon import events
 import httpx
 import asyncio
 import io
 from ABH import ABH as client
-# إعدادات البوت - ضع معلوماتك هنا
+
+# إعدادات الرابط
 URL = "https://us-central1-amor-ai.cloudfunctions.net/chatWithGPT"
+HEADERS = {
+    'User-Agent': "okhttp/5.0.0-alpha.2",
+    'Content-Type': "application/json; charset=utf-8"
+}
 
-# إنشاء العميل
+print("--- البوت شغال الآن (تليثون) ---")
 
-print("--- البوت شغال الآن ---")
-
-@client.on(events.NewMessage)
+@client.on(events.NewMessage(incoming=True))
 async def handler(event):
-    # تجاهل الرسائل الصادرة من البوت نفسه
-    if event.out:
+    # تجاهل الرسائل إذا لم يكن لها نص
+    if not event.raw_text:
         return
 
     user_text = event.raw_text
     
-    # إظهار حالة "جاري الكتابة"
     async with client.action(event.chat_id, 'typing'):
         try:
-            # إرسال الطلب للموقع
             payload = {"data": {"messages": [{"role": "user", "content": user_text}]}}
+            
             async with httpx.AsyncClient() as http:
-                response = await http.post(URL, json=payload, timeout=20.0)
+                response = await http.post(URL, json=payload, headers=HEADERS, timeout=30.0)
                 data = response.json()
-                answer = data['result']['choices'][0]['message']['content']
 
-            # إذا كان الرد يحتوي على كود برمجي، نستخرجه ونرسله كملف
+                # فحص وجود 'result' لتجنب KeyError
+                if 'result' in data and 'choices' in data['result']:
+                    answer = data['result']['choices'][0]['message']['content']
+                else:
+                    await event.reply("⚠️ اعتذر، لم أتمكن من معالجة طلبك حالياً.")
+                    return
+
+            # معالجة النصوص والأكواد
             if "```" in answer:
-                # إرسال النص أولاً
-                clean_text = answer.split("```")[0]
-                if clean_text:
-                    await event.reply(clean_text)
+                parts = answer.split("```")
+                text_part = parts[0].strip()
+                code_part = parts[1].split("\n", 1)[-1] if "\n" in parts[1] else parts[1] # تنظيف لغة البرمجة إن وجدت
                 
-                # استخراج الكود (بشكل بسيط)
-                code = answer.split("```")[1].split("```")[0]
-                file = io.BytesIO(code.strip().encode())
+                if text_part:
+                    await event.reply(text_part)
+                
+                file = io.BytesIO(code_part.strip().encode())
                 file.name = "code.py"
-                await client.send_file(event.chat_id, file, caption="تفضل، هذا هو الكود المطلوب")
+                await client.send_file(event.chat_id, file, caption="✅ تم استخراج الكود بنجاح")
             else:
-                # رد نصي عادي
                 await event.reply(answer)
 
         except Exception as e:
-            await event.reply(f"حدث خطأ بسيط: {str(e)}")
+            # طباعة الخطأ في الكونسول للتصحيح وإرسال رسالة بسيطة للمستخدم
+            print(f"Error: {e}")
+            await event.reply("حدث خطأ في الاتصال بالسيرفر، حاول مجدداً لاحقاً.")
 
+# لا حاجة لـ client.run_until_disconnected() إذا كان ملف ABH يتعامل مع هذا بالفعل
 client.run_until_disconnected()
