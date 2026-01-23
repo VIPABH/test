@@ -48,17 +48,16 @@ def save_media_to_cache(media_key, file_msg, type_dl):
 
 # --- 3. عرض الخيارات ---
 async def show_download_options(event, url, title="رابط مباشر"):
-    # استخراج ID نظيف للفيديو
+    # تنظيف واستخراج ID الفيديو
     video_id = url.split("v=")[-1] if "v=" in url else url.split("/")[-1]
     video_id = video_id.split("&")[0].split("?")[0]
     
     short_id = str(uuid.uuid4())[:8]
-    # تخزين البيانات في Redis
     r.setex(f"yt_tmp:{short_id}", 600, json.dumps({"url": url, "vid": video_id}))
     
     buttons = [
         [
-            Button.inline("🎥 فيديو", data=f"dl_v|{short_id}"),
+            Button.inline("🎥 فيديو (MP4)", data=f"dl_v|{short_id}"),
             Button.inline("🎵 صوت (MP3)", data=f"dl_a|{short_id}")
         ]
     ]
@@ -89,15 +88,14 @@ async def main_handler(e):
 
 @ABH.on(events.CallbackQuery(pattern=r'^dl_(v|a)\|'))
 async def download_callback_handler(e):
-    # التصحيح هنا: استخدام .decode() لبيانات الزر دائماً
+    # فك تشفير بيانات الزر (دائماً bytes في تيليجرام)
     raw_data = e.data.decode('utf-8')
     data = raw_data.split("|")
     type_dl, short_id = data[0], data[1]
     
-    # جلب البيانات من Redis
     raw_tmp = r.get(f"yt_tmp:{short_id}")
     if not raw_tmp:
-        return await e.answer("⚠️ الطلب انتهت صلاحيته.", alert=True)
+        return await e.answer("⚠️ الطلب انتهت صلاحيته، أرسل الرابط مجدداً.", alert=True)
     
     try:
         tmp_data = json.loads(raw_tmp)
@@ -109,7 +107,7 @@ async def download_callback_handler(e):
     cached = get_cached_media(cache_key)
     
     if cached:
-        await e.edit("🚀 إرسال سريع من التخزين...")
+        await e.edit("🚀 إرسال سريع من التخزين السحابي...")
         try:
             file_to_send = InputDocument(
                 id=cached['file_id'],
@@ -120,8 +118,9 @@ async def download_callback_handler(e):
             return await e.delete()
         except: pass
 
-    await e.edit("⏳ جاري التحميل والرفع...")
+    await e.edit("⏳ جاري المعالجة والتحميل (قد يستغرق وقتاً)...")
     
+    # إعدادات متطورة لحل مشكلة الشاشة السوداء
     ydl_ops = {
         "username": os.environ.get("u"), "password": os.environ.get("p"),
         "quiet": True, "no_warnings": True, "logger": None,
@@ -129,7 +128,11 @@ async def download_callback_handler(e):
     }
     
     if type_dl == "dl_v":
-        ydl_ops["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]"
+        # طلب ترميز H.264 (avc1) لضمان عمل الصورة
+        ydl_ops["format"] = "bestvideo[vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+        ydl_ops["postprocessor_args"] = {
+            "ffmpeg": ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "faststart"]
+        }
     else:
         ydl_ops["format"] = "bestaudio/best"
         ydl_ops["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]
@@ -145,10 +148,17 @@ async def download_callback_handler(e):
         title = info.get('title', 'Unknown')
         attr = [DocumentAttributeAudio(duration=int(info.get('duration', 0)), title=title)] if type_dl == "dl_a" else []
 
-        sent = await ABH.send_file(e.chat_id, file_path, caption=f"**✅ تم التحميل:**\n{url}", attributes=attr)
+        sent = await ABH.send_file(
+            e.chat_id, 
+            file_path, 
+            caption=f"**✅ تم التحميل بنجاح:**\n[{title}]({url})", 
+            attributes=attr,
+            supports_streaming=True if type_dl == "dl_v" else False
+        )
+        
         save_media_to_cache(cache_key, sent, type_dl)
         
         await e.delete()
         if os.path.exists(file_path): os.remove(file_path)
     except Exception as ex:
-        await e.edit(f"❌ فشل: `{str(ex)[:100]}`")
+        await e.edit(f"❌ فشل التحميل: `{str(ex)[:100]}`")
