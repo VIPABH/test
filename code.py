@@ -9,18 +9,6 @@ async def chs(event, c):
     await ABH.send_message(event.chat_id, c, reply_to=event.id, buttons=buttons)
 @ABH.on(events.NewMessage(pattern=r'^(حمل|يوت|تحميل|yt) ?(.*)', from_users=[wfffp]))
 async def ytdownloaderHandler(e):
-    lock_key = f"lock:{e.chat_id}:يوتيوب"
-    z = r.get(lock_key) == "True"
-    text = e.text
-    parts = text.split(maxsplit=1)
-    command = parts[0]
-    query = e.pattern_match.group(2) if e.pattern_match.group(2) else None
-    rms = await e.get_reply_message()
-    if not query and rms:
-        query = rms.text
-    if command in ('يوت', 'yt') and not z:
-        return
-    query = query.replace(command, '')
     await yt_func(e)
 b = Button.url('❤', url='https://t.me/ANYMOUSupdate')
 async def yt_func(e):
