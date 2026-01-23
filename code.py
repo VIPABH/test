@@ -1,55 +1,153 @@
-import json
-import httpx
+from telethon.tl.types import DocumentAttributeAudio, InputDocument
+from youtube_search import YoutubeSearch as Y88F8
+import yt_dlp, os, time, wget, asyncio, json
 from telethon import events, Button
-from ABH import ABH as bot
-
-# دالة إرسال الطلب للسيرفر (تم تحويلها لـ async لتناسب تليثون)
-async def ask_gpt(msg):
-    u = "https://us-central1-amor-ai.cloudfunctions.net/chatWithGPT"
-    p = {"data": {"messages": [{"role": "user", "content": msg}]}}
-    h = {
-        'User-Agent': "okhttp/5.0.0-alpha.2",
-        'content-type': "application/json; charset=utf-8"
-    }
+from Resources import hint
+from Program import chs
+from ABH import ABH, r
+@ABH.on(events.NewMessage(pattern=r'^(حمل|يوت|تحميل|yt) ?(.*)'))
+async def ytdownloaderHandler(e):
+    lock_key = f"lock:{e.chat_id}:يوتيوب"
+    z = r.get(lock_key) == "True"
+    text = e.text
+    parts = text.split(maxsplit=1)
+    command = parts[0]
+    query = e.pattern_match.group(2) if e.pattern_match.group(2) else None
+    rms = await e.get_reply_message()
+    if not query and rms:
+        query = rms.text
+    if command in ('يوت', 'yt') and not z:
+        return
+    query = query.replace(command, '')
+    await yt_func(e)
+b = Button.url('❤', url='https://t.me/ANYMOUSupdate')
+async def yt_func(e):
     try:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(u, json=p, headers=h, timeout=30.0)
-            data = r.json()
-            return data['result']['choices'][0]['message']['content']
-    except Exception as e:
-        return f"⚠️ خطأ في الاتصال بالسيرفر: {str(e)}"
-
-# معالج أمر /start مع زر إنلاين
-@bot.on(events.NewMessage(pattern='/start'))
-async def send_welcome(event):
-    buttons = [Button.inline('بدء المحادثة مع GPT', b'start_chat')]
-    await event.respond(
-        "أهلاً بك! اضغط على الزر لبدء المحادثة مع الذكاء الاصطناعي.",
-        buttons=buttons
-    )
-
-# معالج الضغط على الزر
-@bot.on(events.CallbackQuery(data=b'start_chat'))
-async def start_chat(event):
-    await event.respond("تم بدء المحادثة. اكتب أي شيء للبدء (أرسل 'انهاء' للإغلاق).")
-    # في تليثون، المحادثة تتم عبر الأحداث مباشرة بدون تسجيل خطوة تالية معقد
-    # سنعتمد على استقبال الرسائل العادية
-
-# معالج المحادثة المستمرة
-@bot.on(events.NewMessage(incoming=True))
-async def handle_conversation(event):
-    # تجاهل الأوامر مثل /start
-    if event.text.startswith('/'):
-        return
-        
-    if event.text == 'انهاء':
-        await event.respond("تم إنهاء المحادثة. اكتب /start للبدء من جديد.")
-        return
-
-    # إظهار حالة "جاري الكتابة"
-    async with bot.action(event.chat_id, 'typing'):
-        response = await ask_gpt(event.text)
-        await event.reply(response)
-
-print("--- البوت يعمل الآن (Telethon) ---")
-bot.run_until_disconnected()
+        re_msg = await e.get_reply_message()
+        query = e.pattern_match.group(2)
+        if not query:
+            if re_msg:
+                query = re_msg.text
+            else:
+                return await chs(e,"شنو تحب احملك وانت ما كاتب بحث؟")
+        results = Y88F8(query, max_results=1).to_dict()
+        if not results:
+            return await chs(e,"ما لكيت أي نتيجة!")
+        res = results[0]
+        vid_id = res["id"]
+        cache = None
+        try:
+            raw = r.get(f"ytvideo{vid_id}")
+            if raw:
+                cache = json.loads(raw)
+        except:
+            cache = None
+        if cache:
+            try:
+                if (
+                    cache.get("audio_id") and
+                    cache.get("access_hash") and
+                    cache.get("file_reference")
+                ):
+                    file = InputDocument(
+                        id=cache["audio_id"],
+                        access_hash=cache["access_hash"],
+                        file_reference=bytes.fromhex(cache["file_reference"])
+                    )
+                    duration_string = time.strftime(
+                        '%M:%S',
+                        time.gmtime(cache.get("duration", 0))
+                    )
+                    await ABH.send_file(
+                        e.chat_id,
+                        file,
+                        caption=f"[{duration_string}](https://t.me/VIPABH_BOT)",
+                        buttons=b, 
+                        reply_to=e.id
+                    )
+                    return
+                else:
+                    pass
+            except:
+                pass  
+        url = f"https://youtu.be/{vid_id}"
+        ydl_ops = {
+            "format": "bestaudio/best",
+            "postprocessors": [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "192"
+            }],
+            "noplaylist": True,
+            "quiet": True,
+            "no_warnings": True,
+            "concurrent_fragment_downloads": 4
+        }
+        try:
+            with yt_dlp.YoutubeDL(ydl_ops) as ydl:
+                info = ydl.extract_info(url, download=True)
+                duration = info.get("duration", 0)
+                thumbnail = info.get("thumbnail")
+                mp3_file = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
+        except Exception as err:
+            await hint(f"[YTDLP ERROR] {err}")
+        try:
+            thumb = wget.download(thumbnail)
+        except:
+            thumb = None
+        sent = await ABH.send_file(
+            e.chat_id,
+            mp3_file,
+            caption="[ENJOY DEAR](https://t.me/VIPABH_BOT)",
+            buttons=b,
+            reply_to=e.id,
+            attributes=[
+                DocumentAttributeAudio(
+                    duration=duration,
+                    title=info.get("title", ""),
+                    performer=info.get("uploader", "")
+                )
+            ]
+        )
+        audio_id = None
+        access_hash = None
+        file_ref = None
+        dur = duration
+        try:
+            if sent.audio:
+                audio_id = sent.audio.id
+                access_hash = sent.audio.access_hash
+                file_ref = sent.audio.file_reference.hex()
+                dur = sent.audio.duration
+            else:
+                audio_id = sent.document.id
+                access_hash = sent.document.access_hash
+                file_ref = sent.document.file_reference.hex()
+                for attr in sent.document.attributes:
+                    if isinstance(attr, DocumentAttributeAudio):
+                        dur = attr.duration
+                        break
+        except:
+            pass  
+        if audio_id and access_hash and file_ref:
+            try:
+                r.set(
+                    f"ytvideo{vid_id}",
+                    json.dumps({
+                        "audio_id": audio_id,
+                        "access_hash": access_hash,
+                        "file_reference": file_ref,
+                        "duration": dur
+                    })
+                )
+            except:
+                pass
+        try:
+            if os.path.exists(mp3_file):
+                os.remove(mp3_file)
+            if thumb and os.path.exists(thumb):
+                os.remove(thumb)
+        except:
+            pass
+    except Exception as err:
+        await hint(f"[GENERAL ERROR] {err}")
