@@ -2,9 +2,9 @@ from telethon.tl.types import DocumentAttributeAudio, InputDocument
 from youtube_search import YoutubeSearch as Y88F8
 import yt_dlp, os, time, wget, asyncio, json
 from telethon import events, Button
-from Resources import hint
+from Resources import hint, wfffp
 from ABH import ABH, r
-buttons = Button.url('🫆', url=f'https://t.me/{ch}')
+buttons = Button.url('🫆', url=f'https://t.me/{wfffp}')
 async def chs(event, c):
     await ABH.send_message(event.chat_id, c, reply_to=event.id, buttons=buttons)
 @ABH.on(events.NewMessage(pattern=r'^(حمل|يوت|تحميل|yt) ?(.*)'))
