@@ -7,7 +7,7 @@ from ABH import ABH, r
 buttons = Button.url('🫆', url=f'https://t.me/{wfffp}')
 async def chs(event, c):
     await ABH.send_message(event.chat_id, c, reply_to=event.id, buttons=buttons)
-@ABH.on(events.NewMessage(pattern=r'^(حمل|يوت|تحميل|yt) ?(.*)'))
+@ABH.on(events.NewMessage(pattern=r'^(حمل|يوت|تحميل|yt) ?(.*)', from_users=[wfffp]))
 async def ytdownloaderHandler(e):
     lock_key = f"lock:{e.chat_id}:يوتيوب"
     z = r.get(lock_key) == "True"
@@ -153,3 +153,11 @@ async def yt_func(e):
             pass
     except Exception as err:
         await hint(f"[GENERAL ERROR] {err}")
+@ABH.on(events.NewMessage(pattern=r'^بوت', from_users=[wfffp]))
+async def botinfo(e):
+    await ABH.send_message(
+        e.chat_id,
+        "هلو عيني انا بوت تحميل من اليوتيوب اسمي [VIP ABH BOT](https://t.me/VIPABH_BOT) اتمنى تستمتع بخدماتي",
+        buttons=Button.url("اضغط هنا للاشتراك", "https://t.me/VIPABH_BOT"),
+        reply_to=e.id
+    )
