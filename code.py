@@ -53,11 +53,11 @@ async def yt_func(e):
 
     # 3. إعدادات التحميل (سرعة قصوى)
     ydl_ops = {
-        "format": "bestaudio/best",
-        "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}],
-        "outtmpl": f"downloads/%(id)s.%(ext)s", # تنظيم الملفات
-        "noplaylist": True,
-        "quiet": True,
+        "format": "bestaudio[ext=m4a]",
+        "username": os.environ.get("u"),
+        "password": os.environ.get("p"),
+        "forceduration": True,
+        "noplaylist": True
     }
     status_msg = await e.reply("جاري التحميل... يرجى الانتظار ⏳")
     try:
