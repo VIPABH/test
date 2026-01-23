@@ -3,7 +3,6 @@ from youtube_search import YoutubeSearch as Y88F8
 from telethon import events, Button
 import asyncio, yt_dlp, json, os, re
 from Resources import wfffp
-
 from ABH import ABH, r
 
 async def run_sync(func, *args):
@@ -14,9 +13,9 @@ def download_generic(ydl_ops, url):
     with yt_dlp.YoutubeDL(ydl_ops) as ydl:
         return ydl.extract_info(url, download=True)
 
+# 1. استقبال الأمر وإظهار الأزرار
 @ABH.on(events.NewMessage(pattern=r'^(حمل|يوت|تحميل|yt) ?(.*)', from_users=[wfffp]))
 async def yt_func(e):
-    cmd = e.pattern_match.group(1)
     input_str = e.pattern_match.group(2)
     re_msg = await e.get_reply_message()
 
@@ -26,64 +25,77 @@ async def yt_func(e):
     if not input_str:
         return await e.reply("أرسل الرابط أو نص البحث بعد الأمر.")
 
-    # فحص هل المدخل رابط أم نص بحث
+    # فحص هل هو رابط أم بحث
     is_url = re.match(r'^https?://', input_str)
-    
-    if is_url:
-        url = input_str
-        vid_id = input_str # سنستخدم الرابط كمعرف للكاش
-    else:
-        # إذا كان نصاً، ابحث في يوتيوب أولاً
-        results = Y88F8(input_str, max_results=1).to_dict()
+    if not is_url:
+        results = await run_sync(lambda: Y88F8(input_str, max_results=1).to_dict())
         if not results: return await e.reply("لم أجد نتائج للبحث!")
-        vid_id = results[0]["id"]
-        url = f"https://youtu.be/{vid_id}"
+        url = f"https://youtu.be/{results[0]['id']}"
+        title = results[0]['title']
+    else:
+        url = input_str
+        title = "الرابط المختار"
 
-    # الكاش (Redis)
-    raw = r.get(f"vcache:{vid_id}")
-    if raw:
-        try:
-            cache = json.loads(raw)
-            file = InputDocument(id=cache["id"], access_hash=cache["hash"], file_reference=bytes.fromhex(cache["ref"]))
-            return await ABH.send_file(e.chat_id, file, reply_to=e.id)
-        except: pass
+    # إرسال الأزرار
+    buttons = [
+        [Button.inline("🎥 فيديو (MP4)", data=f"dl_v|{url}"),
+         Button.inline("🎵 صوت (MP3)", data=f"dl_a|{url}")]
+    ]
+    await e.reply(f"**اختر نوع التحميل لـ:**\n`{title}`", buttons=buttons)
 
-    # إعدادات عامة تدعم جميع المواقع
+# 2. معالجة ضغطات الأزرار
+@ABH.on(events.CallbackQuery(pattern=r'^dl_(v|a)\|'))
+async def callback_dl(e):
+    data = e.data.decode("utf-8").split("|")
+    type_dl = data[0] # dl_v أو dl_a
+    url = data[1]
+    
+    await e.edit("⏳ جاري البدء في التحميل... يرجى الانتظار")
+
     ydl_ops = {
-        "format": "bestaudio/best", # سيحمل أفضل جودة صوت متاحة
         "username": os.environ.get("u"),
         "password": os.environ.get("p"),
         "quiet": True,
         "no_warnings": True,
         "logger": None,
-        "outtmpl": "downloads/%(title)s.%(ext)s", # تنظيم الملفات
+        "outtmpl": f"downloads/{e.sender_id}_%(title)s.%(ext)s",
     }
 
-    status = await e.reply("جاري جلب البيانات من الرابط...")
-    
+    if type_dl == "dl_v":
+        ydl_ops["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]"
+    else:
+        ydl_ops["format"] = "bestaudio/best"
+        ydl_ops["postprocessors"] = [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192",
+        }]
+
     try:
         info = await run_sync(download_generic, ydl_ops, url)
-        file_path = info['requested_downloads'][0]['filepath']
+        file_path = info.get('filepath') or info['requested_downloads'][0]['filepath']
+        
+        # تصحيح مسار MP3 إذا لزم الأمر
+        if type_dl == "dl_a" and not file_path.endswith(".mp3"):
+            file_path = os.path.splitext(file_path)[0] + ".mp3"
+
         title = info.get("title", "File")
         duration = info.get("duration", 0)
-        
-        sent = await ABH.send_file(
-            e.chat_id,
-            file_path,
-            reply_to=e.id,
-            caption=f"**تم التحميل بنجاح ✅**\n[{title}]({url})",
-            attributes=[DocumentAttributeAudio(duration=int(duration), title=title)]
+
+        attr = []
+        if type_dl == "dl_a":
+            attr = [DocumentAttributeAudio(duration=int(duration), title=title, performer="Downloader")]
+
+        await ABH.send_file(
+            e.chat_id, 
+            file_path, 
+            caption=f"**✅ تم التحميل:**\n[{title}]({url})",
+            attributes=attr,
+            supports_streaming=True if type_dl == "dl_v" else False
         )
-
-        # تخزين في الكاش
-        r.set(f"vcache:{vid_id}", json.dumps({
-            "id": sent.audio.id if hasattr(sent, 'audio') and sent.audio else sent.document.id,
-            "hash": sent.audio.access_hash if hasattr(sent, 'audio') and sent.audio else sent.document.access_hash,
-            "ref": (sent.audio.file_reference if hasattr(sent, 'audio') and sent.audio else sent.document.file_reference).hex()
-        }), ex=86400) # كاش لمدة يوم واحد
-
+        
+        await e.delete() # حذف رسالة الأزرار بعد النجاح
         if os.path.exists(file_path): os.remove(file_path)
-        await status.delete()
 
     except Exception as ex:
-        await status.edit(f"⚠️ فشل التحميل. تأكد من الرابط أو إعدادات الحساب.\n\n`{str(ex)[:100]}`")
+        await e.edit(f"⚠️ خطأ: `{str(ex)[:100]}`")
