@@ -3,7 +3,7 @@ from youtube_search import YoutubeSearch as Y88F8
 from telethon import events, Button
 import asyncio, yt_dlp, json, os, re
 from Resources import wfffp
-from Program import chs
+
 from ABH import ABH, r
 
 async def run_sync(func, *args):
