@@ -3,10 +3,9 @@ from telethon.tl.types import DocumentAttributeAudio, InputDocument
 from youtube_search import YoutubeSearch as Y88F8
 from telethon import events, Button
 from Resources import hint
-from ABH import ABH, r  # r هنا معرف بـ decode_responses=True
+from ABH import ABH, r  # r: decode_responses=True
 
 # --- 1. الدوال المساعدة ---
-
 async def run_sync(func, *args):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, func, *args)
@@ -18,21 +17,17 @@ def execute_download(ydl_ops, url):
     with yt_dlp.YoutubeDL(ydl_ops) as ydl:
         return ydl.extract_info(url, download=True)
 
-# --- 2. دوال التخزين (Caching Logic) ---
-
+# --- 2. دوال التخزين (Caching) ---
 def get_cached_media(media_key):
-    """جلب بيانات الميديا من الكاش"""
     cached = r.get(f"yt_cache:{media_key}")
     if cached:
         try:
-            # بما أن decode_responses=True، البيانات ستكون نصاً مباشرة
             return json.loads(cached)
         except:
             return None
     return None
 
 def save_media_to_cache(media_key, file_msg, type_dl):
-    """حفظ بيانات الميديا (File ID) للتخزين السحابي"""
     try:
         media = None
         if hasattr(file_msg, 'audio') and file_msg.audio: media = file_msg.audio
@@ -51,90 +46,84 @@ def save_media_to_cache(media_key, file_msg, type_dl):
     except Exception as ex:
         print(f"Cache Save Error: {ex}")
 
-# --- 3. دوال عرض الخيارات والبحث ---
-
+# --- 3. عرض الخيارات ---
 async def show_download_options(event, url, title="رابط مباشر"):
-    # استخراج ID الفيديو للتخزين
+    # استخراج ID نظيف للفيديو
     video_id = url.split("v=")[-1] if "v=" in url else url.split("/")[-1]
     video_id = video_id.split("&")[0].split("?")[0]
     
     short_id = str(uuid.uuid4())[:8]
-    # تخزين مؤقت للزر لمدة 10 دقائق
+    # تخزين البيانات في Redis
     r.setex(f"yt_tmp:{short_id}", 600, json.dumps({"url": url, "vid": video_id}))
     
     buttons = [
         [
-            Button.inline("🎥 تحميل فيديو", data=f"dl_v|{short_id}"),
-            Button.inline("🎵 تحميل صوت (MP3)", data=f"dl_a|{short_id}")
+            Button.inline("🎥 فيديو", data=f"dl_v|{short_id}"),
+            Button.inline("🎵 صوت (MP3)", data=f"dl_a|{short_id}")
         ]
     ]
     await event.reply(f"**🎬 العنوان:** `{title}`\n\nاختر نوع الملف:", buttons=buttons)
 
-# --- 4. معالجات الأحداث (Event Handlers) ---
-
+# --- 4. معالجات الأحداث ---
 @ABH.on(events.NewMessage)
 async def main_handler(e):
     if not e.is_private or not e.text: return
     
     text = e.text.strip()
-    
-    # 1. إذا كان الكود المختصر من البحث (/dl_ID)
     if text.startswith('/dl_'):
         vid = text.replace('/dl_', '')
         return await show_download_options(e, f"https://youtu.be/{vid}", "فيديو يوتيوب")
     
-    # 2. إذا كان رابطاً مباشراً
     if re.match(r'^https?://', text):
         return await show_download_options(e, text)
     
-    # 3. إذا كان نص بحث (عرض 10 نتائج)
     try:
         results = await run_sync(get_yt_results, text)
-        if not results: return await e.reply("❌ لم أجد نتائج بحث.")
-        
-        msg = f"🔍 **نتائج البحث لـ:** `{text}`\n\n"
+        if not results: return await e.reply("❌ لم أجد نتائج.")
+        msg = f"🔍 **نتائج البحث:** `{text}`\n\n"
         for i, res in enumerate(results, 1):
             msg += f"{i} - **{res['title']}**\n🔗 `/dl_{res['id']}`\n\n"
         await e.reply(msg)
     except Exception as ex:
-        await e.reply(f"❌ خطأ في البحث: {ex}")
+        await e.reply(f"❌ خطأ: {ex}")
 
 @ABH.on(events.CallbackQuery(pattern=r'^dl_(v|a)\|'))
 async def download_callback_handler(e):
-    data = e.data.split("|") # لا حاجة لـ decode لأن decode_responses=True مفعل للزر أيضاً في Telethon غالباً
+    # التصحيح هنا: استخدام .decode() لبيانات الزر دائماً
+    raw_data = e.data.decode('utf-8')
+    data = raw_data.split("|")
     type_dl, short_id = data[0], data[1]
     
-    # جلب بيانات الرابط المؤقتة
+    # جلب البيانات من Redis
     raw_tmp = r.get(f"yt_tmp:{short_id}")
     if not raw_tmp:
-        return await e.answer("⚠️ الطلب قديم، أرسل الرابط مرة أخرى.", alert=True)
+        return await e.answer("⚠️ الطلب انتهت صلاحيته.", alert=True)
     
-    tmp_data = json.loads(raw_tmp)
-    url, video_id = tmp_data['url'], tmp_data['vid']
-    
-    # فحص الكاش (هل تم تحميله سابقاً؟)
+    try:
+        tmp_data = json.loads(raw_tmp)
+        url, video_id = tmp_data['url'], tmp_data['vid']
+    except Exception:
+        return await e.answer("❌ خطأ في قراءة بيانات الجلسة.", alert=True)
+
     cache_key = f"{type_dl}:{video_id}"
     cached = get_cached_media(cache_key)
     
     if cached:
-        await e.edit("🚀 موجود في التخزين، جاري الإرسال السريع...")
+        await e.edit("🚀 إرسال سريع من التخزين...")
         try:
             file_to_send = InputDocument(
                 id=cached['file_id'],
                 access_hash=cached['access_hash'],
                 file_reference=bytes.fromhex(cached['file_reference'])
             )
-            await ABH.send_file(e.chat_id, file_to_send, caption=f"**✅ تم الإرسال من الكاش**\n{url}")
+            await ABH.send_file(e.chat_id, file_to_send, caption=f"**✅ من التخزين:**\n{url}")
             return await e.delete()
-        except: 
-            pass # إذا فشل الكاش ننتقل للتحميل
+        except: pass
 
-    # إذا لم يوجد في الكاش
-    await e.edit("⏳ جاري التحميل... يرجى الانتظار")
+    await e.edit("⏳ جاري التحميل والرفع...")
     
     ydl_ops = {
-        "username": os.environ.get("u"),
-        "password": os.environ.get("p"),
+        "username": os.environ.get("u"), "password": os.environ.get("p"),
         "quiet": True, "no_warnings": True, "logger": None,
         "outtmpl": f"downloads/{e.sender_id}_%(title)s.%(ext)s",
     }
@@ -149,21 +138,17 @@ async def download_callback_handler(e):
         info = await run_sync(execute_download, ydl_ops, url)
         file_path = info.get('filepath') or info['requested_downloads'][0]['filepath']
         
-        # تصحيح مسار الصوت
         if type_dl == "dl_a" and not file_path.endswith(".mp3"):
             new_p = os.path.splitext(file_path)[0] + ".mp3"
             if os.path.exists(new_p): file_path = new_p
 
         title = info.get('title', 'Unknown')
-        duration = int(info.get('duration', 0))
-        attr = [DocumentAttributeAudio(duration=duration, title=title)] if type_dl == "dl_a" else []
+        attr = [DocumentAttributeAudio(duration=int(info.get('duration', 0)), title=title)] if type_dl == "dl_a" else []
 
-        # إرسال وحفظ
-        sent = await ABH.send_file(e.chat_id, file_path, caption=f"**✅ تم التحميل**\n{url}", attributes=attr)
+        sent = await ABH.send_file(e.chat_id, file_path, caption=f"**✅ تم التحميل:**\n{url}", attributes=attr)
         save_media_to_cache(cache_key, sent, type_dl)
         
         await e.delete()
         if os.path.exists(file_path): os.remove(file_path)
-        
     except Exception as ex:
-        await e.edit(f"❌ خطأ: `{str(ex)[:100]}`")
+        await e.edit(f"❌ فشل: `{str(ex)[:100]}`")
