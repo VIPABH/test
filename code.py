@@ -68,7 +68,7 @@ async def main_handler(e):
     try:
         results = await run_sync(get_yt_results, text)
         if not results: return await e.reply("❌ لم أجد نتائج.")
-        msg = f"🔍 **نتائج البحث:** `{text}`\n\n"
+        msg = f"🔍 **نتائج البحث لـ:** `{text}`\n\n"
         for i, res in enumerate(results, 1):
             msg += f"{i} - **{res['title']}**\n🔗 `/dl_{res['id']}`\n\n"
         await e.reply(msg)
@@ -99,21 +99,24 @@ async def download_callback_handler(e):
 
     await e.edit("⏳ جاري التحميل والمعالجة...")
     
-    # إعدادات ذكية للتحميل
+    # إعدادات التحميل مع الاعتماد على الحساب (u & p)
     ydl_ops = {
-        "quiet": True, "no_warnings": True,
+        "quiet": True, 
+        "no_warnings": True,
         "outtmpl": f"downloads/{e.sender_id}_%(title)s.%(ext)s",
-        "n_threads": 4, # زيادة سرعة التحميل بالتعدد
+        "n_threads": 4,
+        "username": os.environ.get("u"),
+        "password": os.environ.get("p"),
     }
     
     if type_dl == "dl_v":
-        # التعامل الذكي: محاولة جلب H264 أولاً لتقليل المعالجة
+        # التعامل الذكي مع الفيديوهات لحل مشكلة الشاشة السوداء
         ydl_ops["format"] = "bestvideo[vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4]/best"
         ydl_ops["postprocessor_args"] = {
             "ffmpeg": [
                 "-c:v", "libx264", 
-                "-preset", "superfast", # تسريع المعالجة للملفات الصغيرة
-                "-crf", "23", # موازنة الحجم والجودة
+                "-preset", "superfast", 
+                "-crf", "23", 
                 "-pix_fmt", "yuv420p", 
                 "-movflags", "faststart"
             ]
@@ -134,16 +137,16 @@ async def download_callback_handler(e):
         title = info.get('title', 'Unknown')
         duration = int(info.get('duration', 0))
         
-        # التعامل مع الملفات الضخمة (أكثر من 50MB)
+        # فحص الحجم للتعامل مع الملفات الكبيرة
         filesize = os.path.getsize(file_path)
-        if filesize > 50 * 1024 * 1024:
-            await e.edit("📦 ملف ضخم، جاري الرفع كملف...")
+        if filesize > 40 * 1024 * 1024: # فوق 40 ميجا
+            await e.edit("📦 ملف بحجم كبير، جاري الرفع الآن...")
 
         attr = [DocumentAttributeAudio(duration=duration, title=title)] if type_dl == "dl_a" else []
         sent = await ABH.send_file(
             e.chat_id, 
             file_path, 
-            caption=f"**✅ تم التحميل:**\n[{title}]({url})", 
+            caption=f"**✅ تم التحميل بنجاح:**\n[{title}]({url})", 
             attributes=attr,
             supports_streaming=True if type_dl == "dl_v" else False
         )
