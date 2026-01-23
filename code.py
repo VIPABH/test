@@ -3,7 +3,6 @@ from telethon.tl.types import DocumentAttributeAudio, InputDocument
 from youtube_search import YoutubeSearch as Y88F8
 from telethon import events, Button
 from Resources import wfffp
-from Program import chs
 from ABH import ABH, r
 
 # دالة لتشغيل العمليات المتزامنة بشكل غير متزامن
