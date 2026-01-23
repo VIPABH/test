@@ -1,95 +1,89 @@
-import asyncio
-import json
-import os
-import time
-import yt_dlp
+from telethon.tl.types import DocumentAttributeAudio, InputDocument
 from youtube_search import YoutubeSearch as Y88F8
 from telethon import events, Button
-from telethon.tl.types import DocumentAttributeAudio, InputDocument
+import asyncio, yt_dlp, json, os, re
+from Resources import wfffp
+from Program import chs
 from ABH import ABH, r
-from Resources import hint, wfffp
 
-# دالة مساعدة لتشغيل الوظائف المتزامنة في خيط منفصل
 async def run_sync(func, *args):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, func, *args)
 
-def search_yt(query):
-    return Y88F8(query, max_results=1).to_dict()
-
-def download_yt(ydl_ops, url):
+def download_generic(ydl_ops, url):
     with yt_dlp.YoutubeDL(ydl_ops) as ydl:
         return ydl.extract_info(url, download=True)
 
 @ABH.on(events.NewMessage(pattern=r'^(حمل|يوت|تحميل|yt) ?(.*)', from_users=[wfffp]))
 async def yt_func(e):
-    query = e.pattern_match.group(2)
+    cmd = e.pattern_match.group(1)
+    input_str = e.pattern_match.group(2)
     re_msg = await e.get_reply_message()
-    
-    if not query:
-        if re_msg: query = re_msg.text
-        else: return await e.reply("شنو تحب احملك وانت ما كاتب بحث؟")
 
-    # 1. البحث (بدون تجميد)
-    results = await run_sync(search_yt, query)
-    if not results: return await e.reply("ما لكيت أي نتيجة!")
+    if not input_str and re_msg:
+        input_str = re_msg.text
     
-    res = results[0]
-    vid_id = res["id"]
-    url = f"https://youtu.be/{vid_id}"
+    if not input_str:
+        return await e.reply("أرسل الرابط أو نص البحث بعد الأمر.")
 
-    # 2. فحص الكاش (سريع جداً)
-    raw = r.get(f"ytvideo{vid_id}")
+    # فحص هل المدخل رابط أم نص بحث
+    is_url = re.match(r'^https?://', input_str)
+    
+    if is_url:
+        url = input_str
+        vid_id = input_str # سنستخدم الرابط كمعرف للكاش
+    else:
+        # إذا كان نصاً، ابحث في يوتيوب أولاً
+        results = Y88F8(input_str, max_results=1).to_dict()
+        if not results: return await e.reply("لم أجد نتائج للبحث!")
+        vid_id = results[0]["id"]
+        url = f"https://youtu.be/{vid_id}"
+
+    # الكاش (Redis)
+    raw = r.get(f"vcache:{vid_id}")
     if raw:
-        cache = json.loads(raw)
         try:
-            file = InputDocument(
-                id=cache["audio_id"],
-                access_hash=cache["access_hash"],
-                file_reference=bytes.fromhex(cache["file_reference"])
-            )
-            return await ABH.send_file(e.chat_id, file, caption="تم الرفع من الكاش ⚡", reply_to=e.id)
+            cache = json.loads(raw)
+            file = InputDocument(id=cache["id"], access_hash=cache["hash"], file_reference=bytes.fromhex(cache["ref"]))
+            return await ABH.send_file(e.chat_id, file, reply_to=e.id)
         except: pass
 
-    # 3. إعدادات التحميل (سرعة قصوى)
+    # إعدادات عامة تدعم جميع المواقع
     ydl_ops = {
-        "format": "bestaudio[ext=m4a]",
+        "format": "bestaudio/best", # سيحمل أفضل جودة صوت متاحة
         "username": os.environ.get("u"),
         "password": os.environ.get("p"),
-        "forceduration": True,
-        "noplaylist": True
+        "quiet": True,
+        "no_warnings": True,
+        "logger": None,
+        "outtmpl": "downloads/%(title)s.%(ext)s", # تنظيم الملفات
     }
-    status_msg = await e.reply("جاري التحميل... يرجى الانتظار ⏳")
+
+    status = await e.reply("جاري جلب البيانات من الرابط...")
+    
     try:
-        info = await run_sync(download_yt, ydl_ops, url)
-        mp3_file = info['requested_downloads'][0]['filepath']
+        info = await run_sync(download_generic, ydl_ops, url)
+        file_path = info['requested_downloads'][0]['filepath']
+        title = info.get("title", "File")
         duration = info.get("duration", 0)
-        title = info.get("title", "Unknown")
-        performer = info.get("uploader", "YouTube")
-    except Exception as err:
-        return await status_msg.edit(f"حدث خطأ أثناء التحميل: {err}")
-    sent = await ABH.send_file(
-        e.chat_id,
-        mp3_file,
-        caption=f"**{title}**",
-        reply_to=e.id,
-        attributes=[DocumentAttributeAudio(duration=duration, title=title, performer=performer)]
-    )
-    try:
-        r.set(f"ytvideo{vid_id}", json.dumps({
-            "audio_id": sent.audio.id if sent.audio else sent.document.id,
-            "access_hash": sent.audio.access_hash if sent.audio else sent.document.access_hash,
-            "file_reference": (sent.audio.file_reference if sent.audio else sent.document.file_reference).hex(),
-            "duration": duration
-        }))
-        if os.path.exists(mp3_file): os.remove(mp3_file)
-        await status_msg.delete()
-    except: pass
-@ABH.on(events.NewMessage(pattern=r'^بوت', from_users=[wfffp]))
-async def botinfo(e):
-    await ABH.send_message(
-        e.chat_id,
-        "هلو عيني انا بوت تحميل من اليوتيوب اسمي [VIP ABH BOT](https://t.me/VIPABH_BOT) اتمنى تستمتع بخدماتي",
-        buttons=Button.url("اضغط هنا للاشتراك", "https://t.me/VIPABH_BOT"),
-        reply_to=e.id
-    )
+        
+        sent = await ABH.send_file(
+            e.chat_id,
+            file_path,
+            reply_to=e.id,
+            caption=f"**تم التحميل بنجاح ✅**\n[{title}]({url})",
+            attributes=[DocumentAttributeAudio(duration=int(duration), title=title)]
+        )
+
+        # تخزين في الكاش
+        r.set(f"vcache:{vid_id}", json.dumps({
+            "id": sent.audio.id if hasattr(sent, 'audio') and sent.audio else sent.document.id,
+            "hash": sent.audio.access_hash if hasattr(sent, 'audio') and sent.audio else sent.document.access_hash,
+            "ref": (sent.audio.file_reference if hasattr(sent, 'audio') and sent.audio else sent.document.file_reference).hex()
+        }), ex=86400) # كاش لمدة يوم واحد
+
+        if os.path.exists(file_path): os.remove(file_path)
+        await status.delete()
+
+    except Exception as ex:
+        await status.edit(f"⚠️ فشل التحميل. تأكد من الرابط أو إعدادات الحساب.\n\n`{str(ex)[:100]}`")
