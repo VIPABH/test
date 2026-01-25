@@ -3,7 +3,7 @@ from telethon import events, types
 import re
 
 def parse_command(text):
-    # النمط يدعم المنشن واليوزر والآيدي والوقت
+    # النمط يبقى كما هو لالتقاط الكلمات والأرقام
     pattern = r'(حظر عام|تقييد عام)\s+(@\w+|\d{5,10}|\d{2,3})(?:\s+(\d{5,10}|\d{2,3}))?'
     match = re.search(pattern, text)
     
@@ -37,15 +37,16 @@ async def handle_command(event):
         
     command, user, user_id, duration = result
 
-    # --- دعم المنشن الصريح (Mention Entity) ---
-    # إذا قام المستخدم بعمل منشن، تليجرام يرسل ID الشخص داخل الـ entities
+    # --- البحث عن المنشن في أي مكان داخل الرسالة ---
     if event.entities:
         for entity in event.entities:
+            # التحقق من المنشن بالاسم (الذي يظهر باللون الأزرق ولا يحتوي على @)
             if isinstance(entity, types.MessageEntityMentionName):
-                user_id = entity.user_id
-                user = "منشن صريح" # لتوضيح أن المصدر منشن
+                user_id = str(entity.user_id)
+                user = "منشن بالاسم"
+            # التحقق من المنشن العادي @username (إذا أردت استخراج آيدي مباشرة منه إن وجد)
             elif isinstance(entity, types.MessageEntityMention):
-                # هذا للمنشن العادي @username، الكود سيتكفل به من النص
+                # تليجرام أحياناً يربط الآيدي باليوزر نيم في الكيانات
                 pass
 
     response = (
