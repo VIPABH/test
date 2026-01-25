@@ -15,7 +15,6 @@ def extract_data(text):
     if ig: return "instagram", ig.group(1), ig.group(2)
     return None, None, None
 
-# --- معالج الرسائل ---
 @ABH.on(events.NewMessage(incoming=True))
 async def handler(e):
     if not e.is_private or not e.text: return
@@ -24,55 +23,69 @@ async def handler(e):
     if p:
         sid = str(uuid.uuid4())[:8]
         r.setex(f"tmp:{sid}", 600, json.dumps({"u": url, "v": vid, "p": p, "id": e.sender_id}))
-        btns = [[Button.inline("🎥 فيديو أصلي", data=f"v|{sid}"), Button.inline("🎵 صوت MP3", data=f"a|{sid}")]]
-        await e.reply(f"**✅ تم كشف رابط {p.upper()}**\nاختر النوع للتحميل المباشر:", buttons=btns)
+        btns = [[Button.inline("🎥 فيديو مشغل", data=f"v|{sid}"), Button.inline("🎵 صوت MP3", data=f"a|{sid}")]]
+        await e.reply(f"**✅ رابط {p.upper()} جاهز**", buttons=btns)
     elif not e.text.startswith('/'):
-        # بحث سريع
         res = Y88F8(e.text, max_results=5).to_dict()
         msg = "\n".join([f"• **{r['title']}**\n🔗 `https://youtu.be/{r['id']}`" for r in res])
         await e.reply(msg or "❌ لا توجد نتائج.")
 
-# --- محرك التحميل والإرسال ---
 @ABH.on(events.CallbackQuery(pattern=r'^(v|a)\|'))
 async def dl_callback(e):
-    data = json.loads(r.get(f"tmp:{e.data.decode().split('|')[1]}") or "{}")
-    if not data or data['id'] != e.sender_id: return await e.answer("⚠️ انتهى الطلب.")
+    raw = r.get(f"tmp:{e.data.decode().split('|')[1]}")
+    if not raw: return await e.answer("⚠️ الطلب قديم.")
+    data = json.loads(raw)
     
     type_dl = e.data.decode().split('|')[0]
-    await e.edit("⏳ جاري سحب الملف الأصلي...")
+    await e.edit("⏳ جاري المعالجة كفيديو مشغل...")
     
     uid = uuid.uuid4().hex
     path = f"downloads/{uid}"
     
-    # خيارات التحميل الخام (Original Quality)
     ydl_ops = {
         "quiet": True,
         "outtmpl": f"{path}.%(ext)s",
-        "format": "bestvideo+bestaudio/best" if type_dl == 'v' else "bestaudio/best",
     }
-    if type_dl == 'a':
+
+    if type_dl == 'v':
+        # جلب أفضل جودة وتحويلها لـ MP4 لضمان ظهورها كفيديو مشغل
+        ydl_ops["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+        ydl_ops["merge_output_format"] = "mp4"
+    else:
+        ydl_ops["format"] = "bestaudio/best"
         ydl_ops["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]
 
     try:
         with yt_dlp.YoutubeDL(ydl_ops) as ydl:
             info = await run_sync(ydl.extract_info, data['u'], True)
             
-        # العثور على الملف المرسل
+        # العثور على الملف
         file = next((f"downloads/{f}" for f in os.listdir("downloads") if f.startswith(uid)), None)
         
-        # الإرسال كفيديو مباشر
-        attrs = []
         if type_dl == 'v':
-            attrs = [DocumentAttributeVideo(duration=int(info.get('duration', 0)), w=info.get('width', 0), h=info.get('height', 0), supports_streaming=True)]
+            # إرسال كفيديو مع السمات الضرورية للمشغل
+            await ABH.send_file(
+                e.chat_id, file, 
+                caption=f"✅ **جودة أصلية (MP4):**\n`{info['title']}`",
+                attributes=[DocumentAttributeVideo(
+                    duration=int(info.get('duration', 0)),
+                    w=info.get('width', 0),
+                    h=info.get('height', 0),
+                    supports_streaming=True
+                )],
+                force_document=False # هذا السطر يمنع إرساله كملف
+            )
         else:
-            attrs = [DocumentAttributeAudio(duration=int(info.get('duration', 0)), title=info.get('title'))]
-
-        await ABH.send_file(e.chat_id, file, caption=f"**✅ جودة أصلية:**\n`{info['title']}`", attributes=attrs, force_document=False)
+            await ABH.send_file(
+                e.chat_id, file, 
+                caption=f"🎵 **صوت:** `{info['title']}`",
+                attributes=[DocumentAttributeAudio(duration=int(info.get('duration', 0)), title=info.get('title'))]
+            )
         await e.delete()
     except Exception as ex:
-        await e.edit(f"❌ فشل: {ex}")
+        await e.edit(f"❌ خطأ: {ex}")
     finally:
         for f in os.listdir("downloads"):
-            if f.startswith(uid): os.remove(f"downloads/{f}")
+            if f.startswith(uid): os.remove(os.path.join("downloads", f))
 
-print("✅ البوت شغال بأبسط صورة...")
+print("✅ البوت يعمل بنظام الفيديو المباشر...")
