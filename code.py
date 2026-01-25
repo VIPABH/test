@@ -139,9 +139,6 @@ def parse_command(text):
 async def handle_command(event):
     text = event.raw_text
     result = parse_command(text)
-    if isinstance(result, str):
-        await event.reply(result)
-        return
     command, user, user_id, duration = result
     response = f"نوع الأمر: {command}\n"
     if user:
