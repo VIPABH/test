@@ -33,7 +33,7 @@ async def handle_command(event):
 
     response = [f"**نوع الأمر:** {result[0] if result else ' بالرد'}"]
     if not result:
-        await event.reply(response)
+        await event.reply(str(response))
         return 
     command, user, user_id, duration = result    
     if user: response.append(f"**المستخدم:** {user}")
