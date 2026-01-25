@@ -1,34 +1,32 @@
 import asyncio, yt_dlp, os, re, uuid, json, logging
-from telethon.tl.types import DocumentAttributeAudio
+from telethon.tl.types import DocumentAttributeAudio, InputDocument
 from youtube_search import YoutubeSearch as Y88F8
 from telethon import events, Button
-from ABH import ABH, r  # تأكد من تعريف البوت (ABH) والرديس (r) هناك
+from ABH import ABH, r  # يجب أن يحتوي ملف ABH على إعدادات البوت والرديس
 
-# إعداد السجلات لمراقبة العمليات
+# إعداد السجلات
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
-# إنشاء مجلد التحميلات إذا لم يكن موجوداً
+# التأكد من وجود مجلد التحميلات
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
-# --- 1. الدوال المساعدة واستخراج البيانات ---
+# --- 1. الدوال المساعدة والتعرف على المنصات ---
 
 async def run_sync(func, *args):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, func, *args)
 
 def extract_media_data(text):
-    """تحديد المنصة واستخراج المعرف والرابط النظيف"""
+    """استخراج الرابط النظيف وتحديد المنصة"""
     yt_regex = r'(https?://(?:www\.)?(?:youtube\.com|youtu\.be)/(?:watch\?v=|embed/|shorts/|)([0-9A-Za-z_-]{11}))'
     ig_regex = r'(https?://(?:www\.)?instagram\.com/(?:p|reel|reels|tv|stories)/([A-Za-z0-9_-]+))'
 
     yt_match = re.search(yt_regex, text)
-    if yt_match:
-        return "youtube", yt_match.group(1), yt_match.group(2)
+    if yt_match: return "youtube", yt_match.group(1), yt_match.group(2)
 
     ig_match = re.search(ig_regex, text)
-    if ig_match:
-        return "instagram", ig_match.group(1), ig_match.group(2)
+    if ig_match: return "instagram", ig_match.group(1), ig_match.group(2)
 
     return None, None, None
 
@@ -56,10 +54,9 @@ def save_media_to_cache(media_key, file_msg, type_dl):
             "type": type_dl
         }
         r.setex(f"yt_cache:{media_key}", 86400, json.dumps(data))
-    except Exception as e:
-        logging.error(f"Cache Error: {e}")
+    except: pass
 
-# --- 3. معالج الرسائل والبحث ---
+# --- 3. معالج الرسائل وعرض الخيارات ---
 
 @ABH.on(events.NewMessage(incoming=True))
 async def main_handler(e):
@@ -93,14 +90,14 @@ async def show_download_options(event, url, platform, media_id):
     }))
     
     buttons = [[
-        Button.inline("🎥 فيديو بجودة عالية", data=f"dl_v|{short_id}"),
-        Button.inline("🎵 صوت MP3", data=f"dl_a|{short_id}")
+        Button.inline("🎥 فيديو (الجودة الأصلية)", data=f"dl_v|{short_id}"),
+        Button.inline("🎵 صوت (MP3 192kbps)", data=f"dl_a|{short_id}")
     ]]
     
     icon = "📺" if platform == "youtube" else "📸"
-    await event.reply(f"**{icon} اكتشاف رابط {platform.upper()}**\n\nاختر ما تريد تحميله:", buttons=buttons)
+    await event.reply(f"**{icon} تم اكتشاف رابط {platform.upper()}**\n\nاختر الصيغة المطلوبة:", buttons=buttons)
 
-# --- 4. محرك التحميل والمعالجة ---
+# --- 4. محرك التحميل (Original Quality Mode) ---
 
 @ABH.on(events.CallbackQuery(pattern=r'^dl_(v|a)\|'))
 async def download_callback_handler(e):
@@ -108,31 +105,29 @@ async def download_callback_handler(e):
     type_dl, short_id = raw_data.split("|")
     
     raw_tmp = r.get(f"yt_tmp:{short_id}")
-    if not raw_tmp: return await e.answer("⚠️ الطلب قديم جداً.", alert=True)
+    if not raw_tmp: return await e.answer("⚠️ الطلب انتهت صلاحيته.", alert=True)
     
     tmp_data = json.loads(raw_tmp)
     if tmp_data['u'] != e.sender_id:
-        return await e.answer("⚠️ هذا الطلب ليس لك.", alert=True)
+        return await e.answer("⚠️ هذا الزر ليس لك.", alert=True)
 
     url, platform, video_id = tmp_data['url'], tmp_data['p'], tmp_data['vid']
     cache_key = f"{type_dl}:{video_id}"
     
-    # محاولة الإرسال من الكاش لتوفير الوقت والجهد
+    # محاولة الإرسال من الكاش
     cached = get_cached_media(cache_key)
     if cached:
         try:
-            from telethon.tl.types import InputDocument
             file = InputDocument(id=cached['file_id'], access_hash=cached['access_hash'], file_reference=bytes.fromhex(cached['file_reference']))
-            await ABH.send_file(e.chat_id, file, caption=f"🚀 **إرسال سريع من الكاش**\n🔗 {url}")
+            await ABH.send_file(e.chat_id, file, caption=f"🚀 **من الكاش (جودة أصلية)**\n🔗 {url}")
             return await e.delete()
         except: r.delete(f"yt_cache:{cache_key}")
 
-    await e.edit(f"⏳ جاري التحميل من {platform}...\nبأفضل جودة ممكنة.")
+    await e.edit(f"⏳ جاري جلب الجودة الأصلية من {platform}...")
     
     unique_id = uuid.uuid4().hex
     file_path = f"downloads/{unique_id}"
     
-    # إعدادات متقدمة لـ yt-dlp
     ydl_ops = {
         "quiet": True,
         "outtmpl": f"{file_path}.%(ext)s",
@@ -142,11 +137,11 @@ async def download_callback_handler(e):
     }
 
     if type_dl == "dl_v":
-        # أفضل فيديو MP4 + أفضل صوت M4A مدمجين (لأقصى جودة تدعم التليجرام)
-        ydl_ops["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
-        ydl_ops["postprocessor_args"] = {"ffmpeg": ["-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p"]}
+        # طلب الجودة الأصلية الخام دون أي تحويل أو ضغط
+        ydl_ops["format"] = "bestvideo+bestaudio/best"
+        # لا توجد فلاتر ffmpeg هنا للحفاظ على الملف كما هو
     else:
-        # استخراج صوت MP3 حقيقي 192kbps
+        # تحويل الصوت لـ MP3 بجودة ثابتة
         ydl_ops["format"] = "bestaudio/best"
         ydl_ops["postprocessors"] = [{
             "key": "FFmpegExtractAudio",
@@ -157,24 +152,24 @@ async def download_callback_handler(e):
     try:
         info = await run_sync(execute_download, ydl_ops, url)
         
-        # البحث عن الملف الناتج بدقة
-        actual_file = f"{file_path}.mp3" if type_dl == "dl_a" else None
-        if not actual_file or not os.path.exists(actual_file):
-            for ext in [".mp4", ".mkv", ".webm", ".mp3", ".m4a"]:
-                if os.path.exists(f"{file_path}{ext}"):
-                    actual_file = f"{file_path}{ext}"
-                    break
+        # البحث عن الملف الناتج (لأن الامتداد مجهول في الجودة الأصلية mkv/webm/mp4)
+        actual_file = None
+        for f in os.listdir("downloads"):
+            if f.startswith(unique_id):
+                actual_file = os.path.join("downloads", f)
+                break
+        
+        if not actual_file: raise Exception("File not found")
 
-        # إعداد سمات الملف (للصوت)
         attr = []
         if type_dl == "dl_a":
             attr = [DocumentAttributeAudio(duration=int(info.get('duration', 0)), title=info.get('title'), performer=info.get('uploader'))]
 
-        # الإرسال
+        # إرسال الملف (يدعم الاستريمينج إذا كانت الصيغة MP4)
         sent = await ABH.send_file(
             e.chat_id, 
             actual_file, 
-            caption=f"✅ **تم التحميل بنجاح**\n🎬 `{info.get('title')}`\n🌐 {platform.capitalize()}",
+            caption=f"✅ **تم التحميل بالجودة الأصلية**\n🎬 `{info.get('title')}`\n🎞 الدقة: {info.get('height')}p | الصيغة: {actual_file.split('.')[-1]}",
             attributes=attr,
             supports_streaming=True
         )
@@ -183,15 +178,15 @@ async def download_callback_handler(e):
         await e.delete()
 
     except Exception as ex:
-        logging.error(f"Error: {ex}")
-        await e.edit(f"❌ **فشل التحميل!**\nالرابط قد يكون خاصاً أو غير مدعوم حالياً.")
+        logging.error(f"Download Error: {ex}")
+        await e.edit(f"❌ **فشل التحميل!**\nالسبب: رابط محمي أو حجم ملف كبير جداً.")
     
     finally:
-        # تنظيف آلي صارم
+        # تنظيف فوري للملفات
         for f in os.listdir("downloads"):
             if f.startswith(unique_id):
                 try: os.remove(os.path.join("downloads", f))
                 except: pass
 
-print("✅ البوت يعمل الآن بنظام التحميل الذكي...")
+print("✅ البوت يعمل بنظام الجودة الخام (Original Quality)...")
 ABH.run_until_disconnected()
