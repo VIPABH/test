@@ -30,11 +30,12 @@ def parse_command(text):
 async def handle_command(event):
     text = event.raw_text
     result = parse_command(text)
-    command, user, user_id, duration = result    
+
     response = [f"**نوع الأمر:** {command}"]
     if not result:
         await event.reply(response)
         return 
+    command, user, user_id, duration = result    
     if user: response.append(f"**المستخدم:** {user}")
     if user_id: response.append(f"**الآيدي:** `{user_id}`")
     if duration: response.append(f"**المدة:** {duration} دقيقة")    
