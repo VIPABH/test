@@ -189,4 +189,3 @@ async def download_callback_handler(e):
                 except: pass
 
 print("✅ البوت يعمل بنظام الجودة الخام (Original Quality)...")
-ABH.run_until_disconnected()
