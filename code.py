@@ -31,7 +31,7 @@ async def handle_command(event):
     text = event.raw_text
     result = parse_command(text)
 
-    response = [f"**نوع الأمر:** {command}"]
+    response = [f"**نوع الأمر:** {result[0] if result else ' بالرد'}"]
     if not result:
         await event.reply(response)
         return 
