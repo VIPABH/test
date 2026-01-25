@@ -1,9 +1,9 @@
 from ABH import ABH
-from telethon import events
+from telethon import events, types
 import re
 
 def parse_command(text):
-    # النمط الذكي الذي صممناه
+    # النمط يدعم المنشن واليوزر والآيدي والوقت
     pattern = r'(حظر عام|تقييد عام)\s+(@\w+|\d{5,10}|\d{2,3})(?:\s+(\d{5,10}|\d{2,3}))?'
     match = re.search(pattern, text)
     
@@ -33,20 +33,27 @@ async def handle_command(event):
     result = parse_command(text)
     
     if not result:
-        # إذا لم يطابق النص النمط الأساسي إطلاقاً
-        await event.reply("❌ تنسيق الأمر خاطئ.")
         return
         
     command, user, user_id, duration = result
-    
-    # بناء الرد لعرض النتائج حتى لو كانت None
-    # استخدمنا f-string مع تحويل القيم لنصوص مباشرة
+
+    # --- دعم المنشن الصريح (Mention Entity) ---
+    # إذا قام المستخدم بعمل منشن، تليجرام يرسل ID الشخص داخل الـ entities
+    if event.entities:
+        for entity in event.entities:
+            if isinstance(entity, types.MessageEntityMentionName):
+                user_id = entity.user_id
+                user = "منشن صريح" # لتوضيح أن المصدر منشن
+            elif isinstance(entity, types.MessageEntityMention):
+                # هذا للمنشن العادي @username، الكود سيتكفل به من النص
+                pass
+
     response = (
         f"**📊 نتائج تحليل الأمر:**\n"
         f"**- نوع الأمر:** {command}\n"
         f"**- المستخدم:** {user}\n"
-        f"**- الآيدي:** {user_id}\n"
-        f"**- المدة:** {duration}"
+        f"**- الآيدي:** `{user_id}`\n"
+        f"**- المدة:** {duration} دقيقة"
     )
 
     await event.reply(response)
