@@ -8,14 +8,19 @@ from ABH import ABH, r
 async def run_sync(func, *args):
     """تشغيل المهام الثقيلة في Thread منفصل لضمان عدم توقف البوت"""
     loop = asyncio.get_event_loop()
-    # نستخدم lambda هنا لتغليف الدالة إذا كانت تحتوي على وسائط معقدة
     return await loop.run_in_executor(None, func, *args)
 
 def extract_data(text):
+    # نمط يوتيوب
     yt = re.search(r'(https?://(?:www\.)?(?:youtube\.com|youtu\.be)/(?:watch\?v=|shorts/|)([0-9A-Za-z_-]{11}))', text)
+    # نمط إنستقرام (بوست، ريلز، TV)
     ig = re.search(r'(https?://(?:www\.)?instagram\.com/(?:p|reel|reels|tv)/([A-Za-z0-9_-]+))', text)
+    # نمط تيك توك (الروابط العادية والمختصرة)
+    tt = re.search(r'(https?://(?:www\.|vm\.|vt\.)?tiktok\.com/.*)', text)
+
     if yt: return "youtube", yt.group(1), yt.group(2)
     if ig: return "instagram", ig.group(1), ig.group(2)
+    if tt: return "tiktok", tt.group(1), "tiktok_video"
     return None, None, None
 
 # --- 2. معالج الرسائل ---
@@ -30,12 +35,11 @@ async def handler(e):
         btns = [[Button.inline("🎥 فيديو (MP4)", data=f"v|{sid}"), Button.inline("🎵 صوت (MP3)", data=f"a|{sid}")]]
         await e.reply(f"**✅ تم كشف رابط {p.upper()}**\nاختر النوع للبدء بعملية مستقلة:", buttons=btns)
     elif not e.text.startswith('/'):
-        # البحث يعمل بشكل مستقل لمنع تجميد البوت
         res = await run_sync(lambda: Y88F8(e.text, max_results=5).to_dict())
         msg = "\n".join([f"• **{r['title']}**\n🔗 `https://youtu.be/{r['id']}`" for r in res])
         await e.reply(msg or "❌ لا توجد نتائج.", link_preview=False)
 
-# --- 3. محرك التحميل المستقل (Concurrency Logic) ---
+# --- 3. محرك التحميل المستقل ---
 @ABH.on(events.CallbackQuery(pattern=r'^(v|a)\|'))
 async def dl_callback(e):
     data_raw = r.get(f"tmp:{e.data.decode().split('|')[1]}")
@@ -45,26 +49,25 @@ async def dl_callback(e):
     if data['id'] != e.sender_id: return await e.answer("⚠️ هذا الطلب ليس لك.")
     
     type_dl = e.data.decode().split('|')[0]
-    # إنشاء مهمة asyncio مستقلة تماماً لهذه العملية
     asyncio.create_task(process_download(e, data, type_dl))
 
 async def process_download(event, data, type_dl):
-    """دالة المعالجة المستقلة لكل مستخدم"""
     uid = uuid.uuid4().hex
     task_dir = f"downloads/{uid}"
     os.makedirs(task_dir, exist_ok=True)
     file_path = f"{task_dir}/media"
 
-    await event.edit("⏳ جاري التحميل... (عملية مستقلة)")
+    await event.edit(f"⏳ جاري معالجة رابط {data['p']}...")
 
     ydl_ops = {
         "quiet": True,
         "outtmpl": f"{file_path}.%(ext)s",
         "geo_bypass": True,
+        # إضافة Headers لتجنب الحظر من انستقرام وتيك توك
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
 
     if type_dl == 'v':
-        # طلب أفضل جودة أصلية بصيغة MP4 لضمان عملها كفيديو
         ydl_ops["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
         ydl_ops["merge_output_format"] = "mp4"
     else:
@@ -72,22 +75,21 @@ async def process_download(event, data, type_dl):
         ydl_ops["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]
 
     try:
-        # تنفيذ التحميل
         with yt_dlp.YoutubeDL(ydl_ops) as ydl:
             info = await run_sync(ydl.extract_info, data['u'], True)
             
-        # العثور على الملف المحمل في المجلد الخاص بالمهمة
         downloaded_file = next((f"{task_dir}/{f}" for f in os.listdir(task_dir) if f.startswith("media")), None)
-        
-        if not downloaded_file: raise Exception("File not found")
+        if not downloaded_file: raise Exception("لم يتم العثور على الملف المحمل")
 
-        # إرسال الملف كفيديو أو صوت
+        title = info.get('title', 'بدون عنوان')
+        duration = int(info.get('duration', 0))
+
         if type_dl == 'v':
             await ABH.send_file(
                 event.chat_id, downloaded_file,
-                caption=f"✅ **تم التحميل بنجاح**\n🎬 `{info['title']}`",
+                caption=f"✅ **{data['p'].capitalize()} Downloaded**\n🎬 `{title}`",
                 attributes=[DocumentAttributeVideo(
-                    duration=int(info.get('duration', 0)),
+                    duration=duration,
                     w=info.get('width', 0), h=info.get('height', 0),
                     supports_streaming=True
                 )],
@@ -96,8 +98,8 @@ async def process_download(event, data, type_dl):
         else:
             await ABH.send_file(
                 event.chat_id, downloaded_file,
-                caption=f"🎵 **صوت:** `{info['title']}`",
-                attributes=[DocumentAttributeAudio(duration=int(info.get('duration', 0)), title=info.get('title'))]
+                caption=f"🎵 **Audio:** `{title}`",
+                attributes=[DocumentAttributeAudio(duration=duration, title=title)]
             )
         
         await event.delete()
@@ -106,9 +108,6 @@ async def process_download(event, data, type_dl):
         await event.edit(f"❌ خطأ: {str(ex)[:100]}")
     
     finally:
-        # حل مشكلة TypeError: نمرر الدالة بدون Keyword Arguments
-        # نستخدم lambda للالتفاف على ignore_errors داخل executor
         await run_sync(lambda: shutil.rmtree(task_dir, ignore_errors=True))
 
-# --- تشغيل البوت ---
-print("✅ البوت يعمل بنظام asyncio المستقل تماماً...")
+print("✅ البوت يدعم الآن: YouTube, Instagram, TikTok")
