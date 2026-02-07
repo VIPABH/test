@@ -1,16 +1,19 @@
+from ABH import *
 import yt_dlp
 import os
+import asyncio
 from telethon import events
-from ABH import *
 
+# --- الجزء المفقود: تعريف دالة run_sync ---
+async def run_sync(func, *args):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, func, *args)
+# ------------------------------------------
 
-# إعدادات المجلد
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
-# إعدادات yt-dlp الذكية
 YDL_OPTIONS = {
-    # تحميل أفضل جودة فيديو مدمجة بصوت
     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     'outtmpl': 'downloads/%(id)s.%(ext)s',
     'noplaylist': True,
@@ -22,36 +25,39 @@ YDL_OPTIONS = {
 
 @ABH.on(events.NewMessage)
 async def smart_downloader(e):
-    # تجاهل رسائل البوتات أو الرسائل الفارغة
-    if e.is_group and not e.mentioned and not e.is_private:
+    # تجاهل الأوامر التي تبدأ بـ / أو ! لعدم تداخل المهام
+    if not e.text or e.text.startswith(('/', '!', '.')):
         return
     
-    text = e.text
-    if not text or text.startswith(('/', '!', '.')): # تجاهل الأوامر الأخرى
+    # منع البوت من الرد على نفسه أو البوتات الأخرى
+    if e.sender and e.sender.bot:
         return
 
-    # تحديد هل المدخل رابط أم نص بحث
+    text = e.text
+
+    # تحديد هل هو رابط أم بحث نصي
     if text.startswith(('http://', 'https://')):
         url = text
         is_search = False
     else:
-        url = f"ytsearch1:{text}" # البحث عن نتيجة واحدة فقط
+        url = f"ytsearch1:{text}"
         is_search = True
 
-    status = await e.reply("🔍 جارِ المعالجة..." if not is_search else f"🔎 جارِ البحث عن: **{text}**")
+    status = await e.reply("🔍 جارِ الفحص..." if not is_search else f"🔎 جارِ البحث عن: **{text}**")
 
     try:
+        # استخدام yt-dlp داخل run_sync لمنع تعليق البوت
         with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
-            # 1. جلب المعلومات والتحميل
-            info = await run_sync(ydl.extract_info, url, download=True)
+            # جلب المعلومات والتحميل
+            info = await run_sync(ydl.extract_info, url, True)
             
-            # إذا كان بحثاً، المعلومات تكون داخل قائمة 'entries'
-            video_data = info['entries'][0] if is_search else info
+            # إذا كان بحثاً، البيانات تكون داخل entries
+            video_data = info['entries'][0] if is_search and 'entries' in info else info
             
             file_path = ydl.prepare_filename(video_data)
             title = video_data.get('title', 'Media')
-            
-            # التأكد من مسار الملف الفعلي
+
+            # تصحيح مسار الملف في حال تغير الامتداد (مثلاً من mp4 إلى mkv)
             if not os.path.exists(file_path):
                 base = os.path.splitext(file_path)[0]
                 for ext in ['mp4', 'mkv', 'webm', 'm4v']:
@@ -59,7 +65,7 @@ async def smart_downloader(e):
                         file_path = f"{base}.{ext}"
                         break
 
-        # 2. إرسال الملف
+        # إرسال الملف المكتمل
         await ABH.send_file(
             e.chat_id,
             file_path,
@@ -68,7 +74,6 @@ async def smart_downloader(e):
             supports_streaming=True
         )
 
-        # 3. تنظيف
         await status.delete()
         if os.path.exists(file_path):
             os.remove(file_path)
