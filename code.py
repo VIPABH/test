@@ -2,7 +2,6 @@ from ABH import *
 import yt_dlp
 import os
 import asyncio
-import time
 from telethon import events
 
 # دالة run_sync لضمان عدم تعليق البوت
@@ -13,29 +12,20 @@ async def run_sync(func, *args):
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
-# دالة مخصصة لعرض تقدم التحميل (عداد السرعة)
-def progress_hook(d):
-    if d['status'] == 'downloading':
-        p = d.get('_percent_str', '0%')
-        s = d.get('_speed_str', '0Mbps')
-        t = d.get('_eta_str', '00:00')
-        # سيتم طباعة التقدم في التيرمينال، ويمكن تطويره ليتحدث في تيليجرام لاحقاً
-        print(f"📥 التحميل: {p} | السرعة: {s} | الوقت المتبقي: {t}")
-
+# --- إعدادات السرعة الخارقة والجودة الأصلية ---
 YDL_OPTIONS = {
-    # الجودة الأفضل والمتوافقة مع تيليجرام
-    'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+    # 'b' تطلب أفضل ملف فيديو مدمج بصوت جاهز من المصدر (أسرع في التحميل والمعالجة)
+    'format': 'best', 
     'outtmpl': 'downloads/%(id)s.%(ext)s',
     'noplaylist': True,
     'quiet': True,
     'no_warnings': True,
-    'progress_hooks': [progress_hook], # تفعيل العداد
+    # تفعيل التحميل المتعدد لزيادة السرعة 10 أضعاف
+    'external_downloader': 'aria2c',
+    'external_downloader_args': ['-x', '16', '-s', '16', '-k', '1M'],
     'extractor_args': {
         'youtube': {'player_client': ['android', 'ios']},
     },
-    # تسريع التحميل باستخدام تعدد الاتصالات (Multi-threading)
-    'external_downloader': 'aria2c',
-    'external_downloader_args': ['-x', '16', '-s', '16', '-k', '1M'],
 }
 
 @ABH.on(events.NewMessage)
@@ -51,34 +41,36 @@ async def smart_downloader(e):
         url = f"ytsearch1:{text}"
         is_search = True
 
-    status = await e.reply("🔍 جارِ الفحص..." if not is_search else f"🔎 جارِ البحث عن: **{text}**")
+    status = await e.reply("🚀 جاري المعالجة السريعة...")
 
     try:
         with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
-            # التحميل الفعلي باستخدام run_sync
+            # التحميل بأقصى سرعة
             info = await run_sync(ydl.extract_info, url, True)
             
             video_data = info['entries'][0] if is_search and 'entries' in info else info
             file_path = ydl.prepare_filename(video_data)
             title = video_data.get('title', 'Media')
 
-            # التأكد من المسار النهائي
+            # التأكد من وجود الملف (بسبب اختلاف الصيغ الأصلية)
             if not os.path.exists(file_path):
                 base = os.path.splitext(file_path)[0]
-                for ext in ['mp4', 'mkv', 'webm', 'm4v']:
+                for ext in ['mp4', 'mkv', 'webm', '3gp', 'm4v']:
                     if os.path.exists(f"{base}.{ext}"):
                         file_path = f"{base}.{ext}"
                         break
 
-        # تحديث الرسالة قبل الرفع
-        await status.edit(f"🚀 اكتمل التحميل!\n📦 جاري رفع: **{title[:50]}**")
+        # تحديث الحالة للرفع
+        await status.edit(f"📦 جاري رفع الفيديو الأصلي:\n**{title[:50]}**")
 
+        # إرسال الفيديو بوضعه الأصلي
         await ABH.send_file(
             e.chat_id,
             file_path,
-            caption=f"✅ **تم التحميل بنجاح**\n\n📝 {title}",
+            caption=f"✅ **تم التحميل بأقصى سرعة**\n\n📝 {title}",
             reply_to=e.id,
-            supports_streaming=True
+            supports_streaming=True, # يتيح مشاهدة الفيديو فوراً
+            force_document=False    # يرسله كمشغل فيديو وليس ملف مضغوط
         )
 
         await status.delete()
