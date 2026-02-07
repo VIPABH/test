@@ -18,11 +18,17 @@ YDL_OPTIONS = {
     'outtmpl': 'downloads/%(id)s.%(ext)s',
     'noplaylist': True,
     'quiet': True,
+    'no_warnings': False, # اجعلها False مؤقتاً لنرى إذا نجح التخطي
     'extractor_args': {
-        'youtube': {'player_client': ['android', 'ios']},
+        'youtube': {
+            # استخدام عملاء الـ TV و Web_Creator يتخطى طلب الـ PO Token حالياً
+            'player_client': ['tv', 'web_creator', 'mweb'],
+            'player_skip': ['configs', 'webpage']
+        }
     },
+    # إضافة User-Agent متوافق مع متصفحات الجوال العادية
+    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
 }
-
 @ABH.on(events.NewMessage)
 async def smart_downloader(e):
     # تجاهل الأوامر التي تبدأ بـ / أو ! لعدم تداخل المهام
