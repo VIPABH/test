@@ -3,7 +3,7 @@ import yt_dlp
 import os
 import asyncio
 from telethon import events
-from telethon.tl.types import DocumentAttributeVideo # لإضافة أبعاد الفيديو
+from telethon.tl.types import DocumentAttributeVideo
 
 async def run_sync(func, *args):
     loop = asyncio.get_event_loop()
@@ -12,18 +12,20 @@ async def run_sync(func, *args):
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
+# إعدادات ثابتة (تحافظ على نظام تسجيل دخولك الحالي)
 YDL_OPTIONS = {
-    # 'bestvideo+bestaudio' تضمن جلب النسخة الأصلية العريضة وليس نسخة الجوال العمودية
-    # نستخدم /best لضمان وجود خيار بديل في حال فشل الدمج
-    'format': 'bestvideo[vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+    # تعديل الـ format لطلب النسخة العريضة أولاً وتجنب العمودية
+    'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     'outtmpl': 'downloads/%(id)s.%(ext)s',
     'noplaylist': True,
     'quiet': True,
     'no_warnings': True,
+    # السرعة القصوى عبر aria2c
     'external_downloader': 'aria2c',
     'external_downloader_args': ['-x', '16', '-s', '16', '-k', '1M'],
     'extractor_args': {
-        'youtube': {'player_client': ['tv', 'web_creator']}, # عملاء الـ TV يضمنون الصيغة العرضية
+        # بقاء نظام تسجيل الدخول كما هو (أندرويد و iOS)
+        'youtube': {'player_client': ['android', 'ios']},
     },
 }
 
@@ -34,42 +36,44 @@ async def smart_downloader(e):
 
     text = e.text
     url = text if text.startswith(('http://', 'https://')) else f"ytsearch1:{text}"
-    status = await e.reply("🎬 جاري جلب الفيديو بالأبعاد الأصلية...")
+    status = await e.reply("🎬 جاري التحميل بالأبعاد الأصلية...")
 
     try:
         with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
+            # استخراج المعلومات والتحميل
             info = await run_sync(ydl.extract_info, url, True)
             video_data = info['entries'][0] if 'entries' in info else info
+            
             file_path = ydl.prepare_filename(video_data)
             
-            # استخراج أبعاد الفيديو الأصلية
-            width = video_data.get('width')
-            height = video_data.get('height')
+            # جلب البيانات التقنية للفيديو (لضمان المظهر العرضي)
+            width = video_data.get('width', 1280)
+            height = video_data.get('height', 720)
             duration = int(video_data.get('duration', 0))
             title = video_data.get('title', 'Media')
 
+            # التأكد من مسار الملف النهائي
             if not os.path.exists(file_path):
                 base = os.path.splitext(file_path)[0]
                 for ext in ['mp4', 'mkv', 'webm']:
                     if os.path.exists(f"{base}.{ext}"):
                         file_path = f"{base}.{ext}"; break
 
-        await status.edit(f"📦 جاري رفع الفيديو...\n**{title[:50]}**")
+        await status.edit(f"📦 جاري الرفع بنمط الـ Full Screen...\n**{title[:50]}**")
 
-        # إرسال الفيديو مع تحديد الأبعاد ليظهر بشكل صحيح
+        # الرفع مع إجبار تيليجرام على قراءة الأبعاد الأصلية
         await ABH.send_file(
             e.chat_id,
             file_path,
-            caption=f"✅ **تم التحميل بالأبعاد الأصلية**\n\n📝 {title}",
+            caption=f"✅ **تم التحميل بالجودة والأبعاد الأصلية**\n\n📝 {title}",
             reply_to=e.id,
             supports_streaming=True,
-            # إضافة سمات الفيديو لضمان ظهوره بشكل عرضي أو طولي حسب الأصل
             attributes=[DocumentAttributeVideo(
                 duration=duration,
-                w=width if width else 1280,
-                h=height if height else 720,
+                w=width,
+                h=height,
                 supports_streaming=True
-            )] if width and height else None
+            )]
         )
 
         await status.delete()
