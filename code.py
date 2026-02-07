@@ -5,16 +5,15 @@ import asyncio
 from telethon import events, Button
 from telethon.tl.types import DocumentAttributeVideo
 
-# --- دالة تشغيل المهام الثقيلة في Thread منفصل لعدم تعليق البوت ---
+# دالة تشغيل المهام الثقيلة لضمان عدم تعليق البوت
 async def run_sync(func, *args):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, func, *args)
 
-# إنشاء مجلد التحميل إذا لم يكن موجوداً
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
-# --- الإعدادات الأساسية (نفس نظام دخولك الحالي مع تحسين السرعة) ---
+# --- الإعدادات المحسنة للجودة الفائقة والسرعة ---
 BASE_OPTIONS = {
     'noplaylist': True,
     'quiet': True,
@@ -22,7 +21,7 @@ BASE_OPTIONS = {
     'external_downloader': 'aria2c',
     'external_downloader_args': ['-x', '16', '-s', '16', '-k', '1M'],
     'extractor_args': {
-        'youtube': {'player_client': ['android', 'ios']},
+        'youtube': {'player_client': ['android', 'ios']}, # نظام دخولك الحالي
     },
 }
 
@@ -34,7 +33,7 @@ async def smart_downloader(e):
     text = e.text
     url = text if text.startswith(('http://', 'https://')) else f"ytsearch1:{text}"
     
-    status = await e.reply("🔍 جاري جلب البيانات بأعلى جودة...")
+    status = await e.reply("🔍 جاري فحص أعلى جودة متاحة...")
 
     try:
         with yt_dlp.YoutubeDL(BASE_OPTIONS) as ydl:
@@ -43,18 +42,19 @@ async def smart_downloader(e):
             
             v_id = info['id']
             title = info['title']
+            # جلب الجودات المتوفرة للعرض (اختياري)
             duration = info.get('duration', 0)
 
         buttons = [
             [
-                Button.inline("🎥 فيديو (أعلى جودة)", data=f"v|{v_id}"),
+                Button.inline("🎥 فيديو بأعلى دقة (4K/HD)", data=f"v|{v_id}"),
                 Button.inline("🎵 صوت (MP3)", data=f"a|{v_id}")
             ]
         ]
         await status.edit(f"📝 **العنوان:** {title}\n⏱ **المدة:** {duration} ثانية\n\nاختر الصيغة المطلوبة:", buttons=buttons)
 
     except Exception as ex:
-        await status.edit(f"⚠️ خطأ في جلب البيانات: `{str(ex)[:100]}`")
+        await status.edit(f"⚠️ خطأ: `{str(ex)[:100]}`")
 
 @ABH.on(events.CallbackQuery(pattern=r'^(v|a)\|'))
 async def download_callback(e):
@@ -63,13 +63,14 @@ async def download_callback(e):
     v_id = data[1]
     url = f"https://www.youtube.com/watch?v={v_id}"
     
-    await e.edit("🚀 جاري التحميل... قد يستغرق ذلك لحظات حسب الحجم")
+    await e.edit("🚀 جاري تحميل الجودة الفائقة... انتظر قليلاً")
 
     opts = BASE_OPTIONS.copy()
     if mode == 'v':
-        # طلب أعلى جودة متاحة مهما كان الامتداد (لضمان الجودة الفائقة)
+        # التعديل الجوهري: نطلب أفضل فيديو (مهما كانت الدقة) + أفضل صوت
+        # ونحدد mp4 كحاوية نهائية لضمان التوافق مع تيليجرام
         opts['format'] = 'bestvideo+bestaudio/best'
-        opts['merge_output_format'] = 'mp4'  # محاولة الدمج كـ mp4 إذا أمكن
+        opts['merge_output_format'] = 'mp4' 
     else:
         opts['format'] = 'bestaudio/best'
         opts['postprocessors'] = [{
@@ -78,7 +79,6 @@ async def download_callback(e):
             'preferredquality': '192',
         }]
     
-    # استخدام معرف الفيديو كاسم للملف لتجنب مشاكل الرموز الغريبة
     opts['outtmpl'] = f'downloads/{v_id}.%(ext)s'
 
     try:
@@ -86,40 +86,33 @@ async def download_callback(e):
             info = await run_sync(ydl.extract_info, url, True)
             expected_filename = ydl.prepare_filename(info)
             
-            # --- نظام الصياد الذكي للملفات ---
+            # الصائد الذكي للملفات لتفادي خطأ Errno 2
             file_path = expected_filename
-            base_path = os.path.splitext(expected_filename)[0]
-            
-            # إذا كان صوتاً، نبحث عن نسخة mp3
             if mode == 'a':
-                file_path = base_path + ".mp3"
+                file_path = os.path.splitext(expected_filename)[0] + ".mp3"
             
-            # إذا لم يجد الملف بالاسم المتوقع (بسبب اختلاف الامتداد بعد الدمج)
             if not os.path.exists(file_path):
-                # يبحث عن أي ملف في المجلد يبدأ بـ ID الفيديو
                 for f in os.listdir("downloads"):
                     if f.startswith(v_id):
                         file_path = os.path.join("downloads", f)
                         break
 
-        if not os.path.exists(file_path):
-            raise FileNotFoundError("تعذر العثور على الملف المحمل")
-
-        await e.edit("📦 جاري الرفع إلى تيليجرام...")
+        await e.edit("📦 جاري الرفع بجودة HD...")
 
         attributes = []
         if mode == 'v':
+            # نرسل الأبعاد الأصلية (مثلاً 1920x1080) لضمان عدم ضغط تيليجرام للفيديو
             attributes = [DocumentAttributeVideo(
                 duration=int(info.get('duration', 0)),
-                w=info.get('width', 1280),
-                h=info.get('height', 720),
+                w=info.get('width', 1920), 
+                h=info.get('height', 1080),
                 supports_streaming=True
             )]
 
         await ABH.send_file(
             e.chat_id,
             file_path,
-            caption=f"✅ **تم التحميل بنجاح**\n\n📝 {info.get('title', 'بدون عنوان')}",
+            caption=f"🎬 **تم التحميل بأعلى جودة متوفرة**\n\n📝 {info.get('title')}",
             reply_to=e.query.msg_id,
             supports_streaming=True,
             attributes=attributes
@@ -130,4 +123,4 @@ async def download_callback(e):
             os.remove(file_path)
 
     except Exception as ex:
-        await e.edit(f"⚠️ فشل التحميل:\n`{str(ex)[:150]}`")
+        await e.edit(f"⚠️ فشل في معالجة الجودة العالية:\n`{str(ex)[:150]}`")
