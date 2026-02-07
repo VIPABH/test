@@ -2,9 +2,10 @@ from ABH import *
 import yt_dlp
 import os
 import asyncio
+import time
 from telethon import events
 
-# --- دالة run_sync لضمان عدم تعليق البوت ---
+# دالة run_sync لضمان عدم تعليق البوت
 async def run_sync(func, *args):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, func, *args)
@@ -12,25 +13,29 @@ async def run_sync(func, *args):
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
-# --- تحسين الإعدادات للسرعة والجودة القصوى ---
+# دالة مخصصة لعرض تقدم التحميل (عداد السرعة)
+def progress_hook(d):
+    if d['status'] == 'downloading':
+        p = d.get('_percent_str', '0%')
+        s = d.get('_speed_str', '0Mbps')
+        t = d.get('_eta_str', '00:00')
+        # سيتم طباعة التقدم في التيرمينال، ويمكن تطويره ليتحدث في تيليجرام لاحقاً
+        print(f"📥 التحميل: {p} | السرعة: {s} | الوقت المتبقي: {t}")
+
 YDL_OPTIONS = {
-    # 'best' تضمن جودة عالية، و 'ext=mp4' تضمن التوافق مع مشغل تيليجرام
+    # الجودة الأفضل والمتوافقة مع تيليجرام
     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     'outtmpl': 'downloads/%(id)s.%(ext)s',
     'noplaylist': True,
     'quiet': True,
     'no_warnings': True,
-    # محاكاة عملاء يوتيوب الأكثر استقراراً لتفادي 403 Forbidden
+    'progress_hooks': [progress_hook], # تفعيل العداد
     'extractor_args': {
-        'youtube': {
-            'player_client': ['tv', 'web_creator', 'mweb'],
-            'player_skip': ['configs', 'webpage']
-        }
+        'youtube': {'player_client': ['android', 'ios']},
     },
-    # تسريع التحميل (يتطلب تثبيت aria2 على السيرفر: sudo apt install aria2)
+    # تسريع التحميل باستخدام تعدد الاتصالات (Multi-threading)
     'external_downloader': 'aria2c',
-    'external_downloader_args': ['-x', '16', '-k', '1M'],
-    'nocheckcertificate': True,
+    'external_downloader_args': ['-x', '16', '-s', '16', '-k', '1M'],
 }
 
 @ABH.on(events.NewMessage)
@@ -46,18 +51,18 @@ async def smart_downloader(e):
         url = f"ytsearch1:{text}"
         is_search = True
 
-    status = await e.reply("🔍 جارِ المعالجة..." if not is_search else f"🔎 جارِ البحث عن: **{text}**")
+    status = await e.reply("🔍 جارِ الفحص..." if not is_search else f"🔎 جارِ البحث عن: **{text}**")
 
     try:
         with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
-            # التحميل الفعلي
+            # التحميل الفعلي باستخدام run_sync
             info = await run_sync(ydl.extract_info, url, True)
             
             video_data = info['entries'][0] if is_search and 'entries' in info else info
             file_path = ydl.prepare_filename(video_data)
             title = video_data.get('title', 'Media')
 
-            # التحقق من المسار النهائي للملف (في حال تحويل الصيغة تلقائياً)
+            # التأكد من المسار النهائي
             if not os.path.exists(file_path):
                 base = os.path.splitext(file_path)[0]
                 for ext in ['mp4', 'mkv', 'webm', 'm4v']:
@@ -65,7 +70,9 @@ async def smart_downloader(e):
                         file_path = f"{base}.{ext}"
                         break
 
-        # إرسال الملف (مع خاصية streaming لتشغيله أثناء التحميل)
+        # تحديث الرسالة قبل الرفع
+        await status.edit(f"🚀 اكتمل التحميل!\n📦 جاري رفع: **{title[:50]}**")
+
         await ABH.send_file(
             e.chat_id,
             file_path,
