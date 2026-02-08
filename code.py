@@ -5,7 +5,8 @@ import time
 import uuid
 import math
 from ABH import *
-from telethon import events, utils
+from telethon import events
+from telethon.tl.functions.messages import SaveBigFilePartRequest, SaveFilePartRequest
 from telethon.tl.types import DocumentAttributeVideo, InputFile
 
 # المجلد المخصص للتحميل
@@ -13,15 +14,12 @@ DOWNLOAD_DIR = "downloads"
 if not os.path.exists(DOWNLOAD_DIR): 
     os.makedirs(DOWNLOAD_DIR)
 
-# 🚀 دالة الرفع المتوازي الاحترافية
+# 🚀 دالة الرفع المتوازي (الإصدار المستقر)
 async def fast_upload(client, file_path, connections=16):
     file_id = uuid.uuid4().int & (1 << 63) - 1
     file_size = os.path.getsize(file_path)
-    # حجم القطعة 512KB لضمان التوازن بين السرعة والاستقرار
     part_size = 512 * 1024 
     part_count = math.ceil(file_size / part_size)
-    
-    # تحديد نوع الملف في بروتوكول تيليجرام
     is_large = file_size > 10 * 1024 * 1024
     
     with open(file_path, 'rb') as f:
@@ -32,42 +30,37 @@ async def fast_upload(client, file_path, connections=16):
                 f.seek(offset)
                 chunk = f.read(part_size)
                 
-                # استخدام InputFileBig للملفات الكبيرة تلقائياً عبر المكتبة
-                query = utils.get_query(
-                    InputFile(file_id, part_count, os.path.basename(file_path), ''),
-                    chunk, j, is_large
-                )
-                tasks.append(client(query))
+                # استخدام الطلب الرسمي المباشر لتيليجرام لضمان العمل
+                if is_large:
+                    request = SaveBigFilePartRequest(file_id, j, part_count, chunk)
+                else:
+                    request = SaveFilePartRequest(file_id, j, chunk)
+                tasks.append(client(request))
             
             await asyncio.gather(*tasks)
             
     return InputFile(file_id, part_count, os.path.basename(file_path), '')
 
-# 🛠 إعدادات التحميل لكسر حماية يوتيوب 403
+# 🛠 إعدادات التحميل (تجاوز 403)
 YDL_OPTS = {
     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     'merge_output_format': 'mp4',
     'noplaylist': True,
     'quiet': True,
     'no_warnings': True,
-    'nocheckcertificate': True,
     'concurrent_fragment_downloads': 15,
-    'extractor_args': {
-        'youtube': {'player_client': ['android'], 'player_skip': ['webpage']}
-    },
-    'http_headers': {
-        'User-Agent': 'com.google.android.youtube/19.05.36 (Linux; U; Android 14; en_US; Pixel 8 Pro)',
-    },
+    'extractor_args': {'youtube': {'player_client': ['android'], 'player_skip': ['webpage']}},
+    'http_headers': {'User-Agent': 'com.google.android.youtube/19.05.36 (Linux; U; Android 14; en_US; Pixel 8 Pro)'},
 }
 
 @ABH.on(events.NewMessage)
-async def vps_speed_handler(e):
+async def vps_final_handler(e):
     if not e.text or e.text.startswith(('/', '!', '.')) or (e.sender and e.sender.bot):
         return
 
     received_at = time.time()
     url = e.text.strip()
-    status = await e.reply("📡 **جاري بدء المعالجة النفاثة...**")
+    status = await e.reply("📡 **جاري التحميل والرفع المتوازي...**")
     
     try:
         u_id = uuid.uuid4().hex[:5]
@@ -85,23 +78,21 @@ async def vps_speed_handler(e):
         
         dl_time = round(time.time() - check_start, 2)
 
-        # --- الرفع المتوازي ---
-        await status.edit(f"📥 تحميل: `{dl_time}s`\n🚀 **رفع متوازي (16 اتصال)...**")
+        # --- الرفع ---
+        await status.edit(f"📥 تحميل: `{dl_time}s`\n🚀 **رفع نفاث (16 قناة)...**")
         up_start = time.time()
         
-        # استدعاء دالة الرفع السريع
         fast_file = await fast_upload(ABH, path)
         
         await ABH.send_file(
             e.chat_id,
             fast_file,
             caption=(
-                f"✅ **اكتملت العملية بنجاح**\n"
+                f"✅ **اكتملت العملية**\n"
                 f"📝 `{info.get('title')[:50]}...`\n\n"
-                f"📡 **الاستلام:** `{round(received_at - e.date.timestamp(), 2)}s`\n"
-                f"🔍 **التحميل:** `{dl_time}s`\n"
+                f"⏱ **الاستلام:** `{round(received_at - e.date.timestamp(), 2)}s`\n"
+                f"📥 **التحميل:** `{dl_time}s`\n"
                 f"📤 **الرفع:** `{round(time.time() - up_start, 2)}s`\n"
-                f"━━━━━━━━━━━━━━\n"
                 f"🚀 **الإجمالي:** `{round(time.time() - received_at, 2)}s`"
             ),
             attributes=[DocumentAttributeVideo(
