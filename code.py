@@ -3,19 +3,23 @@ import os
 import asyncio
 import glob
 import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from ABH import *
 from telethon import events, Button
 from telethon.tl.types import DocumentAttributeVideo
 
-# التأكد من مجلد التنزيل
+# زيادة عدد الخيوط (Threads) للتعامل مع ضغط هائل من المستخدمين
+executor = ThreadPoolExecutor(max_workers=50) 
+
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
 async def run_sync(func, *args):
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, func, *args)
+    return await loop.run_in_executor(executor, func, *args)
 
-# الإعدادات الشاملة (Universal Options)
+# إعدادات السرعة القصوى (Turbo Settings)
 ALL_SITES_OPTS = {
     'noplaylist': True,
     'quiet': True,
@@ -23,20 +27,16 @@ ALL_SITES_OPTS = {
     'nocheckcertificate': True,
     'geo_bypass': True,
     'merge_output_format': 'mp4',
+    # تفعيل aria2c للتحميل الصاروخي (يجب أن يكون مثبتاً على السيرفر)
+    'external_downloader': 'aria2c',
+    'external_downloader_args': ['-x', '16', '-s', '16', '-k', '1M'],
     'http_headers': {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-        'Accept': '*/*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'X-IG-App-ID': '936619743392459', # لضمان عمل إنستغرام
+        'X-IG-App-ID': '936619743392459',
     },
     'extractor_args': {
-        'youtube': {
-            'player_client': ['ios', 'android'],
-            'player_skip': ['webpage', 'configs'],
-        },
-        'tiktok': {
-            'app_version': '33.2.3',
-        }
+        'youtube': {'player_client': ['ios', 'android'], 'player_skip': ['webpage', 'configs']},
+        'tiktok': {'app_version': '33.2.3'},
     },
 }
 
@@ -46,14 +46,11 @@ async def universal_downloader(e):
         return
     
     url = e.text.strip()
-    status = await e.reply("🔄 جاري فحص الرابط ومعالجته...")
+    status = await e.reply("🔍 جاري الفحص...")
 
-    # التحقق من نوع الرابط
     is_youtube = any(x in url for x in ["youtube.com", "youtu.be"])
-    is_insta = "instagram.com" in url
     
     try:
-        # 1. إذا كان يوتيوب: جلب المعلومات وعرض خيارات الجودة
         if is_youtube:
             with yt_dlp.YoutubeDL(ALL_SITES_OPTS) as ydl:
                 info = await run_sync(ydl.extract_info, url, False)
@@ -63,33 +60,36 @@ async def universal_downloader(e):
             
             buttons = [
                 [Button.inline("🎥 480p", data=f"q|480|{v_id}"), Button.inline("🎥 720p", data=f"q|720|{v_id}")],
-                [Button.inline("🎬 أعلى جودة", data=f"q|best|{v_id}"), Button.inline("🎵 صوت MP3", data=f"q|audio|{v_id}")]
+                [Button.inline("🎬 Best", data=f"q|best|{v_id}"), Button.inline("🎵 MP3", data=f"q|audio|{v_id}")]
             ]
-            await status.respond(f"📺 **يوتيوب:** {title[:50]}\n\nاختر الجودة:", buttons=buttons)
+            await status.edit(f"📺 **{title[:50]}**", buttons=buttons)
 
-        # 2. إذا كان إنستا أو تيك توك أو غيره: تحميل مباشر بأعلى جودة
         else:
-            await status.respond("🚀 جاري التحميل المباشر...")
-            path = f"downloads/file_{int(time.time())}.mp4"
+            # استخدام UUID لضمان عدم تداخل الملفات عند تعدد المستخدمين
+            unique_id = str(uuid.uuid4())[:8]
+            path = f"downloads/file_{unique_id}_{int(time.time())}.mp4"
+            
+            await status.edit("🚀 جاري التحميل بأقصى سرعة...")
+            
             opts = ALL_SITES_OPTS.copy()
             opts['outtmpl'] = path
             
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = await run_sync(ydl.extract_info, url, True)
             
-            await e.respond("📦 جاري الرفع...")
+            await status.edit("📦 جاري الرفع...")
             attr = [DocumentAttributeVideo(
                 duration=int(info.get('duration', 0)),
                 w=info.get('width', 720), h=info.get('height', 1280),
                 supports_streaming=True
             )]
             
-            await ABH.send_file(e.chat_id, path, caption=f"✅ **تم التحميل:**\n{info.get('title', '')}", attributes=attr)
+            await ABH.send_file(e.chat_id, path, caption=f"✅ {info.get('title', '')}", attributes=attr)
             await status.delete()
             if os.path.exists(path): os.remove(path)
 
     except Exception as ex:
-        await status.respond(f"⚠️ فشل التحميل من هذا الرابط:\n`{str(ex)[:150]}`")
+        await status.edit(f"⚠️ فشل: `{str(ex)[:100]}`")
 
 @ABH.on(events.CallbackQuery(pattern=r'^q\|'))
 async def youtube_callback(e):
@@ -97,13 +97,15 @@ async def youtube_callback(e):
     quality, v_id = data[1], data[2]
     url = f"https://www.youtube.com/watch?v={v_id}"
     
-    await e.respond(f"🚀 جاري تحميل يوتيوب جودة {quality}...")
-    path = f"downloads/yt_{int(time.time())}"
-    opts = ALL_SITES_OPTS.copy()
+    # معرف فريد لكل عملية ضغط زر
+    u_id = str(uuid.uuid4())[:8]
+    path = f"downloads/yt_{u_id}_{int(time.time())}"
     
+    await e.edit(f"🚀 جاري معالجة طلبك ({quality})...")
+    
+    opts = ALL_SITES_OPTS.copy()
     if quality == "audio":
-        opts['format'] = 'bestaudio/best'
-        opts['postprocessors'] = [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3','preferredquality': '192'}]
+        opts.update({'format': 'bestaudio/best', 'postprocessors': [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3'}]})
     elif quality == "best":
         opts['format'] = 'bestvideo+bestaudio/best'
     else:
@@ -117,14 +119,8 @@ async def youtube_callback(e):
             files = glob.glob(f"{path}*")
             file_path = max(files, key=os.path.getctime)
 
-        attr = [DocumentAttributeVideo(
-            duration=int(info.get('duration', 0)),
-            w=info.get('width', 1280), h=info.get('height', 720),
-            supports_streaming=True
-        )]
-        
-        await ABH.send_file(e.chat_id, file_path, caption=f"✅ {info.get('title')}", attributes=attr)
+        await ABH.send_file(e.chat_id, file_path, caption=f"✅ {info.get('title')}", supports_streaming=True)
         await e.delete()
         if os.path.exists(file_path): os.remove(file_path)
     except Exception as ex:
-        await e.respond(f"⚠️ خطأ يوتيوب:\n`{str(ex)[:100]}`")
+        await e.edit(f"⚠️ خطأ: `{str(ex)[:100]}`")
