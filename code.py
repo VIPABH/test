@@ -2,11 +2,11 @@ import yt_dlp
 import os
 import asyncio
 import glob
+import time
 from ABH import *
 from telethon import events, Button
 from telethon.tl.types import DocumentAttributeVideo
 
-# التأكد من وجود مجلد التحميل
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
@@ -14,7 +14,7 @@ async def run_sync(func, *args):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, func, *args)
 
-# إعدادات قوية تدعم جميع المنصات وتتجنب الحظر
+# إعدادات قوية لتجاوز الحظر بدون كوكيز
 BASE_OPTIONS = {
     'noplaylist': True,
     'quiet': True,
@@ -30,9 +30,11 @@ BASE_OPTIONS = {
     },
     'extractor_args': {
         'youtube': {
-            'player_client': ['android', 'ios', 'web'],
+            'player_client': ['android', 'ios'], # التركيز على تطبيقات الجوال لتجنب حظر الويب
             'player_skip': ['webpage', 'configs'],
         },
+        'instagram': {'check_info': True},
+        'tiktok': {'app_version': '33.2.3'}
     },
 }
 
@@ -42,18 +44,22 @@ async def smart_downloader(e):
         return
     
     text = e.text.strip()
-    # التحقق إذا كان الرابط من يوتيوب أو منصة أخرى
-    url = text if text.startswith(('http://', 'https://')) else f"ytsearch1:{text}"
+    # التحقق من نوع الرابط
+    is_url = text.startswith(('http://', 'https://'))
+    url = text if is_url else f"ytsearch1:{text}"
     
-    status = await e.reply("🔍 جاري جلب البيانات من المصدر...")
+    status = await e.reply("🔍 جاري الفحص واستخراج الروابط...")
     
     try:
         with yt_dlp.YoutubeDL(BASE_OPTIONS) as ydl:
             info = await run_sync(ydl.extract_info, url, False)
             if 'entries' in info: info = info['entries'][0]
-            v_id = info.get('id')
-            title = info.get('title', 'Video')
             
+            # تخزين الرابط الحقيقي بدلاً من ID فقط لدعم المواقع الأخرى
+            v_id = info.get('id')
+            webpage_url = info.get('webpage_url') 
+            title = info.get('title', 'Video')
+
         buttons = [
             [
                 Button.inline("🎥 480p", data=f"q|480|{v_id}"),
@@ -65,44 +71,38 @@ async def smart_downloader(e):
                 Button.inline("🎵 صوت (MP3)", data=f"q|audio|{v_id}")
             ]
         ]
-        await status.edit(f"📝 **العنوان:** {title}\n\nاختر الصيغة المطلوبة:", buttons=buttons)
+        # حفظ الرابط في قاموس مؤقت أو استخدامه مباشرة إذا كان يوتيوب
+        await status.edit(f"📝 **العنوان:** {title}\n\nاختر الجودة المطلوبة:", buttons=buttons)
     except Exception as ex:
-        await status.edit(f"⚠️ **فشل جلب البيانات:**\nتأكد من الرابط أو حاول لاحقاً.\n`{str(ex)[:100]}`")
+        await status.edit(f"⚠️ **فشل جلب البيانات:**\n`{str(ex)[:150]}`")
 
 @ABH.on(events.CallbackQuery(pattern=r'^q\|'))
 async def download_callback(e):
     data = e.data.decode('utf-8').split('|')
-    quality = data[1]
-    v_id = data[2]
+    quality, v_id = data[1], data[2]
     
-    # التعامل مع روابط يوتيوب والروابط المباشرة الأخرى
+    # محاولة استنتاج الرابط (يعمل مع أغلب المنصات)
     url = f"https://www.youtube.com/watch?v={v_id}" if len(v_id) == 11 else v_id
     
-    await e.edit(f"🚀 جاري التحميل بمعيار: **{quality}**...")
+    await e.edit(f"🚀 جاري معالجة التحميل ({quality})...")
+    unique_path = f"downloads/{int(time.time())}"
     
-    unique_path = f"downloads/{v_id}_{quality}"
     opts = BASE_OPTIONS.copy()
-    
     if quality == "audio":
         opts['format'] = 'bestaudio/best'
-        opts['postprocessors'] = [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }]
+        opts['postprocessors'] = [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3','preferredquality': '192'}]
     elif quality == "best":
         opts['format'] = 'bestvideo+bestaudio/best'
     else:
-        # محاولة جلب الجودة المطلوبة أو أقرب جودة لها
         opts['format'] = f'bestvideo[height<={quality}][ext=mp4]+bestaudio[ext=m4a]/best[height<={quality}]/best'
-
+    
     opts['outtmpl'] = f'{unique_path}.%(ext)s'
 
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = await run_sync(ydl.extract_info, url, True)
             files = glob.glob(f"{unique_path}*")
-            if not files: raise FileNotFoundError("لم يتم العثور على الملف المحمل.")
+            if not files: raise FileNotFoundError("فشل النظام في إنشاء الملف.")
             file_path = max(files, key=os.path.getctime)
 
         await e.edit("📦 جاري الرفع إلى تيليجرام...")
@@ -111,25 +111,17 @@ async def download_callback(e):
         if quality != "audio":
             attributes = [DocumentAttributeVideo(
                 duration=int(info.get('duration', 0)),
-                w=info.get('width', 1280),
-                h=info.get('height', 720),
+                w=info.get('width', 1280), h=info.get('height', 720),
                 supports_streaming=True
             )]
 
         await ABH.send_file(
-            e.chat_id,
-            file_path,
-            caption=f"✅ **تم التحميل بنجاح**\n\n📝 {info.get('title')}",
-            attributes=attributes,
-            supports_streaming=True
+            e.chat_id, file_path,
+            caption=f"✅ **تم التحميل:** {info.get('title')}",
+            attributes=attributes, supports_streaming=True
         )
         await e.delete()
         if os.path.exists(file_path): os.remove(file_path)
 
     except Exception as ex:
-        error_msg = str(ex)
-        if "Video unavailable" in error_msg:
-            msg = "⚠️ الفيديو غير متاح (قد يحتاج كوكيز أو السيرفر محظور)."
-        else:
-            msg = f"⚠️ فشل التحميل:\n`{error_msg[:150]}`"
-        await e.edit(msg)
+        await e.edit(f"⚠️ **خطأ أثناء التحميل:**\n`{str(ex)[:150]}`")
