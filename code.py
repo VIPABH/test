@@ -65,11 +65,11 @@ async def universal_downloader(e):
                 [Button.inline("🎥 480p", data=f"q|480|{v_id}"), Button.inline("🎥 720p", data=f"q|720|{v_id}")],
                 [Button.inline("🎬 أعلى جودة", data=f"q|best|{v_id}"), Button.inline("🎵 صوت MP3", data=f"q|audio|{v_id}")]
             ]
-            await status.edit(f"📺 **يوتيوب:** {title[:50]}\n\nاختر الجودة:", buttons=buttons)
+            await status.respond(f"📺 **يوتيوب:** {title[:50]}\n\nاختر الجودة:", buttons=buttons)
 
         # 2. إذا كان إنستا أو تيك توك أو غيره: تحميل مباشر بأعلى جودة
         else:
-            await status.edit("🚀 جاري التحميل المباشر...")
+            await status.respond("🚀 جاري التحميل المباشر...")
             path = f"downloads/file_{int(time.time())}.mp4"
             opts = ALL_SITES_OPTS.copy()
             opts['outtmpl'] = path
@@ -77,7 +77,7 @@ async def universal_downloader(e):
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = await run_sync(ydl.extract_info, url, True)
             
-            await e.edit("📦 جاري الرفع...")
+            await e.respond("📦 جاري الرفع...")
             attr = [DocumentAttributeVideo(
                 duration=int(info.get('duration', 0)),
                 w=info.get('width', 720), h=info.get('height', 1280),
@@ -89,7 +89,7 @@ async def universal_downloader(e):
             if os.path.exists(path): os.remove(path)
 
     except Exception as ex:
-        await status.edit(f"⚠️ فشل التحميل من هذا الرابط:\n`{str(ex)[:150]}`")
+        await status.respond(f"⚠️ فشل التحميل من هذا الرابط:\n`{str(ex)[:150]}`")
 
 @ABH.on(events.CallbackQuery(pattern=r'^q\|'))
 async def youtube_callback(e):
@@ -97,7 +97,7 @@ async def youtube_callback(e):
     quality, v_id = data[1], data[2]
     url = f"https://www.youtube.com/watch?v={v_id}"
     
-    await e.edit(f"🚀 جاري تحميل يوتيوب جودة {quality}...")
+    await e.respond(f"🚀 جاري تحميل يوتيوب جودة {quality}...")
     path = f"downloads/yt_{int(time.time())}"
     opts = ALL_SITES_OPTS.copy()
     
@@ -127,4 +127,4 @@ async def youtube_callback(e):
         await e.delete()
         if os.path.exists(file_path): os.remove(file_path)
     except Exception as ex:
-        await e.edit(f"⚠️ خطأ يوتيوب:\n`{str(ex)[:100]}`")
+        await e.respond(f"⚠️ خطأ يوتيوب:\n`{str(ex)[:100]}`")
