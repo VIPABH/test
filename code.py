@@ -6,42 +6,39 @@ import uuid
 import math
 from ABH import *
 from telethon import events
-# تصحيح مسارات الاستيراد لطلبات الرفع
-from telethon.tl.functions.upload import SaveBigFilePartRequest, SaveFilePartRequest
-from telethon.tl.types import DocumentAttributeVideo, InputFile
+from telethon.tl.functions.upload import SaveBigFilePartRequest
+from telethon.tl.types import DocumentAttributeVideo, InputFileBig
 
 # المجلد المخصص للتحميل
 DOWNLOAD_DIR = "downloads"
 if not os.path.exists(DOWNLOAD_DIR): 
     os.makedirs(DOWNLOAD_DIR)
 
-# 🚀 دالة الرفع المتوازي (الإصدار المصحح)
-async def fast_upload(client, file_path, connections=16):
+# 🚀 دالة الرفع المتوازي (المستقرة للملفات الكبيرة)
+async def fast_upload(client, file_path, connections=10):
     file_id = uuid.uuid4().int & (1 << 63) - 1
     file_size = os.path.getsize(file_path)
+    # استخدام حجم قطعة 512KB
     part_size = 512 * 1024 
     part_count = math.ceil(file_size / part_size)
-    is_large = file_size > 10 * 1024 * 1024 # إذا زاد الملف عن 10MB يعتبر BigFile
     
     with open(file_path, 'rb') as f:
+        # رفع الأجزاء في مجموعات لضمان عدم ضياع الجزء 0
         for i in range(0, part_count, connections):
             tasks = []
             for j in range(i, min(i + connections, part_count)):
                 offset = j * part_size
                 f.seek(offset)
                 chunk = f.read(part_size)
-                
-                if is_large:
-                    request = SaveBigFilePartRequest(file_id, j, part_count, chunk)
-                else:
-                    request = SaveFilePartRequest(file_id, j, chunk)
-                tasks.append(client(request))
+                # نستخدم SaveBigFilePartRequest لضمان التوافق مع الملفات الكبيرة والصغيرة
+                tasks.append(client(SaveBigFilePartRequest(file_id, j, part_count, chunk)))
             
             await asyncio.gather(*tasks)
             
-    return InputFile(file_id, part_count, os.path.basename(file_path), '')
+    # نستخدم InputFileBig لحل مشكلة Part 0 missing بشكل جذري
+    return InputFileBig(file_id, part_count, os.path.basename(file_path))
 
-# 🛠 إعدادات التحميل (الأداء الأقصى)
+# 🛠 إعدادات التحميل (تجاوز حظر 403)
 YDL_OPTS = {
     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     'merge_output_format': 'mp4',
@@ -50,17 +47,17 @@ YDL_OPTS = {
     'no_warnings': True,
     'concurrent_fragment_downloads': 15,
     'extractor_args': {'youtube': {'player_client': ['android'], 'player_skip': ['webpage']}},
-    'http_headers': {'User-Agent': 'com.google.android.youtube/19.05.36 (Linux; U; Android 14; en_US; Pixel 8 Pro)'},
+    'http_headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'},
 }
 
 @ABH.on(events.NewMessage)
-async def vps_speed_handler(e):
+async def vps_fix_handler(e):
     if not e.text or e.text.startswith(('/', '!', '.')) or (e.sender and e.sender.bot):
         return
 
     received_at = time.time()
     url = e.text.strip()
-    status = await e.reply("📡 **جاري التحميل والرفع المتوازي...**")
+    status = await e.reply("📡 **جاري التحميل والمعالجة...**")
     
     try:
         u_id = uuid.uuid4().hex[:5]
@@ -79,9 +76,10 @@ async def vps_speed_handler(e):
         dl_time = round(time.time() - check_start, 2)
 
         # --- الرفع ---
-        await status.edit(f"📥 تحميل: `{dl_time}s`\n🚀 **رفع متوازي (16 قناة)...**")
+        await status.edit(f"📥 تحميل: `{dl_time}s`\n🚀 **رفع متوازي (Turbo Mode)...**")
         up_start = time.time()
         
+        # تنفيذ الرفع المتوازي باستخدام InputFileBig
         fast_file = await fast_upload(ABH, path)
         
         await ABH.send_file(
@@ -90,17 +88,16 @@ async def vps_speed_handler(e):
             caption=(
                 f"✅ **اكتملت العملية**\n"
                 f"📝 `{info.get('title')[:50]}...`\n\n"
-                f"⏱ **الاستلام:** `{round(received_at - e.date.timestamp(), 2)}s`\n"
                 f"📥 **التحميل:** `{dl_time}s`\n"
                 f"📤 **الرفع:** `{round(time.time() - up_start, 2)}s`\n"
                 f"🚀 **الإجمالي:** `{round(time.time() - received_at, 2)}s`"
             ),
-        #     attributes=[DocumentAttributeVideo(
-        #         duration=int(info.get('duration', 0)),
-        #         w=info.get('width', 1280), h=info.get('height', 720),
-        #         supports_streaming=True
-        #     )],
-        #     supports_streaming=True
+            attributes=[DocumentAttributeVideo(
+                duration=int(info.get('duration', 0)),
+                w=info.get('width', 1280), h=info.get('height', 720),
+                supports_streaming=True
+            )],
+            supports_streaming=True
         )
 
         await status.delete()
