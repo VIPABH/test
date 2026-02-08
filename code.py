@@ -92,12 +92,12 @@ async def vps_fix_handler(e):
                 f"📤 **الرفع:** `{round(time.time() - up_start, 2)}s`\n"
                 f"🚀 **الإجمالي:** `{round(time.time() - received_at, 2)}s`"
             ),
-            attributes=[DocumentAttributeVideo(
-                duration=int(info.get('duration', 0)),
-                w=info.get('width', 1280), h=info.get('height', 720),
-                supports_streaming=True
-            )],
-            supports_streaming=True
+            # attributes=[DocumentAttributeVideo(
+            #     duration=int(info.get('duration', 0)),
+            #     w=info.get('width', 1280), h=info.get('height', 720),
+            #     supports_streaming=True
+            # )],
+            # supports_streaming=True
         )
 
         await status.delete()
