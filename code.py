@@ -1,52 +1,26 @@
 import yt_dlp
 import os
 import asyncio
-import glob
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from ABH import *
-from telethon import events, Button
+from telethon import events
 from telethon.tl.types import DocumentAttributeVideo
-
-# رفع الكفاءة لأقصى حد
-executor = ThreadPoolExecutor(max_workers=200)
 
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
-async def run_sync(func, *args):
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(executor, func, *args)
-
-# إعدادات "السرعة المطلقة" (Absolute Speed)
-ULTRA_SPEED_OPTS = {
+# إعدادات السرعة الخام (Raw Speed)
+FAST_OPTS = {
+    'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     'noplaylist': True,
     'quiet': True,
     'no_warnings': True,
     'nocheckcertificate': True,
     'geo_bypass': True,
-    'merge_output_format': 'mp4',
-    
-    # محرك aria2c بإعدادات كسر القيود
     'external_downloader': 'aria2c',
-    'external_downloader_args': [
-        '--min-split-size=1M',
-        '--max-connection-per-server=16',
-        '--split=32',                 # رفع التقسيم لـ 32 لزيادة الضغط
-        '--max-tries=5',
-        '--retry-wait=2',
-        '--connect-timeout=10',
-        '--allow-overwrite=true',
-    ],
-    
-    # تفعيل التحميل المتعدد للأجزاء (هذا ما سيجعله سريعاً جداً)
-    'concurrent_fragment_downloads': 10, # تحميل 10 أجزاء من الفيديو في نفس اللحظة
-    
-    'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-        'X-IG-App-ID': '936619743392459',
-    },
+    'external_downloader_args': ['-x', '16', '-s', '16', '-k', '1M', '--file-allocation=none'],
+    'concurrent_fragment_downloads': 15,
 }
 
 @ABH.on(events.NewMessage)
@@ -55,39 +29,47 @@ async def fast_downloader(e):
         return
     
     url = e.text.strip()
-    status = await e.reply("🚀 **جاري التحميل بأقصى طاقة...**")
-
+    status = await e.reply("⚡ **بدء العمل...**")
+    
+    start_time = time.time() # بداية الوقت الكلي
+    
     try:
-        # استخدام UUID لضمان الخصوصية والسرعة
-        u_id = uuid.uuid4().hex[:8]
-        path = f"downloads/vid_{u_id}_{int(time.time())}.mp4"
+        u_id = uuid.uuid4().hex[:5]
+        path = f"downloads/v_{u_id}.mp4"
         
-        opts = ULTRA_SPEED_OPTS.copy()
+        opts = FAST_OPTS.copy()
         opts['outtmpl'] = path
-        
-        # إذا كان يوتيوب، سنعطيه خيار الـ Best مباشرة لتقليل وقت "فحص الجودات"
-        if "youtube" in url or "youtu.be" in url:
-            opts['format'] = 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
-        else:
-            opts['format'] = 'best'
 
-        # التحميل
+        # --- مرحلة التحميل ---
+        download_start = time.time()
         with yt_dlp.YoutubeDL(opts) as ydl:
-            info = await run_sync(ydl.extract_info, url, True)
+            # التحميل المباشر بدون فحص مسبق لربح الثواني
+            info = await asyncio.get_event_loop().run_in_executor(None, lambda: ydl.extract_info(url, download=True))
+        download_end = time.time()
         
-        await status.edit("📤 **جاري الرفع الصاروخي...**")
+        dl_duration = round(download_end - download_start, 2)
+        await status.edit(f"📥 تم التحميل في: `{dl_duration}` ثانية\n📤 جاري الرفع...")
+
+        # --- مرحلة الرفع ---
+        upload_start = time.time()
         
-        # استخراج الأبعاد للرفع السريع
-        w = info.get('width', 720)
-        h = info.get('height', 1280)
-        dur = int(info.get('duration', 0))
+        attr = [DocumentAttributeVideo(
+            duration=int(info.get('duration', 0)),
+            w=info.get('width', 720),
+            h=info.get('height', 1280),
+            supports_streaming=True
+        )]
 
         await ABH.send_file(
-            e.chat_id, path, 
-            caption=f"✅ **تم التحميل:** {info.get('title', '')[:50]}",
-            attributes=[DocumentAttributeVideo(duration=dur, w=w, h=h, supports_streaming=True)],
-            thumb=None # إلغاء الـ Thumb يسرع الرفع
+            e.chat_id, path,
+            caption=f"✅ **تمت العملية بنجاح**\n\n⏱ التحميل: `{dl_duration}s`\n⏱ الرفع: `{round(time.time() - upload_start, 2)}s`",
+            attributes=attr,
+            supports_streaming=True
         )
+        
+        upload_end = time.time()
+        total_duration = round(upload_end - start_time, 2)
+
         await status.delete()
         if os.path.exists(path): os.remove(path)
 
