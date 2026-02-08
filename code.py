@@ -13,11 +13,12 @@ from telethon.tl.types import DocumentAttributeVideo, InputFileBig
 DOWNLOAD_DIR = "downloads"
 if not os.path.exists(DOWNLOAD_DIR): os.makedirs(DOWNLOAD_DIR)
 
-# 🚀 دالة الرفع النفاث (40 اتصال + قطعة 1.5MB)
-async def fast_upload(client, file_path, connections=40):
+async def fast_upload(client, file_path, connections=60): # رفعنا الاتصالات لتعويض صغر حجم القطعة
     file_id = uuid.uuid4().int & (1 << 63) - 1
     file_size = os.path.getsize(file_path)
-    part_size = 1536 * 1024 
+    
+    # الحد الأقصى المسموح به عالمياً في تيليجرام هو 512KB
+    part_size = 512 * 1024 
     part_count = math.ceil(file_size / part_size)
     
     with open(file_path, 'rb') as f:
@@ -27,12 +28,15 @@ async def fast_upload(client, file_path, connections=40):
                 offset = j * part_size
                 f.seek(offset)
                 chunk = f.read(part_size)
+                # نرسل القطعة بالحد الأقصى المسموح (512KB)
                 tasks.append(client(SaveBigFilePartRequest(file_id, j, part_count, chunk)))
-            if tasks: await asyncio.gather(*tasks)
             
-    return InputFileBig(file_id, part_count, os.path.basename(file_path))
-
-# 🛠 إعدادات محاكاة التطبيقات (تجاوز 403 بدون كوكيز)
+            if tasks:
+                # هنا السر: إرسال 60 طلب (كل واحد 512KB) في نفس اللحظة
+                # 60 * 512KB = 30MB يتم ضخها في الثانية الواحدة تقريباً
+                await asyncio.gather(*tasks)
+            
+    return InputFileBig(file_id, part_count, os.path.basename(file_path))# 🛠 إعدادات محاكاة التطبيقات (تجاوز 403 بدون كوكيز)
 YDL_OPTS = {
     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     'merge_output_format': 'mp4',
