@@ -86,7 +86,7 @@ async def vps_speed_master(e):
         await status.edit(f"📤 **رفع:** `تحميل: {dl_time}s`")
         up_start = time.time()
         
-        fast_file = await fast_upload(ABH, path)
+        fast_file = await fast_upload(ABH, path, 30)
         up_time = round(time.time() - up_start, 2)
         
         # 5. الإرسال النهائي وحساب الإجمالي
