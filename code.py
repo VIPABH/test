@@ -13,30 +13,30 @@ from telethon.tl.types import DocumentAttributeVideo, InputFileBig
 DOWNLOAD_DIR = "downloads"
 if not os.path.exists(DOWNLOAD_DIR): os.makedirs(DOWNLOAD_DIR)
 
-async def fast_upload(client, file_path, connections=60): # رفعنا الاتصالات لتعويض صغر حجم القطعة
+async def fast_upload(client, file_path, connections=60):
     file_id = uuid.uuid4().int & (1 << 63) - 1
     file_size = os.path.getsize(file_path)
-    
-    # الحد الأقصى المسموح به عالمياً في تيليجرام هو 512KB
     part_size = 512 * 1024 
     part_count = math.ceil(file_size / part_size)
     
     with open(file_path, 'rb') as f:
-        for i in range(0, part_count, connections):
-            tasks = []
-            for j in range(i, min(i + connections, part_count)):
-                offset = j * part_size
-                f.seek(offset)
-                chunk = f.read(part_size)
-                # نرسل القطعة بالحد الأقصى المسموح (512KB)
-                tasks.append(client(SaveBigFilePartRequest(file_id, j, part_count, chunk)))
+        # استخدام Semaphore للتحكم في تدفق البيانات ومنع اختناق الشبكة
+        semaphore = asyncio.Semaphore(connections)
+        
+        async def upload_part(part_index, chunk):
+            async with semaphore:
+                return await client(SaveBigFilePartRequest(file_id, part_index, part_count, chunk))
+
+        tasks = []
+        for i in range(part_count):
+            chunk = f.read(part_size)
+            tasks.append(upload_part(i, chunk))
+        
+        # ضخ جميع الأجزاء دفعة واحدة (هنا تنفجر السرعة)
+        await asyncio.gather(*tasks)
             
-            if tasks:
-                # هنا السر: إرسال 60 طلب (كل واحد 512KB) في نفس اللحظة
-                # 60 * 512KB = 30MB يتم ضخها في الثانية الواحدة تقريباً
-                await asyncio.gather(*tasks)
-            
-    return InputFileBig(file_id, part_count, os.path.basename(file_path))# 🛠 إعدادات محاكاة التطبيقات (تجاوز 403 بدون كوكيز)
+    return InputFileBig(file_id, part_count, os.path.basename(file_path))
+    
 YDL_OPTS = {
     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     'merge_output_format': 'mp4',
