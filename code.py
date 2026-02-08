@@ -10,7 +10,7 @@ from telethon.tl.types import DocumentAttributeVideo
 if not os.path.exists("downloads"):
     os.makedirs("downloads")
 
-# إعدادات السرعة الخام (Raw Speed)
+# إعدادات السرعة القصوى
 FAST_OPTS = {
     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     'noplaylist': True,
@@ -23,15 +23,21 @@ FAST_OPTS = {
     'concurrent_fragment_downloads': 15,
 }
 
+def format_time(seconds):
+    """تحويل الثواني إلى تنسيق دقيقة:ثانية"""
+    mins = int(seconds // 60)
+    secs = int(seconds % 60)
+    return f"{mins}د {secs}ث" if mins > 0 else f"{secs}ث"
+
 @ABH.on(events.NewMessage)
-async def fast_downloader(e):
+async def speed_test_downloader(e):
     if not e.text or e.text.startswith(('/', '!', '.')) or (e.sender and e.sender.bot):
         return
     
     url = e.text.strip()
-    status = await e.reply("⚡ **بدء العمل...**")
+    status = await e.reply("⚡ **بدء المعالجة الفورية...**")
     
-    start_time = time.time() # بداية الوقت الكلي
+    overall_start = time.time()  # بداية العملية الكلية
     
     try:
         u_id = uuid.uuid4().hex[:5]
@@ -40,21 +46,28 @@ async def fast_downloader(e):
         opts = FAST_OPTS.copy()
         opts['outtmpl'] = path
 
-        # --- مرحلة التحميل ---
-        download_start = time.time()
+        # 1. مرحلة استخراج البيانات (Info Extraction)
+        info_start = time.time()
         with yt_dlp.YoutubeDL(opts) as ydl:
-            # التحميل المباشر بدون فحص مسبق لربح الثواني
-            info = await asyncio.get_event_loop().run_in_executor(None, lambda: ydl.extract_info(url, download=True))
-        download_end = time.time()
-        
-        dl_duration = round(download_end - download_start, 2)
-        await status.edit(f"📥 تم التحميل في: `{dl_duration}` ثانية\n📤 جاري الرفع...")
+            # نستخدم download=False أولاً لجلب مدة الفيديو بدقة
+            info = await asyncio.get_event_loop().run_in_executor(None, lambda: ydl.extract_info(url, download=False))
+            info_duration = round(time.time() - info_start, 2)
+            
+            video_len = info.get('duration', 0)
+            title = info.get('title', 'بدون عنوان')
 
-        # --- مرحلة الرفع ---
+            # 2. مرحلة التحميل الفعلي
+            await status.edit(f"🔍 فحص: `{info_duration}s`\n📥 جاري التحميل...")
+            download_start = time.time()
+            await asyncio.get_event_loop().run_in_executor(None, lambda: ydl.download([url]))
+            download_duration = round(time.time() - download_start, 2)
+
+        # 3. مرحلة الرفع إلى تيليجرام
+        await status.edit(f"📥 تحميل: `{download_duration}s`\n📤 جاري الرفع...")
         upload_start = time.time()
         
         attr = [DocumentAttributeVideo(
-            duration=int(info.get('duration', 0)),
+            duration=int(video_len),
             w=info.get('width', 720),
             h=info.get('height', 1280),
             supports_streaming=True
@@ -62,16 +75,23 @@ async def fast_downloader(e):
 
         await ABH.send_file(
             e.chat_id, path,
-            caption=f"✅ **تمت العملية بنجاح**\n\n⏱ التحميل: `{dl_duration}s`\n⏱ الرفع: `{round(time.time() - upload_start, 2)}s`",
+            caption=(
+                f"✅ **اكتملت العملية بنجاح**\n\n"
+                f"📝 **العنوان:** {title[:50]}\n"
+                f"⏳ **مدة الفيديو:** `{format_time(video_len)}`\n"
+                f"━━━━━━━━━━━━━━\n"
+                f"🔍 **الفحص:** `{info_duration}s`\n"
+                f"📥 **التحميل:** `{download_duration}s`\n"
+                f"📤 **الرفع:** `{round(time.time() - upload_start, 2)}s`\n"
+                f"━━━━━━━━━━━━━━\n"
+                f"🚀 **الإجمالي:** `{round(time.time() - overall_start, 2)}s`"
+            ),
             attributes=attr,
             supports_streaming=True
         )
         
-        upload_end = time.time()
-        total_duration = round(upload_end - start_time, 2)
-
         await status.delete()
         if os.path.exists(path): os.remove(path)
 
     except Exception as ex:
-        await status.edit(f"⚠️ خطأ: `{str(ex)[:100]}`")
+        await status.edit(f"⚠️ **فشل:**\n`{str(ex)[:150]}`")
