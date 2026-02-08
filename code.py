@@ -6,7 +6,8 @@ import uuid
 import math
 from ABH import *
 from telethon import events
-from telethon.tl.functions.messages import SaveBigFilePartRequest, SaveFilePartRequest
+# تصحيح مسارات الاستيراد لطلبات الرفع
+from telethon.tl.functions.upload import SaveBigFilePartRequest, SaveFilePartRequest
 from telethon.tl.types import DocumentAttributeVideo, InputFile
 
 # المجلد المخصص للتحميل
@@ -14,13 +15,13 @@ DOWNLOAD_DIR = "downloads"
 if not os.path.exists(DOWNLOAD_DIR): 
     os.makedirs(DOWNLOAD_DIR)
 
-# 🚀 دالة الرفع المتوازي (الإصدار المستقر)
+# 🚀 دالة الرفع المتوازي (الإصدار المصحح)
 async def fast_upload(client, file_path, connections=16):
     file_id = uuid.uuid4().int & (1 << 63) - 1
     file_size = os.path.getsize(file_path)
     part_size = 512 * 1024 
     part_count = math.ceil(file_size / part_size)
-    is_large = file_size > 10 * 1024 * 1024
+    is_large = file_size > 10 * 1024 * 1024 # إذا زاد الملف عن 10MB يعتبر BigFile
     
     with open(file_path, 'rb') as f:
         for i in range(0, part_count, connections):
@@ -30,7 +31,6 @@ async def fast_upload(client, file_path, connections=16):
                 f.seek(offset)
                 chunk = f.read(part_size)
                 
-                # استخدام الطلب الرسمي المباشر لتيليجرام لضمان العمل
                 if is_large:
                     request = SaveBigFilePartRequest(file_id, j, part_count, chunk)
                 else:
@@ -41,7 +41,7 @@ async def fast_upload(client, file_path, connections=16):
             
     return InputFile(file_id, part_count, os.path.basename(file_path), '')
 
-# 🛠 إعدادات التحميل (تجاوز 403)
+# 🛠 إعدادات التحميل (الأداء الأقصى)
 YDL_OPTS = {
     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     'merge_output_format': 'mp4',
@@ -54,7 +54,7 @@ YDL_OPTS = {
 }
 
 @ABH.on(events.NewMessage)
-async def vps_final_handler(e):
+async def vps_speed_handler(e):
     if not e.text or e.text.startswith(('/', '!', '.')) or (e.sender and e.sender.bot):
         return
 
@@ -79,7 +79,7 @@ async def vps_final_handler(e):
         dl_time = round(time.time() - check_start, 2)
 
         # --- الرفع ---
-        await status.edit(f"📥 تحميل: `{dl_time}s`\n🚀 **رفع نفاث (16 قناة)...**")
+        await status.edit(f"📥 تحميل: `{dl_time}s`\n🚀 **رفع متوازي (16 قناة)...**")
         up_start = time.time()
         
         fast_file = await fast_upload(ABH, path)
