@@ -19,10 +19,19 @@ FINAL_OPTS = {
     'nocheckcertificate': True,
     'geo_bypass': True,
     'external_downloader': 'aria2c',
-    'external_downloader_args': ['-x', '16', '-s', '16', '-k', '1M', '--file-allocation=none'],
-    'concurrent_fragment_downloads': 20, # رفعنا التوازي لـ 20
+    'external_downloader_args': [
+        '--max-connection-per-server=16',
+        '--split=16',
+        '--min-split-size=1M',
+        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        '--max-overall-download-limit=0',
+        '--async-dns=false',  # أحياناً الـ DNS يبطئ البداية
+        '--stream-piece-selector=random', # اختيار عشوائي للأجزاء لتمويه السيرفر
+    ],
+    'concurrent_fragment_downloads': 20,
+    # إضافة هذا السطر الهام جداً لتجاوز تضييق السرعة في يوتيوب
+    'params': {'n_sig_check': False}, 
 }
-
 def format_time(seconds):
     if seconds < 60: return f"{int(seconds)}ث"
     return f"{int(seconds//60)}د {int(seconds%60)}ث"
