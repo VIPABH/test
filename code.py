@@ -6,21 +6,22 @@ import uuid
 import math
 from ABH import *
 from telethon import events, utils
-from telethon.tl.types import DocumentAttributeVideo, InputFileUploadSafe
+from telethon.tl.types import DocumentAttributeVideo, InputFile
 
 # المجلد المخصص للتحميل
 DOWNLOAD_DIR = "downloads"
 if not os.path.exists(DOWNLOAD_DIR): 
     os.makedirs(DOWNLOAD_DIR)
 
-# 🚀 دالة الرفع المتوازي لكسر بطء تيليجرام
+# 🚀 دالة الرفع المتوازي الاحترافية
 async def fast_upload(client, file_path, connections=16):
     file_id = uuid.uuid4().int & (1 << 63) - 1
     file_size = os.path.getsize(file_path)
-    part_size = 512 * 1024  # 512KB للقطعة الواحدة
+    # حجم القطعة 512KB لضمان التوازن بين السرعة والاستقرار
+    part_size = 512 * 1024 
     part_count = math.ceil(file_size / part_size)
     
-    # تحديد إذا كان الملف كبير أم صغير في نظام تيليجرام
+    # تحديد نوع الملف في بروتوكول تيليجرام
     is_large = file_size > 10 * 1024 * 1024
     
     with open(file_path, 'rb') as f:
@@ -31,19 +32,18 @@ async def fast_upload(client, file_path, connections=16):
                 f.seek(offset)
                 chunk = f.read(part_size)
                 
-                # إرسال القطعة الواحدة
-                if is_large:
-                    query = utils.get_query(InputFileUploadSafe(file_id, part_count, 'video.mp4'), chunk, j)
-                else:
-                    query = utils.get_query(InputFileUploadSafe(file_id, part_count, 'video.mp4'), chunk, j)
-                
+                # استخدام InputFileBig للملفات الكبيرة تلقائياً عبر المكتبة
+                query = utils.get_query(
+                    InputFile(file_id, part_count, os.path.basename(file_path), ''),
+                    chunk, j, is_large
+                )
                 tasks.append(client(query))
             
             await asyncio.gather(*tasks)
             
-    return InputFileUploadSafe(file_id, part_count, os.path.basename(file_path))
+    return InputFile(file_id, part_count, os.path.basename(file_path), '')
 
-# 🛠 إعدادات التحميل لكسر حظر 403
+# 🛠 إعدادات التحميل لكسر حماية يوتيوب 403
 YDL_OPTS = {
     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
     'merge_output_format': 'mp4',
@@ -51,7 +51,7 @@ YDL_OPTS = {
     'quiet': True,
     'no_warnings': True,
     'nocheckcertificate': True,
-    'concurrent_fragment_downloads': 15, # تحميل 15 جزء من الفيديو بنفس الوقت
+    'concurrent_fragment_downloads': 15,
     'extractor_args': {
         'youtube': {'player_client': ['android'], 'player_skip': ['webpage']}
     },
@@ -61,50 +61,44 @@ YDL_OPTS = {
 }
 
 @ABH.on(events.NewMessage)
-async def ultimate_vps_handler(e):
-    # تجاهل الأوامر والرسائل من البوتات
+async def vps_speed_handler(e):
     if not e.text or e.text.startswith(('/', '!', '.')) or (e.sender and e.sender.bot):
         return
 
-    # 1. توقيت الاستلام
     received_at = time.time()
-    latency = round(received_at - e.date.timestamp(), 2)
-    
     url = e.text.strip()
-    status = await e.reply("📡 **بدء المعالجة النفاثة...**")
+    status = await e.reply("📡 **جاري بدء المعالجة النفاثة...**")
     
     try:
         u_id = uuid.uuid4().hex[:5]
         path = os.path.join(DOWNLOAD_DIR, f"v_{u_id}.mp4")
         
-        # 2. توقيت البحث والتحميل
+        # --- التحميل ---
         check_start = time.time()
         local_opts = YDL_OPTS.copy()
         local_opts['outtmpl'] = path
 
         with yt_dlp.YoutubeDL(local_opts) as ydl:
-            # البحث إذا لم يكن الرابط يبدأ بـ http
             search_url = url if url.startswith('http') else f"ytsearch1:{url}"
             info = await asyncio.get_event_loop().run_in_executor(None, lambda: ydl.extract_info(search_url, download=True))
             if 'entries' in info: info = info['entries'][0]
         
         dl_time = round(time.time() - check_start, 2)
 
-        # 3. توقيت الرفع المتوازي
+        # --- الرفع المتوازي ---
         await status.edit(f"📥 تحميل: `{dl_time}s`\n🚀 **رفع متوازي (16 اتصال)...**")
         up_start = time.time()
         
-        # تنفيذ الرفع المتوازي
+        # استدعاء دالة الرفع السريع
         fast_file = await fast_upload(ABH, path)
         
-        # إرسال الملف النهائي
         await ABH.send_file(
             e.chat_id,
             fast_file,
             caption=(
                 f"✅ **اكتملت العملية بنجاح**\n"
                 f"📝 `{info.get('title')[:50]}...`\n\n"
-                f"📡 **الاستلام:** `{latency}s`\n"
+                f"📡 **الاستلام:** `{round(received_at - e.date.timestamp(), 2)}s`\n"
                 f"🔍 **التحميل:** `{dl_time}s`\n"
                 f"📤 **الرفع:** `{round(time.time() - up_start, 2)}s`\n"
                 f"━━━━━━━━━━━━━━\n"
