@@ -2,8 +2,7 @@ from ABH import *
 
 @ABH.on(events.NewMessage(pattern=r"^تجربة التنسيق$"))
 async def test_direction(event):
-    RLM = "\u200f" # رمز المحاذاة لليمين لضمان بقاء التنسيق عربياً
-    
+    RLM = "\u200f"
     rich_users = [
         ("ابـ،ـن،هـ.ـاشـ.ـم ✘", "1,164,648,120"),
         ("ليلى", "99,210,205"),
@@ -17,10 +16,9 @@ async def test_direction(event):
         ("ياسر", "3,546,212"),
     ]
 
-    msg = f"{RLM}💰 **أغنى الأشخاص في البوت** 💰\n\n"
-    
-    for i, (name, balance) in enumerate(rich_users, start=1):
-        # الترتيب: الرمز -> الرقم -> الاسم -> السهم -> المبلغ
-        msg += f"{RLM}{i} - {name} ← `{balance}`\n"
+    # بناء القائمة بالكامل في سطر واحد باستخدام join
+    list_body = "\n".join([f"{RLM}{i} - {u[0]} ← `{u[1]}`" for i, u in enumerate(rich_users, start=1)])
+
+    msg = f"{RLM}💰 **أغنى الأشخاص في البوت** 💰\n\n{list_body}"
 
     await event.reply(msg)
