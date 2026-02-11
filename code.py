@@ -1,4 +1,5 @@
-from ABH import *@ABH.on(events.NewMessage(pattern=r"^تجربة التنسيق$"))
+from ABH import *
+@ABH.on(events.NewMessage(pattern=r"^تجربة التنسيق$"))
 async def test_direction(event):
     # قائمة تحتوي على كلمات عربية وانجليزية وآيديات
     test_list = ["سيف", "Gemini", "12345", "بوت الحماية", "Python_Code"]
