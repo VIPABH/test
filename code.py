@@ -1,11 +1,12 @@
+from ABH import *
 import httpx
-import json
+import os
 from telethon import events
 from ddgs import DDGS
 from datetime import datetime
 
 # --- الإعدادات (تأكد من وضع التوكن الخاص بك) ---
-GROQ_API_KEY = "gsk_xxxx" 
+GROQ_API_KEY = os.getenv('key') 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
@@ -97,4 +98,4 @@ async def bot_handler(event):
             # دمج رد الذكاء الاصطناعي مع روابط المصادر
             final_response = f"{ai_res}{sources}"
             # استخدام دالة chs الخاصة بك للإرسال
-            await chs(event, final_response)
+            await event.reply(final_response)
