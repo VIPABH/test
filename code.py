@@ -1,43 +1,50 @@
 from telethon import events, Button
 from telethon.tl.functions.messages import SendReactionRequest
-from telethon.tl.types import MessageEntityCustomEmoji, ReactionCustomEmoji
+from telethon.tl.types import (
+    MessageEntityCustomEmoji, 
+    ReactionCustomEmoji, 
+    KeyboardButtonStyle # استيراد الستايليات
+)
 # استيراد العميل الخاص بك
 from ABH import ABH as client 
 
 @client.on(events.NewMessage)
 async def smart_handler(event):
-    # --- الجزء الأول: التفاعل التلقائي بالإيموجي المميز ---
+    # تعريف المتغير بقيمة افتراضية لتجنب خطأ UnboundLocalError
+    emoji_id = None
+    
+    # البحث عن إيموجي مميز
     if event.entities:
         for entity in event.entities:
             if isinstance(entity, MessageEntityCustomEmoji):
                 emoji_id = entity.document_id
-                buttons = [
-                    [
-                        Button.inline("زر أخضر (نجاح)", data="success", 
-                                      style='success', icon_custom_emoji_id=emoji_id),
-                        Button.inline("زر أحمر (خطر)", data="danger", 
-                                      style='danger', icon_custom_emoji_id=emoji_id)
-                    ],
-                    [
-                        Button.inline("زر أزرق (أساسي)", data="primary", 
-                                      style='primary', icon_custom_emoji_id=5445105244111314944)
-                    ]
-                ]
-                
-                await event.reply("🚀 شوف التحديثات الجديدة (أزرار ملونة وإيموجي مخصص):", buttons=buttons)
-                try:
-                    await client(SendReactionRequest(
-                        peer=event.chat_id,
-                        msg_id=event.id,
-                        reaction=[ReactionCustomEmoji(document_id=emoji_id)]
-                    ))
-                    print(f"✅ تم التفاعل بالإيموجي: {emoji_id}")
-                    
-                    # --- الجزء الثاني: تجربة الأزرار الملونة (تحديث واجهة البوتات) ---
-                    # ملاحظة: استبدل الـ ID بـ ID إيموجي شغال عندك
-                except Exception as e:
-                    print(f"❌ خطأ: {e}")
                 break
 
+    # إذا لقى إيموجي مميز، ينفذ التفاعل والأزرار
+    if emoji_id:
+        try:
+            # 1. التفاعل
+            await client(SendReactionRequest(
+                peer=event.chat_id,
+                msg_id=event.id,
+                reaction=[ReactionCustomEmoji(document_id=emoji_id)]
+            ))
+            print(f"✅ تم التفاعل بالإيموجي: {emoji_id}")
 
-print("🚀 البوت شغال.. أرسل إيموجي مميز لتجربة التفاعل والأزرار الملونة!")
+            # 2. الأزرار (استخدام الأزرار العادية لأن style يحتاج Raw API في بعض نسخ تليثون)
+            # ملاحظة: إذا ظهر خطأ في style مرة ثانية، امسح حقل style و icon_custom_emoji_id
+            # لأن مكتبة Telethon الرسمية لسه في مرحلة تحديث لهذه الحقول
+            buttons = [
+                [
+                    Button.inline("زر أخضر", data="ok"), 
+                    Button.inline("زر أحمر", data="no")
+                ]
+            ]
+            
+            await event.reply("🚀 تم التفاعل بنجاح!", buttons=buttons)
+
+        except Exception as e:
+            print(f"❌ حدث خطأ: {e}")
+
+print("🚀 البوت شغال.. أرسل إيموجي مميز!")
+client.run_until_disconnected()
