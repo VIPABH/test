@@ -11,6 +11,20 @@ async def smart_handler(event):
         for entity in event.entities:
             if isinstance(entity, MessageEntityCustomEmoji):
                 emoji_id = entity.document_id
+                buttons = [
+                    [
+                        Button.inline("زر أخضر (نجاح)", data="success", 
+                                      style='success', icon_custom_emoji_id=emoji_id),
+                        Button.inline("زر أحمر (خطر)", data="danger", 
+                                      style='danger', icon_custom_emoji_id=emoji_id)
+                    ],
+                    [
+                        Button.inline("زر أزرق (أساسي)", data="primary", 
+                                      style='primary', icon_custom_emoji_id=5445105244111314944)
+                    ]
+                ]
+                
+                await event.reply("🚀 شوف التحديثات الجديدة (أزرار ملونة وإيموجي مخصص):", buttons=buttons)
                 try:
                     await client(SendReactionRequest(
                         peer=event.chat_id,
@@ -24,20 +38,6 @@ async def smart_handler(event):
                 except Exception as e:
                     print(f"❌ خطأ: {e}")
                 break
-    buttons = [
-        [
-            Button.inline("زر أخضر (نجاح)", data="success", 
-                          style='success', icon_custom_emoji_id=emoji_id),
-            Button.inline("زر أحمر (خطر)", data="danger", 
-                          style='danger', icon_custom_emoji_id=emoji_id)
-        ],
-        [
-            Button.inline("زر أزرق (أساسي)", data="primary", 
-                          style='primary', icon_custom_emoji_id=5445105244111314944)
-        ]
-    ]
-    
-    await event.reply("🚀 شوف التحديثات الجديدة (أزرار ملونة وإيموجي مخصص):", buttons=buttons)
 
 
 print("🚀 البوت شغال.. أرسل إيموجي مميز لتجربة التفاعل والأزرار الملونة!")
