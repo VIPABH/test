@@ -2,12 +2,7 @@ from telethon import TelegramClient, events
 from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import MessageEntityCustomEmoji, ReactionCustomEmoji
 
-# معلومات الحساب
-api_id = 123456
-api_hash = 'your_api_hash'
-
-client = TelegramClient('session_name', api_id, api_hash)
-
+from ABH import ABH as client
 @client.on(events.NewMessage)
 async def auto_react_custom_emoji(event):
     # التأكد من أن الرسالة تحتوي على "entities" (وهي التي تحمل بيانات الإيموجي المميز)
@@ -32,5 +27,3 @@ async def auto_react_custom_emoji(event):
                 break 
 
 print("البوت شغال.. أرسل أي إيموجي مميز وسيتفاعل البوت به فوراً!")
-client.start()
-client.run_until_disconnected()
