@@ -1,29 +1,43 @@
-from telethon import TelegramClient, events
+from telethon import events, Button
 from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import MessageEntityCustomEmoji, ReactionCustomEmoji
+# استيراد العميل الخاص بك
+from ABH import ABH as client 
 
-from ABH import ABH as client
 @client.on(events.NewMessage)
-async def auto_react_custom_emoji(event):
-    # التأكد من أن الرسالة تحتوي على "entities" (وهي التي تحمل بيانات الإيموجي المميز)
+async def smart_handler(event):
+    # --- الجزء الأول: التفاعل التلقائي بالإيموجي المميز ---
     if event.entities:
         for entity in event.entities:
-            # التحقق إذا كان الكيان هو إيموجي مخصص
             if isinstance(entity, MessageEntityCustomEmoji):
                 emoji_id = entity.document_id
-                
                 try:
-                    # التفاعل باستخدام المعرف الذي تم التقاطه تلقائياً
                     await client(SendReactionRequest(
                         peer=event.chat_id,
                         msg_id=event.id,
                         reaction=[ReactionCustomEmoji(document_id=emoji_id)]
                     ))
-                    print(f"تم التفاعل بنجاح بالإيموجي: {emoji_id}")
+                    print(f"✅ تم التفاعل بالإيموجي: {emoji_id}")
+                    
+                    # --- الجزء الثاني: تجربة الأزرار الملونة (تحديث واجهة البوتات) ---
+                    # ملاحظة: استبدل الـ ID بـ ID إيموجي شغال عندك
+                    buttons = [
+                        [
+                            Button.inline("زر أخضر (نجاح)", data="success", 
+                                          style='success', icon_custom_emoji_id=emoji_id),
+                            Button.inline("زر أحمر (خطر)", data="danger", 
+                                          style='danger', icon_custom_emoji_id=emoji_id)
+                        ],
+                        [
+                            Button.inline("زر أزرق (أساسي)", data="primary", 
+                                          style='primary', icon_custom_emoji_id=5445105244111314944)
+                        ]
+                    ]
+                    
+                    await event.reply("🚀 شوف التحديثات الجديدة (أزرار ملونة وإيموجي مخصص):", buttons=buttons)
+                    
                 except Exception as e:
-                    print(f"خطأ أثناء التفاعل: {e}")
-                
-                # نكتفي بأول إيموجي مميز نلقاه في الرسالة
-                break 
+                    print(f"❌ خطأ: {e}")
+                break
 
-print("البوت شغال.. أرسل أي إيموجي مميز وسيتفاعل البوت به فوراً!")
+print("🚀 البوت شغال.. أرسل إيموجي مميز لتجربة التفاعل والأزرار الملونة!")
