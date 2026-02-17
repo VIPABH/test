@@ -21,23 +21,23 @@ async def smart_handler(event):
                     
                     # --- الجزء الثاني: تجربة الأزرار الملونة (تحديث واجهة البوتات) ---
                     # ملاحظة: استبدل الـ ID بـ ID إيموجي شغال عندك
-                    buttons = [
-                        [
-                            Button.inline("زر أخضر (نجاح)", data="success", 
-                                          style='success', icon_custom_emoji_id=emoji_id),
-                            Button.inline("زر أحمر (خطر)", data="danger", 
-                                          style='danger', icon_custom_emoji_id=emoji_id)
-                        ],
-                        [
-                            Button.inline("زر أزرق (أساسي)", data="primary", 
-                                          style='primary', icon_custom_emoji_id=5445105244111314944)
-                        ]
-                    ]
-                    
-                    await event.reply("🚀 شوف التحديثات الجديدة (أزرار ملونة وإيموجي مخصص):", buttons=buttons)
-                    
                 except Exception as e:
                     print(f"❌ خطأ: {e}")
                 break
+    buttons = [
+        [
+            Button.inline("زر أخضر (نجاح)", data="success", 
+                          style='success', icon_custom_emoji_id=emoji_id),
+            Button.inline("زر أحمر (خطر)", data="danger", 
+                          style='danger', icon_custom_emoji_id=emoji_id)
+        ],
+        [
+            Button.inline("زر أزرق (أساسي)", data="primary", 
+                          style='primary', icon_custom_emoji_id=5445105244111314944)
+        ]
+    ]
+    
+    await event.reply("🚀 شوف التحديثات الجديدة (أزرار ملونة وإيموجي مخصص):", buttons=buttons)
+
 
 print("🚀 البوت شغال.. أرسل إيموجي مميز لتجربة التفاعل والأزرار الملونة!")
