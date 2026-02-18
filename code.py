@@ -7,7 +7,7 @@ def get_telegram_banner(text):
     # تحويل النص إلى فن ASCII
     ascii_text = text2art(text, font="small") # خط small أفضل للهواتف
     # وضع النص داخل علامات الكود لضمان ترتيب المسافات
-    return f"```\n{ascii_text}\n```"
+    return ascii_text
 
 @ABH.on(events.NewMessage(pattern=r'^البداية$'))
 async def start_msg(e):
