@@ -5,7 +5,7 @@ import random
 # دالة لتجهيز النص الفني لتليجرام
 def get_telegram_banner(text):
     # تحويل النص إلى فن ASCII
-    ascii_text = text2art(text, font="small") # خط small أفضل للهواتف
+    ascii_text = text2art(text, font="big") # خط small أفضل للهواتف
     # وضع النص داخل علامات الكود لضمان ترتيب المسافات
     return ascii_text
 
