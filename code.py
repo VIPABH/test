@@ -1,31 +1,35 @@
 from telethon import events
 from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.types import MessageEntityCustomEmoji, ReactionCustomEmoji
-# استيراد العميل الخاص بك
-from ABH import ABH as client 
-
-@client.on(events.NewMessage)
-async def smart_handler(event):
-    # التأكد من وجود entities في الرسالة
-    if not event.entities:
-        return
-
-    # استخراج أول ايموجي مميز فقط
-    custom_emoji = next((e for e in event.entities if isinstance(e, MessageEntityCustomEmoji)), None)
-
-    if custom_emoji:
-        emoji_id = custom_emoji.document_id
-        try:
-            # التفاعل بالإيموجي المميز
-            await client(SendReactionRequest(
-                peer=event.chat_id,
-                msg_id=event.id,
-                reaction=[ReactionCustomEmoji(document_id=emoji_id)]
-            ))
-            print(f"✅ تم التفاعل بنجاح: {emoji_id}")
-        except Exception as e:
-            # إذا ظهر خطأ هنا، فالحساب غالباً ليس Premium
-            print(f"❌ خطأ أثناء التفاعل: {e}")
-
-print("🚀 البوت شغال.. أرسل إيموجي مميز (Premium) فقط.")
-client.run_until_disconnected()
+import requests, asyncio, json
+from ABH import ABH
+AI_SECRET = "AIChatPowerBrain123@2024"
+def ask_ai(q):
+    url = "https://powerbrainai.com/app/backend/api/api.php"
+    headers = {
+        "User-Agent": "Dart/3.3 (dart:io)",
+        "Accept-Encoding": "gzip",
+        "content-type": "application/json; charset=utf-8"
+    }
+    data = {
+        "action": "send_message",
+        "model": "gpt-4o-mini",
+        "secret_token": AI_SECRET,
+        "messages": [
+            {"role": "system", "content": "ساعد باللهجة العراقية وكن ذكي وودود"},
+            {"role": "user", "content": q}
+        ]
+    }
+    res = requests.post(url, headers=headers, data=json.dumps(data), timeout=20)
+    if res.status_code == 200:
+        return res.json().get("data", "ماكو رد واضح من الذكاء.")
+    else:
+        return "صار خطأ بالسيرفر، جرب بعدين."
+@ABH.on(events.NewMessage(pattern=r"^مخفي\s*(.*)"))
+async def ai_handler(event):
+        user_q = event.pattern_match.group(1)
+        x = event.text
+        async with event.client.action(event.chat_id, 'typing'):
+            response = await asyncio.to_thread(ask_ai, user_q)
+            if response:
+                await event.reply(response)
