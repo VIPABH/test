@@ -12,7 +12,7 @@ def get_telegram_banner(text):
 @ABH.on(events.NewMessage(pattern=r'^البداية$'))
 async def start_msg(e):
     banner = get_telegram_banner("ABH")
-    fact = random.choice(ARABIC_FACTS)
     
     msg = f"{banner}\n🚀 **أهلاً بك في البوت!**\n\n💡 {fact}"
     await e.reply(msg)
+    
