@@ -13,6 +13,6 @@ def get_telegram_banner(text):
 async def start_msg(e):
     banner = get_telegram_banner("ABH")
     
-    msg = f"{banner}\n🚀 **أهلاً بك في البوت!**\n\n💡 {fact}"
+    msg = f"{banner}\n🚀 **أهلاً بك في البوت!**\n\n💡"
     await e.reply(msg)
     
