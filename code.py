@@ -3,8 +3,8 @@ import os
 import aiohttp
 from telethon import events
 from playwright.async_api import async_playwright
-from ABH import *
-# --- إعدادات المتصفح العالمية ---
+# تأكد من أن استيراد ABH صحيح في ملفك
+# from ABH import * # --- إعدادات المتصفح العالمية ---
 _BROWSER = None
 _PW = None
 
@@ -22,12 +22,17 @@ async def init_browser():
 # --- المحركات الذكية ---
 
 async def engine_fast(url):
-    """محرك سريع جداً (يلتقط اللقطة بمجرد تحميل الصفحة)"""
+    """محرك سريع مع انتظار ثانية واحدة للاستقرار"""
     browser = await init_browser()
     context = await browser.new_context(viewport={'width': 1280, 'height': 720})
     page = await context.new_page()
     try:
-        await page.goto(url, wait_until="commit", timeout=15000)
+        # الانتظار حتى تحميل الـ DOM (أفضل من commit للمواقع المتوسطة)
+        await page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        
+        # الانتظار لمدة ثانية واحدة كما طلبت لضمان ظهور المحتوى
+        await asyncio.sleep(1)
+        
         path = f"fast_{os.urandom(2).hex()}.jpg"
         await page.screenshot(path=path, type="jpeg", quality=60)
         return path
@@ -35,12 +40,17 @@ async def engine_fast(url):
         await context.close()
 
 async def engine_stealth(url):
-    """محرك قوي يحاكي هاتف iPhone لتجاوز بعض الحمايات"""
+    """محرك قوي يحاكي هاتف iPhone مع انتظار ثانية إضافية"""
     browser = await init_browser()
     context = await browser.new_context(**_PW.devices["iPhone 13 Pro Max"])
     page = await context.new_page()
     try:
+        # الانتظار حتى سكون الشبكة تماماً
         await page.goto(url, wait_until="networkidle", timeout=25000)
+        
+        # ثانية إضافية لضمان تحميل الـ Javascript الثقيل
+        await asyncio.sleep(1)
+        
         path = f"full_{os.urandom(2).hex()}.jpg"
         await page.screenshot(path=path, type="jpeg", quality=80)
         return path
@@ -48,7 +58,7 @@ async def engine_stealth(url):
         await context.close()
 
 async def engine_api(url):
-    """محرك خارجي (لا يستهلك موارد السيرفر إطلاقاً)"""
+    """محرك خارجي - لا يحتاج sleep لأنه يعالج خارجياً"""
     api_url = f"https://s.wordpress.com/mshots/v1/{url}?w=1280&h=720"
     path = f"api_{os.urandom(2).hex()}.jpg"
     async with aiohttp.ClientSession() as session:
@@ -66,7 +76,6 @@ async def multi_engine_shot(event):
     cmd = event.pattern_match.group(1).lower()
     url = event.pattern_match.group(2).strip()
     
-    # تصحيح الرابط إذا كان ناقصاً
     if not url.startswith("http"):
         url = "https://" + url
 
@@ -84,7 +93,7 @@ async def multi_engine_shot(event):
         if path and os.path.exists(path):
             caption = f"✅ **تم الالتقاط بنجاح**\n🔗 **الرابط:** {url}\n🛠 **المحرك:** {cmd.upper()}"
             await event.reply(caption, file=path)
-            os.remove(path) # حذف الصورة بعد الإرسال لتوفير مساحة السيرفر
+            os.remove(path) 
         else:
             await event.reply("❌ فشل المحرك في جلب الصورة. جرب محركاً آخر.")
             
@@ -92,5 +101,3 @@ async def multi_engine_shot(event):
         await event.reply(f"⚠️ حدث خطأ تقني: `{str(e)}`")
     finally:
         await status_msg.delete()
-
-# ملاحظة: تأكد أن كود تشغيل البوت (client.run_until_disconnected) موجود في نهاية ملفك.
