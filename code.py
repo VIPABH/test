@@ -1,49 +1,54 @@
 import asyncio
 import os
 import aiohttp
+from telethon import events
 from playwright.async_api import async_playwright
-from pyppeteer import launch as py_launch
-from ABH import *
-# إعدادات المتصفح لـ Playwright (للسرعة القصوى)
-pw_browser = None
-pw_instance = None
 
-async def get_pw():
-    global pw_browser, pw_instance
-    if not pw_browser:
-        pw_instance = await async_playwright().start()
-        pw_browser = await pw_instance.chromium.launch(headless=True)
-    return pw_browser
+# --- إعدادات المتصفح العالمية ---
+_BROWSER = None
+_PW = None
 
-# --- 1. محرك Playwright (الأسرع والأكثر استقراراً) ---
-async def engine_playwright(url):
-    browser = await get_pw()
+async def init_browser():
+    """تشغيل المتصفح مرة واحدة فقط لضمان السرعة القصوى"""
+    global _BROWSER, _PW
+    if not _BROWSER:
+        _PW = await async_playwright().start()
+        _BROWSER = await _PW.chromium.launch(
+            headless=True, 
+            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        )
+    return _BROWSER
+
+# --- المحركات الذكية ---
+
+async def engine_fast(url):
+    """محرك سريع جداً (يلتقط اللقطة بمجرد تحميل الصفحة)"""
+    browser = await init_browser()
     context = await browser.new_context(viewport={'width': 1280, 'height': 720})
     page = await context.new_page()
     try:
-        await page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        path = f"pw_{os.urandom(2).hex()}.jpg"
+        await page.goto(url, wait_until="commit", timeout=15000)
+        path = f"fast_{os.urandom(2).hex()}.jpg"
         await page.screenshot(path=path, type="jpeg", quality=60)
         return path
     finally:
         await context.close()
 
-# --- 2. محرك Pyppeteer (الأخف في استهلاك الرام) ---
-async def engine_pyppeteer(url):
-    browser = await py_launch(headless=True, args=['--no-sandbox'])
-    page = await browser.newPage()
-    await page.setViewport({'width': 1280, 'height': 720})
+async def engine_stealth(url):
+    """محرك قوي يحاكي هاتف iPhone لتجاوز بعض الحمايات"""
+    browser = await init_browser()
+    context = await browser.new_context(**_PW.devices["iPhone 13 Pro Max"])
+    page = await context.new_page()
     try:
-        await page.goto(url, {'waitUntil': 'domcontentloaded'})
-        path = f"py_{os.urandom(2).hex()}.jpg"
-        await page.screenshot({'path': path, 'type': 'jpeg', 'quality': 60})
+        await page.goto(url, wait_until="networkidle", timeout=25000)
+        path = f"full_{os.urandom(2).hex()}.jpg"
+        await page.screenshot(path=path, type="jpeg", quality=80)
         return path
     finally:
-        await browser.close()
+        await context.close()
 
-# --- 3. محرك API الخارجي (الأسرع ولا يستهلك سيرفرك) ---
 async def engine_api(url):
-    # استخدام API ووردبريس السريع جداً والمجاني
+    """محرك خارجي (لا يستهلك موارد السيرفر إطلاقاً)"""
     api_url = f"https://s.wordpress.com/mshots/v1/{url}?w=1280&h=720"
     path = f"api_{os.urandom(2).hex()}.jpg"
     async with aiohttp.ClientSession() as session:
@@ -54,28 +59,38 @@ async def engine_api(url):
                 return path
     return None
 
-# --- أمر التليجرام الرئيسي ---
-@ABH.on(events.NewMessage(pattern=r'/(pw|py|api)\s+(.*)'))
+# --- الأوامر الرئيسية للبوت ---
+
+@ABH.on(events.NewMessage(pattern=r'/(fast|full|api)\s+(.*)'))
 async def multi_engine_shot(event):
-    engine_type = event.pattern_match.group(1) # سيعرف إذا اخترت pw أو py أو api
-    url = event.pattern_match.group(2)
+    cmd = event.pattern_match.group(1).lower()
+    url = event.pattern_match.group(2).strip()
     
-    if not url.startswith("http"): url = "https://" + url
-    
-    msg = await event.reply(f"🔍 جاري الفحص باستخدام محرك: **{engine_type.upper()}**...")
+    # تصحيح الرابط إذا كان ناقصاً
+    if not url.startswith("http"):
+        url = "https://" + url
+
+    status_msg = await event.reply(f"🚀 جاري المعالجة عبر محرك: **{cmd.upper()}**...")
     
     path = None
-    if engine_type == "pw":
-        path = await engine_playwright(url)
-    elif engine_type == "py":
-        path = await engine_pyppeteer(url)
-    elif engine_type == "api":
-        path = await engine_api(url)
-        
-    if path and os.path.exists(path):
-        await event.reply(f"✅ تم بنجاح عبر {engine_type.upper()}", file=path)
-        os.remove(path)
-    else:
-        await event.reply("❌ فشل المحرك في التقاط الصورة.")
-    
-    await msg.delete()
+    try:
+        if cmd == "fast":
+            path = await engine_fast(url)
+        elif cmd == "full":
+            path = await engine_stealth(url)
+        elif cmd == "api":
+            path = await engine_api(url)
+
+        if path and os.path.exists(path):
+            caption = f"✅ **تم الالتقاط بنجاح**\n🔗 **الرابط:** {url}\n🛠 **المحرك:** {cmd.upper()}"
+            await event.reply(caption, file=path)
+            os.remove(path) # حذف الصورة بعد الإرسال لتوفير مساحة السيرفر
+        else:
+            await event.reply("❌ فشل المحرك في جلب الصورة. جرب محركاً آخر.")
+            
+    except Exception as e:
+        await event.reply(f"⚠️ حدث خطأ تقني: `{str(e)}`")
+    finally:
+        await status_msg.delete()
+
+# ملاحظة: تأكد أن كود تشغيل البوت (client.run_until_disconnected) موجود في نهاية ملفك.
