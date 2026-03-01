@@ -2,7 +2,7 @@ import asyncio
 import os
 from telethon import events
 from playwright.async_api import async_playwright
-
+from ABH import *
 # --- الإعدادات والقوائم السوداء ---
 BANNED_SITES = ["porn", "xvideos", "xnxx", "redtube", "xhamster", "brazzers", "youjizz", "spankbang", "erotic", "sex"]
 _BROWSER = None
