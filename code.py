@@ -42,7 +42,7 @@ async def capture_device(browser, url, device_key):
 
 @ABH.on(events.NewMessage(pattern=r'كشف رابط|سكرين(?:\s*(.*))?'))
 async def screen_shot(event):
-    await botuse("سكرين") # استدعاء الإحصائيات الخاصة بك
+    # await botuse("سكرين") # استدعاء الإحصائيات الخاصة بك
     
     url = event.pattern_match.group(1)
     if not url:
