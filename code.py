@@ -4,7 +4,7 @@ import aiohttp
 from telethon import events
 from playwright.async_api import async_playwright
 # تأكد من أن استيراد ABH صحيح في ملفك
-# from ABH import * # --- إعدادات المتصفح العالمية ---
+from ABH import * # --- إعدادات المتصفح العالمية ---
 _BROWSER = None
 _PW = None
 
