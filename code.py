@@ -3,7 +3,7 @@ import os
 from telethon import events
 from playwright.async_api import async_playwright
 from ABH import *
-@client.on(events.NewMessage)
+@ABH.on(events.NewMessage)
 async def handle_audio(event):
     # التحقق من وجود صوت أو ملف صوتي
     if event.voice or event.audio:
