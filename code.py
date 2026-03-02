@@ -1,8 +1,14 @@
 import asyncio
 import os
 from telethon import events
-from playwright.async_api import async_playwright
+# إضافة الاستيراد المفقود هنا
+from faster_whisper import WhisperModel 
 from ABH import *
+
+# تعريف النموذج (يجب تعريفه خارج الدالة لكي لا يتم تحميله في كل مرة يُرسل فيها صوت)
+# بما أنك على سيرفر 8GB RAM، نستخدم طراز base مع int8 لضمان السرعة والخفة
+model = WhisperModel("base", device="cpu", compute_type="int8")
+
 @ABH.on(events.NewMessage)
 async def handle_audio(event):
     # التحقق من وجود صوت أو ملف صوتي
@@ -13,8 +19,7 @@ async def handle_audio(event):
         path = await event.download_media()
         
         try:
-            # المعالجة باستخدام Whisper
-            # beam_size=5 يعطي دقة توازن بين السرعة والذكاء
+            # المعالجة باستخدام Whisper عبر خيط منفصل (Thread) لعدم تعليق البوت
             segments, info = await asyncio.to_thread(model.transcribe, path, beam_size=5)
             
             full_text = ""
@@ -25,13 +30,13 @@ async def handle_audio(event):
                 await msg.edit("لم أتمكن من استخراج نص واضح.")
             else:
                 response = (f"**اللغة المكتشفة:** {info.language}\n"
-                            f"**النص:**\n`{full_text.strip()}`")
+                            f"**النص المستخرج:**\n`{full_text.strip()}`")
                 await msg.edit(response)
         
         except Exception as e:
             await msg.edit(f"حدث خطأ أثناء المعالجة: {str(e)}")
         
         finally:
-            # تنظيف الملفات المؤقتة
+            # تنظيف الملفات المؤقتة فور الانتهاء
             if os.path.exists(path):
                 os.remove(path)
