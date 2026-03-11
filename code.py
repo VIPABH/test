@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events, connection, Button
-# from shortcut import *
+from shortcut import *
 from ABH import *
 import asyncio
 channels = [
@@ -21,7 +21,7 @@ async def start(e):
         *(is_in_channel(uid, ch) for ch in channels)
     )
     buttons = []
-    for (ch, link), joined in zip(channels, results):
+    for ch, joined in zip(channels, results):
         if not joined:
             buttons.append([Button.url(f"اشترك في {ch}", link)])
     if buttons:
