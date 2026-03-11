@@ -1,5 +1,5 @@
 from ABH import *
-from shortcut import *
+# from shortcut import *
 from telethon import Button
 async def check_force_sub(user_id, channel_username):
     try:
