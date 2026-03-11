@@ -3,17 +3,17 @@ from ABH import *
 from telethon import Button
 from telethon import Button, events, errors
 
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.tl.types import ChannelParticipant
+
 async def check_force_sub(user_id, channel_username):
     try:
-        # استخدام get_participant أسرع بآلاف المرات من get_participants
-        await ABH.get_participant(channel_username, user_id)
+        # هذه الطريقة هي الأكثر كفاءة للتحقق من وجود عضو في قناة
+        result = await ABH(GetParticipantRequest(channel_username, user_id))
         return True
-    except errors.UserNotParticipantError:
+    except:
+        # إذا حدث أي خطأ (مثلاً المستخدم غير موجود) نعتبره غير مشترك
         return False
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
-
 @ABH.on(events.NewMessage(pattern="^/start$"))
 async def start(e):
     if not e.is_private:
