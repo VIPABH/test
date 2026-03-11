@@ -1,5 +1,5 @@
 from ABH import *
-from shortcut import *
+# from shortcut import *
 from telethon import Button
 async def check_force_sub(user_id, channel_username):
     try:
@@ -11,7 +11,7 @@ async def start(e):
     if not e.is_private:
         return
     isSub = check_force_sub(e.sender_id, "x04ou")
-    pirnt(check_force_sub(e.sender_id, "x04ou"))
+    print(check_force_sub(e.sender_id, "x04ou"))
     if not isSub:
         b = Button.url('القناة', url='https://t.me/x04ou')
         return await e.reply("عذرا بس انت ما مشترك بالقناة")
