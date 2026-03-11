@@ -1,29 +1,27 @@
-from ABH import *
+from telethon import TelegramClient, events, connection, Button
 # from shortcut import *
-from telethon import Button
-from telethon import Button, events, errors
-
-from telethon.tl.functions.channels import GetParticipantRequest
-from telethon.tl.types import ChannelParticipant
-
-async def check_force_sub(user_id, channel_username):
-    try:
-        # هذه الطريقة هي الأكثر كفاءة للتحقق من وجود عضو في قناة
-        
-        return await ABH(GetParticipantRequest(channel_username, user_id))
-    except:
-        return False
+from ABH import *
+import asyncio
+channels = {
+    "ANYMOUSupdate": "https://t.me/ANYMOUSupdate",
+    "x04ou": "https://t.me/x04ou"
+}
 @ABH.on(events.NewMessage(pattern="^/start$"))
 async def start(e):
     if not e.is_private:
         return
-    
-    # التحقق من الاشتراك
-    isSub = await check_force_sub(e.sender_id, "x04ou")
-    print(isSub)
-    if not isSub:
-        # إضافة زر الاشتراك هو الجزء الأهم
-        b = [Button.url('اشترك في القناة', url='https://t.me/x04ou')]
-        await e.reply("عذراً، يجب عليك الاشتراك في القناة أولاً لاستخدام البوت.", buttons=b)
+    uid = e.sender_id
+    results = await asyncio.gather(
+        *(is_in_channel(uid, ch) for ch in channels)
+    )
+    buttons = []
+    for (ch, link), joined in zip(channels.items(), results):
+        if not joined:
+            buttons.append([Button.url(f"اشترك في {ch}", link)])
+    if buttons:
+        await e.reply(
+            "🔐 للوصول إلى خدمات البوت يجب الاشتراك في القنوات التالية:",
+            buttons=buttons
+        )
     else:
-        await e.reply('أهلاً بك! تم التحقق من اشتراكك بنجاح.')
+        await e.reply("✅ تم التحقق من اشتراكك في جميع القنوات. أهلاً بك!")
