@@ -9,10 +9,9 @@ from telethon.tl.types import ChannelParticipant
 async def check_force_sub(user_id, channel_username):
     try:
         # هذه الطريقة هي الأكثر كفاءة للتحقق من وجود عضو في قناة
-        result = await ABH(GetParticipantRequest(channel_username, user_id))
-        return True
+        
+        return await ABH(GetParticipantRequest(channel_username, user_id))
     except:
-        # إذا حدث أي خطأ (مثلاً المستخدم غير موجود) نعتبره غير مشترك
         return False
 @ABH.on(events.NewMessage(pattern="^/start$"))
 async def start(e):
@@ -21,7 +20,7 @@ async def start(e):
     
     # التحقق من الاشتراك
     isSub = await check_force_sub(e.sender_id, "x04ou")
-    
+    print(isSub)
     if not isSub:
         # إضافة زر الاشتراك هو الجزء الأهم
         b = [Button.url('اشترك في القناة', url='https://t.me/x04ou')]
