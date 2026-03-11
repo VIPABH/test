@@ -11,7 +11,7 @@ async def check_force_sub(user_id, channel_username):
 async def start(e):
     if not e.is_private:
         return
-    if not check_force_sub(e.sender_id, "x04ou"):
+    if not await check_force_sub(e.sender_id, "x04ou"):
         b = Button.url('القناة', url='https://t.me/x04ou')
         return await e.reply("عذرا بس انت ما مشترك بالقناة")
     else:
