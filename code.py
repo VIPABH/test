@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events, connection, Button
-# from shortcut import *
+from shortcut import *
 from ABH import *
 import asyncio
 channels = [
@@ -23,7 +23,7 @@ async def start(e):
     buttons = []
     for ch, joined in zip(channels, results):
         if not joined:
-            buttons.append([Button.url(f"اشترك في {ch}", link)])
+            buttons.append([Button.url(f"اشترك في {ch}", url=f"https://t.me/{ch}")])
     if buttons:
         await e.reply(
             "🔐 للوصول إلى خدمات البوت يجب الاشتراك في القنوات التالية:",
