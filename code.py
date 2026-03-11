@@ -1,14 +1,17 @@
 from telethon import Button, events
 from ABH import *
 
-async def check_force_sub(user_id, channel_username):
+# قمنا بتحويل اسم القناة إلى كائن Peer مرة واحدة عند بدء التشغيل
+# لتقليل عمليات التحويل (Resolution) في كل مرة يتم فيها التحقق
+CHANNEL_ENTITY = "x04ou" 
+
+async def check_force_sub(user_id):
     try:
-        # get_permissions تنجح إذا كان المستخدم عضواً وتفشل إذا لم يكن كذلك
-        # هذا الطلب مباشر وسريع ولا يحتاج لجلب كامل قائمة المشتركين
-        await ABH.get_permissions(channel_username, user_id)
+        # استخدام get_permissions مع entity القناة الثابت
+        # هذا يختصر على المكتبة البحث عن القناة في كل مرة
+        await ABH.get_permissions(CHANNEL_ENTITY, user_id)
         return True
-    except Exception:
-        # أي خطأ هنا يعني أن المستخدم غير مشترك أو حدث خطأ في الصلاحيات
+    except:
         return False
 
 
@@ -18,13 +21,11 @@ async def start(e):
     if not e.is_private:
         return
     
-    channel = "x04ou" 
-    
-    # التحقق المباشر بدون كاش
-    if not await check_force_sub(e.sender_id, channel):
+    # التحقق المباشر
+    if not await check_force_sub(e.sender_id):
         return await e.reply(
-            "⚠️ **عذراً، يجب عليك الاشتراك في القناة أولاً لتتمكن من استخدام البوت.**",
-            buttons=[[Button.url('اشترك في القناة', url=f'https://t.me/{channel}')]]
+            "⚠️ **عذراً، يجب عليك الاشتراك في القناة أولاً.**",
+            buttons=[[Button.url('اشترك في القناة', url=f'https://t.me/{CHANNEL_ENTITY}')]]
         )
     
     return await e.reply('✅ أهلاً بك، تم التحقق من اشتراكك بنجاح.')
