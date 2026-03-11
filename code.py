@@ -10,11 +10,11 @@ async def check_force_sub(user_id, channel_username):
     try:
         # 2. استخدام get_permissions وهي أسرع بكثير من get_participants
         # لأنها تسأل فقط عن عضو واحد محدد
-        participant = await ABH.get_permissions(channel_username, user_id)
+        return participant = await ABH.get_permissions(channel_username, user_id)
         
         # إذا نجح الطلب، يعني المستخدم موجود -> حفظ الحالة في Redis لمدة 30 دقيقة
-        r.setex(cache_key, 1800, "1")
-        return True
+        # r.setex(cache_key, 1800, "1")
+    #     return True
     except:
         return False
 
