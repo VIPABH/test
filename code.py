@@ -1,18 +1,35 @@
+from telethon import Button, events
+
 from ABH import *
-# from shortcut import *
-from telethon import Button
 async def check_force_sub(user_id, channel_username):
-    try:
-        participant = await ABH.get_participants(channel_username, filter=lambda p: p.id == user_id)
+    # 1. فحص الكاش في Redis أولاً (لتقليل الـ API Calls)
+    cache_key = f"sub:{user_id}:{channel_username}"
+    if r.get(cache_key):
         return True
-    except Exception:
+    
+    try:
+        # 2. استخدام get_permissions وهي أسرع بكثير من get_participants
+        # لأنها تسأل فقط عن عضو واحد محدد
+        participant = await ABH.get_permissions(channel_username, user_id)
+        
+        # إذا نجح الطلب، يعني المستخدم موجود -> حفظ الحالة في Redis لمدة 30 دقيقة
+        r.setex(cache_key, 1800, "1")
+        return True
+    except:
         return False
+
 @ABH.on(events.NewMessage(pattern="^/start$"))
 async def start(e):
     if not e.is_private:
         return
-    if not await check_force_sub(e.sender_id, "x04ou"):
-        b = Button.url('القناة', url='https://t.me/x04ou')
-        return await e.reply("عذرا بس انت ما مشترك بالقناة")
-    else:
-        return await e.reply('تم التحقق من الاشتراك')
+    
+    channel = "x04ou" # يوزر القناة
+    
+    # التحقق من الاشتراك
+    if not await check_force_sub(e.sender_id, channel):
+        return await e.reply(
+            "⚠️ **عذراً، يجب عليك الاشتراك في القناة أولاً لتتمكن من استخدام البوت.**",
+            buttons=[[Button.url('اشترك في القناة', url=f'https://t.me/{channel}')]]
+        )
+    
+    return await e.reply('✅ أهلاً بك، تم التحقق من اشتراكك بنجاح.')
