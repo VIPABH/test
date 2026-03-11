@@ -1,39 +1,46 @@
+import asyncio
 from telethon import Button, events
-from ABH import * # تأكد أن ABH يحتوي على client و r (اتصال Redis)
+from ABH import * # تأكد أن هذا الملف يحتوي على العميل 'ABH' واتصال 'r' (Redis)
 
 async def check_force_sub(user_id, channel_username):
-    # مفتاح الكاش الخاص بالمستخدم
+    """
+    تحقق سريع من الاشتراك مع كاش (Cache) لمدة 120 ثانية.
+    يعتمد على منطق get_permissions الأصلي الخاص بك.
+    """
     cache_key = f"sub:{user_id}:{channel_username}"
     
-    # 1. فحص الكاش (إذا كان موجوداً في Redis، فالمستخدم مشترك ومؤكد)
+    # 1. فحص الكاش (إذا وجد، يعني المستخدم مشترك مؤخراً)
     if r.exists(cache_key):
         return True
     
     try:
-        # 2. التحقق المباشر (طريقتك الأصلية التي لا نريد تغييرها)
+        # 2. منطق التحقق الأصلي الخاص بك (الذي طلبت عدم تغييره)
         await ABH.get_permissions(channel_username, user_id)
         
-        # 3. إذا نجح التحقق، نحفظ الحالة في Redis لمدة 120 ثانية فقط
+        # 3. إذا نجح التحقق، نحفظ الحالة في Redis لمدة دقيقتين (120 ثانية)
         r.setex(cache_key, 120, "1")
         return True
     except Exception:
-        # إذا فشل التحقق، نعتبره غير مشترك
+        # في حال عدم الاشتراك أو وجود مشكلة، يعتبر غير مشترك
         return False
 
 
 
 @ABH.on(events.NewMessage(pattern="^/start$"))
 async def start(e):
+    # ضمان العمل في الخاص فقط
     if not e.is_private:
         return
     
     channel = "x04ou" 
     
-    # استخدام الدالة مع نظام الكاش الذي أضفناه
+    # تنفيذ التحقق باستخدام الدالة المطورة
     if not await check_force_sub(e.sender_id, channel):
         return await e.reply(
             "⚠️ **عذراً، يجب عليك الاشتراك في القناة أولاً لتتمكن من استخدام البوت.**",
             buttons=[[Button.url('اشترك في القناة', url=f'https://t.me/{channel}')]]
         )
     
-    return await e.reply('✅ أهلاً بك، تم التحقق من اشتراكك بنجاح.')
+    # في حال كان مشتركاً
+    await e.reply('✅ أهلاً بك، تم التحقق من اشتراكك بنجاح.')
+
