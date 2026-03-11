@@ -21,7 +21,7 @@ async def start(e):
         *(is_in_channel(uid, ch) for ch in channels)
     )
     buttons = []
-    for (ch, link), joined in zip(channels.items(), results):
+    for (ch, link), joined in zip(channels, results):
         if not joined:
             buttons.append([Button.url(f"اشترك في {ch}", link)])
     if buttons:
