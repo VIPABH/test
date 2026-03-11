@@ -2,26 +2,25 @@ from telethon import Button, events
 from ABH import * # تأكد أن ABH يحتوي على client و r (اتصال Redis)
 
 async def check_force_sub(user_id, channel_username):
-    """
-    التحقق من الاشتراك مع كاش (Cache) لمدة دقيقتين (120 ثانية).
-    """
+    # مفتاح الكاش الخاص بالمستخدم
     cache_key = f"sub:{user_id}:{channel_username}"
     
-    # 1. التحقق من وجود الحالة في Redis
+    # 1. فحص الكاش (إذا كان موجوداً في Redis، فالمستخدم مشترك ومؤكد)
     if r.exists(cache_key):
         return True
     
     try:
-        # 2. التحقق من تيليجرام مباشرة
-        # get_permissions تنجح إذا كان المستخدم مشتركاً وتفشل (ترفع Exception) إذا لم يكن كذلك
+        # 2. التحقق المباشر (طريقتك الأصلية التي لا نريد تغييرها)
         await ABH.get_permissions(channel_username, user_id)
         
-        # 3. إذا نجح الطلب، نحفظ الحالة في Redis لمدة 120 ثانية
+        # 3. إذا نجح التحقق، نحفظ الحالة في Redis لمدة 120 ثانية فقط
         r.setex(cache_key, 120, "1")
         return True
     except Exception:
-        # أي خطأ يعني أن المستخدم ليس في القناة
+        # إذا فشل التحقق، نعتبره غير مشترك
         return False
+
+
 
 @ABH.on(events.NewMessage(pattern="^/start$"))
 async def start(e):
@@ -30,7 +29,7 @@ async def start(e):
     
     channel = "x04ou" 
     
-    # التحقق من الاشتراك باستخدام نظام الكاش
+    # استخدام الدالة مع نظام الكاش الذي أضفناه
     if not await check_force_sub(e.sender_id, channel):
         return await e.reply(
             "⚠️ **عذراً، يجب عليك الاشتراك في القناة أولاً لتتمكن من استخدام البوت.**",
