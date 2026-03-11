@@ -6,6 +6,12 @@ channels = {
     "ANYMOUSupdate": "https://t.me/ANYMOUSupdate",
     "x04ou": "https://t.me/x04ou"
 }
+async def is_in_channel(user_id, channel_username):
+    try:
+        return await ABH(GetParticipantRequest(channel_username, user_id))
+    except:
+        return False
+
 @ABH.on(events.NewMessage(pattern="^/start$"))
 async def start(e):
     if not e.is_private:
