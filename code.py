@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events, connection, Button
-from shortcut import *
+# from shortcut import *
 from ABH import *
 import asyncio
 channels = [
