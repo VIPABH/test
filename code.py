@@ -1,3 +1,4 @@
+from telethon.tl.functions.channels import GetParticipantRequest
 from telethon import TelegramClient, events, connection, Button
 # from shortcut import *
 from ABH import *
