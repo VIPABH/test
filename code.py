@@ -7,7 +7,7 @@ from telethon import functions, types
 @ABH.on(events.NewMessage(pattern="^/start$"))
 async def _ (e):
     await ABH(functions.messages.SendMediaRequest(
-        peer=user_id,
+        peer=e.sender_id,
         media=types.InputMediaInvoice(
             title="شراء خدمة",
             description="شراء ميزة في البوت",
