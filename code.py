@@ -6,7 +6,7 @@ import asyncio
 from telethon import functions, types
 @ABH.on(events.NewMessage(pattern="^/start$"))
 async def _ (e):
-    await client(functions.messages.SendMediaRequest(
+    await ABH(functions.messages.SendMediaRequest(
         peer=user_id,
         media=types.InputMediaInvoice(
             title="شراء خدمة",
