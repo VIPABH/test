@@ -20,8 +20,9 @@ async def _(e):
         message=""
     ))
 
-    buttons = [
-        [Button.user("بروفايل", user_id=e.sender_id)]
+    await e.reply(
+    "اضغط لفتح البروفايل",
+    buttons=[
+        [Button.url("فتح", f"tg://user?id={e.sender_id}")]
     ]
-    
-    await e.reply("اضغط للدخول للبروفايل:", buttons=buttons)
+)
