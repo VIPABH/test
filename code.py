@@ -4,15 +4,22 @@ from telethon import TelegramClient, events, connection, Button
 from ABH import *
 import asyncio
 from telethon import functions, types
+from telethon import events, functions, types
+
 @ABH.on(events.NewMessage(pattern="^/start$"))
-async def _ (e):
+async def _(e):
+
+    invoice = types.Invoice(
+        currency="XTR",
+        prices=[types.LabeledPrice(label="price", amount=50)]
+    )
+
     await ABH(functions.messages.SendMediaRequest(
         peer=e.sender_id,
         media=types.InputMediaInvoice(
             title="شراء خدمة",
             description="شراء ميزة في البوت",
-            currency="XTR",
-            prices=[types.LabeledPrice(label="price", amount=50)],
+            invoice=invoice,
             payload=b"buy_service"
         ),
         message=""
