@@ -1,10 +1,5 @@
-from telethon.tl.functions.channels import GetParticipantRequest
-from telethon import TelegramClient, events, connection, Button
-# from shortcut import *
-from ABH import *
-import asyncio
-from telethon import functions, types
 from telethon import events, functions, types
+from ABH import *
 
 @ABH.on(events.NewMessage(pattern="^/start$"))
 async def _(e):
@@ -20,7 +15,8 @@ async def _(e):
             title="شراء خدمة",
             description="شراء ميزة في البوت",
             invoice=invoice,
-            payload=b"buy_service"
+            payload=b"buy_service",
+            provider_data=b""
         ),
         message=""
     ))
