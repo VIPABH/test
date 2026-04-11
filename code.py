@@ -1,5 +1,5 @@
 from telethon import events, types
-
+from ABH import ABH
 @ABH.on(events.NewMessage)
 async def handler(event):
     # التأكد أن الرسالة تحتوي على ميديا وأنها ملف (فيديو، ملف، بصمة صوتية)
