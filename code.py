@@ -8,7 +8,7 @@ async def handler(event):
         access_hash = video.access_hash
         file_reference = video.file_reference
     input_document = types.InputDocument(
-        id=file_id,
+        id=video.id,
         access_hash=access_hash,
         file_reference=file_reference
     )
