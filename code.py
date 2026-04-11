@@ -1,29 +1,42 @@
 from telethon import events, types
-from ABH import ABH
+from ABH import ABH  # استيراد العميل الخاص بك
+
 @ABH.on(events.NewMessage)
 async def handler(event):
-    # التأكد أن الرسالة تحتوي على ميديا وأنها ملف (فيديو، ملف، بصمة صوتية)
-    if event.media and isinstance(event.media, types.MessageMediaDocument):
-        video = event.media.document
-        
-        # استخراج البيانات الأساسية
-        file_id = video.id
-        access_hash = video.access_hash
-        file_reference = video.file_reference
-        
-        # بناء مرجع المستند
-        input_document = types.InputDocument(
-            id=file_id,
-            access_hash=access_hash,
-            file_reference=file_reference
-        )
-        
-        try:
+    # التأكد من وجود ميديا في الرسالة
+    if not event.media:
+        return
+
+    input_media = None
+
+    try:
+        # 1. إذا كانت الميديا "مستند" (فيديو، صوت، ملف، ملصق، متحركة)
+        if isinstance(event.media, types.MessageMediaDocument):
+            doc = event.media.document
+            input_media = types.InputDocument(
+                id=doc.id,
+                access_hash=doc.access_hash,
+                file_reference=doc.file_reference
+            )
+
+        # 2. إذا كانت الميديا "صورة" (Photo)
+        elif isinstance(event.media, types.MessageMediaPhoto):
+            photo = event.media.photo
+            input_media = types.InputPhoto(
+                id=photo.id,
+                access_hash=photo.access_hash,
+                file_reference=photo.file_reference
+            )
+
+        # إرسال الميديا باستخدام الكيان المجهز
+        if input_media:
             await ABH.send_file(
                 event.chat_id,
-                input_document,
-                caption="✅ تم إعادة الإرسال بنجاح عبر الـ Hash"
+                input_media,
+                caption="تمت إعادة الإرسال لجميع أنواع الميديا بنجاح ✅"
             )
-        except Exception as e:
-            # هنا يمكنك ربط نظام الـ Error Monitoring الخاص بك
-            await ABH.send_message(event.chat_id, f"⚠️ حدث خطأ: {str(e)}")
+
+    except Exception as e:
+        # نظام تنبيه الأخطاء (يمكنك ربطه بمصفوفة الأخطاء في بوتك)
+        print(f"خطأ في إرسال الميديا: {e}")
+        
