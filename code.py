@@ -1,28 +1,19 @@
-from telethon import events, functions, types
+from telethon import events, types
 from ABH import *
-from telethon import events, functions, types, Button
-
-@ABH.on(events.NewMessage(pattern="^/start$"))
-async def _(e):
-
-    await ABH(functions.messages.SendMediaRequest(
-        peer=e.sender_id,
-        media=types.InputMediaInvoice(
-            title="شراء خدمة",
-            description="شراء ميزة في البوت",
-            invoice=types.Invoice(
-                currency="XTR",
-                prices=[types.LabeledPrice(label="price", amount=50)]
-            ),
-            payload=b"buy_service",
-            provider_data=types.DataJSON(data="{}")
-        ),
-        message=""
-    ))
-
-    await e.reply(
-    "اضغط لفتح البروفايل",
-    buttons=[
-        [Button.url("فتح", f"tg://user?id={e.sender_id}")]
-    ]
-)
+@ABH.on(events.NewMessage)
+async def handler(event):
+    if event.video:
+        video = event.media.document
+        file_id = video.id
+        access_hash = video.access_hash
+        file_reference = video.file_reference
+    input_document = types.InputDocument(
+        id=file_id,
+        access_hash=access_hash,
+        file_reference=file_reference
+    )
+    await ABH.send_file(
+        event.chat_id,
+        input_document,
+        caption="تم الإرسال عبر الـ Access Hash"
+    )
