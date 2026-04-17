@@ -1,21 +1,25 @@
-from telethon import events, Button
-from ABH import *
-@ABH.on(events.NewMessage(pattern=r"^\(ازرار|تحكم|طلب)$"))
+from telethon import events, Button, types
+# تأكد من أن ملف ABH يحتوي على تعريف كائن البوت/Client باسم ABH
+from ABH import ABH 
+
+# 1. إرسال الأزرار (تم تصحيح Regex بإضافة ^ و $ و | )
+@ABH.on(events.NewMessage(pattern=r"^(\.ازرار|\.تحكم|\.طلب)$"))
 async def send_all_types(event):
     await event.respond(
-        "✨ **لوحة التحكم الشاملة**\nإختر نوع الزر الذي تود اختباره:",
+        "✨ **لوحة التحكم الشاملة (تحديث 2026)**\n"
+        "اختر نوع الزر الذي تود اختباره:",
         buttons=[
-            # أزرار ملونة
+            # أزرار ملونة (Style)
             [
                 Button.inline("تفعيل (أخضر) ✅", data=b"color_on", style="success"),
                 Button.inline("حذف (أحمر) 🗑️", data=b"color_off", style="danger")
             ],
-            # أزرار الاختيار (Peer Selectors)
+            # أزرار اختيار الجهات (Peer Selectors)
             [
                 Button.request_peer("اختيار قناة 📢", request_id=1, peer_type='channel'),
                 Button.request_peer("اختيار مستخدم 👤", request_id=2, peer_type='user')
             ],
-            # أزرار الخدمات
+            # أزرار الخدمات والروابط
             [
                 Button.buy("شراء نجوم ⭐"),
                 Button.url("رابط خارجي 🌐", "https://t.me/Python")
@@ -27,28 +31,28 @@ async def send_all_types(event):
 @ABH.on(events.CallbackQuery)
 async def callback_handler(event):
     data = event.data
-    
     if data == b"color_on":
         await event.answer("تم التفعيل باللون الأخضر! 🟢", alert=True)
-    
     elif data == b"color_off":
-        await event.edit("⚠️ **تم حذف الرسالة الأصلية واستبدالها بنص التحذير.**", buttons=None)
-        await event.answer("تم تنفيذ أمر الحذف 🔴", alert=False)
+        # حذف الأزرار وتعديل النص
+        await event.edit("⚠️ **تم تنفيذ أمر الحذف بنجاح.**", buttons=None)
 
-# 3. الاستماع لنتائج اختيار (قناة/مستخدم) - Peer Select Result
+# 3. الاستماع لنتائج اختيار (قناة/مستخدم)
 @ABH.on(events.Raw)
 async def peer_result_handler(event):
-    # في إصدار 1.43.1، تليجرام ترسل تحديثاً عند اختيار مستخدم من زر RequestPeer
-    if isinstance(event, events.Raw.types.UpdateIdResult):
+    # التعامل مع نتيجة اختيار المستخدم/القناة
+    if isinstance(event, types.UpdateIdResult):
         peer_id = event.id
-        await ABH.send_message(event.chat_id, f"✅ تم استلام الهوية بنجاح!\nالأيدي المختار: `{peer_id}`")
+        # نرسل رسالة للدردشة التي تم فيها الاختيار
+        await ABH.send_message(event.chat_id, f"✅ **تم استلام المعرف بنجاح!**\nالأيدي المختار: `{peer_id}`")
 
 # 4. معالجة أوامر الشراء (Stars)
 @ABH.on(events.Raw)
 async def payment_handler(event):
-    if isinstance(event, events.Raw.types.UpdateBotPrecheckoutQuery):
-        # الموافقة التلقائية على عملية الدفع بالنجوم
-        await ABH(events.Raw.functions.messages.SetBotPrecheckoutResultsRequest(
+    if isinstance(event, types.UpdateBotPrecheckoutQuery):
+        # الموافقة على عملية الدفع بالنجوم قبل إتمامها
+        from telethon.tl.functions.messages import SetBotPrecheckoutResultsRequest
+        await ABH(SetBotPrecheckoutResultsRequest(
             query_id=event.query_id,
             success=True
         ))
