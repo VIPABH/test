@@ -1,48 +1,55 @@
-from ABH import ABH  # استيراد العميل الخاص بك
-from telethon import Button, events
+from telethon import events, Button
 
-async def send_super_buttons(event):
+# 1. قائمة الأوامر التي يرسل البوت بناءً عليها الأزرار
+@ABH.on(events.NewMessage(pattern=r"^\(ازرار|تحكم|طلب)$"))
+async def send_all_types(event):
     await event.respond(
-        "🚀 **المصنع الشامل للأزرار (تحديث 2026):**\n"
-        "هذه الرسالة تجمع الأزرار الملونة، الأزرار التفاعلية، وأزرار الخدمات.",
+        "✨ **لوحة التحكم الشاملة**\nإختر نوع الزر الذي تود اختباره:",
         buttons=[
-            # --- الصف الأول: أزرار ملونة (جديد 2026) ---
+            # أزرار ملونة
             [
-                Button.inline("تفعيل 🟢", data=b"on", style="success"), # أخضر
-                Button.inline("تعطيل 🔴", data=b"off", style="danger"),  # أحمر
+                Button.inline("تفعيل (أخضر) ✅", data=b"color_on", style="success"),
+                Button.inline("حذف (أحمر) 🗑️", data=b"color_off", style="danger")
             ],
-            
-            # --- الصف الثاني: أزرار الروابط والبيانات ---
+            # أزرار الاختيار (Peer Selectors)
             [
-                Button.url("رابط الموقع 🌐", "https://t.me/Python"),
-                Button.inline("بيانات (أزرق) 🔵", data=b"info", style="primary")
+                Button.request_peer("اختيار قناة 📢", request_id=1, peer_type='channel'),
+                Button.request_peer("اختيار مستخدم 👤", request_id=2, peer_type='user')
             ],
-            
-            # --- الصف الثالث: أزرار اختيار الجهات (Peer Selectors) ---
+            # أزرار الخدمات
             [
-                Button.request_peer("اختر مستخدم 👤", request_id=1, peer_type='user'),
-                Button.request_peer("اختر قناة 📢", request_id=2, peer_type='channel')
-            ],
-            
-            # --- الصف الرابع: أزرار المشاركة والبحث ---
-            [
-                Button.switch_inline("مشاركة 📤", query="share", same_peer=False),
-                Button.switch_inline("بحث هنا 🔍", query="", same_peer=True)
-            ],
-            
-            # --- الصف الخامس: أزرار الخدمات والنجوم ---
-            [
-                Button.buy("شراء بالنجوم ⭐"),
-                Button.auth("دخول خارجي 🔑", url="https://example.com")
+                Button.buy("شراء نجوم ⭐"),
+                Button.url("رابط خارجي 🌐", "https://t.me/Python")
             ]
         ]
     )
 
-# كود معالجة ضغطة الأزرار الملونة
+# 2. الاستماع لضغطات الأزرار (Callback Query)
 @ABH.on(events.CallbackQuery)
 async def callback_handler(event):
     data = event.data
-    if data == b"on":
-        await event.answer("تم التفعيل بنجاح! ✅", alert=True)
-    elif data == b"off":
-        await event.answer("تم التعطيل! ❌", alert=False)
+    
+    if data == b"color_on":
+        await event.answer("تم التفعيل باللون الأخضر! 🟢", alert=True)
+    
+    elif data == b"color_off":
+        await event.edit("⚠️ **تم حذف الرسالة الأصلية واستبدالها بنص التحذير.**", buttons=None)
+        await event.answer("تم تنفيذ أمر الحذف 🔴", alert=False)
+
+# 3. الاستماع لنتائج اختيار (قناة/مستخدم) - Peer Select Result
+@ABH.on(events.Raw)
+async def peer_result_handler(event):
+    # في إصدار 1.43.1، تليجرام ترسل تحديثاً عند اختيار مستخدم من زر RequestPeer
+    if isinstance(event, events.Raw.types.UpdateIdResult):
+        peer_id = event.id
+        await ABH.send_message(event.chat_id, f"✅ تم استلام الهوية بنجاح!\nالأيدي المختار: `{peer_id}`")
+
+# 4. معالجة أوامر الشراء (Stars)
+@ABH.on(events.Raw)
+async def payment_handler(event):
+    if isinstance(event, events.Raw.types.UpdateBotPrecheckoutQuery):
+        # الموافقة التلقائية على عملية الدفع بالنجوم
+        await ABH(events.Raw.functions.messages.SetBotPrecheckoutResultsRequest(
+            query_id=event.query_id,
+            success=True
+        ))
