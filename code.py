@@ -1,45 +1,51 @@
 from telethon import events, Button, types
 from ABH import ABH
 
-# 1. إرسال الأزرار (إزالة style لأن Telethon 1.x لا يدعمها في Button.inline)
 @ABH.on(events.NewMessage(pattern=r"^(ازرار|تحكم|طلب)$"))
 async def send_all_types(event):
     await event.respond(
-        "✨ **لوحة التحكم الشاملة**\nإختر نوع الزر الذي تود اختباره:",
+        "✨ **لوحة التحكم الشاملة (حل يدوي)**\nإختر نوع الزر:",
         buttons=[
-            # أزرار تفاعلية (الألوان تعتمد على الإيموجي في هذا الإصدار)
+            # أزرار Callback عادية (تعمل في كل الإصدارات)
             [
                 Button.inline("تفعيل ✅", data=b"color_on"),
                 Button.inline("حذف 🗑️", data=b"color_off")
             ],
-            # أزرار اختيار الجهات (تستخدم PeerType ككائنات وليس نصوص)
+            # حل يدوي لزر اختيار القناة/المستخدم (تجاوز نقص Button.request_peer)
             [
-                Button.request_peer("اختيار قناة 📢", request_id=1, peer_type=types.RequestPeerTypeChannels()),
-                Button.request_peer("اختيار مستخدم 👤", request_id=2, peer_type=types.RequestPeerTypeUsers())
+                Button.inline("إرسال رابط قناة 📢", data=b"send_channel"),
+                Button.inline("إرسال رابط مستخدم 👤", data=b"send_user")
             ],
-            # أزرار الخدمات
+            # أزرار الروابط
             [
-                Button.url("رابط خارجي 🌐", "https://t.me/Python"),
-                Button.inline("معلومات ℹ️", data=b"info")
+                Button.url("رابط خارجي 🌐", "https://t.me/Python")
             ]
         ]
     )
 
-# 2. الاستماع لضغطات الأزرار
+# معالجة ضغطات الأزرار
 @ABH.on(events.CallbackQuery)
 async def callback_handler(event):
     if event.data == b"color_on":
         await event.answer("تم التفعيل بنجاح! 🟢", alert=True)
+    
     elif event.data == b"color_off":
-        await event.edit("⚠️ تم إلغاء تفعيل الأزرار.")
+        await event.edit("⚠️ تم إخفاء الأزرار.")
+    
+    # محاكاة لطلب البيانات إذا لم يعمل الزر التلقائي
+    elif event.data in [b"send_channel", b"send_user"]:
+        await event.answer("يرجى إرسال أيدي (ID) الجهة المطلوبة في الرسالة القادمة..", alert=True)
 
-# 3. تصحيح خطأ AttributeError: الاستماع لنتائج الاختيار
+# الاستماع لتحديثات الخام (Raw) بشكل صحيح وتجنب UpdateIdResult
 @ABH.on(events.Raw)
-async def peer_result_handler(event):
-    # في Telethon، الحدث الصحيح لاستلام نتيجة الزر هو UpdatePeerSettings أو التحديث العام
-    # هنا نتحقق من وصول تحديث يحتوي على معلومات المستخدم المختار
+async def raw_handler(event):
+    # نستخدم النوع العام UpdateNewMessage للبحث عن "أحداث الأزرار"
     if isinstance(event, types.UpdateNewMessage):
         msg = event.message
-        if msg.action and isinstance(msg.action, types.MessageActionRequestedPeerSent):
-            peer_id = msg.action.peers[0].user_id if hasattr(msg.action.peers[0], 'user_id') else msg.action.peers[0].channel_id
-            await ABH.send_message(msg.peer_id, f"✅ تم استلام الهوية بنجاح!\nالأيدي المختار: `{peer_id}`")
+        # التحقق من وجود "Action" داخل الرسالة (وهو ما يرسله زر request_peer)
+        if hasattr(msg, 'action') and msg.action:
+            # نوع الأكشن عند اختيار مستخدم أو قناة
+            if isinstance(msg.action, types.MessageActionRequestedPeerSent):
+                peer = msg.action.peers[0]
+                peer_id = getattr(peer, 'user_id', getattr(peer, 'channel_id', getattr(peer, 'chat_id', 'Unknown')))
+                await ABH.send_message(msg.peer_id, f"✅ تم استلام الهوية بنجاح!\nالأيدي المختار هو: `{peer_id}`")
