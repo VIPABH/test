@@ -1,42 +1,48 @@
-from telethon import events, types
 from ABH import ABH  # استيراد العميل الخاص بك
+from telethon import Button
 
-@ABH.on(events.NewMessage)
-async def handler(event):
-    # التأكد من وجود ميديا في الرسالة
-    if not event.media:
-        return
+async def send_super_buttons(event):
+    await event.respond(
+        "🚀 **المصنع الشامل للأزرار (تحديث 2026):**\n"
+        "هذه الرسالة تجمع الأزرار الملونة، الأزرار التفاعلية، وأزرار الخدمات.",
+        buttons=[
+            # --- الصف الأول: أزرار ملونة (جديد 2026) ---
+            [
+                Button.inline("تفعيل 🟢", data=b"on", style="success"), # أخضر
+                Button.inline("تعطيل 🔴", data=b"off", style="danger"),  # أحمر
+            ],
+            
+            # --- الصف الثاني: أزرار الروابط والبيانات ---
+            [
+                Button.url("رابط الموقع 🌐", "https://t.me/Python"),
+                Button.inline("بيانات (أزرق) 🔵", data=b"info", style="primary")
+            ],
+            
+            # --- الصف الثالث: أزرار اختيار الجهات (Peer Selectors) ---
+            [
+                Button.request_peer("اختر مستخدم 👤", request_id=1, peer_type='user'),
+                Button.request_peer("اختر قناة 📢", request_id=2, peer_type='channel')
+            ],
+            
+            # --- الصف الرابع: أزرار المشاركة والبحث ---
+            [
+                Button.switch_inline("مشاركة 📤", query="share", same_peer=False),
+                Button.switch_inline("بحث هنا 🔍", query="", same_peer=True)
+            ],
+            
+            # --- الصف الخامس: أزرار الخدمات والنجوم ---
+            [
+                Button.buy("شراء بالنجوم ⭐"),
+                Button.auth("دخول خارجي 🔑", url="https://example.com")
+            ]
+        ]
+    )
 
-    input_media = None
-
-    try:
-        # 1. إذا كانت الميديا "مستند" (فيديو، صوت، ملف، ملصق، متحركة)
-        if isinstance(event.media, types.MessageMediaDocument):
-            doc = event.media.document
-            input_media = types.InputDocument(
-                id=doc.id,
-                access_hash=doc.access_hash,
-                file_reference=doc.file_reference
-            )
-
-        # 2. إذا كانت الميديا "صورة" (Photo)
-        elif isinstance(event.media, types.MessageMediaPhoto):
-            photo = event.media.photo
-            input_media = types.InputPhoto(
-                id=photo.id,
-                access_hash=photo.access_hash,
-                file_reference=photo.file_reference
-            )
-
-        # إرسال الميديا باستخدام الكيان المجهز
-        if input_media:
-            await ABH.send_file(
-                event.chat_id,
-                input_media,
-                caption="تمت إعادة الإرسال لجميع أنواع الميديا بنجاح ✅"
-            )
-
-    except Exception as e:
-        # نظام تنبيه الأخطاء (يمكنك ربطه بمصفوفة الأخطاء في بوتك)
-        print(f"خطأ في إرسال الميديا: {e}")
-        
+# كود معالجة ضغطة الأزرار الملونة
+@ABH.on(events.CallbackQuery)
+async def callback_handler(event):
+    data = event.data
+    if data == b"on":
+        await event.answer("تم التفعيل بنجاح! ✅", alert=True)
+    elif data == b"off":
+        await event.answer("تم التعطيل! ❌", alert=False)
