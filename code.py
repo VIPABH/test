@@ -1,7 +1,7 @@
 from telethon import events, Button, types
 from ABH import ABH
 
-@ABH.on(events.NewMessage(pattern=r"^(\.الوان|\.تلوين)$"))
+@ABH.on(events.NewMessage(pattern=r"^(ازرار|تحكم|طلب)$"))
 async def colored_buttons(event):
     # استخدام KeyboardButtonبشكل يدوي لتجاوز نقص Button.inline
     await event.respond(
