@@ -3,7 +3,7 @@ from telethon import events, Button, types
 from ABH import ABH 
 
 # 1. إرسال الأزرار (تم تصحيح Regex بإضافة ^ و $ و | )
-@ABH.on(events.NewMessage(pattern=r"^(\.ازرار|\.تحكم|\.طلب)$"))
+@ABH.on(events.NewMessage(pattern=r"^(ازرار|تحكم|طلب)$"))
 async def send_all_types(event):
     await event.respond(
         "✨ **لوحة التحكم الشاملة (تحديث 2026)**\n"
