@@ -1,6 +1,5 @@
 from telethon import events, Button
-
-# 1. قائمة الأوامر التي يرسل البوت بناءً عليها الأزرار
+from ABH import *
 @ABH.on(events.NewMessage(pattern=r"^\(ازرار|تحكم|طلب)$"))
 async def send_all_types(event):
     await event.respond(
