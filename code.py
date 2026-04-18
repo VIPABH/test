@@ -1,9 +1,7 @@
 import os
 import asyncio
-import uvloop
 from ABH import *
 from faster_whisper import WhisperModel
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 model = WhisperModel("tiny", device="cpu", compute_type="int8")
 
