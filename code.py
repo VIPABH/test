@@ -1,6 +1,6 @@
+from Resources import *
 from ABH import *
 x = []
-
 @ABH.on(events.NewMessage)
 async def handler(e):
     id = e.sender_id
@@ -18,7 +18,7 @@ async def handler(e):
             msg_text += f"- {user.first_name} (ID: {user.id})\n"
         
         # الآن نرسل النص (String) وليس الكائن
-        await e.reply(msg_text)
+        await hint(msg_text)
         
         # اختيار اختياري: تصفير القائمة إذا أردت البدء من جديد
         # x.clear()
