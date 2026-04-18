@@ -1,28 +1,39 @@
-from telethon import events, Button, types
-from ABH import ABH
+import os
+import asyncio
+import uvloop
+from ABH import *
+from faster_whisper import WhisperModel
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-@ABH.on(events.NewMessage(pattern=r"^(ازرار|تحكم|طلب)$"))
-async def colored_buttons(event):
-    # استخدام KeyboardButtonبشكل يدوي لتجاوز نقص Button.inline
-    await event.respond(
-        "🎨 **الأزرار الملونة (الطريقة اليدوية):**",
-        buttons=[
-            [
-                # الزر الأخضر (Style 1 = Success)
-                types.KeyboardButtonCallback(
-                    text="موافق ✅", 
-                    data=b"ok", 
-                    # هنا تكمن الخدعة: تمرير الستايل عبر كائن ButtonStyle
-                    # ملاحظة: قد لا تدعمها النسخ القديمة جداً من السيرفرات
-                ),
-                # الزر الأحمر (Style 2 = Danger)
-                types.KeyboardButtonCallback(
-                    text="حذف 🗑️", 
-                    data=b"del"
-                )
-            ]
-        ]
-    )
+model = WhisperModel("tiny", device="cpu", compute_type="int8")
 
-# لتلوين الأزرار فعلياً في Telethon 1.x، الاعتماد الكلي يكون على الإيموجي 
-# لأن خاصية 'style' أضيفت لـ Bot API وليس لـ UserBot Telethon بشكل كامل بعد.
+@ABH.on(events.NewMessage(incoming=True, func=lambda e: e.voice or e.audio))
+async def handler(event):
+    # إرسال رسالة انتظار للمستخدم
+    status_msg = await event.reply("⏳ جاري معالجة الصوت وتحويله إلى نص...")
+    
+    # مسار حفظ الملف مؤقتاً
+    path = await event.download_media(file="downloads/")
+    
+    try:
+        # تنفيذ عملية النسخ (Transcribe)
+        # beam_size=1 هو الخيار الأسرع للتنفيذ
+        segments, info = model.transcribe(path, beam_size=1)
+        
+        full_text = ""
+        for segment in segments:
+            full_text += f"{segment.text} "
+
+        if not full_text.strip():
+            await status_msg.edit("❌ نعتذر، لم أتمكن من استخراج نص واضح من الفويس.")
+        else:
+            await status_msg.edit(f"✅ **الترجمة النصية ({info.language}):**\n\n`{full_text.strip()}`")
+            
+    except Exception as e:
+        await status_msg.edit(f"⚠️ حدث خطأ أثناء المعالجة: {str(e)}")
+    
+    # حذف الملف من السيرفر بعد الانتهاء للحفاظ على المساحة
+    if os.path.exists(path):
+        os.remove(path)
+
+print("--- البوت يعمل الآن ---")
