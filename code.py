@@ -1,24 +1,19 @@
 from Resources import *
 from ABH import *
-x = []
-@ABH.on(events.NewMessage)
-async def handler(e):
-    id = e.sender_id
-    if id not in x:
-        x.append(id)
-        await e.reply("Hello")
-    
-    if len(x) == 10:
-        # الحصول على كائنات المستخدمين للقائمة كاملة
-        users = await ABH.get_entity(x)
-        
-        # تحويل القائمة إلى نص يحتوي على أسماء المستخدمين مثلاً
-        msg_text = "قائمة أول 10 مستخدمين تواصلوا معي:\n"
-        for user in users:
-            msg_text += f"- {user.first_name} (ID: {user.id})\n"
-        
-        # الآن نرسل النص (String) وليس الكائن
-        await hint(msg_text)
-        
-        # اختيار اختياري: تصفير القائمة إذا أردت البدء من جديد
-        # x.clear()
+session = {}
+@ABH.on(events.NewMessage(pattern=r'^اهمس (.*)'))
+async def whisper_list_handler(event):
+    input_data = event.pattern_match.group(1).strip()    
+    raw_list = input_data.split()
+    target_list = []  
+    message_content = []
+    for item in raw_list:
+        if item.startswith('@') or item.isdigit():
+            target_list.append(item)
+        else:
+            message_content = raw_list[raw_list.index(item):]
+            break            
+    if not target_list or not message_content:
+        return await event.reply("الاستخدام: اهمس @يوزر1 @يوزر2 نص الرسالة")
+    final_message = " ".join(message_content)    
+    await event.reply(f"تم تجهيز الهمسة لـ {len(target_list)} مستخدم.\nالقائمة: {target_list}")
