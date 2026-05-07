@@ -13,60 +13,55 @@ from Resources import *
 # --- 1. الموزع الذكي (Alias Resolver & Event Injector) ---
 @client.on(events.NewMessage(incoming=True))
 async def alias_resolver(event):
-    # دعم الرموز الأساسية لسورس Anymous
     if not event.text or not event.text[0] in ['/', '.', '!']:
         return
 
-    # تحليل النص المستلم
     parts = event.text.split(maxsplit=1)
     prefix = parts[0][0]  
-    trigger = parts[0][1:] # اسم الاختصار (مثلاً: ها)
+    trigger = parts[0][1:] 
     args = parts[1] if len(parts) > 1 else ""
 
-    # جلب الأمر الحقيقي من قاعدة البيانات
     real_command_name = r.hget("bot_aliases", trigger)
 
     if real_command_name:
-        # تنظيف اسم الكلمة الأصلية وبناء النص الجديد
         clean_name = real_command_name.lstrip('/.! ')
         new_text = f"{prefix}{clean_name} {args}".strip()
         
-        # التقاط الـ Reply إذا كان المستخدم راد على شخص
-        reply_msg = await event.get_reply_message()
-        
-        # تحديث كائن الرسالة داخلياً
+        # تحديث كلي للحدث ليتطابق مع النص الجديد تماماً
         event.message.message = new_text
         event.message.text = new_text
         
-        print(f"🔄 تحويل: {trigger} -> {new_text}")
+        # إعادة بناء الـ pattern_match يدوياً لأن Telethon يعتمد عليه في الردود
+        import re
+        
+        print(f"🔄 تحويل وتوجيه: {trigger} -> {new_text}")
 
-        # البحث في كافة الـ 140 أمر عن المطابق
         for handler, event_type in client.list_event_handlers():
             if isinstance(event_type, events.NewMessage):
-                # فحص الـ Pattern والـ Filters للأمر الأصلي
+                # فحص الفلتر (Regex)
                 if event_type.filter(event):
                     try:
-                        # حقن الـ Reply يدوياً لضمان عمل دوال التقييد والطرد
+                        # تصحيح الـ pattern_match داخل الـ event ليطابق الأمر الجديد
+                        # هذا هو السطر الذي ينقصنا لكي تعمل أوامر السورس الأصلية
+                        if event_type.pattern:
+                            event.pattern_match = re.search(event_type.pattern, new_text)
+                        
+                        # تأمين الـ Reply
+                        reply_msg = await event.get_reply_message()
                         if reply_msg:
                             event._reply_message = reply_msg
                             event.message.reply_to_msg_id = reply_msg.id
-                        
-                        # تشغيل الدالة الأصلية للأمر
+
+                        # تنفيذ الدالة
                         await handler(event)
-                        print(f"✅ تم تنفيذ الأمر بنجاح في الشات")
-                        
-                        # إيقاف التكرار
+                        print(f"✅ نُفذ وأرسل للشات")
                         raise events.StopPropagation
                     except events.StopPropagation:
                         raise
                     except Exception as e:
-                        print(f"❌ خطأ برمي داخل الدالة: {e}")
+                        print(f"❌ خطأ أثناء التنفيذ: {e}")
         
-        # إذا لم يجد تطابق بعد التحويل
-        print(f"⚠️ تحويل ناجح ولكن لم يتم العثور على Handler لـ: {new_text}")
-        raise events.StopPropagation
-
-# --- 2. أوامر التحكم بالاختصارات (للمطور فقط) ---
+        raise events.StopPropagation# --- 2. أوامر التحكم بالاختصارات (للمطور فقط) ---
 @client.on(events.NewMessage(pattern=r'^/(ربط|حذف_ربط) (.*)'))
 async def manage_aliases(event):
     if event.sender_id != OWNER_ID:
