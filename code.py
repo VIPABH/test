@@ -81,7 +81,7 @@ async def refresh_map(event):
 
 @client.on(events.NewMessage(pattern=r'^/الاوامر_المسجلة$'))
 async def list_registered_commands(event):
-    if event.sender_id != OWNER_ID: return
+    # if event.sender_id != OWNER_ID: return
     if not BOT_COMMANDS_MAP:
         return await event.reply("⚠️ القاموس فارغ. تأكد من تحميل الـ Plugins ثم أرسل /تحديث_الاوامر")
 
