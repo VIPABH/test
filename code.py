@@ -1,50 +1,57 @@
 from telethon import TelegramClient, events
 import redis
-import re
 from ABH import ABH as client
 from Resources import * 
 
-# 1. إعداد الاتصال بـ Redis (تأكد من استخدام المتغير 'r' الموجود في Resources)
+# 1. التأكد من وجود اتصال Redis (يستخدم المتغير r من ملف Resources)
 # r = redis.Redis(host='localhost', port=6379, decode_responses=True)
 
-# --- 2. السحر البرمجي: تعديل كلاس المكتبة داخلياً ---
-# نقوم بحفظ الوظيفة الأصلية للمكتبة قبل تعديلها
+# --- 2. السحر البرمجي (Monkey Patch) لـ Telethon ---
+# حفظ الوظيفة الأصلية للمكتبة
 original_message_init = events.NewMessage.Event.__init__
 
-def patched_message_init(self, chat, message, getattr_utils):
-    if message and message.message:
-        text = message.message
-        # التحقق إذا كانت الرسالة تبدأ بالرموز المستخدمة في سورس Anymous
-        if text.startswith(('/', '.', '!')):
-            prefix = text[0]
-            parts = text.split(maxsplit=1)
-            trigger = parts[0][1:]  # استخراج الكلمة (مثلاً: ها)
-            args = parts[1] if len(parts) > 1 else ""
-
-            # جلب الأمر الأصلي من Redis (مثلاً: تقييد)
-            # البحث يتم بشكل لحظي؛ أي ربط جديد سيعمل فوراً بدون ريستارت
-            real_cmd = r.hget("bot_aliases", trigger)
+def patched_message_init(self, *args, **kwargs):
+    """
+    تعديل ذكي يقوم بفحص الرسالة وتغيير نصها إذا كانت اختصاراً
+    قبل أن تصل إلى أي Handler في الـ 140 أمر.
+    """
+    # في أغلب إصدارات Telethon، الرسالة تكون أول وسيط في args
+    if args:
+        message = args[0]
+        # التأكد أن الكائن هو رسالة نصية وليس حدثاً فارغاً
+        if hasattr(message, 'message') and message.message:
+            text = message.message
             
-            if real_cmd:
-                # تنظيف الكلمة المسترجعة وبناء النص الجديد
-                clean_real_cmd = real_cmd.lstrip('/.! ')
-                new_text = f"{prefix}{clean_real_cmd} {args}".strip()
-                
-                # تغيير محتوى الرسالة في قلب النظام
-                message.message = new_text
-                if hasattr(message, 'text'):
-                    message.text = new_text
-                
-                # طباعة في الـ screen للتأكد من نجاح العملية
-                print(f"🛠 [Alias System] تم تحويل ({trigger}) إلى ({clean_real_cmd})")
+            # فحص إذا كانت الرسالة تبدأ برموز الأوامر (/ . !)
+            if text.startswith(('/', '.', '!')):
+                prefix = text[0]
+                parts = text.split(maxsplit=1)
+                trigger = parts[0][1:] # الكلمة بدون الرمز
+                rest = parts[1] if len(parts) > 1 else ""
 
-    # تشغيل وظيفة المكتبة الأصلية مع النص الجديد
-    original_message_init(self, chat, message, getattr_utils)
+                # جلب الأصل من Redis (مثلاً: ها -> تقييد)
+                real_cmd = r.hget("bot_aliases", trigger)
+                if real_cmd:
+                    # تنظيف الكلمة وبناء النص الجديد
+                    clean_cmd = real_cmd.lstrip('/.! ')
+                    new_text = f"{prefix}{clean_cmd} {rest}".strip()
+                    
+                    # تعديل النص داخل كائن الرسالة الأصلي
+                    message.message = new_text
+                    if hasattr(message, 'text'):
+                        message.text = new_text
+                    
+                    # طباعة للتأكد في السكرين
+                    print(f"🛠 [Alias Patch] تم تحويل: {trigger} -> {clean_cmd}")
 
-# تطبيق التعديل "الجيني" على Telethon
+    # استدعاء وظيفة المكتبة الأصلية مع تمرير كل الوسائط كما هي
+    # هذا السطر يحل مشكلة الـ TypeError نهائياً
+    original_message_init(self, *args, **kwargs)
+
+# تطبيق التعديل على المكتبة
 events.NewMessage.Event.__init__ = patched_message_init
 
-# --- 3. أوامر التحكم (للمطور فقط) ---
+# --- 3. أوامر إدارة الاختصارات (للمطور فقط) ---
 @client.on(events.NewMessage(pattern=r'^/ربط (.*)'))
 async def add_alias_cmd(event):
     if event.sender_id != OWNER_ID:
@@ -56,9 +63,9 @@ async def add_alias_cmd(event):
         short = data[1].replace('/', '').strip()
         
         r.hset("bot_aliases", short, original)
-        await event.reply(f"✅ **تم الربط بنجاح**\n\nالأصل: `{original}`\nالاختصار: `{short}`\n\n*الآن جرب إرسال `{short}` وسيعمل كأنه `{original}` تماماً.*")
-    except Exception as e:
-        await event.reply("⚠️ خطأ! الاستخدام الصحيح: `/ربط الأمر_الأصلي الاختصار`")
+        await event.reply(f"✅ **تم الربط بنجاح**\n\nالأصل: `{original}`\nالاختصار: `{short}`")
+    except:
+        await event.reply("⚠️ الاستخدام: `/ربط الأمر_الأصلي الاختصار`")
 
 @client.on(events.NewMessage(pattern=r'^/حذف_ربط (.*)'))
 async def del_alias_cmd(event):
@@ -70,12 +77,10 @@ async def del_alias_cmd(event):
     else:
         await event.reply("❌ الاختصار غير موجود.")
 
-# --- 4. مثال للـ 140 أمر (لا تلمس كودها، ستبقى كما هي) ---
-@client.on(events.NewMessage(pattern='/تقيد'))
-async def ban_handler(event):
-    # سيعمل هذا الأمر تلقائياً عند كتابة /تقييد أو الاختصار المربوط به
-    if event.is_reply:
-        await event.reply("تم تنفيذ أمر التقييد بنجاح! 🔥")
+# --- 4. الـ 140 أمر لديك سيعملون تلقائياً هنا ---
+# مثال:
+# @client.on(events.NewMessage(pattern='/تقييد'))
+# async def ban(event): ...
 
-# تشغيل البوت
-print("🚀 Anymous Bot is running with Advanced Patching System...")
+print("🚀 Anymous Bot is patched and running successfully!")
+client.run_until_disconnected()
