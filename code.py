@@ -83,4 +83,3 @@ async def del_alias_cmd(event):
 # async def ban(event): ...
 
 print("🚀 Anymous Bot is patched and running successfully!")
-client.run_until_disconnected()
