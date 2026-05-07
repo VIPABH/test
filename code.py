@@ -74,7 +74,7 @@ events.NewMessage.Event.__init__ = patched_init
 
 @client.on(events.NewMessage(pattern=r'^/تحديث_الاوامر$'))
 async def refresh_map(event):
-    if event.sender_id != OWNER_ID: return
+    # if event.sender_id != OWNER_ID: return
     sync_commands_to_map()
     count = len(BOT_COMMANDS_MAP)
     await event.reply(f"🔄 تم إعادة المسح.\nتم إيجاد `{count}` أمر في ملفات السورس.")
