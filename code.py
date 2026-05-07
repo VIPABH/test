@@ -9,33 +9,38 @@ OWNER_ID = wfffp  # ضع أيديك هنا
 # هذا الجزء هو المسؤول عن تحويل "تق" إلى "تقييد" تلقائياً قبل وصولها للأوامر
 @client.on(events.NewMessage(incoming=True))
 async def alias_resolver(event):
-    if not event.text or not event.text.startswith(('/', '.')):
+    if not event.text or not event.text[0] in ['/', '.', '!']:
         return
 
-    # تفكيك النص: /تق المستخدم -> الكلمة هي "تق"
+    # تحليل النص
     parts = event.text.split(maxsplit=1)
-    prefix = parts[0][0]  # يجلب الرمز / أو .
-    trigger = parts[0][1:] # يجلب اسم الأمر بدون الرمز
+    prefix = parts[0][0]
+    trigger = parts[0][1:]
     args = parts[1] if len(parts) > 1 else ""
 
-    # البحث في Redis عن الأمر الأصلي المرتبط بهذا الاختصار
+    # جلب الاسم الحقيقي من Redis
     real_command_name = r.hget("bot_aliases", trigger)
 
     if real_command_name:
-        # إعادة بناء نص الرسالة بالأمر الأصلي
+        # بناء النص الجديد
         new_text = f"{prefix}{real_command_name} {args}".strip()
         
-        # تعديل الحدث داخلياً (الـ 140 أمر سيقرأون النص الجديد)
+        # أهم خطوة: تحديث الرسالة والكائن الداخلي
         event.message.message = new_text
         event.message.text = new_text
         
-        # إعادة توجيه الحدث المعدل للمشروع
-        await client._dispatch_event(event)
-        
-        # إيقاف معالجة النص القديم (الاختصار) لمنع التكرار
-        raise events.StopPropagation
+        # طباعة للتأكد في الـ Screen (تقدر تحذفها بعدين)
+        print(f"🔄 تحويل: {trigger} -> {real_command_name}")
 
-# --- 2. أمر التحكم بالاختصارات (للمطور فقط) ---
+        # الحل الجذري: إرسال الحدث المعدل يدوياً لكل الـ handlers
+        for handler, event_type in client.list_event_handlers():
+            if isinstance(event_type, events.NewMessage):
+                # فحص إذا كان الأمر الأصلي يطابق النص الجديد
+                if event_type.filter(event):
+                    await handler(event)
+        
+        # منع تكرار الأمر
+        raise events.StopPropagation
 @client.on(events.NewMessage(pattern=r'/(ربط|unalias) (.*)'))
 async def manage_aliases(event):
     if event.sender_id != OWNER_ID:
