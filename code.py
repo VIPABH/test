@@ -60,7 +60,6 @@ async def kick_handler(event):
 # --- 3. أمر التحكم لإضافة اختصارات جديدة (للمطور فقط) ---
 @client.on(events.NewMessage(pattern=r'/ربط (.*)'))
 async def add_alias(event):
-    if event.sender_id != OWNER_ID: return
     
     try:
         data = event.pattern_match.group(1).split()
