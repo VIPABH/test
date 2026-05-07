@@ -71,7 +71,7 @@ async def del_alias_cmd(event):
         await event.reply("❌ الاختصار غير موجود.")
 
 # --- 4. مثال للـ 140 أمر (لا تلمس كودها، ستبقى كما هي) ---
-@client.on(events.NewMessage(pattern='/تقييد'))
+@client.on(events.NewMessage(pattern='/تقيد'))
 async def ban_handler(event):
     # سيعمل هذا الأمر تلقائياً عند كتابة /تقييد أو الاختصار المربوط به
     if event.is_reply:
