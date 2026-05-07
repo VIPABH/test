@@ -3,11 +3,6 @@ from ABH import *
 
 @ABH.on(events.NewMessage(pattern=r'^اهمس (.*)'))
 async def handle_whisper(event):
-    lock_key = f"lock:{event.chat_id}:همسة"
-    if r.get(lock_key) != b"True":
-        await event.reply('اوامر الهمسة معطلة💔')
-        return
-
     # استخراج اليوزرات من النص وتحويلهم إلى لستة
     args = event.pattern_match.group(1).split()
     
