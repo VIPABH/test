@@ -1,7 +1,7 @@
 from telethon import TelegramClient, events
 import redis
-from ABH import ABH
-from Resources import * as client
+from ABH import ABH as client
+from Resources import * 
 # معرف المطور (أنت) للتحكم بالاختصارات
 OWNER_ID = wfffp  # ضع أيديك هنا
 
