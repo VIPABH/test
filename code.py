@@ -7,26 +7,35 @@ from Resources import *
 # --- 1. إعدادات القواميس ---
 # القاموس الذي يجمع الدوال من المجلدات تلقائياً
 BOT_COMMANDS_MAP = {}
+OWNER_ID = wfffp
 
 def sync_commands_to_map():
     """
-    تقوم بمسح الـ Handlers المسجلة في البوت واستخراج الأوامر الأصلية.
+    تقوم بمسح الـ Handlers المسجلة في البوت واستخراج الأوامر النصية فقط بشكل آمن.
     """
     global BOT_COMMANDS_MAP
     BOT_COMMANDS_MAP.clear()
     
     for handler, event_type in client.list_event_handlers():
-        # البحث عن أحداث الرسائل التي تحتوي على Pattern
-        if isinstance(event_type, events.NewMessage) and event_type.pattern:
-            pattern_str = event_type.pattern.pattern
-            # استخراج الكلمة الأساسية من الـ Regex (مثلاً من ^/تقييد يستخرج تقييد)
-            match = re.search(r'([آ-يa-zA-Z0-9_]+)', pattern_str)
-            if match:
-                cmd_name = match.group(1)
-                BOT_COMMANDS_MAP[cmd_name] = handler
+        try:
+            # التأكد أن الحدث هو رسالة جديدة وله نمط (pattern)
+            # أضفنا فحص hasattr للتأكد أن الـ pattern موجود وليس method أو None
+            if isinstance(event_type, events.NewMessage) and hasattr(event_type, 'pattern'):
+                
+                # التحقق أن الـ pattern هو كائن Regex وليس مجرد ميثود
+                if event_type.pattern and not callable(event_type.pattern):
+                    pattern_str = event_type.pattern.pattern
+                    
+                    # استخراج الكلمة الأساسية
+                    match = re.search(r'([آ-يa-zA-Z0-9_]+)', pattern_str)
+                    if match:
+                        cmd_name = match.group(1)
+                        BOT_COMMANDS_MAP[cmd_name] = handler
+        except Exception as e:
+            # تخطي أي Handler يسبب مشكلة (مثل الـ الـ Callback أو الجلسات)
+            continue
     
     print(f"✅ [Discovery] تم فهرسة {len(BOT_COMMANDS_MAP)} أمر بنجاح.")
-
 # --- 2. تعديل المحرك (Monkey Patch) ---
 original_init = events.NewMessage.Event.__init__
 
@@ -56,7 +65,6 @@ def patched_init(self, *args, **kwargs):
 events.NewMessage.Event.__init__ = patched_init
 
 # --- 3. أوامر الإدارة والعرض ---
-
 @client.on(events.NewMessage(pattern=r'^/ربط (.*)'))
 async def smart_alias_link(event):
     if event.sender_id != OWNER_ID: return
