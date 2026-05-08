@@ -3,48 +3,69 @@ import asyncio
 from telethon import events
 from ABH import ABH as client
 from Resources import * 
-
+OWNER_ID = wfffp
 # --- 1. إعدادات القواميس ---
 BOT_COMMANDS_MAP = {}
 # تأكد من وضع الأيدي الصحيح هنا أو جلبها من Resources
 # OWNER_ID = 12345678 
 
+import os
+
 def sync_commands_to_map():
     """
-    تقوم بمسح الـ Handlers المسجلة في البوت واستخراج الأوامر النصية فقط.
+    تقوم بمسح ملفات المشروع (أوامر السورس) واستخراج الـ pattern يدوياً من الكود.
     """
     global BOT_COMMANDS_MAP
     BOT_COMMANDS_MAP.clear()
     
-    # الحصول على قائمة المعالجات المسجلة في محرك التليثون
-    handlers = client.list_event_handlers()
+    # حدد مسار المجلد الذي يحتوي على ملفات الأوامر
+    # إذا كانت الملفات في نفس المجلد، اتركها "."
+    plugins_folder = "./plugins" 
     
-    for handler, event_type in handlers:
-        try:
-            # فحص دقيق للـ NewMessage التي تملك Pattern نصي
-            if isinstance(event_type, events.NewMessage) and hasattr(event_type, 'pattern'):
-                pattern = event_type.pattern
-                
-                # استخراج النص الخام من النمط سواء كان نصاً أو Regex Compiled
-                if pattern:
-                    pattern_str = pattern.pattern if hasattr(pattern, 'pattern') else str(pattern)
-                    
-                    # تنظيف النمط لاستخراج الكلمة المفتاحية (تتجاهل الرموز في البداية)
-                    # يبحث عن أول كلمة نصية بعد الرموز ^ / . !
-                    match = re.search(r'(?<=[\^/\.!])([آ-يa-zA-Z0-9_]+)|^[/\.!]([آ-يa-zA-Z0-9_]+)', pattern_str)
-                    
-                    cmd_name = None
-                    if match:
-                        cmd_name = match.group(1) or match.group(2)
-                    
-                    if cmd_name:
-                        BOT_COMMANDS_MAP[cmd_name] = handler
-        except:
-            continue
-    
-    print(f"✅ [Discovery] تم اكتشاف {len(BOT_COMMANDS_MAP)} أمر في الملفات.")
+    # Regex للبحث عن نمط: pattern=r'^/كلمة' أو pattern='/كلمة'
+    # هذا النمط يسحب الكلمة التي تأتي بعد الرموز مباشرة
+    pattern_regex = r"pattern\s*=\s*[r]?['\"][\^/\.!]?([آ-يa-zA-Z0-9_]+)"
 
-# --- 2. تعديل المحرك (Monkey Patch) ---
+    try:
+        # المرور على جميع الملفات التي تنتهي بـ .py
+        for root, dirs, files in os.walk(plugins_folder):
+            for file in files:
+                if file.endswith(".py"):
+                    file_path = os.path.join(root, file)
+                    
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        # البحث عن كل الأنماط في الملف الواحد
+                        found_commands = re.findall(pattern_regex, content)
+                        
+                        for cmd in found_commands:
+                            # نخزن اسم الأمر في القاموس
+                            # ملاحظة: هنا نضع القيمة True لأننا نقوم بمسح نصي 
+                            # وليس لدينا كائن الـ Handler الفعلي في هذه اللحظة
+                            BOT_COMMANDS_MAP[cmd] = file_path
+
+        print(f"✅ [File Scanner] تم مسح الملفات واكتشاف {len(BOT_COMMANDS_MAP)} أمر.")
+        
+    except Exception as e:
+        print(f"❌ خطأ أثناء مسح الملفات: {e}")
+
+# تعديل بسيط في أمر الربط ليتناسب مع المسح الجديد
+@client.on(events.NewMessage(pattern=r'^/ربط (.*)'))
+async def smart_alias_link(event):
+    if event.sender_id != OWNER_ID: return
+    try:
+        args = event.pattern_match.group(1).split()
+        original = args[0].replace('/', '').strip()
+        short = args[1].replace('/', '').strip()
+        
+        # الربط سيتم إذا كان الأمر موجوداً في القاموس الذي ملأناه من الملفات
+        if original in BOT_COMMANDS_MAP:
+            r.hset("bot_aliases", short, original)
+            await event.reply(f"🔗 **تم الربط بنجاح**\nالمصدر: `{BOT_COMMANDS_MAP[original]}`\nالأصل: `{original}`\nالاختصار: `{short}`")
+        else:
+            await event.reply(f"⚠️ الأمر `{original}` غير موجود في ملفات السورس!")
+    except:
+        await event.reply("⚠️ الاستخدام: `/ربط الأصل الاختصار`")
 original_init = events.NewMessage.Event.__init__
 
 def patched_init(self, *args, **kwargs):
@@ -91,20 +112,6 @@ async def list_registered_commands(event):
     for i in range(0, len(lines), 50):
         await event.respond(f"{header if i==0 else ''}" + "\n".join(lines[i:i+50]))
 
-# --- أمر الربط (معدل ليدعم الربط حتى لو لم يكتشف الأمر بعد) ---
-@client.on(events.NewMessage(pattern=r'^/ربط (.*)'))
-async def smart_alias_link(event):
-    if event.sender_id != OWNER_ID: return
-    try:
-        args = event.pattern_match.group(1).split()
-        original = args[0].replace('/', '').strip()
-        short = args[1].replace('/', '').strip()
-        
-        r.hset("bot_aliases", short, original)
-        status = "✅" if original in BOT_COMMANDS_MAP else "⚠️ (ملاحظة: الأمر الأصلي غير مكتشف حالياً لكن تم الربط)"
-        await event.reply(f"{status} **تم الربط**\n`{short}` ➜ `/{original}`")
-    except:
-        await event.reply("⚠️ `/ربط الأصل الاختصار`")
 
 # --- 4. التشغيل التلقائي مع تأخير كافٍ ---
 async def startup_process():
