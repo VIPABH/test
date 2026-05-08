@@ -44,7 +44,7 @@ def anymous_cmd(command_name, **kwargs):
 # بدلاً من @client.on(events.NewMessage(pattern='/تقييد'))
 # استخدمها بهذا الشكل البسيط:
 
-@anymous_cmd('/تقييد')
+@anymous_cmd('تقييد')
 async def ban_handler(event):
     # الكود الخاص بك كما هو بدون أي تغيير
     if event.is_reply:
@@ -53,12 +53,12 @@ async def ban_handler(event):
     else:
         await event.reply("⚠️ يرجى الرد على رسالة المستخدم لتقييده.")
 
-@anymous_cmd('/طرد')
+@anymous_cmd('طرد')
 async def kick_handler(event):
     await event.reply("🚫 تم الطرد!")
 
 # --- 3. أمر التحكم لإضافة اختصارات جديدة (للمطور فقط) ---
-@client.on(events.NewMessage(pattern=r'/ربط (.*)'))
+@client.on(events.NewMessage(pattern=r'ربط (.*)'))
 async def add_alias(event):
     
     try:
