@@ -1,62 +1,76 @@
-import re, asyncio, os, telethon.events as ev
+from telethon import events
+import redis
+import re
 from ABH import ABH as client
-from Resources import *
+from Resources import * 
 
-MAP = {}
+# 1. دالة تسجيل الأوامر الذكية (Smart Register)
+# هذه الدالة ستحل محل @client.on في أوامرك الـ 140
+def anymous_cmd(command_name, **kwargs):
+    def decorator(f):
+        # جلب كل الاختصارات المرتبطة بهذا الأمر من Redis
+        # نقوم بتنظيف اسم الأمر من الرموز للبحث في Redis
+        clean_name = command_name.lstrip('/.! ')
+        
+        # جلب الاختصارات المخزنة (نفترض أنها مخزنة كـ Alias:Original في Redis)
+        all_aliases = r.hgetall("bot_aliases")
+        
+        # بناء قائمة الأنماط (Pattern List)
+        # نبدأ بالأمر الأصلي (مثلاً /تقييد)
+        patterns = [command_name]
+        
+        # إضافة أي اختصار مرتبط بهذا الأمر من Redis
+        if all_aliases:
+            for alias, original in all_aliases.items():
+                if original == clean_name:
+                    # إضافة الاختصار مع دعم الـ Prefixes (/, ., !)
+                    patterns.append(f"/{alias}")
+                    patterns.append(f"\\.{alias}")
+                    patterns.append(f"!{alias}")
 
-def sync_commands_to_map():
-    global MAP
-    MAP.clear()
-    # استخدام المسار المطلق لضمان العثور على المجلد في Ubuntu
-    base_path = os.path.join(os.getcwd(), "plugins") 
-    if not os.path.exists(base_path): base_path = os.getcwd() # إذا لم يجد plugins يبحث في المجلد الحالي
+        # بناء Regex واحد يجمع الكل: ^(/تقييد|/تق|\.تق|!تق)
+        combined_pattern = f"^({'|'.join(patterns)})"
+        
+        # تسجيل الأمر في Telethon بشكل رسمي
+        @client.on(events.NewMessage(pattern=combined_pattern, **kwargs))
+        async def wrapper(event):
+            # نمرر الحدث للدالة الأصلية
+            await f(event)
+        
+        return f
+    return decorator
+
+# --- 2. كيفية استخدامها في الـ 140 أمر لديك ---
+# بدلاً من @client.on(events.NewMessage(pattern='/تقييد'))
+# استخدمها بهذا الشكل البسيط:
+
+@anymous_cmd('/تقييد')
+async def ban_handler(event):
+    # الكود الخاص بك كما هو بدون أي تغيير
+    if event.is_reply:
+        reply = await event.get_reply_message()
+        await event.reply(f"✅ تم تقييد المستخدم {reply.sender_id}")
+    else:
+        await event.reply("⚠️ يرجى الرد على رسالة المستخدم لتقييده.")
+
+@anymous_cmd('/طرد')
+async def kick_handler(event):
+    await event.reply("🚫 تم الطرد!")
+
+# --- 3. أمر التحكم لإضافة اختصارات جديدة (للمطور فقط) ---
+@client.on(events.NewMessage(pattern=r'/ربط (.*)'))
+async def add_alias(event):
     
-    for root, _, files in os.walk(base_path):
-        for file in [f for f in files if f.endswith(".py")]:
-            with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
-                # Regex مطور جداً يسحب أي نص داخل pattern= سواء كان r أو بدون
-                cmds = re.findall(r"pattern\s*=\s*[r]?['\"](?:[\^/\.!])?([آ-يa-zA-Z0-9_]+)", f.read())
-                for c in cmds: MAP[c] = file
-    print(f"✅ تم اكتشاف: {len(MAP)} أمر.")
+    try:
+        data = event.pattern_match.group(1).split()
+        original = data[0].replace('/', '')
+        short = data[1].replace('/', '')
+        
+        # تخزين في Redis
+        r.hset("bot_aliases", short, original)
+        
+        await event.reply(f"✅ تم ربط `{short}` بـ `{original}`\n⚠️ يرجى إعادة تشغيل السورس (Restart) لتفعيل الاختصار.")
+    except:
+        await event.reply("الاستخدام: `/ربط تقييد تق`")
 
-# --- تعديل المحرك (Monkey Patch) ---
-orig_init = ev.NewMessage.Event.__init__
-def patched_init(self, *a, **k):
-    if a and hasattr(a[0], 'message') and a[0].message:
-        m = a[0]
-        if m.message.startswith(('/', '.', '!')):
-            trigger = m.message.split()[0][1:]
-            real = r.hget("bot_aliases", trigger)
-            if real:
-                # استبدال ذكي للاختصار بالأصل
-                m.message = m.message.replace(trigger, real.replace('/', ''), 1)
-                m.text = m.message
-    orig_init(self, *a, **k)
-ev.NewMessage.Event.__init__ = patched_init
-
-# --- أوامر الإدارة ---
-@client.on(ev.NewMessage(pattern=r'^/(ربط|تحديث_الاوامر|الاوامر_المسجلة)'))
-async def manager(e):
-    # if e.sender_id != OWNER_ID: return # فك التعليق للحماية
-    txt = e.text
-    if "ربط" in txt:
-        try:
-            _, o, s = txt.split()
-            r.hset("bot_aliases", s.strip('/'), o.strip('/'))
-            return await e.reply(f"🔗 تم الربط: `{s}` ➜ `{o}`")
-        except: return await e.reply("⚠️ `/ربط الأصل الاختصار`")
-    
-    if "تحديث" in txt:
-        sync_commands_to_map()
-        return await e.reply(f"🔄 تم التحديث: {len(MAP)} أمر.")
-    
-    if not MAP: return await e.reply("⚠️ القاموس فارغ.")
-    res = [f"• `/{c}`" for c in sorted(MAP.keys())]
-    for i in range(0, len(res), 50):
-        await e.respond(f"📂 **الأوامر ({len(res)}):**\n" + "\n".join(res[i:i+50]))
-
-async def start_up():
-    await asyncio.sleep(10) # زيادة الوقت للتأكد من استقرار السيرفر
-    sync_commands_to_map()
-
-client.loop.create_task(start_up())
+print("Anymous Bot is Ready with Smart Decorator...")
