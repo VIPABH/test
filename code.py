@@ -75,4 +75,3 @@ async def kick_handler(event):
 # تشغيل البوت
 # =====================================================================
 print("🚀 Anymous Bot is Ready with Ultra-Performance Grouped Decorator...")
-client.run_until_disconnected()
