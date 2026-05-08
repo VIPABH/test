@@ -7,24 +7,21 @@ from Resources import * # ======================================================
 # =====================================================================
 def anymous_cmd(main_name, **kwargs):
     def decorator(f):
-        # جلب الاختصارات الخاصة بهذا الأمر فقط من Redis باستخدام الـ Sets (الأسرع على الإطلاق)
+        # جلب الاختصارات
         aliases = r.smembers(f"cmd:{main_name}") or []
         
-        # تحويل الاختصارات من bytes إلى نصوص عادية وتنظيفها
         patterns = [main_name]
         for a in aliases:
             patterns.append(a.decode('utf-8') if isinstance(a, bytes) else a)
         
-        # بناء نمط Regex محصن ضد تداخل الكلمات ومستقر تحت ضغط الرسائل الهائل
-        combined_pattern = f"^(?i)({'|'.join(patterns)})($|\s+)"
+        # الترتيب الصحيح للأعلام (Global Flags) لتجنب خطأ Python 3.12
+        combined_pattern = f"(?i)^({'|'.join(patterns)})($|\s+)"
         
         @client.on(events.NewMessage(pattern=combined_pattern, **kwargs))
         async def wrapper(event):
-            # معالجة متوازية لضمان عدم تأثر البوت نهائياً بضغط الرسائل وتفادي التجميد
             asyncio.create_task(f(event))
         return f
     return decorator
-
 # =====================================================================
 # 2. أوامر الإدارة (الربط والحذف)
 # =====================================================================
