@@ -44,7 +44,8 @@ async def remove_alias(event):
         orig, short = event.pattern_match.group(1), event.pattern_match.group(2)
         r.srem(f"cmd:{orig}", short)
         await event.reply(f"🗑 تم حذف `{short}` من مجموعة `{orig}`")
-    except: pass@anymous_cmd('تقييد')
+    except: pass
+@anymous_cmd('تقييد')
 async def ban_handler(event):
     if event.is_reply:
         reply = await event.get_reply_message()
