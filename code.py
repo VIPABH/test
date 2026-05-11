@@ -69,10 +69,8 @@ async def list_aliases(event):
 async def clear_all_aliases(event):
     r.delete(f"cmd:{event.chat_id}")
     await event.reply("✅ تم تصفير جميع الاختصارات.")
-@ABH.on(events.NewMessage(pattern=r'^(تقييد عام|تقييد|تحذير|طرد|حظر)(?:\s+(.*))?$'))
+@ABH.on(events.NewMessage(pattern=r'^(?:\.|/)?(تقييد عام|تقييد|تحذير|طرد|حظر)(?:\s+(.*))?$'))
 async def execute_alias_engine(event):
-    if not event.is_group:
-        return    
     الامر = event.pattern_match.group(1).strip().lower()
     المعطى = event.pattern_match.group(2) or ""
     await event.reply(f'شغال \n {الامر=}, {المعطى}')
