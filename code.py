@@ -73,6 +73,6 @@ async def clear_all_aliases(event):
 async def execute_alias_engine(event):
     if not event.is_group:
         return    
-    incoming_cmd = event.pattern_match.group(1).strip().lower()
-    args = event.pattern_match.group(2) or ""
-    await event.reply('شغال' + str(locals()))
+    الامر = event.pattern_match.group(1).strip().lower()
+    المعطى = event.pattern_match.group(2) or ""
+    await event.reply(f'شغال \n {الامر=}, {المعطى}')
