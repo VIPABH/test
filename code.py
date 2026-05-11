@@ -12,12 +12,19 @@ async def execute_alias_engine(event):
     real_cmd = r.hget(f"cmd:{chat_id}", incoming_shortcut)    
     if real_cmd:
         event.raw_text = f"{real_cmd} {args}"        
+    try:
+        if hasattr(event.message, '_parse_msg'):
+            event.message._parse_msg()
+        all_handlers = ABH.list_event_handlers()
         try:
-            event._parse_msg()
+            await ABH._dispatch_event(event, all_handlers)
+        except TypeError:
             await ABH._dispatch_event(event)
-        except:
-            pass
-@ABH.on(events.NewMessage(pattern=r'^اختصار$'))
+        raise events.StopPropagation
+    except events.StopPropagation:
+        raise
+    except Exception as e:
+        print(f"Injection Error: {e}")@ABH.on(events.NewMessage(pattern=r'^اختصار$'))
 async def start_alias_session(event):
     chat_id, user_id = event.chat_id, event.sender_id
     if chat_id not in session_aliases: session_aliases[chat_id] = {}
