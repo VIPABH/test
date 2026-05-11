@@ -1,73 +1,69 @@
-import re, asyncio
-from telethon import events
-from ABH import ABH as client
-from Resources import * 
+import redis
+from ABH import *
+from telethon import TelegramClient, events
 
-# =====================================================================
-# 1. الديكوريتور المطور (يدعم الجمل المربوطة والاختصارات الفورية)
-# =====================================================================
-def anymous_cmd(main_pattern, **kwargs):
-    def decorator(f):
-        @client.on(events.NewMessage(**kwargs))
-        async def wrapper(event):
-            text = event.raw_text
-            if not text: return
+# --- نظام معالجة الاختصارات (The Core) ---
 
-            # 1. الفحص الأول: هل النص يطابق النمط الأصلي (Regex)؟
-            if re.search(main_pattern, text):
-                return asyncio.create_task(f(event))
+@ABH.on(events.NewMessage(incoming=True))
+async def alias_resolver(event):
+    # نحدد الرموز التي يبدأ بها الأمر
+    prefixes = ('.', '/', '!')
+    if not event.raw_text.startswith(prefixes):
+        return
 
-            # 2. الفحص الثاني: فحص Redis للجمل أو الكلمات المربوطة
-            # نستخرج أول كلمة أو أول جملة قبل أي مسافة
-            first_word = text.split()[0].lower()
-            
-            # استخراج اسم المجموعة لتنظيف البحث (مثلاً "تقييد" من النمط المعقد)
-            group_name = re.sub(r'[^آ-يa-zA-Z0-9]', '', main_pattern.split('|')[0]).lower()
+    chat_id = event.chat_id
+    text_parts = event.raw_text.split()
+    
+    # فصل الرمز عن الكلمة (مثلاً .تق -> الرمز . والكلمة تق)
+    prefix = text_parts[0][0]
+    cmd_name = text_parts[0][1:]
 
-            # التحقق من Redis (الاستجابة فورية O(1))
-            if r.sismember(f"cmd:{group_name}", first_word):
-                return asyncio.create_task(f(event))
-                
-        return f
-    return decorator
+    # البحث في Redis عن اختصار مخصص لهذه المجموعة
+    # الـ Key يكون مثلاً: aliases:-100123456789
+    real_command = r.hget(f"aliases:{chat_id}", cmd_name)
 
-# =====================================================================
-# 2. أمر الربط باستخدام الاقتباس "" (يدعم المسافات)
-# =====================================================================
+    if real_command:
+        # إذا وجدنا اختصار، نقوم باستبداله في النص الأصلي للـ event
+        # هذا التغيير سيؤثر على كل الـ handlers القادمة
+        args = " ".join(text_parts[1:])
+        event.raw_text = f"{prefix}{real_command} {args}".strip()
+        print(f"🔄 Alias Triggered: {cmd_name} -> {real_command}")
 
-@client.on(events.NewMessage(pattern=r'^ربط "([^"]+)" "([^"]+)"'))
-async def add_alias(event):
+# --- أوامر التحكم بالاختصارات ---
+
+@ABH.on(events.NewMessage(pattern=r'^[\.\/]اختصار (\S+) (\S+)'))
+async def set_alias(event):
+    # الاستخدام: .اختصار تق تقييد
+    # يجب إضافة فحص هنا للتأكد أن المرسل أدمن أو المطور (علي هاشم)
+    
+    alias_name = event.pattern_match.group(1)
+    original_cmd = event.pattern_match.group(2)
+    chat_id = event.chat_id
+
     try:
-        # استخراج ما بين الاقتباسات
-        orig = event.pattern_match.group(1).strip().lower()
-        short = event.pattern_match.group(2).strip().lower()
-        
-        # تنظيف الأصل من الرموز ليكون مفتاحاً للمجموعة
-        clean_orig = re.sub(r'[/.! ]', '', orig)
-        
-        # التخزين في مجموعة Redis
-        r.sadd(f"cmd:{clean_orig}", short)
-        
-        await event.reply(f"✅ تم ربط `{short}` بـ `{orig}` بنجاح!")
+        r.hset(f"aliases:{chat_id}", alias_name, original_cmd)
+        await event.reply(f"✅ تم حفظ الاختصار:\n**{alias_name}** ← **{original_cmd}**")
     except Exception as e:
-        print(e)
-        await event.reply("⚠️ الاستخدام: `ربط \"تقييد عام\" \"ت\"` ")
+        await event.reply(f"❌ خطأ في Redis: {e}")
 
-@client.on(events.NewMessage(pattern=r'^حذف_ربط "([^"]+)" "([^"]+)"'))
-async def remove_alias(event):
-    try:
-        orig = event.pattern_match.group(1).strip().lower()
-        short = event.pattern_match.group(2).strip().lower()
-        clean_orig = re.sub(r'[/.! ]', '', orig)
-        
-        r.srem(f"cmd:{clean_orig}", short)
-        await event.reply(f"🗑 تم حذف `{short}` من مجموعة `{orig}`")
-    except: pass
+@ABH.on(events.NewMessage(pattern=r'^[\.\/]حذف_اختصار (\S+)'))
+async def del_alias(event):
+    alias_name = event.pattern_match.group(1)
+    chat_id = event.chat_id
+    
+    if r.hdel(f"aliases:{chat_id}", alias_name):
+        await event.reply(f"🗑 تم حذف الاختصار `{alias_name}`")
+    else:
+        await event.reply("⚠️ هذا الاختصار غير موجود أصلاً.")
 
-# =====================================================================
-# 3. مثال الأوامر
-# =====================================================================
+# --- أمثلة على أوامر البوت (التي سيتم استدعاؤها بالاختصار) ---
 
-@anymous_cmd(r"^(تقييد عام|مخفي قيد[هة])")
-async def ban_handler(event):
-    await event.reply("✅ تم تنفيذ الأمر بنجاح!")
+@ABH.on(events.NewMessage(pattern=r'^[\.\/]تقييد'))
+async def ban_user(event):
+    await event.reply("🚫 جاري تنفيذ أمر التقييد العام...")
+
+@ABH.on(events.NewMessage(pattern=r'^[\.\/]كشف'))
+async def check_user(event):
+    await event.reply("🔍 جاري فحص سجل المستخدم...")
+
+print("✅ Bot is running...")
