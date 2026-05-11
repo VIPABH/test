@@ -35,6 +35,7 @@ async def get_aliases_handler(event):
     chat_id, user_id = event.chat_id, event.sender_id
     if chat_id not in session_aliases or user_id not in session_aliases[chat_id]:
         return
+    if event.text =='اختصار': return
     session = session_aliases[chat_id][user_id]
     if session["step"] == "waiting_old":
         session["old_command"] = event.text.strip()
