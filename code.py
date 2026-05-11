@@ -4,8 +4,8 @@ from telethon import TelegramClient, events
 session_aliases = {}
 @ABH.on(events.NewMessage(incoming=True))
 async def execute_alias_engine(event):
-    if not event.is_group or not event.raw_text:
-        return
+    # if not event.is_group or not event.raw_text:
+    #     return
     chat_id = event.chat_id
     text = event.raw_text
     parts = text.split(maxsplit=1)
@@ -23,7 +23,7 @@ async def execute_alias_engine(event):
             pass
 @ABH.on(events.NewMessage(pattern=r'^اختصار$'))
 async def start_alias_session(event):
-    if not event.is_group: return        
+    # if not event.is_group: return        
     a = await auth(event)
     if not a or a == 'المعاون': 
         return await chs(event, قفل('المساعد وفوق'))
