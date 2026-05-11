@@ -1,11 +1,7 @@
-import redis
 from ABH import *
-from telethon import TelegramClient, events
 session_aliases = {}
 @ABH.on(events.NewMessage(incoming=True))
 async def execute_alias_engine(event):
-    # if not event.is_group or not event.raw_text:
-    #     return
     chat_id = event.chat_id
     text = event.raw_text
     parts = text.split(maxsplit=1)
@@ -23,10 +19,6 @@ async def execute_alias_engine(event):
             pass
 @ABH.on(events.NewMessage(pattern=r'^اختصار$'))
 async def start_alias_session(event):
-    # if not event.is_group: return        
-    a = await auth(event)
-    if not a or a == 'المعاون': 
-        return await chs(event, قفل('المساعد وفوق'))
     chat_id, user_id = event.chat_id, event.sender_id
     if chat_id not in session_aliases: session_aliases[chat_id] = {}
     session_aliases[chat_id][user_id] = {"step": "waiting_old", "old_command": None}
@@ -53,13 +45,10 @@ async def get_aliases_handler(event):
         old_command = session["old_command"]                
         r.hset(f"cmd:{chat_id}", new_alias, old_command)
         await event.reply(f"✅ تم بنجاح:\n**{new_alias}** ↫ **{old_command}**")        
-        await send(event, f"تم إضافة اختصار جديد:\nالأصل: `{old_command}`\nالمختصر: `{new_alias}`")
         del session_aliases[chat_id][user_id]
         ABH.remove_event_handler(get_aliases_handler)
 @ABH.on(events.NewMessage(pattern=r'^(حذف|مسح) اختصار (.+)'))
 async def remove_alias(event):
-    a = await auth(event)
-    if not a or a == 'المعاون': return    
     chat_id = event.chat_id
     target = event.pattern_match.group(2).strip().lower()
     if r.hdel(f"cmd:{chat_id}", target):
@@ -77,8 +66,6 @@ async def list_aliases(event):
     await event.reply(res)
 @ABH.on(events.NewMessage(pattern=r'^حذف الاختصارات$'))
 async def clear_all_aliases(event):
-    a = await auth(event)
-    if not a or a in ('المعاون', 'المساعد'): return
     r.delete(f"cmd:{event.chat_id}")
     await event.reply("✅ تم تصفير جميع الاختصارات.")
 @ABH.on(events.NewMessage(pattern='(تقييد عام|تقييد|تحذير)'))
