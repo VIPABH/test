@@ -81,3 +81,6 @@ async def clear_all_aliases(event):
     if not a or a in ('المعاون', 'المساعد'): return
     r.delete(f"cmd:{event.chat_id}")
     await event.reply("✅ تم تصفير جميع الاختصارات.")
+@ABH.on(events.NewMessage(pattern='(تقييد عام|تقييد|تحذير)'))
+async def _(e):
+    await e.reply('شغال')
