@@ -2,36 +2,21 @@ from ABH import *
 session_aliases = {}
 @ABH.on(events.NewMessage(incoming=True))
 async def execute_alias_engine(event):
-    if getattr(event, 'alias_done', False):
-        return
-    if not event.is_group or not event.raw_text:
-        return    
     chat_id = event.chat_id
-    text = event.raw_text.strip()
+    text = event.raw_text
     parts = text.split(maxsplit=1)
     if not parts:
         return
     incoming_shortcut = parts[0].lower()
-    args = parts[1] if len(parts) > 1 else ""
+    args = parts[1] if len(parts) > 1 else ""    
     real_cmd = r.hget(f"cmd:{chat_id}", incoming_shortcut)    
     if real_cmd:
-        full_text = f"{real_cmd} {args}".strip()        
-        event.message.message = full_text
-        event.raw_text = full_text
-        event.alias_done = True 
+        event.raw_text = f"{real_cmd} {args}"        
         try:
-            if hasattr(event.message, '_parse_msg'):
-                event.message._parse_msg()            
-            all_handlers = ABH.list_event_handlers()
-            try:
-                await ABH._dispatch_event(event, all_handlers)
-            except TypeError:
-                await ABH._dispatch_event(event)
-            raise events.StopPropagation
-        except events.StopPropagation:
-            raise
-        except Exception as e:
-            print(f"Injection Error: {e}")
+            event._parse_msg()
+            await ABH._dispatch_event(event)
+        except:
+            pass
 @ABH.on(events.NewMessage(pattern=r'^اختصار$'))
 async def start_alias_session(event):
     chat_id, user_id = event.chat_id, event.sender_id
