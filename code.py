@@ -24,7 +24,8 @@ async def execute_alias_engine(event):
     except events.StopPropagation:
         raise
     except Exception as e:
-        print(f"Injection Error: {e}")@ABH.on(events.NewMessage(pattern=r'^اختصار$'))
+        print(f"Injection Error: {e}")
+@ABH.on(events.NewMessage(pattern=r'^اختصار$'))
 async def start_alias_session(event):
     chat_id, user_id = event.chat_id, event.sender_id
     if chat_id not in session_aliases: session_aliases[chat_id] = {}
