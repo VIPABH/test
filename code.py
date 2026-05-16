@@ -24,7 +24,7 @@ async def send_admin_menu(event_or_message, is_callback=False):
 async def start(e):
     if e.is_private:
         id = e.sender_id
-        if id == 1910015590:
+        if id == 8655399180:
             return await send_admin_menu(e, is_callback=False)
             
         user_buttons = [
