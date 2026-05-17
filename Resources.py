@@ -1,60 +1,442 @@
-from telethon.tl.types import ChannelParticipantCreator, ChannelParticipantAdmin, ChatBannedRights
-from telethon.tl.types import ChannelParticipantsAdmins, ChannelParticipantCreator, ChannelParticipantAdmin
+from telethon.tl.types import ChannelParticipantsAdmins, ChannelParticipantCreator, ChannelParticipantAdmin, ChatBannedRights
 from telethon.tl.functions.channels import EditBannedRequest, GetParticipantRequest
 from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.functions.channels import GetParticipantRequest
 from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.functions.messages import GetFullChatRequest
 from telethon.tl.types import ChatParticipantCreator
+from telethon.errors import UserNotParticipantError
+import pytz, os, json, asyncio, time, inspect
 from telethon.tl.types import ReactionEmoji
-from telethon import Button
-import pytz, os, json, asyncio, time, re
-# import google.generativeai as genai
+import google.generativeai as genai, re
+from telethon import types, Button
+from types import SimpleNamespace
+from ABH import ABH, r, events
 from typing import Dict, Any
+from functools import wraps
+from telethon import types
 from ABH import *
+async def execute_alias_engine(event):
+    chat_id = event.chat_id
+    text = event.raw_text
+    parts = text.split(maxsplit=1)
+    if not parts:
+        return
+    incoming_shortcut = parts[0].lower()
+    args = parts[1] if len(parts) > 1 else ""    
+    real_cmd = r.hget(f"cmd:{chat_id}", incoming_shortcut)    
+    if real_cmd:
+        event.raw_text = f"{real_cmd} {args}"        
+        try:
+            event._parse_msg()
+            await ABH._dispatch_event(event)
+        except:
+            pass
+ALIASES_CACHE = {} 
+LAST_UPDATE_TIMES = {}
+CACHE_TTL = 100
+async def update_local_cache(chat_id):
+    global ALIASES_CACHE, LAST_UPDATE_TIMES
+    try:
+        keys = r.keys(f"cmd:{chat_id}:*")
+        new_data = {k.split(':')[-1]: {s for s in r.smembers(k)} for k in keys}
+        ALIASES_CACHE[chat_id] = new_data
+        LAST_UPDATE_TIMES[chat_id] = time.time()
+    except: pass
+def anymous_cmd(main_pattern, **kwargs):
+    def decorator(f):
+        @ABH.on(events.NewMessage(**kwargs))
+        async def wrapper(event):
+            if not event.raw_text or not event.is_group:
+                return
+            chat_id = event.chat_id
+            now = time.time()            
+            last_upd = LAST_UPDATE_TIMES.get(chat_id, 0)
+            if now - last_upd > CACHE_TTL:
+                await update_local_cache(chat_id)
+            text = event.raw_text.strip() 
+            match = re.fullmatch(main_pattern, text)
+            if match:
+                event.pattern_match = match
+                return await f(event)
+            first_word_raw = text.split()[0]
+            first_word = first_word_raw            
+            for prefix in ['/', '!', '.', '']:
+                if prefix and first_word.startswith(prefix):
+                    first_word = first_word[len(prefix):]
+                    break            
+            clean_cmd_match = re.search(r'[آ-يa-zA-Z0-9\s]+', main_pattern)
+            group_name = clean_cmd_match.group(0).strip() if clean_cmd_match else ""
+            chat_cache = ALIASES_CACHE.get(chat_id, {})            
+            if group_name in chat_cache and first_word in chat_cache[group_name]:
+                fake_text = re.sub(re.escape(first_word_raw), group_name, text, count=1)
+                new_match = re.fullmatch(main_pattern, fake_text)
+                if new_match:
+                    event.pattern_match = new_match
+                    return await f(event)
+        return wrapper
+    return decorator
+def timer(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        start_time = time.perf_counter()        
+        result = await func(*args, **kwargs)        
+        end_time = time.perf_counter()
+        duration = end_time - start_time
+        msg = f"─── الدالة: {func.__name__}\n ─── استغرقت: {duration:.4f} ثانية"
+        return await hint(msg)
+    return wrapper
+def dev(func):
+    @wraps(func)
+    async def wrapper(event, *args, **kwargs):
+        if event.sender_id == wfffp:
+            return await func(event, *args, **kwargs)
+        else:
+            return
+    return wrapper
+def profile(user_id):
+    """جلب بيانات المستخدم بالكامل من Redis"""
+    data = r.get(f"user:{user_id}")
+    return json.loads(data) if data else None
+def save_user(user_id, data):
+    """حفظ بيانات المستخدم (JSON)"""
+    r.set(f"user:{user_id}", json.dumps(data, ensure_ascii=False))
+async def get_input_media(media_data):
+    """تحويل قاموس الميديا المخزن إلى كائن InputMedia جاهز للإرسال"""
+    if not media_data or not isinstance(media_data, dict):
+        return None
+    m_id = int(media_data['id'])
+    m_hash = int(media_data['hash'])
+    m_ref = bytes.fromhex(media_data['ref'])    
+    if media_data['type'] == "doc":
+        return types.InputDocument(id=m_id, access_hash=m_hash, file_reference=m_ref)
+    return types.InputPhoto(id=m_id, access_hash=m_hash, file_reference=m_ref)
+async def extract_media_data(e):
+    if not e.media: return None
+    if isinstance(e.media, types.MessageMediaDocument):
+        doc = e.media.document
+        return {"type": "doc", "id": doc.id, "hash": doc.access_hash, "ref": doc.file_reference.hex()}
+    elif isinstance(e.media, types.MessageMediaPhoto):
+        photo = e.media.photo
+        return {"type": "photo", "id": photo.id, "hash": photo.access_hash, "ref": photo.file_reference.hex()}
+    return None
+async def get_profile_photo(id):
+    photos = []
+    try:
+        user = await ABH.get_entity(id)
+        photos = await ABH.get_profile_photos(user, limit=1)
+        if photos:
+            return photos[0]
+        else:
+            return None
+    except:
+            return None
+async def bot():
+    key = "bot:info"
+    data = r.get(key)
+    if data:
+        return json.loads(data, object_hook=lambda d: SimpleNamespace(**d))
+    me = await ABH.get_me()
+    full_name = f"{me.first_name or ''} {me.last_name or ''}"
+    bot_data = {
+        "id": me.id,
+        "username": me.username,
+        "first_name": me.first_name,
+        "last_name": me.last_name,
+        "full_name": full_name,
+        "is_bot": me.bot,
+        "photo_id": None
+    }
+    photos = await ABH.get_profile_photos(me.id, limit=1)
+    if photos:
+        bot_data["photo_id"] = photos[0].id    
+    r.set(key, json.dumps(bot_data))
+    return SimpleNamespace(**bot_data)
+async def mentions(users: list, text='↔'):
+    mention = []
+    full_users = await ABH.get_entity(users)    
+    for user in full_users:
+        profilename = profile(user.id)        
+        if profilename:
+            name = profilename.first_name
+        elif getattr(user, 'first_name', None):
+            name = user.first_name
+        else:
+            name = "حساب محذوف"            
+        mention.append(f"[{name}](tg://user?id={user.id}) {text} `{user.id}`")            
+    return mention
+mem = [
+    'ميعرف', 'صباح الخير', 'لا تتماده', 'يله شنسوي', 'ههههه', 
+    'استرجل', 'man up', 'واستيد', 'wasted', 'زعطوط', 'مخبل', 
+    'عالم موازي', 'هايشكل', 'مواقع تعليم اللغه العربية',
+    'متاقلم', 'مشاجره', 'مشاجرة', 'توحد', 'تنمر', 'تخيل',
+    'قريده', 'مستغرب', 'يصبرني', 'تاقلم', 'اتاقلم',
+    'لتعيدها', 'نو', 'نو بليز', 'الاملاء', 'اسكت',
+    'ماعرف', 'خسيس', 'حصفور', 'قطريق', 'قواصر', 
+    'فكاهي', 'القردقاله', 'قطاطس', 'كلكبوت',
+    'ارعن', 'جذاب', 'كذبه', 'جذبه', 'دروح']
+count = [
+    'عدد تفاعل', 
+    'عدد المتفاعلين',
+    'توب اليومي',
+    'توب الاسبوعي',
+    'رسائلي',
+    'رسائله',
+]
+games = [
+    'تعيين رقم', 
+    'حذف رقم',
+    "اعلام",
+    'رياضيات', 
+    'ارقام',
+    'محيبس',
+    'اكس او',
+    'اسرع',
+    "اسئلة دينية",
+    "اسئلة رياضية",
+    "حجرة",
+    "اسرع",
+    "غموض",
+    "كتويت",
+    ]
+group = [
+    "كشف القيود",
+    "عرض الاعدادات",
+    "كم حرف",
+    "كم كلمة",
+    "ايديي",
+    'بروفايلي',
+    'ايديه',
+    "بروفايله",
+    "ترتيبي",
+    "ترتيبه",
+    "ترتيب 1",
+    "معلوماتي",
+    "احصائياتي",
+    "معلوماته",
+    'احصائياته',
+    "اوامر القفل والفتح",
+    'ال+اسم الامر تعطيل | تفعيل',
+    "توب الحماية",
+    'مخفي احميني',
+    "رتبتي",
+    'رتبته',
+    "مخفي اختار",
+    'سرقة',
+    'خمط',
+    'تداول',
+    'مضاربة',
+    'ازعاج',
+    'مواعيد',
+    'كم باقي',
+    'كشف ايدي',
+    "ترجمة",
+    'صلاحياته',
+    'لقبه',
+    'تاريخ انضمامي',
+    'انضمامي',
+    'تاريخ انضمامه',
+    'اقرا 511',
+]
+guard = [
+"المحظورين عام",
+"الغاء المحظور عام",
+"حذف المحظورين عام",
+"الغاء حظر عام",
+"حظر عام",
+'مخفي امنع',
+'حذف قائمة المنع',
+"الغاء منع",
+"قائمة المنع",
+"الممنوعات",
+"المقيدين عام",
+"مسح المقيدين عام",
+"الغاء تقييد عام",
+"تقييد عام",
+"توب",
+"توب التقييد",
+"توب التحذير",
+"توب المقيدين",
+"توب المحذرين",
+"التعديل",
+'تعيين قناة',
+"حذف القناة",
+'عرض القناة',
+"تحذيراته",
+'تحذيراتي',
+"تصفير التذيرات",
+'تحذير',
+]
+other = [
+    'رسائل المجموعة',
+    'زر',
+    'كشف الهمسة',
+    'اسمي',
+    'اسمه',
+    'رقمة',
+    'رقمي',
+    'يوزراتي',
+    'يوزراته',
+    'يوزري',
+    'يوزره',
+    'قران',
+    'قرآن',
+    'سورة (اسم السورة)',
+    'مخفي + نص السؤال',
+    'اوامر الحظ',
+    'لطميه',
+    'لطميات',
+    "احسب 223*77",
+    'ميم',
+    'كشف رابط',
+    "سكرين",
+    'اهمس',
+    'همساتي',
+    'همساته',
+    'حسابي', 
+    "حسابه",
+]
+addanddel = [
+    "ترقية",
+    "تعديل صلاحياته",
+    "تنزيل مشرف",
+    "رفع مطور ثانوي",
+    "تنزيل مطور ثانوي",
+    'رفع مساعد',
+    'تنزيل مساعد',
+    "رفع معاون",
+    "تنزيل معاون",
+    "رفع منظف",
+    "تنزيل منظف",
+    "تغيير لقبي",
+    "عرض الرتب",
+    "المطورين الثانويين",
+    'حذف المطورين الثانويين',
+    "المساعدين",
+    'حذف المساعدين',
+    "المعاونين",
+    'حذف المعاونين',
+    "المنظفين",
+    'حذف المنظفين',
+    "الرتب"
+]
+actions = [
+    'يوتيوب', 'تقييد', 'ردود', 'تنظيف', 'تحذير', 
+    'منع', 'العاب', 'همسة', 'ترقية', 'رفع', 
+    'ايدي', 'توب', 'تعديل', 'اوامر العامة', 'ميم'
+]
+lockANDunlock = 'اوامر **الفتح والتعطيل** كآلاتي\n'
+lockANDunlock += '\n'.join([f'{i}- `ال{action} تفعيل` | `ال{action} تعطيل`' for i, action in enumerate(actions, 1)])
+allcommands = {
+    'الرسائل': count,
+    'الالعاب': games,
+    'المجموعه': group,
+    'الحماية': guard,
+    'اخرى': other,
+    'الرفع والتنزيل': addanddel,
+    'الرفع': addanddel,
+    'الادارة': addanddel,
+    'الفتح والتعطيل': lockANDunlock,
+    'الميم': mem
+}
+@ABH.on(events.NewMessage(pattern=r'^الاوامر$'))
+async def all_commands(event):
+    if not event.is_group:
+        return
+    msg = "📊 **اوامر البوت:**\n\n"
+    for num, (category, _) in enumerate(allcommands.items(), start=1):
+        msg += f"**{num}- `اوامر {category}`:**\n"
+    await event.reply(msg)
+@ABH.on(events.NewMessage(pattern='^اوامر (الرفع|الادار[هة]|الرفع والتنزيل|الرسائل|الالعاب|المجموع[هة]|الحماي[هة]|الفتح والتعطيل|الميم|اخرى)$'))
+async def raise_commands(event):
+    if not event.is_group:return
+    if event.text == 'اوامر الفتح والتعطيل':
+        return await event.reply(lockANDunlock)
+    category = event.pattern_match.group(1)
+    cmds_list = allcommands.get(category, [])
+    commands = f"**{event.text}**\n\n" + "\n".join(f"{i} - `{cmd}` " for i, cmd in enumerate(cmds_list, start=1))
+    await event.reply(commands)
+unicode = "\u200f"
+def lock(e, type):
+    lock_key = f"lock:{e.chat_id}:{type}"
+    return r.get(lock_key) == "True"
+@ABH.on(events.NewMessage(pattern='^نقل ملكية البوت$', from_users=[1910015590]))
+async def tansferbotowner(e):
+    global wfffp
+    r = await e.get_reply_message()
+    if not r:
+        return await e.reply('عذرا بس ل خطوره الامر لازم تشغله بالرد')
+    wfffp = r.sender_id
+    m = await ment(wfffp)
+    b = await bot()
+    await e.reply(f'تم نقل ملكية البوت {b['full_name']} الى المستخدم {m}')
+    try:
+        await ABH.send_message(wfffp, 'مرحبا عزيزي {} انت حاليا المطور الاساسي الجديد واني راح اساعدك , انت حاليا المالك مالتي'.format(m))
+    except:
+        pass
+    # await asyncio.sleep(60)
+    # await ABH.send_message(wfffp, 'هههههههه ضحكنه عليك يالغالي , رجعت ابن هاش مطور و نزلتك')
+    # wfffp = 1910015590
+    # await e.respond(file='https://t.me/recoursec/30', message='تم ارجاع الملكية الى المطور الاصلي ابن هاشم السبب \n لان واحد عراق', reply_to=e.id)
+async def userstates(chat_id: int, user_id: int) -> str:
+    try:
+        participant = await ABH(GetParticipantRequest(
+            channel=chat_id,
+            participant=user_id
+        ))
+        p = participant.participant
+        if isinstance(p, types.ChannelParticipantCreator):
+            return "مالك"
+        if isinstance(p, types.ChannelParticipantBanned):
+            return "محظور" if p.left else "مقيّد"
+        if isinstance(p, types.ChannelParticipantAdmin):
+            return "مشرف"
+        if isinstance(p, types.ChannelParticipant):
+            return "عضو"
+        return "غير معروف"
+    except UserNotParticipantError:
+        return "مغادر المجموعة"
+    except Exception as E:
+        await hint("userstates +++ " + str(E))
+def extractfree(text):
+    user = None
+    user_id = None
+    duration = None
+    user_match = re.search(r'@\w+', text)
+    if user_match:
+        user = user_match.group(0)
+    id_match = re.search(r'(?:\s+|^)(\d{5,10})(?:\s+|$)', text)
+    if id_match:
+        user_id = id_match.group(1)
+    times = re.findall(r'(?:\s+|^)(\d{1,3})(?:\s+|$)', text)
+    for t in times:
+        if 1 <= int(t) <= 9999: 
+            duration = t
+            break
+    return user, user_id, duration
+def extract(text):
+    match = re.search(r"(@\w+|\d+)(?:\s+(\d+))?", text)
+    if match:
+        user = match.group(1)
+        number = match.group(2)
+        return user, number
+    return None, None
+def special(e):
+    id = e.sender_id
+    return id != wfffp
+ranks_weights = {
+    'المطور الاساسي': 1, 
+    'المالك': 2, 
+    'المطور ثانوي': 3,
+    'المساعد': 4, 
+    'المعاون': 5,
+}
+def authers(arg1, arg2):
+    a1 = ranks_weights.get(arg1, 100)
+    a2 = ranks_weights.get(arg2, None)
+    if not a2:
+        return True
+    return a1 < a2
 b = Button.inline("اضغط هنا لعرضها كتابة", data='moneymuch')
-ذو_الفقار ="""⢀⢀⢀⠑⢦⡀
-⢀⢀⢀⢀⢀⠻⣷⣄
-⢀⢀⢀⢀⢀⢀⠘⢿⣷⣄
-⢀⢀⢀⢀⢀⢀⢀⠈⢿⣿⣷⣄
-⢀⢄⢀⢀⢀⢀⢀⢀⢀⢻⣿⣿⣦⡀
-⢀⠈⢿⣦⡀⢀⢀⢀⢀⠈⢿⣿⣿⣷⡄
-⢀⢀⢀⢻⣿⣷⣄⢀⢀⢀⠸⣿⣿⣿⣿⣆
-⢀⢀⢀⢀⢻⣿⣿⣷⣦⡀⢀⣿⣿⣿⣿⣿⣆
-⢀⢀⢀⢀⢀⢻⣿⣿⣿⣿⣷⣿⣿⣿⣿⣿⣿⡄
-⢀⢀⢀⢀⢀⢀⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡀
-⢀⢀⢀⢀⢀⢀⢀⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧
-⢀⢀⢀⢀⢀⢀⢀⠈⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡀
-⢀⢀⢀⢀⢀⢀⢀⢀⠘⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⠈⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢸⣿⣿⣿⣿⣿⣿⣿⣿⡇
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢸⣿⣿⣿⣿⣿⣿⣿⣿⠃
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢸⣿⣿⣿⣿⣿⣿⣿⣿
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢸⣿⣿⣿⣿⣿⣿⣿⡟
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢸⣿⣿⣿⣿⣿⣿⣿⡇
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⣾⣿⣿⣿⣿⣿⣿⣿⠁
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⣿⣿⣿⣿⣿⣿⣿⡟
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⢸⣿⣿⣿⣿⣿⣿⣿⠇
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢀⣼⣿⣿⣿⣿⣿⣿⡿
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⢠⣿⣿⣿⣿⣿⣿⣿⠇
-⢀⢀⢀⢀⢀⢀⢀⢀⢀⣼⣿⣿⣿⣿⣿⣿⡟
-⢀⣠⣤⣤⡀⢀⢀⢀⢠⣿⣿⣿⣿⣿⣿⣿⠇
-⠸⣿⣿⣿⣷⡀⢀⢀⣾⣿⣿⣿⣿⣿⣿⡿
-⢀⠙⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇
-⢀⢀⢀⠈⠙⠻⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⣄
-⢀⢀⢀⢀⢀⢀⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⡀
-⢀⢀⢀⢀⢀⢀⣸⣿⣿⣿⣿⣿⣿⠏⢀⢀⢉⣿⣿⣿⣿⡄
-⢀⢀⢀⢀⢀⢀⣿⣿⣿⣿⣿⣿⠛⢀⢀⢀⣿⣿⠿⠁
-⢀⢀⢀⢀⢀⣸⣿⣿⣿⣿⣿⣿⡇
-⢀⢀⢀⢀⢀⣿⣿⣿⣿⣿⣿⣍
-⢀⢀⢀⢀⣼⣿⣿⣿⣿⣿⡟⠋
-⢀⢀⢀⣼⣿⣿⣿⣿⣿⣿⣿⣆
-⢀⢀⢀⢿⣿⣿⣿⣿⣿⣿⣿⣿
-⢀⢀⢀⢀⠙⠿⠿⣿⡿⠿"""
 n1 = """🟥🟥🟥🟥🟥🟥🟥🟥🟥
 🟥⬜⬜⬜⬜⬜⬜⬜🟥
 🟥⬜⬛⬜⬛⬛⬛⬜🟥
@@ -84,14 +466,23 @@ n3 = """⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣄⠀⠀⠀⢀⣴⣿⡿⠋⠀⠀⣠⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣦⣤⣀⣙⣋⣀⣤⣴⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿"""
-actions = [
-    'يوتيوب',
-    'تقييد',
-    'ردود',
-    'تنظيف',
-    'تحذير', 
-    'ميم'
-    ]
+bannedactions = {
+    'يوتيوب': 'المعاون',
+    'ايدي': 'المعاون',
+    'تقييد': 'المساعد',
+    'ردود': 'المعاون',
+    'تنظيف': 'المعاون',
+    'تحذير': 'المعاون', 
+    'منع': 'المساعد', 
+    'رفع': 'المساعد', 
+    'العاب': 'المعاون', 
+    'همسة': 'المساعد',
+    'توب': 'المساعد',
+    'اوامر العامة': 'المطور الثانوي',
+    'تعديل': 'المطور الثانوي',
+    'ترقية': 'المطور الثانوي',
+    'ميم': 'المعاون'
+}
 def gettime(start_time, duration=30*60):
     end_time = start_time + duration
     now = int(time.time())
@@ -104,6 +495,7 @@ def scan(filename):
 def قفل(x):
     return f"عذرا بس الامر ل {x}"
 ignore_phrases = [
+    "مخفي احذف",
     "مخفي احميني",
     "مخفي اعفطلة",
     "مخفي اعفطله",
@@ -123,12 +515,13 @@ async def is_owner(chat_id, user_id):
         return isinstance(participant.participant, ChannelParticipantCreator)
     except:
         return False
-async def to(e):
+async def to(e, args=1, text=None):
+    'target_id = getattr(target, "sender_id", None) or getattr(target, "id", None)'
     try:
         reply = await e.get_reply_message()
         if reply:
             return reply
-        args = e.pattern_match.group(1)
+        args = text if text else e.pattern_match.group(int(args))
         target = args.strip() if args else None
         if target and target.isdigit():
             return await ABH.get_entity(int(target))
@@ -137,50 +530,72 @@ async def to(e):
                 target = target[1:]
             elif target.startswith('https://t.me/'):
                 target = target.replace('https://t.me/', '')
-            try:
-                entity = await ABH.get_entity(target)
-                return entity
-            except Exception as ex:
-                await hint(f"❌ خطأ أثناء جلب المستخدم: {ex}")
-                return None
+            entity = await ABH.get_entity(target)
+            return entity
+    except:
         return None
-    except Exception as ex:
-        await hint(f"⚠️ حدث خطأ أثناء معالجة الهدف: {ex}")
-        return None
-async def auth(event, x=False, to=None):
-    chat_id = event.chat_id
+ADMIN_CACHE = {}
+CACHE_TIME = 120
+async def is_admin(chat_id, user_id):
+    cache_key = f"{chat_id}:{user_id}"
+    now = time.time()    
+    if cache_key in ADMIN_CACHE:
+        is_admin, timestamp = ADMIN_CACHE[cache_key]
+        if now - timestamp < CACHE_TIME:
+            return is_admin
+    try:
+        participant = await ABH(GetParticipantRequest(channel=chat_id, participant=user_id))
+        is_admin = isinstance(participant.participant, (ChannelParticipantAdmin, ChannelParticipantCreator))
+    except:
+        is_admin = False    
+    ADMIN_CACHE[cache_key] = (is_admin, now)
+    return is_admin
+AUTH_CACHE = {}
+CACHE_TIME = 120 
+def set_user_rank(chat_id, user_id, rank_name):
+    r.hset(f"ranks:{chat_id}", str(user_id), rank_name)
+def get_all_group_data(chat_id):
+    return r.hgetall(f"ranks:{chat_id}")
+def remove_user(chat_id, user_id):
+    r.hdel(f"ranks:{chat_id}", str(user_id)) 
+def get_user_rank(chat_id, user_id):
+    rank = r.hget(f"ranks:{chat_id}", str(user_id))    
+    return rank if rank else None
+async def auth(event, x=False, to=None, chat=None):
+    chat_id = chat if chat else event.chat_id
     if to:
         user_id = to
     elif x:
         reply_msg = await event.get_reply_message()
-        user_id = reply_msg.sender_id if reply_msg else None
+        if not reply_msg:
+            return None
+        user_id = reply_msg.sender_id
     else:
-        user_id = event.sender_id
+        user_id = event.sender_id            
+    if not user_id:
+        return None
+    user_id_str = str(user_id)
     if user_id == wfffp:
         return "المطور الاساسي"
+    if chat_id in AUTH_CACHE:
+        if user_id_str in AUTH_CACHE[chat_id]:
+            return AUTH_CACHE[chat_id][user_id_str]
     if await is_owner(chat_id, user_id):
+        if chat_id not in AUTH_CACHE:
+            AUTH_CACHE[chat_id] = {}
+        AUTH_CACHE[chat_id][user_id_str] = "المالك"
         return "المالك"
-    devers = save(None, "secondary_devs.json")
-    if str(user_id) in devers.get(str(chat_id), []):
-        participant = await ABH(GetParticipantRequest(channel=int(chat_id), participant=int(user_id)))
-        if not isinstance(participant.participant, (ChannelParticipantAdmin, ChannelParticipantCreator)):
-            mention_text = await mention(event)
-            await event.reply(f"📉 تم تنزيل {mention_text} من قائمة المطورين الثانويين \n⚠️ السبب: ليس لديه صلاحيات مشرف.")
-            dev = f"{event.chat_id}:{user_id}"
-            delsave(dev, filename="secondary_devs.json")
-        else:
-            return "المطور الثانوي"
-    if is_assistant(chat_id, user_id):
-        participant = await ABH(GetParticipantRequest(channel=int(chat_id), participant=int(user_id)))
-        if not isinstance(participant.participant, (ChannelParticipantAdmin, ChannelParticipantCreator)):
-            mention_text = await mention(event)
-            await event.reply(f"📉 تم تنزيل {mention_text} من قائمة المعاونين \n⚠️ السبب: ليس لديه صلاحيات مشرف.")
-            data = load_auth()
-            if str(chat_id) in data and user_id in data[str(chat_id)]:
-                data[str(chat_id)].remove(user_id)
-                save_auth(data)
-        else:
-            return "المعاون"
+    redis_key = f"ranks:{chat_id}"    
+    user_rank = r.hget(redis_key, user_id_str)    
+    if user_rank:
+        admin = await is_admin(chat_id, user_id)        
+        if not admin:
+            r.hdel(redis_key, user_id_str)
+            remove_user(chat_id, user_id)
+            m = await ment(user_id)
+            await event.reply(f"تم حذف {m} من {user_rank} لعدم وجود صلاحيات إدارية")
+            return None
+        return 'ال'+ user_rank
     return None
 AUTH_FILE = 'assistant.json'
 if not os.path.exists(AUTH_FILE):
@@ -245,12 +660,12 @@ def count_warnings(user_id: int, chat_id: int) -> int:
     if chat_id_str in warns and user_id_str in warns[chat_id_str]:
         return warns[chat_id_str][user_id_str]
     return 0
-async def send(e, m, b=None):
-    c = e.chat_id
-    l = await LC(str(c))
+async def send(e, m, chat=None):
+    c = chat if chat else e.chat_id
+    l = LC(str(c))
     if not l:
         return
-    await ABH.send_message(l, m, buttons=b)
+    await ABH.send_message(l, m)
 def create(filename):
     if not os.path.exists(filename):
         with open(filename, 'w', encoding='utf-8') as f:
@@ -265,170 +680,139 @@ def save_json(filename, data):
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(str_data, f, ensure_ascii=False, indent=4)
 async def res(المصدر=None, stop=False, t=20*60):
-    d = create('res.json')
     if المصدر is None:
-        return d
+        all_keys = r.keys('*')
+        return {key: r.hgetall(key) for key in all_keys}
     if isinstance(المصدر, str) and ":" in المصدر:
         parts = المصدر.split(":")
         chat_id, user_id = str(parts[0]), str(parts[1])
     else:
-        chat_id, user_id = المصدر.chat_id, المصدر.sender_id
-    if chat_id not in d:
-        d[chat_id] = {}
-    end_time = int(time.time()) + (t or 20)
-    d[chat_id][user_id] = end_time
-    with open('res.json', 'w', encoding='utf-8') as file:
-        json.dump(d, file, ensure_ascii=False, indent=4)
+        chat_id, user_id = str(المصدر.chat_id), str(المصدر.sender_id)
+    end_time = int(time.time()) + (t or 20)    
+    r.hset(chat_id, user_id, end_time)
     if stop:
-        return d
+        return r.hgetall(chat_id)
     now = int(time.time())
     rights = ChatBannedRights(
         until_date=now + (t or 20),
         send_messages=True
     )
     await ABH(EditBannedRequest(channel=int(chat_id), participant=int(user_id), banned_rights=rights))
-    return d
+    return r.hgetall(chat_id)
 def delres(chat_id=None, user_id=None):
-    create('res.json')
-    with open('res.json', 'r', encoding='utf-8') as file:
-        data = json.load(file)
-    if chat_id and user_id:
-        chat_id = str(chat_id)
-        user_id = str(user_id)
-    if chat_id in data and user_id in data[chat_id]:
-        del data[chat_id][user_id]
-        if not data[chat_id]:
-            del data[chat_id]
-        with open('res.json', 'w', encoding='utf-8') as file:
-            json.dump(data, file, ensure_ascii=False, indent=4)
+    chat_str = str(chat_id)
+    user_str = str(user_id)    
+    if r.hexists(chat_str, user_str):
+        r.hdel(chat_str, user_str)
+        if r.hlen(chat_str) == 0:
+            r.delete(chat_str)
         return True
     return False
 async def info(e, msg_type):
-    f = 'info.json'
-    if not os.path.exists(f):
-        create(f)
-    with open(f, 'r', encoding='utf-8') as file:
-        content = file.read()
-        content = re.sub(r"[\x00-\x1F\x7F]", "", content)
-        content = re.sub(r",\s*([\]}])", r"\1", content)
-        try:
-            data = json.loads(content)
-        except json.JSONDecodeError:
-            data = {}
     chat = str(e.chat_id)
     user_id = str(e.sender_id)
-    if chat not in data:
-        data[chat] = {}
-    if user_id not in data[chat]:
-        data[chat][user_id] = {
-            "الرسائل": 0,
-            "الصور": 0,
-            "المتحركات": 0,
-            "الفويس نوت": 0,
-            "الفيديوهات": 0,
-            "الستيكرات": 0,
-            "الفويسات": 0,
-            "الصوتيات": 0,
-            "الملفات": 0,
-            "المواقع": 0,
-            "الاستفتاءات": 0
-        }
+    key = f"userstats:{chat}:{user_id}"
     if msg_type is None:
-        return data[chat][user_id]
-    if msg_type not in data[chat][user_id]:
-        data[chat][user_id][msg_type] = 0
-    data[chat][user_id][msg_type] += 1
-    with open(f, 'w', encoding='utf-8') as file:
-        json.dump(data, file, ensure_ascii=False, indent=4)
-    return data[chat][user_id]
-WHITELIST_FILE = "whitelist.json"
-whitelist_lock = asyncio.Lock()
-async def ads(group_id: int, user_id: int) -> None:
-    async with whitelist_lock:
-        data = {}
-        if os.path.exists(WHITELIST_FILE):
-            try:
-                with open(WHITELIST_FILE, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-            except json.JSONDecodeError:
-                data = {}
-        group_key = str(group_id)
-        group_list = data.get(group_key, [])
-        if user_id not in group_list:
-            group_list.append(user_id)
-            data[group_key] = group_list
-            with open(WHITELIST_FILE, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
-async def lw(group_id: int) -> list[int]:
-    async with whitelist_lock:
-        if not os.path.exists(WHITELIST_FILE):
-            return []
-        try:
-            with open(WHITELIST_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except json.JSONDecodeError:
-            return []
-        return data.get(str(group_id), [])
-CONFIG_FILE = "vars.json"
-config_lock = asyncio.Lock()
+        data = r.hgetall(key)
+        if not data:
+            return {
+                "الرسائل": 0,
+                "الصور": 0,
+                "المتحركات": 0,
+                "الفويس نوت": 0,
+                "الفيديوهات": 0,
+                "الستيكرات": 0,
+                "الفويسات": 0,
+                "الصوتيات": 0,
+                "الملفات": 0,
+                "المواقع": 0,
+                "الاستفتاءات": 0
+            }
+        return {k: int(v) for k, v in data.items()}
+    r.hincrby(key, msg_type, 1)
+    if msg_type != "الرسائل":
+        r.hincrby(key, "الرسائل", 1)
+    data = r.hgetall(key)
+    return {k: int(v) for k, v in data.items()}
+def ads(group_id, user_id):
+    r.sadd(f"whitelist:{group_id}", str(user_id))
+def lw(e):
+    return r.sismember(f"whitelist:{e.chat_id}", str(e.sender_id))
 async def configc(group_id: int, hint_cid=None) -> None:
-    config = create(CONFIG_FILE)
+    key = f"config:{group_id}"
     if hint_cid is None:
-        if str(group_id) in config:
-            del config[str(group_id)]
-            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                json.dump(config, f, ensure_ascii=False, indent=4)
-        return    
-    config[str(group_id)] = {"hint_gid": int(hint_cid)}
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(config, f, ensure_ascii=False, indent=4)
-async def LC(group_id: int) -> int | None:
-    async with config_lock:
-        if os.path.exists(CONFIG_FILE):
-            try:
-                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-            except json.JSONDecodeError:
-                return None
-            group_config = config.get(str(group_id))
-            if group_config and "hint_gid" in group_config:
-                return int(group_config["hint_gid"])
-        return None
-async def link(e, text=False):
-    chat = e.chat_id
-    id = e.id
-    c = str(chat).replace('-100', '')
-    x = f'https://t.me/c/{c}/{id}'
-    if text:
-        return x
-    chat = await e.get_chat()
-    name = getattr(chat, "title", "محادثة خاصة")
-    return f"[{name}]({x})"
-async def username(event, x=False):
-    if x:
-        r = await event.get_reply_message()
-        if not r:
-            return 'مالي خلك روح جيبه انت'
-        return r.sender.username
-    if event.sender and event.sender.username:
-        return event.sender.username
-    s = await event.get_sender()
-    if getattr(s, "usernames", None):
-        for u in s.usernames:
-            if u and u.username:
-                return u.username
+        r.delete(key)
+        return
+    r.set(key, int(hint_cid))
+def LC(group_id):
+    key = f"config:{group_id}"
+    value = r.get(key)
+    if value is not None:
+        return int(value)
     return None
-async def try_forward(event):
-    gidvar = await LC(event.chat_id)
+async def link(e, text=False):
+    chat_id = e.chat_id    
+    msg_id = getattr(e, 'message_id', None) or (e.message.id if hasattr(e, 'message') else e.id)    
+    c = str(chat_id).replace('-100', '')
+    link_url = f'https://t.me/c/{c}/{msg_id}'
+    if text:
+        return link_url    
+    chat = await e.get_chat()
+    name = getattr(chat, "title", "المحادثة")
+    return f"[{name}]({link_url})"
+async def usernames(user_object):
+    usernames = []    
+    if getattr(user_object, "usernames", None):
+        for u in user_object.usernames:
+            if getattr(u, "username", None):
+                usernames.append(u.username)    
+    if getattr(user_object, "username", None):
+        usernames.insert(0, user_object.username)    
+    usernames = list(dict.fromkeys(usernames))
+    return usernames
+async def username(event, x=None):
+    if x and x is not True:
+        try:
+            entity = await event.client.get_entity(x)
+            if entity.username:
+                return f"@{entity.username}"
+            return str(entity.id) 
+        except:
+            return "مستخدم غير معروف"
+    if x is True:
+        r = await event.get_reply_message()
+        if not r or not r.sender:
+            return 'مالي خلك روح جيبه انت'
+        if getattr(r.sender, 'username', None):
+            return f"@{r.sender.username}"
+        return str(r.sender_id)
+    sender = await event.get_sender()
+    if sender and getattr(sender, 'username', None):
+        return f"@{sender.username}"    
+    if hasattr(sender, "usernames") and sender.usernames:
+        for u in sender.usernames:
+            if u.active:
+                return f"@{u.username}"
+    return "لا يوجد يوزر"
+async def try_forward(event, r=None, chat=None, id=None):
+    gidvar = LC(event.chat_id)
     if not gidvar:
         return False
     try:
+        if id:
+            msg = id
+        elif r:
+            msg = r.id
+        else:
+            msg = event.id
+        from_peer = chat if chat else event.chat_id
         await ABH.forward_messages(
             entity=int(gidvar),
-            messages=event.id,
-            from_peer=event.chat_id
+            messages=msg,
+            from_peer=from_peer
         )
-    except:
+    except Exception as e:
+        # await hint(e)
         return False
     return True
 developers = {}
@@ -496,7 +880,7 @@ async def react(event, x):
             reaction=[ReactionEmoji(emoticon=x)],
             big=False))
     except Exception as e:
-        await hint(f"❌ خطأ أثناء إضافة رد الفعل: {e}")
+        return
 def adj(filename: str, data: Dict[str, Any]) -> bool:
     try:
         if not os.path.exists(filename):
@@ -572,33 +956,69 @@ async def get_owner(event, client=ABH):
         await hint(f"Error in get_owner: {e}")
         return None
     return None
-group = -1001784332159
-hint_gid = -1002168230471
-bot = "Anymous"
+timezone = pytz.timezone('Asia/Baghdad')
+GEMINI = "AIzaSyA5pzOpKVcMGm6Aek82KoB3Pk94dYg3LX4"
+genai.configure(api_key=GEMINI)
+model = genai.GenerativeModel("gemini-1.5-flash")
 wfffp = 1910015590
 async def hint(e):
-    await ABH.send_message(wfffp, str(e))
+    frame = inspect.currentframe().f_back
+    try:
+        filename = os.path.basename(frame.f_code.co_filename)
+        line = frame.f_lineno
+        func_name = frame.f_code.co_name        
+        msg = (
+            f"📍 **تفاصيل مكان الاستدعاء:**\n"
+            f"• الملف: `{filename}`\n"
+            f"• الدالة المستدعية: `{func_name}`\n"
+            f"• رقم السطر: `{line}`\n"
+        )
+        await ABH.send_message(wfffp, msg)
+        await ABH.send_message(wfffp, str(e))    
+    finally:
+        del frame
+mentions_dict = {}
 async def mention(event):
-    name = getattr(event.sender, 'first_name', None) or 'غير معروف'
     user_id = event.sender_id
+    if user_id in mentions_dict:
+        return mentions_dict[user_id]
+    user_data = profile(user_id)
+    name = None
+    if user_data and isinstance(user_data, dict):
+        name = user_data.get('name')    
+    if not name:
+        sender = await event.get_sender()
+        name = getattr(sender, 'first_name', 'مستخدم') or 'مستخدم'
+    if user_id not in mentions_dict:
+        mentions_dict[user_id] = f"[{name}](tg://user?id={user_id})"
     return f"[{name}](tg://user?id={user_id})"
 async def ment(entity):
     try:
-        if hasattr(entity, "id") and hasattr(entity, "first_name"):
-            name = getattr(entity, "first_name", "غير معروف")
+        user_id = None
+        name = None
+        if isinstance(entity, int):
+            user_id = entity
+        elif isinstance(entity, str) and entity.isdigit():
+            user_id = int(entity)
+        elif hasattr(entity, 'sender_id'): 
+            user_id = entity.sender_id
+        elif hasattr(entity, 'id'): 
             user_id = entity.id
-            return f"[{name}](tg://user?id={user_id})"
-        if hasattr(entity, "sender_id"):
-            sender = entity.sender or await entity.get_sender()
-            name = getattr(sender, "first_name", "غير معروف")
-            user_id = sender.id
-            return f"[{name}](tg://user?id={user_id})"
-        if hasattr(entity, "id"):
-            name = getattr(entity, "first_name", "غير معروف")
-            user_id = entity.id
-            return f"[{name}](tg://user?id={user_id})"
-        return "غير معروف"
-    except Exception:
+        if not user_id:
+            return "غير معروف"
+        if user_id in mentions_dict:
+            return mentions_dict[user_id]
+        user_data = profile(user_id)
+        if user_data:
+            name = user_data.get('name') if isinstance(user_data, dict) else getattr(user_data, 'name', None)
+        if not name:
+            if not hasattr(entity, 'first_name') or (hasattr(entity, 'id') and entity.id != user_id):
+                entity = await ABH.get_entity(user_id)
+            name = getattr(entity, 'first_name', 'مستخدم') or 'مستخدم'
+        if user_id not in mentions_dict:
+            mentions_dict[user_id] = f"[{name}](tg://user?id={user_id})"
+        return f"[{name}](tg://user?id={user_id})"
+    except Exception as e:
         return "غير معروف"
 football = [
         {
@@ -1035,120 +1455,137 @@ questions = [
 ]
 CHANNEL = 'theholyqouran'
 suras = {
-    ('سورة الفاتحة',): '1',
-    ('سورة البقرة',): '2',
-    ('سورة آل عمران', 'سورة ال عمران'): '3',
-    ('سورة النساء',): '4',
-    ('سورة المائده', 'سورة المائدة'): '5',
-    ('سورة الأنعام', 'سورة الانعام'): '6',
-    ('سورة الأعراف', 'سورة الاعراف'): '7',
-    ('سورة الأنفال', 'سورة الانفال'): '8',
-    ('سورة التوبة',): '9',
-    ('سورة يونس',): '10',
-    ('سورة هود',): '11',
-    ('سورة يوسف',): '12',
-    ('سورة الرعد',): '13',
-    ('سورة ابراهيم', 'سورة إبراهيم'): '14',
-    ('سورة الحجر',): '15',
-    ('سورة النحل',): '16',
-    ('سورة الاسراء', 'سورة الإسراء'): '17',
-    ('سورة الكهف',): '18',
-    ('سورة مريم',): '19',
-    ('سورة طه',): '20',
-    ('سورة الانبياء', 'سورة الأنبياء'): '21',
-    ('سورة الحج',): '22',
-    ('سورة المؤمنون', 'سورة المومنون'): '23',
-    ('سورة الفرقان',): '24',
-    ('سورة النور',): '25',
-    ('سورة الشعراء',): '26',
-    ('سورة العنكبوت',): '27',
-    ('سورة النمل',): '28',
-    ('سورة القصص',): '29',
-    ('سورة الروم',): '30',
-    ('سورة لقمان',): '31',
-    ('سورة السجدة',): '32',
-    ('سورة الأحزاب', 'سورة الاحزاب'): '33',
-    ('سورة سبأ', 'سورة سبا'): '34',
-    ('سورة فاطر',): '35',
-    ('سورة يس',): '36',
-    ('سورة الصافات',): '37',
-    ('سورة ص',): '38',
-    ('سورة الزمر',): '39',
-    ('سورة غافر',): '40',
-    ('سورة فصلت',): '41',
-    ('سورة الشورى',): '42',
-    ('سورة الزخرف',): '43',
-    ('سورة الدخان',): '44',
-    ('سورة الجاثية',): '45',
-    ('سورة الاحقاف', 'سورة الأحقاف'): '46',
-    ('سورة الفتح',): '47',
-    ('سورة محمد',): '48',
-    ('سورة الحجرات',): '49',
-    ('سورة الذاريات',): '50',
-    ('سورة ق',): '51',
-    ('سورة النجم',): '52',
-    ('سورة الطور',): '53',
-    ('سورة القمر',): '54',
-    ('سورة الرحمن',): '55',
-    ('سورة الواقعة',): '56',
-    ('سورة الحديد',): '57',
-    ('سورة المجادلة',): '58',
-    ('سورة الحشر',): '59',
-    ('سورة الممتحنة',): '60',
-    ('سورة الصف',): '61',
-    ('سورة الجمعة',): '62',
-    ('سورة المنافقون',): '63',
-    ('سورة التغابن',): '64',
-    ('سورة الطلاق',): '65',
-    ('سورة التحريم',): '66',
-    ('سورة الملك',): '67',
-    ('سورة القلم',): '68',
-    ('سورة الحاقة',): '69',
-    ('سورة المعارج',): '70',
-    ('سورة نوح',): '71',
-    ('سورة الجن',): '72',
-    ('سورة المزمل',): '73',
-    ('سورة المدثر',): '74',
-    ('سورة القيامة',): '75',
-    ('سورة الإنسان', 'سورة الانسان'): '76',
-    ('سورة المرسلات',): '77',
-    ('سورة النبا', 'سورة النبأ'): '80',
-    ('سورة النازعات',): '78',
-    ('سورة عبس',): '79',
-    ('سورة التكوير',): '81',
-    ('سورة الانفطار', 'سورة الإنفطار'): '82',
-    ('سورة المطففين',): '83',
-    ('سورة الانشقاق',): '84',
-    ('سورة البروج',): '85',
-    ('سورة الطارق',): '86',
-    ('سورة الاعلى', 'سورة الأعلى'): '87',
-    ('سورة الغاشية',): '88',
-    ('سورة الفجر',): '89',
-    ('سورة البلد',): '90',
-    ('سورة الشمس',): '91',
-    ('سورة الليل',): '92',
-    ('سورة الضحى',): '93',
-    ('سورة الشرح',): '94',
-    ('سورة التين',): '96',
-    ('سورة العلق',): '95',
-    ('سورة القدر',): '97',
-    ('سورة البينة',): '98',
-    ('سورة الزلزلة',): '99',
-    ('سورة العاديات',): '100',
-    ('سورة القارعة',): '101',
-    ('سورة التكاثر',): '102',
-    ('سورة العصر',): '103',
-    ('سورة الهمزة',): '104',
-    ('سورة الفيل',): '105',
-    ('سورة قريش',): '106',
-    ('سورة الماعون',): '107',
-    ('سورة الكوثر',): '108',
-    ('سورة الكافرون',): '109',
-    ('سورة النصر',): '110',
-    ('سورة المسد',): '111',
-    ('سورة الاخلاص', 'سورة الإخلاص'): '112',
-    ('سورة الفلق',): '113',
-    ('سورة الناس',): '114',
+    "سورة الفاتحة": 1,
+    "سورة البقرة": 2,
+    "سورة آل عمران": 3,
+    "سورة ال عمران": 3,
+    "سورة النساء": 4,
+    "سورة المائده": 5,
+    "سورة المائدة": 5,
+    "سورة الأنعام": 6,
+    "سورة الانعام": 6,
+    "سورة الأعراف": 7,
+    "سورة الاعراف": 7,
+    "سورة الأنفال": 8,
+    "سورة الانفال": 8,
+    "سورة التوبة": 9,
+    "سورة يونس": 10,
+    "سورة هود": 11,
+    "سورة يوسف": 12,
+    "سورة الرعد": 13,
+    "سورة ابراهيم": 14,
+    "سورة إبراهيم": 14,
+    "سورة الحجر": 15,
+    "سورة النحل": 16,
+    "سورة الاسراء": 17,
+    "سورة الإسراء": 17,
+    "سورة الكهف": 18,
+    "سورة مريم": 19,
+    "سورة طه": 20,
+    "سورة الانبياء": 21,
+    "سورة الأنبياء": 21,
+    "سورة الحج": 22,
+    "سورة المؤمنون": 23,
+    "سورة المومنون": 23,
+    "سورة الفرقان": 24,
+    "سورة النور": 25,
+    "سورة الشعراء": 26,
+    "سورة العنكبوت": 27,
+    "سورة النمل": 28,
+    "سورة القصص": 29,
+    "سورة الروم": 30,
+    "سورة لقمان": 31,
+    "سورة السجدة": 32,
+    "سورة الأحزاب": 33,
+    "سورة الاحزاب": 33,
+    "سورة سبأ": 34,
+    "سورة سبا": 34,
+    "سورة فاطر": 35,
+    "سورة يس": 36,
+    "سورة الصافات": 37,
+    "سورة ص": 38,
+    "سورة الزمر": 39,
+    "سورة غافر": 40,
+    "سورة فصلت": 41,
+    "سورة الشورى": 42,
+    "سورة الزخرف": 43,
+    "سورة الدخان": 44,
+    "سورة الجاثية": 45,
+    "سورة الاحقاف": 46,
+    "سورة الأحقاف": 46,
+    "سورة الفتح": 47,
+    "سورة محمد": 48,
+    "سورة الحجرات": 49,
+    "سورة الذاريات": 50,
+    "سورة ق": 51,
+    "سورة النجم": 52,
+    "سورة الطور": 53,
+    "سورة القمر": 54,
+    "سورة الرحمن": 55,
+    "سورة الواقعة": 56,
+    "سورة الحديد": 57,
+    "سورة المجادلة": 58,
+    "سورة الحشر": 59,
+    "سورة الممتحنة": 60,
+    "سورة الصف": 61,
+    "سورة الجمعة": 62,
+    "سورة المنافقون": 63,
+    "سورة التغابن": 64,
+    "سورة الطلاق": 65,
+    "سورة التحريم": 66,
+    "سورة الملك": 67,
+    "سورة القلم": 68,
+    "سورة الحاقة": 69,
+    "سورة المعارج": 70,
+    "سورة نوح": 71,
+    "سورة الجن": 72,
+    "سورة المزمل": 73,
+    "سورة المدثر": 74,
+    "سورة القيامة": 75,
+    "سورة الإنسان": 76,
+    "سورة الانسان": 76,
+    "سورة المرسلات": 77,
+    "سورة النبا": 80,
+    "سورة النبأ": 80,
+    "سورة النازعات": 78,
+    "سورة عبس": 79,
+    "سورة التكوير": 81,
+    "سورة الانفطار": 82,
+    "سورة الإنفطار": 82,
+    "سورة المطففين": 83,
+    "سورة الانشقاق": 84,
+    "سورة البروج": 85,
+    "سورة الطارق": 86,
+    "سورة الاعلى": 87,
+    "سورة الأعلى": 87,
+    "سورة الغاشية": 88,
+    "سورة الفجر": 89,
+    "سورة البلد": 90,
+    "سورة الشمس": 91,
+    "سورة الليل": 92,
+    "سورة الضحى": 93,
+    "سورة الشرح": 94,
+    "سورة التين": 96,
+    "سورة العلق": 95,
+    "سورة القدر": 97,
+    "سورة البينة": 98,
+    "سورة الزلزلة": 99,
+    "سورة العاديات": 100,
+    "سورة القارعة": 101,
+    "سورة التكاثر": 102,
+    "سورة العصر": 103,
+    "سورة الهمزة": 104,
+    "سورة الفيل": 105,
+    "سورة قريش": 106,
+    "سورة الماعون": 107,
+    "سورة الكوثر": 108,
+    "سورة الكافرون": 109,
+    "سورة النصر": 110,
+    "سورة المسد": 111,
+    "سورة الاخلاص": 112,
+    "سورة الإخلاص": 112,
+    "سورة الفلق": 113,
+    "سورة الناس": 114,
 }
 x_ar = {
     '🇦🇫': 'افغانستان',
@@ -1323,1210 +1760,1177 @@ x_ar = {
     '🇿🇼': 'زيمبابوي',
 }
 لطميات = {
-    "من هو العباس  حيدر البياتي ليلة ٧ محرم": {
+    "من هو العباس": {
         "message_id": 50
     },
-    "هلا ب اربعينه محمد الجنامي  المشايه 1445 هـ 2023 م": {
+    "هلا ب اربعينه": {
         "message_id": 51
     },
-    "جداه الرادود باسم الكربلائي": {
+    "جداه": {
         "message_id": 52
     },
-    "عدلين ميتين يمك  الملا محمد باقر الخاقاني - عزاء حسينية الحاج ع": {
+    "عدلين ميتين يمك": {
         "message_id": 53
     },
-    "حروبك ياعلي  علي ياحيدر  حيدر البياتي - جديد شهادة امير المؤ": {
+    "حروبك ياعلي": {
         "message_id": 54
     },
-    "راية العباس    حسين والي اللامي": {
+    "راية العباس": {
         "message_id": 55
     },
-    "غضب الله  الرادود حيدر البياتي ليلة ٧ محرم الحرام 1446هـ - 2": {
+    "غضب الله": {
         "message_id": 56
     },
-    "اعصار العباس  كرار ابو غنيم  موكب شعراء ورواديد النجف ليله 7": {
+    "اعصار العباس": {
         "message_id": 57
     },
-    "معكم معكم - with you  الملا محمد بوجبارة - الملا محمود اسيري": {
+    "معكم معكم": {
         "message_id": 58
     },
-    "بندرية خيرة الله من الخلق ابي  محمد عامر الاسدي  محرم الحرام": {
+    "خيرة الله من الخلق ابي": {
         "message_id": 59
     },
-    "قرة عين  الرادود خضر عباس - هيئة نهج علي - محرم الحرام 1446 هـ": {
+    "قرة عين": {
         "message_id": 60
     },
-    "ليالي الجروح  الملا محمد باقر الخاقاني  هيئة الحسن المجتبى عل": {
+    "ليالي الجروح": {
         "message_id": 61
     },
-    " موعود الك  الرادود سيد محمد الحسيني": {
+    "موعود الك": {
         "message_id": 62
     },
-    "سيد سلام الحسيني  الى الوداع سيدي ": {
+    "الى الوداع سيدي": {
         "message_id": 63
     },
     "نصراً من الله وفتح قريبll ملا مجتبى الكعبي ll موكب عشق علي -البص": {
         "message_id": 64
     },
-    "نزله نجفيه - يبن عم المصطفى وياساعده - السيد مرتضى الصافي ( ليلة": {
+    "يبن عم المصطفى وياساعده": {
         "message_id": 66
     },
-    "عباس بونينك  مسلم الوائلي  هيئة وحسينية باب الزهراء  محرم الح": {
+    "عباس بونينك": {
         "message_id": 67
     },
-    "يحيى البنداوي \"امنة البيوت بيده وطلعنه\" طلعت زلمنة #حصريا (offic": {
+    "طلعت زلمنة": {
         "message_id": 68
     },
-    "رحلة  قحطان البديري  ( مشاية الاربعين ) 1444": {
+    "رحلة": {
         "message_id": 69
     },
     "ابد والله لن ننسى حسينا": {
         "message_id": 70
     },
-    "ها يمهدي  الرادود باسم الكربلائي": {
+    "ها يمهدي": {
         "message_id": 73
     },
-    "ها عليهم  احمد الباوي": {
+    "ها عليهم": {
         "message_id": 74
     },
-    "ابد والله يا زهراء ما ننسى حسيناه-باسم الكربلائي 1432": {
+    "ابد والله يا زهراء ما ننسى حسيناه": {
         "message_id": 75
     },
-    "شد الثامه  محمد الجنامي  محرم الحرام 1445": {
+    "شد الثامه": {
         "message_id": 76
     },
-    "لزمة علينه المشرعهملا علي الوائلي وملا مسلم الوائلي  هيئة313 مح": {
+    "لزمة علينه المشرعه": {
         "message_id": 78
     },
-    "فروا الى الحسين  #علي_سعيد_الوائلي _قصيدة استقبال محرم الحرام 2": {
+    "فروا الى الحسين": {
         "message_id": 83
     },
-    "صوت احساس وي عباس جفك زمزم يا وفاي جيب الماي": {
+    "صوت احساس": {
         "message_id": 84
     },
-    "الساقي الرادود سيف الذهبيالذاكر مهند طالب": {
+    "الساقي": {
         "message_id": 85
     },
-    "يا نجمه  الرادود باسم الكربلائي": {
+    "يا نجمه": {
         "message_id": 86
     },
-    "يلابس ثياب العرس وين العرس  بندرية  سيد سلام الحسيني": {
+    "يالابس ثياب العرس وين العرس": {
         "message_id": 87
     },
-    "ذوله الولدملا علي الوائليموكب شباب علي الاكبر": {
+    "ذوله الولد": {
         "message_id": 88
     },
-    "شيخ النشامه  الرادود خضر عباس - هيئة نهج علي - جديد قصيدة للعبا": {
+    "شيخ النشامه": {
         "message_id": 89
     },
-    "ام وهب  الملا حيدر الفريجي  هيئة جبل الصبر زينب (ع)": {
+    "ام وهب": {
         "message_id": 90
     },
-    "الرادود خضر عباس  حسينا  1445 هـ": {
+    "حسينا": {
         "message_id": 91
     },
-    "راياتنا  شهادة الرسول الاعظم ص  الرادود خضر عباس": {
+    "راياتنا": {
         "message_id": 92
     },
-    "ما بيننا ايات  الحاج باسم الكربلائي": {
+    "ما بيننا ايات": {
         "message_id": 95
     },
-    "ملكك وانت ديني  سيد فاقد الموسوي  1445 هـ": {
+    "ملكك وانت ديني": {
         "message_id": 96
     },
     "عيد الغدير بنكهة اهوازية": {
         "message_id": 97
     },
-    "روحي  الرادود باسم الكربلائي": {
-        "message_id": 98
-    },
-    "مشوار الحب - الرادود باسم الكربلائي": {
+    "مشوار الحب": {
         "message_id": 99
     },
-    "اطوي الارض  الحاج باسم الكربلائي": {
+    "اطوي الارض": {
         "message_id": 100
     },
-    "دنيا  باسم الكربلائي": {
+    "دنيا": {
         "message_id": 101
     },
-    "يالراهب برسمه  الرادود باسم الكربلائي": {
+    "يالراهب برسمه": {
         "message_id": 102
     },
-    "طلعت يحسين المشاية  مشتركة ، قحطان البديري ، حسن الكطراني  قصي": {
+    "طلعت يحسين المشاية": {
         "message_id": 103
     },
-    "شايل اصرار هو الدرس من مدرسه حيدر علمه جبير وما يشيل الصف كرار…": {
+    "شايل اصرار": {
         "message_id": 104
     },
-    "قمر الال هلا  الحاج باسم الكربلائي": {
+    "قمر الال هلا": {
         "message_id": 105
     },
-    "صورة علي  الملا علي الساعدي": {
+    "صورة علي": {
         "message_id": 106
     },
-    "ام الوجود  يحيى عفارة 1444 هـ": {
+    "ام الوجود": {
         "message_id": 107
     },
-    "عصابة امي الماطاحت من لفلفتها ، فرقة الانشاد الاهوازية ، حسن نصر": {
+    "عصابة امي الماطاحت": {
         "message_id": 108
     },
     "خطة حرب": {
         "message_id": 109
     },
-    "كلبي ضامي  مسلم الوائلي  عزاء لواء الحسين 1441": {
+    "كلبي ضامي": {
         "message_id": 112
     },
-    "سامحيني  الرادود باسم الكربلائي": {
+    "سامحيني": {
         "message_id": 113
     },
-    "شيخ الخدام موسى البولاني": {
+    "شيخ الخدام": {
         "message_id": 116
     },
-    "زينب لفت - الحاج باسم الكربلائي": {
+    "زينب لفت": {
         "message_id": 117
     },
     "نزله  الرادود احمد الفتلاوي": {
         "message_id": 118
     },
-    "حديث الموت  ملا مجتبى الكعبي  هيئة حرم الله  مشاية الاربعي": {
+    "حديث الموت": {
         "message_id": 119
     },
-    "جبنالك ماي ويانه  ملا علي الوائلي  محرم 1446 هجري": {
+    "جبنالك ماي ويانه": {
         "message_id": 120
     },
-    "اول خليفة  علي سعيد الوائلي": {
+    "اول خليفة": {
         "message_id": 122
     },
-    "يا ساقي الماي - ملا باسم الكربلائي المونتاج الكامل hd": {
+    "يا ساقي الماي": {
         "message_id": 123
     },
-    "شكراً جزيلاً عباس  ملا مصطفى السوداني": {
+    "شكراً جزيلاً عباس": {
         "message_id": 124
     },
-    "بندرية  الرادود خضر عباس": {
+    "بندرية الرادود خضر عباس": {
         "message_id": 125
     },
     "هوسات العباس": {
         "message_id": 126
     },
-    "هوسات الموت  الرادود حيدر البياتي والشاعر مصطفى العيساوي": {
+    "هوسات الموت": {
         "message_id": 127
     },
-    "طبت عراضه كوم طب اعليهم _جبارالحريشاوي_ هوسات العباس  _كوم اعرض ": {
+    "طبت عراضه كوم طب عليهم": {
         "message_id": 128
     },
-    "مجانينه  محمد الجنامي": {
+    "مجانينه": {
         "message_id": 129
     },
-    "مرتضى حرب  مات الورد  الليالي الفاطمية 1445 هجري": {
+    "مات الورد": {
         "message_id": 130
     },
-    "ياكلبي كافي ولم العتاب  مسلم الوائلي  هيئة وارث الائمة 1442": {
+    "ياكلبي كافي ولم العتاب": {
         "message_id": 132
     },
-    "حبست دموع عيني  محمد الجنامي": {
+    "حبست دموع عيني": {
         "message_id": 133
     },
-    "سد عينك  سيد فاقد الموسوي  1445 هـ": {
+    "سد عينك": {
         "message_id": 134
     },
-    "شد عليهم  الرادود محمد الموسوي": {
+    "شد عليهم": {
         "message_id": 135
     },
-    "هذا كافل زينب   محمد الحجيرات  محرم ١٤٤١ هـ": {
+    "هذا كافل زينب": {
         "message_id": 137
     },
-    "عباس لو علي  الرادود حيدر البياتي": {
+    "عباس لو علي": {
         "message_id": 138
     },
-    "ناحر الحومه  احمد الباوي 1446 هـ": {
+    "ناحر الحومه": {
         "message_id": 139
     },
-    "خجلانه هواي  الرادود باسم الكربلائى": {
+    "خجلانه هواي": {
         "message_id": 140
     },
-    "قارورة  الرادود باسم الكربلائي": {
+    "قارورة": {
         "message_id": 141
     },
     "النوايب صوبني": {
         "message_id": 143
     },
-    "وليدي القمر  الرادود باسم الكربلائي": {
+    "وليدي القمر": {
         "message_id": 144
     },
-    "بجيتك  ملا مجتبى الكعبي  موكب احزان السماوه  محرم ١٤٤٦هـ ٢": {
+    "بجيتك": {
         "message_id": 145
     },
-    "مرت سنة ونص  الرادود باسم الكربلائي": {
+    "مرت سنة ونص": {
         "message_id": 146
     },
-    "اين استقرت يا ابو صالح  ملا فاضل الكربلائي  1437 2015": {
+    "اين استقرت يا ابو صالح": {
         "message_id": 147
     },
-    "علم عالقاع يا حيدر يا بويه ومنك اتعذر   باسم الكربلائي": {
+    "العلم عالكاع يا حيدر": {
         "message_id": 149
     },
-    "اشهدوله  الرادود باسم الكربلائي": {
+    "اشهدوله": {
         "message_id": 151
     },
-    "ذوله خوتهم صدگ  مسلم الوائلي  1446هـ": {
+    "ذوله خوتهم صدك": {
         "message_id": 153
     },
-    "للمشرعه تعنيت  سيد سلام الحسيني  محرم الحرام 1446 ه‍  عزاء ال": {
+    "للمشرعه تعنيت": {
         "message_id": 154
     },
-    "الخدم بحماك  سيد سلام الحسيني [ محرم الحرام 1446 هجري ] عزاء حس": {
+    "الخدم بحماك": {
         "message_id": 155
     },
-    "هله يا هيبة الساده الرادود حيدر البياتي #جديد2024": {
+    "هله يا هيبة": {
         "message_id": 156
     },
-    "نصر الله الرادود حيدر البياتي": {
+    "نصر الله": {
         "message_id": 157
     },
-    "كلشي مات  ملا علي الوائلي  عزاء هيئة ملك المشرعه": {
+    "كلشي مات": {
         "message_id": 158
     },
-    "لاترحلي عباس عجيد العامريماتم الشبيه الاشبه علي الاكبر بغدا": {
+    "لاترحلي": {
         "message_id": 160
     },
-    "ان وعد الله حق  ملا مجتبى الكعبي  video cl  اصدار _١٤٤٦هـ ": {
+    "ان وعد الله حق": {
         "message_id": 161
     },
-    "سارح خيالي  الحاج باسم الكربلائي": {
-        "message_id": 162
-    },
-    "يا زينب  الرادود باسم الكربلائي": {
+    "يا زينب": {
         "message_id": 163
     },
-    "هاي الزلم  حسن خريبط 2024 حصريا": {
+    "هاي الزلم": {
         "message_id": 164
     },
-    "تسبيحة عشاق  الرادود باسم الكربلائي": {
+    "تسبيحة عشاق": {
         "message_id": 165
     },
-    "سلام الله  الرادود باسم الكربلائي": {
+    "سلام الله": {
         "message_id": 166
     },
-    "يا باب الحوائج حاجتي يمك  باسم الكربلائي  استشهاد الامام الكاظ": {
+    "يا باب الحوائج حاجتي يمك": {
         "message_id": 167
     },
     "سيد الاحساس": {
         "message_id": 168
     },
-    "الفصول الاربعة  الرادود باسم الكربلائي": {
+    "الفصول الاربعة": {
         "message_id": 169
     },
-    "طبع الشمع  الرادود باسم الكربلائي": {
+    "طبع الشمع": {
         "message_id": 170
     },
-    "تدري لو متدري  الرادود باسم الكربلائي": {
+    "تدري لو متدري": {
         "message_id": 171
     },
-    "سامحني  الحاج باسم الكربلائي": {
+    "سامحني": {
         "message_id": 172
     },
-    "قلب مجروح  الرادود باسم الكربلائي": {
+    "قلب مجروح": {
         "message_id": 173
     },
-    "ياحي الله الاكبر  الرادود باسم الكربلائي": {
+    "ياحي الله الاكبر": {
         "message_id": 174
     },
-    "قاللها صار  الرادود باسم الكربلائي": {
+    "قاللها صار": {
         "message_id": 176
     },
-    "نتيجة غيبتك  الرادود باسم الكربلائي": {
+    "نتيجة غيبتك": {
         "message_id": 177
     },
-    "انا من انا  الرادود باسم الكربلائى": {
+    "انا من انا": {
         "message_id": 178
     },
-    "ام البنين تنادي الكعبيحسينية ضامن الغزال عليه السلامم": {
+    "ام البنين تنادي": {
         "message_id": 179
     },
     "نزلة نجفية ": {
         "message_id": 180
     },
-    " زينب ردت من الشام  1445 هـ": {
+    "زينب ردت من الشام": {
         "message_id": 205
     },
-    "ملك الموت  الرادود باسم الكربلائي": {
+    "ملك الموت": {
         "message_id": 184
     },
-    "عينك  الرادود باسم الكربلائي": {
+    "عينك": {
         "message_id": 185
     },
-    "لا فتى الا علي  الرادود باسم الكربلائي": {
+    "لا فتى الا علي": {
         "message_id": 186
     },
-    "حياتي  الرادود باسم الكربلائي": {
-        "message_id": 187
-    },
-    "رحل كل غالي  الرادود باسم الكربلائي": {
+    "رحل كل غالي": {
         "message_id": 188
     },
-    "ندمان وراجعلك  عباس عجيد العامري  هيئة حفيد الامام الكاظم اب": {
+    "ندمان وراجعلك": {
         "message_id": 189
     },
-    "منين اجيب الماي  الرادود باسم الكربلائي": {
+    "منين اجيب الماي": {
         "message_id": 190
     },
-    "انا الهلال  الرادود باسم الكربلائي": {
+    "انا الهلال": {
         "message_id": 191
     },
-    "حيدر من وصلها  الرادود باسم الكربلائي": {
+    "حيدر من وصلها": {
         "message_id": 192
     },
-    "لا تتاخر عليه  الرادود باسم الكربلائى": {
+    "لا تتاخر عليه": {
         "message_id": 193
     },
-    "يالمهدي  باسم الكربلائي": {
+    "يالمهدي": {
         "message_id": 195
     },
     "تذكرة عشق": {
         "message_id": 196
     },
-    "الخير كله بخدمة حسين - الملا علي بوحمد  ليلة 2 محرم 1441 هـ": {
+    "الخير كله بخدمة حسين": {
         "message_id": 197
     },
-    "طلع شباب من الخيم  عباس عجيد العامري  موكب خوة العباس (ع) - ": {
+    "طلع شباب من الخيم": {
         "message_id": 198
     },
-    "اضحاب الحسين  الرادود باسم الكربلائي": {
+    "اضحاب الحسين": {
         "message_id": 199
     },
-    "يا طود الصبر  الحاج باسم الكربلائي": {
+    "يا طود الصبر": {
         "message_id": 200
     },
-    "ياحيدر بباب الدار  الرادود باسم الكربلائي": {
+    "ياحيدر بباب الدار": {
         "message_id": 201
     },
-    "اللهم عجل - الحاج باسم الكربلائي": {
+    "اللهم عجل": {
         "message_id": 202
     },
-    "ليلة وداع  الرادود باسم الكربلائي": {
+    "ليلة وداع": {
         "message_id": 203
     },
-    "عاشق وحسيني  الرادود باسم الكربلائي": {
+    "عاشق وحسيني  ": {
         "message_id": 204
     },
-    "شال الطف عباس  الملا مرتضى الحميداوي - عزاء هيئة رماد الخيام - ": {
+    "شال الطف": {
         "message_id": 206
     },
     "مولاتي يا مولاتي": {
         "message_id": 207
     },
-    "يا حادي الضعن ريض الرادود عباس الاسحاقي": {
+    "يا حادي الضعن ريض": {
         "message_id": 208
     },
-    "مظلوم حسين جانم  قسما بالله داحي الارض خلاق السماوات عربي  فا": {
+    "مظلوم حسين جانم": {
         "message_id": 209
     },
-    "هلا بك  الحاج باسم الكربلائي": {
+    "هلا بك": {
         "message_id": 210
     },
-    "علي حيدر يكرار  دانيال بوجبارة  1444 هـ": {
+    "علي حيدر يكرار": {
         "message_id": 211
     },
-    "جف اليصافح  باسم الكربلائي": {
+    "جف اليصافح": {
         "message_id": 213
     },
-    "كل شي عباس  محمد الحجيرات  محرم 1441هـ": {
+    "كل شي عباس": {
         "message_id": 214
     },
-    "سامع اذ حب الگلب  ملا مجتبى الكعبي  موكب سيد الماء  ١٤٤٦هـ": {
+    "سامع اذ حب الكلب": {
         "message_id": 215
     },
-    "الم سبي حرم  الرادود باسم الكربلائي": {
+    "الم سبي حرم": {
         "message_id": 216
     },
-    "انا بنت الهتف جبريل  الرادود باسم الكربلائي": {
+    "انا بنت الهتف جبريل": {
         "message_id": 217
     },
-    "شور  مات الولد مات   الملا كرار الكربلائي ": {
+    "مات الولد مات": {
         "message_id": 218
     },
-    "ضي منحرك (ميمر كربلائي) - علي بوحمد  dhay manharak - ali bouham": {
+    "ضي منحرك": {
         "message_id": 219
     },
-    " ها هو القاسم  سيد محمد الحسيني": {
+    "ها هو القاسم": {
         "message_id": 220
     },
-    "بين المهدي والعباس  الرادود باسم الكربلائي": {
+    "بين المهدي والعباس": {
         "message_id": 221
     },
-    "مرتضى حرب - كولو علي": {
+    "كولو علي": {
         "message_id": 222
     },
-    "همت و الشوق جنني باسم الكربلائي #باسم_الكربلائي": {
-        "message_id": 223
-    },
-    "كل مايجي اليل  سيد فاقد الموسوي  video 2023": {
+    "كل مايجي اليلvideo 2023": {
         "message_id": 224
     },
-    "ليث المعركة   محمد الخياط  video clip 2018": {
+    "ليث المعركة": {
         "message_id": 225
     },
-    "الماتم ثقافتنا  باسم الكربلائي": {
+    "الماتم ثقافتنا": {
         "message_id": 226
     },
-    "ياعلي مدد - باسم الكربلائي": {
+    "ياعلي مدد": {
         "message_id": 227
     },
-    "نسل حيدرم  الرادود محمد الحجيرات  مونتاج جديد  محرم 1438": {
+    "نسل حيدرم": {
         "message_id": 228
     },
-    "يا فاطمة يم الحسن  الملا عمار الكناني - جامع ذي الفقار- العراق ": {
+    "يا فاطمة يم الحسن": {
         "message_id": 229
     },
-    "يا بوفاضل  الرادود باسم الكربلائي": {
+    "يا بوفاضل": {
         "message_id": 231
     },
-    "براءة العشق  الرادود باسم الكربلائي": {
+    "براءة العشق": {
         "message_id": 232
     },
-    "يخيمات  الرادود عمار الكناني  محرم -١٤٣٩": {
+    "يخيمات": {
         "message_id": 233
     },
-    "مصحفنه خط احمر  محمد الحلفي  مجالس محرم 1445هـ 2023مـ   2023 ": {
+    "مصحفنه خط احمر": {
         "message_id": 234
     },
-    "زينب وين  الحاج باسم الكربلائي": {
+    "زينب وين": {
         "message_id": 235
     },
-    "محمد الحجيرات  الكوثرية  2021-1442": {
+    "الكوثرية": {
         "message_id": 236
     },
-    "يوم   باسم الكربلائي": {
-        "message_id": 237
-    },
-    "نمشي مع الحجة  باسم الكربلائي": {
+    "نمشي مع الحجة": {
         "message_id": 238
     },
-    "اجه الموت  الرادود باسم الكربلائي": {
+    "اجه الموت": {
         "message_id": 239
     },
-    "رجعت ادين الطغيان  الرادود باسم الكربلائي": {
+    "رجعت ادين الطغيان": {
         "message_id": 240
     },
-    "تصد للدرب عيني  سيد سلام الحسيني  [ شهادة مولاتي ام البنين عليه": {
+    "تصد للدرب عيني": {
         "message_id": 241
     },
-    "ظلم كسر ضلع  الرادود باسم الكربلائي": {
+    "ظلم كسر ضلع": {
         "message_id": 242
     },
-    "سلطان الرفض _ الرادود كرار ابو غنيم والرادود حيدر البياتي": {
+    "سلطان الرفض": {
         "message_id": 243
     },
-    "قيامه كربله  الرادود محمد باقر الخاقاني  شوط كربلائي": {
+    "قيامه كربله": {
         "message_id": 244
     },
-    "زينب نادت السجاد  محمد باقر الخاقاني ( شوط كربلائي )": {
+    "زينب نادت السجاد )": {
         "message_id": 246
     },
-    "انشوده المهدي قادم ناصر للثوار  عباس عدنان الحسناوي": {
-        "message_id": 247
-    },
-    "يسلطان المشاعر ملا حسن خريبط": {
+    "يسلطان المشاعر": {
         "message_id": 248
     },
-    "شوط كربلائي باسم الكربلائي": {
+    "شوط كربلائي": {
         "message_id": 249
     },
-    "نحن لانهزم ومنا عطاء الدم \" غزة الصمود والعزة \"": {
+    "نحن لا نهزم": {
         "message_id": 250
     },
-    "اوبريت الله في الساحة - حصرياً 2024": {
+    "الله في الساحة": {
         "message_id": 251
     },
-    "اوبريت المد الشيعي 2015 علي الدلفي مصطفى الربيعي مهد العبودي غسا": {
+    "المد الشيعي": {
         "message_id": 252
     },
-    "اوبريت هيبة هاشم   فتية الكميل": {
+    " هيبة هاشم": {
         "message_id": 253
     },
-    "قتال العرب  سيد فاقد الموسوي  عزاء هيئة لواء زينب - قصر العب": {
+    "قتال العرب": {
         "message_id": 255
     },
-    "راعي الصيت  محمد الفاطمي  هيئة غريب طوس 1445 هـ": {
+    "راعي الصيت": {
         "message_id": 265
     },
-    "سمع الله لمن قال علي ملا مجتبى الكعبي": {
+    "سمع الله لمن قال علي": {
         "message_id": 257
     },
     "انا ما املك وجودي": {
         "message_id": 258
     },
-    "احنا خوالو حيدر الفريجي_ محرم الحرام 1446": {
+    "احنه خواله": {
         "message_id": 259
     },
-    "بندرية عرس بارض الطفوف  سيد سلام الحسيني [ محرم الحرام 1446 هجر": {
+    "عرس بارض الطفوف": {
         "message_id": 260
     },
-    "سالفتي نحیب  محمد باقر الخاقاني  جديد محرم 14432021": {
+    "سالفتي نحیب": {
         "message_id": 261
     },
-    "بندرية مناجاة الحسين  الرادود ميرزا حيدر الابراهيمي - حسينية عز": {
+    "مناجاة الحسين": {
         "message_id": 262
     },
-    "هذا ابن فاطمة  الرادود حسين الجابري - ليالي شهادة السجاد - محرم": {
+    "هذا ابن فاطمة": {
         "message_id": 263
     },
-    "في درب فاطمة  حسين خيرالدين": {
+    "في درب فاطمة": {
         "message_id": 264
     },
-    "علي يامن قلعت الباب  الرادود باسم الكربلائي": {
+    "علي يامن قلعت الباب": {
         "message_id": 266
     },
-    "يمه اطمنج عليه  الرادود باسم الكربلائي": {
+    "يمه اطمنج عليه": {
         "message_id": 267
     },
-    "وسط كلبي شحلاتك ll الرادود مهدي العبادي ll الشاعر ايوب الشغانبي": {
+    "وسط كلبي شحلاتك": {
         "message_id": 268
     },
-    "مسلم يا ربات حسين  الرادود ميرزا حيدر الابراهيمي - حسينية عزاء ": {
+    "مسلم يا ربات حسين ": {
         "message_id": 269
     },
-    "تربات البدو i حيدر الفريجي i محرم 1446 هـ": {
+    "تربات البدو": {
         "message_id": 270
     },
-    "گوم يابو الجود   الملا محمد باقر الخاقاني هيئة سيدة الوجود (ع)": {
+    "گوم يابو الجود": {
         "message_id": 271
     },
-    "سلام يا مهدي  محمد غلوم": {
+    "سلام يا مهدي": {
         "message_id": 272
     },
-    "سلام يا مهدي  الرادود احمد الفتلاوي": {
+    "سلام يا مهدي": {
         "message_id": 274
     },
-    "اجمل ساقي  عباس عجيد العامري  موكب وحسينية الزهراء - البصرة ": {
+    "اجمل ساقي": {
         "message_id": 276
     },
-    "صولة العباس  نزال بندري  الرادود ايمن السعدي  محرم الحرام 144": {
+    "صولة العباس": {
         "message_id": 277
     },
-    "حي الله عباس  ميرزا محمد الخياط  محرم 1438": {
+    "حي الله عباس": {
         "message_id": 278
     },
-    "ربت زلم  الرادود حسين الزغير الكربلائي": {
+    "ربت زلم": {
         "message_id": 279
     },
-    "ريت السافر يعود  الرادود باسم الكربلائي": {
+    "ريت السافر يعود": {
         "message_id": 280
     },
-    "يالمدلل يعبد الله  الرادود ميرزا حيدر الابراهيمي - حسينية عزاء ": {
+    "يالمدلل يعبد الله": {
         "message_id": 281
     },
-    "يا ام البنين  الرادود باسم الكربلائي": {
+    "يا ام البنين": {
         "message_id": 282
     },
-    "اعادة نشر  لحسين انتمائي  محمد الحجيرات": {
+    "لحسين انتمائي": {
         "message_id": 283
     },
-    "عقلي بجنون  الرادود باسم الكربلائي": {
+    "عقلي بجنون": {
         "message_id": 284
     },
-    "يا با الفضل  الرادود باسم الكربلائي": {
+    "يا با الفضل": {
         "message_id": 285
     },
-    "بالله يا نهر  الرادود باسم الكربلائي": {
+    "بالله يا نهر": {
         "message_id": 286
     },
-    "يا نبضا لاحساسي  الرادود باسم الكربلائي": {
+    "يا نبضا لاحساسي": {
         "message_id": 287
     },
-    "الموت ارتبك  الرادود باسم الكربلائي": {
+    "الموت ارتبك": {
         "message_id": 288
     },
-    "عد لي حبيبي  نشيد في حق الامام المهدي (عج)  حسن القدسي": {
+    "عد لي حبيبي": {
         "message_id": 289
     },
-    "ائمتي وسادتي اثنا عشر  محمد محيدلي": {
+    "ائمتي وسادتي": {
         "message_id": 290
     },
-    "حب بلا خصام  الرادود باسم الكربلائى": {
+    "حب بلا خصام": {
         "message_id": 291
     },
-    "قمر كربلاء  الرادود ميرزا حيدر الابراهيمي - حسينية عزاء الناصري": {
+    "قمر كربلاء": {
         "message_id": 292
     },
-    "ناذر سنيني  الرادود باسم الكربلائي": {
+    "ناذر سنيني": {
         "message_id": 293
     },
-    "مثل طبع النسر طبعي 1  باسم الكربلائي": {
+    "مثل طبع النسر طبعي": {
         "message_id": 294
     },
-    "سلام عن بعد  الملا محمد باقر الخاقاني - عزاء هيئة لواء الزهراء ": {
+    "سلام عن بعد": {
         "message_id": 295
     },
-    "حصن خيبر  مجتبى الكعبي  مضيف زمن الغيبة  video new": {
+    "حصن خيبر": {
         "message_id": 296
     },
-    "امنياتي  الرادود باسم الكربلائي": {
+    "امنياتي": {
         "message_id": 297
     },
-    "اوبريت فرحة السادة  فتية الكميل  سلسلة حضرة القائد": {
+    "فرحة السادة": {
         "message_id": 298
     },
-    "كون يامرنا سيد على السيستاني": {
+    "كون يامرنا علي السيستاني": {
         "message_id": 299
     },
-    "نزله عزاء النجف الاشرف  الاربعين 1440  الرادود هادي مريطي مونتا": {
+    "نزلة نجفية": {
         "message_id": 300
     },
-    "حيرة حسين ": {
+    "حيرة حسين": {
         "message_id": 379
     },
-    "توكل على الله وللنهر صول يضرغام ( نزلة نجفية ثلاث دگات) اللطم يش": {
-        "message_id": 304
-    },
-    "اكتب عذابي  الرادود باسم الكربلائي": {
+    "اكتب عذابي": {
         "message_id": 305
     },
-    "حراس العقيدة  الشيخ حسين الاكرف": {
+    "حراس العقيدة": {
         "message_id": 306
     },
-    "كليم الحسين باسم الكربلائي اصدار كليم الحسين النسخة الاصلية": {
+    "كليم الحسين": {
         "message_id": 307
     },
-    "طفح الدمع وقال انت قوس ام هلال باسم الكربلائي": {
+    "طفح الدمع وقال": {
         "message_id": 308
     },
-    "بروحي - ام المؤمنين خديجة  باسم الكربلائي": {
+    "بروحي": {
         "message_id": 309
     },
-    "يكرهوني واحبك  الرادود باسم الكربلائي": {
+    "يكرهوني واحبك": {
         "message_id": 310
     },
-    "نوح و دمع  باسم الكربلائي _ اصدار 1426 هـ": {
+    "نوح و دمع": {
         "message_id": 311
     },
-    "تركنا الخلق طرا  الحاج باسم الكربلائي": {
+    "تركنا الخلق طرا": {
         "message_id": 312
     },
-    "امير الجمال  حسن الكطراني #جديد2025-1446هـ": {
+    "امير الجمال": {
         "message_id": 313
     },
-    "رايح الغالي  الرادود باسم الكربلائي": {
+    "رايح الغالي": {
         "message_id": 430
     },
-    "ما ذنب طفلي  الرادود باسم الكربلائي": {
+    "ما ذنب طفلي": {
         "message_id": 315
     },
-    "الوداع  الرادود باسم الكربلائي": {
+    "الوداع": {
         "message_id": 316
     },
-    "ادعي يا زينب  الرادود باسم الكربلائي": {
+    "ادعي يا زينب": {
         "message_id": 317
     },
-    "ما ندري  الرادود باسم الكربلائي": {
+    "ما ندري": {
         "message_id": 318
     },
-    "والله افنيها  الرادود باسم الكربلائي": {
+    "والله افنيها": {
         "message_id": 319
     },
-    "حي على العزاء  الرادود باسم الكربلائي": {
+    "حي على العزاء": {
         "message_id": 320
     },
-    "تجارة لن تبور  الحاج باسم الكربلائي": {
+    "تجارة لن تبور": {
         "message_id": 321
     },
-    "ما اشوف بعيني  الرادود باسم الكربلائي": {
+    "ما اشوف بعيني": {
         "message_id": 322
     },
-    "جل جلاله  الرادود باسم الكربلائي": {
+    "جل جلاله": {
         "message_id": 323
     },
-    "المشكاه السبعه  الرادود مجتبى الكعبي  الذاكر حسن الشامي": {
+    "المشكاه السبعه": {
         "message_id": 324
     },
-    "خطب العباس  الرادود ميرزا حيدر الابراهيمي - حسينية عزاء الناصري": {
+    "خطب العباس": {
         "message_id": 325
     },
-    "الغيرة الهاشمية  سيد فاقد الموسوي  محرم الحرام 1446 هـ": {
+    "الغيرة الهاشمية": {
         "message_id": 326
     },
-    "عندي فتيان اربعة  الرادود باسم الكربلائى": {
+    "عندي فتيان اربعة": {
         "message_id": 327
     },
-    "طايح بين خياله  مسلم الوائلي  رابطة اصحاب الكساء  1443هـ": {
+    "طايح بين خياله": {
         "message_id": 328
     },
-    "واويلاه يم الخدر  الرادود حيدر البياتي  بحضور الملا باسم الكرب": {
+    "واويلاه يم الخدر": {
         "message_id": 329
     },
-    "اقطع الكلام  الرادود باسم الكربلائي": {
+    "اقطع الكلام": {
         "message_id": 330
     },
-    "برز القمر  الرادود ميرزا حيدر الابراهيمي - حسينية عزاء الناصرية": {
+    "برز القمر": {
         "message_id": 331
     },
-    "بندرية هلا بحسين الثاني  الرادود خضر عباس": {
+    "هلا بحسين الثاني": {
         "message_id": 332
     },
-    "وصية الاب  مسلم الوائلي  1446هـ": {
+    "وصية الاب": {
         "message_id": 334
     },
-    "ديوانك حلم كل عاشگ  ملاعلي الوائلي وملا مسلم الوائلي مضيف سلطا": {
+    "ديوانك حلم كل عاشك": {
         "message_id": 335
     },
-    "هالله هالله حسين وينه  الرادود خضر عباس": {
+    "هالله هالله حسين وينه": {
         "message_id": 336
     },
-    "مسا الخير  الرادود باسم الكربلائي": {
+    "مسا الخير": {
         "message_id": 337
     },
-    "يريح الهاب الحاج باسم الكربلائي": {
+    "يريح الهاب": {
         "message_id": 338
     },
-    "لو حي النبي  الرادود باسم الكربلائي": {
+    "لو حي النبي": {
         "message_id": 339
     },
-    "لا تسافر روحي عندك _ استديو  باسم الكربلائي": {
+    "لا تسافر روحي عندك": {
         "message_id": 340
     },
     "يسجلني": {
         "message_id": 341
     },
-    "خلي عيونج بعيني  الحاج باسم الكربلائي": {
+    "خلي عيونج بعيني": {
         "message_id": 342
     },
-    "عتاب الموت - باسم الكربلائي  مونتاج كامل foul hd  ذكرى وفاة ال": {
+    "عتاب الموت": {
         "message_id": 343
     },
-    "للعباس اجت زينب باسم الكربلائي اصدار وحي القوافي النسخة الاصلية": {
+    "للعباس اجت زينب": {
         "message_id": 344
     },
-    "باسم الكربلائي  عطر يوسف 2015": {
+    "عطر يوسف": {
         "message_id": 345
     },
-    "باسم الكربلائي  امك فاطمة يحسين": {
+    "امك فاطمة يحسين": {
         "message_id": 346
     },
-    "اجانه الصبح  الرادود باسم الكربلائي": {
+    "اجانه الصبح": {
         "message_id": 347
     },
-    "عين الله ترعاكم - الحاج باسم الكربلائي": {
+    "عين الله ترعاكم": {
         "message_id": 348
     },
-    "سبحانه سواها  الرادود حسين الزغير الكربلائي": {
+    "سبحانه سواها": {
         "message_id": 349
     },
-    "حسين قتيل  الحاج باسم الكربلائي": {
+    "حسين قتيل": {
         "message_id": 350
     },
     "جائنا الظلام": {
         "message_id": 351
     },
-    "يا محلى الوداع  الرادود باسم الكربلائي": {
+    "يا محلى الوداع": {
         "message_id": 375
     },
-    "ان جان هاذي كربلاء وين شيال العلم  علاء الغريباوي": {
+    "ان جان هاذي كربلاء وين شيال العلم": {
         "message_id": 353
     },
-    "اعظم عريسين - علي بوحمد": {
+    "اعظم عريسين": {
         "message_id": 354
     },
-    "طبعي كربلائي باسم الكربلائي # حطوا لايك ونزلو على الوصف مهم ": {
+    "طبعي كربلائي": {
         "message_id": 355
     },
-    "عاشور هل هلاله  الرادود باسم الكربلائي": {
+    "عاشور هل هلاله": {
         "message_id": 356
     },
-    "يا ال هاشم - الرادود  قحطان البديري - الشاعر  عقيل الشيباني": {
+    "يا ال هاشم": {
         "message_id": 357
     },
-    "ملكني  - جمال عيونه لوحه - حسين الحب الاول - كالو…": {
+    "ملكني": {
         "message_id": 358
     },
-    "شيخ الانصار  الرادود حسين والي اللامي": {
+    "شيخ الانصار": {
         "message_id": 359
     },
-    "اعصار  ملا محمد بوجبارة  ليلة 6 محرم 1445  ماتم النمر": {
+    "اعصار": {
         "message_id": 360
     },
-    "وجه الصباح محمد باقر الخاقانيالذاكر سيد سجاد الخرسانيمضيف…": {
+    "وجه الصباح": {
         "message_id": 361
     },
-    "الخيال الشيعي  لؤي البغدادي - شاعر ال الصدر - عباس عبد الحسن ": {
+    "الخيال الشيعي": {
         "message_id": 362
     },
-    "الوعد الصادق  حصريا 2024": {
+    "الوعد الصادق": {
         "message_id": 363
     },
-    "انشودة عهد النجباء": {
+    "عهد النجباء": {
         "message_id": 364
     },
-    "دهد يا عون  ملا عباس العقابي": {
+    "دهد يا عون": {
         "message_id": 366
     },
-    "الهيبة اوبريت  فتية الكميل": {
+    "الهيبة اوبريت": {
         "message_id": 367
     },
-    "علي الدلفي وسيد فاقد الموسوي - فرحة حيدرية #عيد_الغدير": {
+    "فرحة حيدرية": {
         "message_id": 368
     },
-    "فرحة غديرك  فتية الكميل": {
+    "فرحة غديرك": {
         "message_id": 369
     },
-    "امام النحل (حصرياً) 2015  mustafa al rubaie - i": {
+    "امام النحل": {
         "message_id": 370
     },
-    "من المتمسكين - علي بوحمد  min al-mutamasakeen - ali bouhamad": {
+    "من المتمسكين": {
         "message_id": 371
     },
-    "عطلتنه رسمية - حسين البغدادي - علي زوره - فواد الفرطوسي - علي ال": {
+    "عطلتنه رسمية": {
         "message_id": 372
     },
-    "اخيتكم في الله  محمود اسيري - محمد الخياط - علي بوحمد - محمد بو": {
+    "اخيتكم في الله": {
         "message_id": 373
     },
-    "كلما اسهر الليل  الرادود باسم الكربلائي": {
+    "كلما اسهر الليل": {
         "message_id": 374
     },
-    "واقع لو حلم - dream or reality  الملا محمد بوجبارة - الميرزا محمد…": {
+    "واقع لو حلم": {
         "message_id": 376
     },
-    "اهز مهدك  الرادود باسم الكربلائي": {
+    "اهز مهدك": {
         "message_id": 377
     },
-    "قيامة العباس  الرادود ميرزا حيدر الابراهيمي - حسينية عزاء الناص": {
+    "قيامة العباس": {
         "message_id": 380
     },
-    "محرم الذهب - ملا مصطفى السوداني - الكوفة- حي ميسان": {
+    "محرم الذهب": {
         "message_id": 381
     },
     "علكو الرايات": {
         "message_id": 383
     },
-    "مرتضى حرب ll زلم النيبه ll محرم 1441 هجري": {
+    "زلم النيبه": {
         "message_id": 384
     },
-    "ويلي يالاكبر حاجيني باسم كربلائي": {
+    "ويلي يالاكبر حاجيني": {
         "message_id": 385
     },
-    "حلو بيارغهم  محرم  1440 هجري 2018 م": {
+    "حلو بيارغهم": {
         "message_id": 386
     },
-    "انا دامي محرم 1441 هجري": {
+    "انا دامي": {
         "message_id": 388
     },
-    "اذان العشق  سيد سلام الحسيني  حسينية غريب طوس عليه السلام": {
+    "اذان العشق": {
         "message_id": 389
     },
     "يا فاطمة قومي الى الطفوف": {
         "message_id": 392
     },
-    "سيوف اهلك مالاكوها-جبار الحريشاوي -هوسات -الطف يازلمه يعارك بيه ": {
+    "سيوف اهلك مالاكوها": {
         "message_id": 393
     },
-    "هل يوم نعزي فاطمه  ملا مجتبى الكعبي  قافله احزان الرباب  م": {
+    "هل يوم نعزي فاطمه": {
         "message_id": 394
     },
-    "حطيتلك عله بدليلي  سيد فاقد الموسوي": {
+    "حطيتلك عله بدليلي": {
         "message_id": 395
     },
-    "يالماشي لبعيد  جديد2025": {
+    "يالماشي لبعيد": {
         "message_id": 396
     },
-    "انا ام الرواي  الحاج باسم الكربلائي": {
+    "انا ام الرواي": {
         "message_id": 397
     },
-    "مقتل الحسين  الرادود ميرزا حيدر الابراهيمي - حسينية عزاء الناصرية…": {
+    "مقتل الحسين": {
         "message_id": 398
     },
-    "اهات الحسين  الميرزا حيدر الابراهيمي - محرم ١٤٤٧ هـ": {
+    "اهات الحسين": {
         "message_id": 399
     },
-    "مسلم وسبع الكنطرة  محمد عامر الاسدي  حسينية جنة الزهراء  محرم": {
+    "مسلم وسبع الكنطرة": {
         "message_id": 400
     },
-    "ابطال هجت  سيد فاقد الموسوي  محرم الحرام  1447هـ": {
+    "ابطال هجت": {
         "message_id": 401
     },
-    "اوتار التكبير  الحاج باسم الكربلائي": {
+    "اوتار التكبير": {
         "message_id": 402
     },
-    "اويلي حسين طايح  حيدر البياتي  لطميات محرم 1447 هـ": {
+    "اويلي حسين طايح": {
         "message_id": 403
     },
-    "قصة حزن  الحاج باسم الكربلائي": {
+    "قصة حزن": {
         "message_id": 404
     },
-    "ما تذل شيعة علي - جبار الحريشاوي - #محرم  1447 هــ": {
+    "ما تذل شيعة علي": {
         "message_id": 405
     },
-    "گلبك مكاني  الحاج باسم الكربلائي": {
+    "كلبك مكاني": {
         "message_id": 406
     },
-    "بسملة الطف  حيدر البياتي  لطميات محرم 1447 هـ": {
+    "بسملة الطف": {
         "message_id": 407
     },
-    "جمال الله  حيدر البياتي  لطميات محرم 1447 هـ": {
+    "جمال الله": {
         "message_id": 408
     },
-    "طال انتظاري  الشيخ حسين الاكرف": {
+    "طال انتظاري": {
         "message_id": 409
     },
-    "اجمل علاقة  كرار الكربلائي محرم الحرام 1447 هـ  #جديد2025 راح…": {
+    "اجمل علاقة": {
         "message_id": 410
     },
-    "سمعي يمي فاطمة  احمد الباوي 1446 هـ": {
+    "سمعي يمي فاطمة": {
         "message_id": 411
     },
-    "مسلم الكوفه  رضا الاراكي reza al - araki  مضيف سلطان بني هاشم…": {
+    "مسلم الكوفه": {
         "message_id": 422
     },
-    "ها يخيمتنه  الحاج باسم الكربلائي": {
+    "ها يخيمتنه": {
         "message_id": 413
     },
-    "رف ياعلم  الملا محمد باقر الخاقاني هيئة الحسن المحتبى عليه ا": {
+    "رف ياعلم": {
         "message_id": 414
     },
-    "ماحسبت هالكثر  الحاج باسم الكربلائي": {
+    "ماحسبت هالكثر": {
         "message_id": 415
     },
-    "سلوان الناصري   ها يسبع الكنطرة   youtube": {
+    "ها يسبع الكنطرة": {
         "message_id": 416
     },
-    "جاء الاربعين  محمد الجنامي  المشاية 1445 هـ 2023 م": {
+    "جاء الاربعين": {
         "message_id": 417
     },
-    "هاي الدنية  الرادود باسم الكربلائي": {
+    "هاي الدنية": {
         "message_id": 418
     },
-    "الحك يعباس  الرادود الحاج حيدر السعد  محرّم الحرام 1447 هـ - 2": {
+    "الحك يعباس": {
         "message_id": 419
     },
-    "عباس الحك  سيد فاقد الموسوي  محرم الحرام  1447هـ": {
+    "عباس الحك": {
         "message_id": 420
     },
-    "من هنا كربلاء  سيد فاقد الموسوي  مشاية الاربعين  2025": {
+    "من هنا": {
         "message_id": 421
     },
-    "ايها الصاحب العَجل  الحاج باسم الكربلائي": {
+    "ايها الصاحب العجل": {
         "message_id": 423
     },
-    "قسما  الشيخ حسين الاكرف": {
+    "قسما": {
         "message_id": 424
     },
-    "حيدريون  الرادود سيد فاقد الموسوي  حسينية قصر الزهراء  1446هـ": {
-        "message_id": 425
-    },
-    "طش ضعنه ll محمد الحلفي": {
+    "طش ضعنه": {
         "message_id": 426
     },
-    "انا الخليفة  الرادود باسم الكربلائي": {
+    "انا الخليفة": {
         "message_id": 427
     },
-    "اويلي من لفت ليله  محمد الجنامي  تراث المحمره": {
+    "اويلي من لفت ليله": {
         "message_id": 428
     },
-    "يهاجر _مونتاج_ باسم الكربلائي": {
+    "يا هاجر": {
         "message_id": 429
     },
-    "شلون اصبر على الاه  باسم الكربلائي": {
+    "شلون اصبر على الاه": {
         "message_id": 431
     },
-    "طلع شباب من الخيم  الرادود باسم الكربلائي": {
+    "طلع شباب من الخيم": {
         "message_id": 432
     },
-    "هاك جروح يا مهدينه  باسم الكربلائي ": {
+    "هاك جروح يا مهدينه": {
         "message_id": 433
     },
-    "فنة يجي 4k  سيد فاقد الموسوي  بيت الاحزان  الليالي العلوية…": {
+    "فنة يجي": {
         "message_id": 434
     },
-    "ماغفت عيني  الرادود باسم الكربلائي": {
+    "ماغفت عيني": {
         "message_id": 435
     },
-    "بنات النبي  الرادود باسم الكربلائي": {
+    "بنات النبي": {
         "message_id": 436
     },
-    "مهلا بنات النبي  الرادود باسم الكربلائي": {
+    "مهلا بنات النبي": {
         "message_id": 437
     },
-    "يليله يرمله  الرادود باسم الكربلائي": {
+    "يليله يرمله": {
         "message_id": 438
     },
-    "عوف المشرعه ii  ملا علي باشا الكربلائي ii  زيارة الاربعين 14447…": {
+    "عوف المشرعه": {
         "message_id": 439
     },
-    "وينك   الرادود باسم الكربلائي": {
-        "message_id": 440
-    },
-    "انني عرش النحيب  الرادود باسم الكربلائي": {
+    "انني عرش النحيب": {
         "message_id": 441
     },
-    "علي يشبه علي   حيدر الفريجي #جديد2025": {
+    "علي يشبه علي": {
         "message_id": 442
     },
-    "فزاعية شيخ القادة  ملا عباس العقابي جديد 2024 #اكسبلور #لطميات…": {
+    "شيخ القادة": {
         "message_id": 443
     },
-    "مو انه يا حزن  سيد سلام الحسيني  حسينية غريب طوس عليه السلام": {
+    "مو انه يا حزن": {
         "message_id": 444
     },
     "مكطوع جف العباس": {
         "message_id": 445
     },
-    "دنكت لحسين مهضومه السهام ( كامله ) احمد الساعدي ( واحسيناه وامام": {
+    "دنكت لحسين مهضومه السهام": {
         "message_id": 447
     },
-    "مو عليله  الرادود باسم الكربلائي": {
+    "مو عليله": {
         "message_id": 448
     },
-    "حيهم صاح حيهم - حسين المرياني - محرم الحرام ١٤٤٧ هـ - هيئة لواء ": {
+    "حيهم صاح حيهم": {
         "message_id": 449
     },
-    "حيدريون  سيد فاقد الموسوي": {
+    "حيدريون": {
         "message_id": 450
     },
-    "لعب جوله بيوم الهد  عقيل الحريشاوي  مضيف زمن الغيبه": {
+    "لعب جوله بيوم الهد": {
         "message_id": 451
     },
-    "اذن الغضب  يحيى عفارة": {
+    "اذن الغضب": {
         "message_id": 452
     },
-    "يا رايه ليش الوحدج لطميات على مشايه حزينه": {
+    "يا رايه ليش الوحدج": {
         "message_id": 453
     },
-    "سلام  وعن بعد  سيد سلام الحسيني [ محرم الحرام 1446 هـ ] عزاء ال": {
+    "سلام وعن بعد": {
         "message_id": 454
     },
     "يغادر كل ملك": {
         "message_id": 455
     },
-    "لميت المواكب  سيد فاقد الموسوي  1445 هـ": {
+    "لميت المواكب": {
         "message_id": 456
     },
-    "قصة الاكبر  محمد باقر الخاقاني  حسينية غريب طوس عليه السلام 14": {
+    "قصة الاكبر": {
         "message_id": 457
     },
-    "اكبري اكبري سجاد العلياويموكب شفيع المذنبيناصدار محرم ال": {
+    "اكبري اكبري": {
         "message_id": 458
     },
-    "اولسنا على الحق - حيدر خليل  - 2024": {
+    "اولسنا على الحق": {
         "message_id": 459
     },
-    "مملوك الحسين  محمد باقر الخاقاني  حسينية غريب طوس عليه السلام": {
+    "مملوك الحسين": {
         "message_id": 460
     },
-    "فاطمة ملجؤنا  حسين خير الدين": {
+    "فاطمة ملجؤنا": {
         "message_id": 473
     },
-    "ياليتنا  الرادود #علي_سعيد_الوائلي  جديد #2025": {
+    "ياليتنا": {
         "message_id": 462
     },
-    "شاهد الخلائق   سيد حيدر الموسوي ": {
+    "شاهد الخلائق": {
         "message_id": 463
     },
-    "مولانا ابا الفضل  حيدر الفريجي  حسينية القربان": {
+    "مولانا ابا الفضل": {
         "message_id": 464
     },
-    "مسلم المهيوب. محمد الفاطمي  هيئه شيخ الانصار اليالي الفاطميه": {
+    "مسلم المهيوب": {
         "message_id": 465
     },
-    "الما يعزب للضيف  الرادود حمزة الشريفي  الذاكر مسلم الحسناوي  ": {
+    "الما يعزب للضيف": {
         "message_id": 466
     },
-    "ياساقي العشق  الملا رباح العيساوي - موكب نوماس الهواشم الموحد -": {
+    "ياساقي العشق": {
         "message_id": 467
     },
-    "سيد العشق  محمود حيدر عواضة": {
+    "سيد العشق": {
         "message_id": 468
     },
-    "احبك يابو فاضل  الرادود حمزة الشريفي  الذاكر علي ستار  هيئة س": {
+    "احبك يابو فاضل": {
         "message_id": 469
     },
-    "توه حله  حمزه الشريفي  هيئة مجانين الحسين ع  1446هـ": {
+    "توه حله": {
         "message_id": 470
     },
-    "لليزور حسين  باسم الكربلائي": {
+    "لليزور حسين": {
         "message_id": 471
     },
-    "هل ترانا - باسم الكربلائي و قحطان البديري": {
+    "هل ترانا": {
         "message_id": 472
     },
     "حيهم يجرحي": {
         "message_id": 474
     },
-    "رديتلك  سيد سلام الحسيني": {
+    "رديتلك": {
         "message_id": 475
     },
-    "اية للسائلين  الملا محمد باقر الخاقاني - هيئة لواء زينب عليها السلام…": {
+    "اية للسائلين": {
         "message_id": 476
     },
-    "حرة نسب الرادود حيدر البياتي": {
+    "حرة نسب": {
         "message_id": 477
     },
-    "جريمة قتل  الحاج باسم الكربلائي": {
+    "جريمة قتل": {
         "message_id": 478
     },
-    "لمحة بصر  الحاج باسم الكربلائي": {
+    "لمحة بصر": {
         "message_id": 480
     },
-    "مرتضى حرب  مالي ذنب  الليالي الفاطمية 1447 هجري": {
+    "مالي ذنب": {
         "message_id": 481
     },
-    "شيعوا نعش الطاهرة المظلومة   باسم الكربلائي   youtube": {
+    "شيعوا نعش الطاهرة المظلومة": {
         "message_id": 482
     },
-    "يا اسماء  الملا محمد باقر الخاقاني - الليالي الفاطمية ١٤٤٦ هـ …": {
+    "يا اسماء": {
         "message_id": 483
     },
-    "زينب هالمسيه تصيح وين المرتضى وينه  باسم الكربلائي": {
+    "زينب هالمسيه": {
         "message_id": 484
     },
-    "صلت صلاة الايات  الرادود باسم الكربلائي": {
+    "صلت صلاة الايات": {
         "message_id": 485
     },
-    "خجل  الحاج باسم الكربلائي": {
-        "message_id": 486
-    },
-    "للنبي محروقه باب  الرادود باسم الكربلائي": {
+    "للنبي محروكه باب": {
         "message_id": 487
     },
-    "هل انبا المسمار خير الورى  شهادة الزهراء عليها السلامالملا باسم…": {
+    "هل انبا المسمار خير الورى": {
         "message_id": 488
     },
-    "قادم بثاري  الرادود باسم الكربلائي": {
+    "قادم بثاري": {
         "message_id": 489
     },
-    "اذكر انه  الرادود باسم الكربلائي": {
+    "اذكر انه": {
         "message_id": 490
     },
-    "فارس السبع الشداد  الرادود باسم الكربلائي": {
+    "فارس السبع الشداد": {
         "message_id": 491
     },
-    "سؤالي  الرادود باسم الكربلائي": {
-        "message_id": 492
-    },
-    "ليلة وفاتي  الرادود باسم الكربلائي": {
+    "ليلة وفاتي": {
         "message_id": 493
     },
-    "دار الوكت  سيد فاقد الموسوي": {
+    "دار الوكت": {
         "message_id": 494
     },
-    "فكر انته بمقتلك  الرادود باسم الكربلائي": {
+    "فكر انته بمقتلك": {
         "message_id": 495
     },
-    "لو فرض  الرادود باسم الكربلائي": {
+    "لو فرض": {
         "message_id": 496
     },
-    "سواد الطف  الرادود باسم الكربلائي": {
+    "سواد الطف": {
         "message_id": 497
     },
-    "انا العباس ابو النوماس تعرفوني": {
+    "انا العباس ابو النوماس": {
         "message_id": 498
     },
-    "اقوى لطمية بصوت كريم المالكي وحي الشريعه 2019بس تسمعه راح تنزله": {
+    "وحي الشريعة": {
         "message_id": 499
     },
-    "زينب تلطم عله الراس  الرادود الحاج باسم الكربلائي": {
+    "زينب تلطم على الراس": {
         "message_id": 500
     },
-    "غضب رب العباد الملا باسم الكربلائي": {
+    "غضب رب العباد": {
         "message_id": 501
     }
-}
+    }
