@@ -23,7 +23,7 @@ async def ytdownloaderHandler(e):
             target = e.chat_id
         else:
             target = r.get('channel_hint')
-    Thread(target=yt_func, args=(e, target)).start()
+    asyncio.create_task(yt_func(e, target))
 async def yt_func(e, target):
     text = e.text
     if text.startswith('حمل ') or text.startswith('yt '):
