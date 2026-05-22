@@ -23,7 +23,7 @@ async def handle_voice_message(event):
             await status_msg.edit("⚡ جاري تحويل الصوت إلى كتابة بالذكاء الاصطناعي...")
             
             # بدء معالجة الصوت وترجمته للعربية
-            segments, info = model.transcribe(path, language="ar", beam_size=1)
+            segments, info = model.transcribe(path, language="ar", beam_size=10)
             
             # تجميع النص من المقاطع الصوتية
             full_text = ""
