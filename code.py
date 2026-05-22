@@ -32,7 +32,7 @@ YDL_OPTS = {
     "nocheckcertificate": True,
     "outtmpl": f"{DOWNLOADS_DIR}/%(id)s.%(ext)s", 
     "cookiefile": COOKIES_PATH,
-    "js_runtimes": ["node"],
+    "js_runtimes": {"node": {}},  # التعديل هنا: تم تغيير التنسيق ليتوافق مع تحديث yt-dlp الجديد
     "extractor_args": {
         "youtube": {
             "client": ["ios", "android"]
@@ -42,7 +42,6 @@ YDL_OPTS = {
         "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1"
     }
 }
-
 async def fast_upload(client, file_path, **kwargs):
     file_name = os.path.basename(file_path)
     with open(file_path, 'rb') as f:
