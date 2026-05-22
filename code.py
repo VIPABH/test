@@ -24,15 +24,23 @@ if isinstance(channel, bytes):
 executor = ThreadPoolExecutor(max_workers=60)
 download_semaphore = asyncio.Semaphore(20)
 
+
+# تحديث خيارات yt-dlp لتصبح مرنة مع كافة التنسيقات وتفعيل التحويل التلقائي
 YDL_OPTS = {
-    "format": "bestaudio[ext=m4a]/bestaudio/best",
+    "format": "bestaudio/best",  # يجلب أفضل جودة صوت متاحة أياً كان امتدادها (m4a, webm, opus)
     "noplaylist": True,
     "quiet": True,
     "no_warnings": True,
     "nocheckcertificate": True,
     "outtmpl": f"{DOWNLOADS_DIR}/%(id)s.%(ext)s", 
     "cookiefile": COOKIES_PATH,
-    "js_runtimes": {"node": {}},  # التعديل هنا: تم تغيير التنسيق ليتوافق مع تحديث yt-dlp الجديد
+    "js_runtimes": {"node": {}},
+    # إضافة معالج ffmpeg لتحويل أي صيغة غريبة تلقائياً إلى m4a متوافقة مع التليجرام
+    "postprocessors": [{
+        "key": "FFmpegExtractAudio",
+        "preferredcodec": "m4a",
+        "preferredquality": "192",
+    }],
     "extractor_args": {
         "youtube": {
             "client": ["ios", "android"]
@@ -42,6 +50,17 @@ YDL_OPTS = {
         "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1"
     }
 }
+
+def download_audio_sync(url):
+    with yt_dlp.YoutubeDL(YDL_OPTS) as ydl:
+        info = ydl.extract_info(url, download=True)
+        # بما أن المعالج يغير الامتداد دائماً إلى .m4a، نضمن الحصول على المسار الصحيح النهائي للملف
+        filename = ydl.prepare_filename(info)
+        actual_filename = os.path.splitext(filename)[0] + ".m4a"
+        return actual_filename, info
+
+
+
 async def fast_upload(client, file_path, **kwargs):
     file_name = os.path.basename(file_path)
     with open(file_path, 'rb') as f:
