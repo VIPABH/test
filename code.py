@@ -27,7 +27,7 @@ download_semaphore = asyncio.Semaphore(20)
 
 # تحديث خيارات yt-dlp لتصبح مرنة مع كافة التنسيقات وتفعيل التحويل التلقائي
 YDL_OPTS = {
-    "format": "bestaudio/best",  # يجلب أفضل جودة صوت متاحة أياً كان امتدادها (m4a, webm, opus)
+    "format": "bestaudio[ext=m4a]",
     "noplaylist": True,
     "quiet": True,
     "no_warnings": True,
