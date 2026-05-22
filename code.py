@@ -32,7 +32,7 @@ async def yt_func(e, target):
         results = Y88F8(query, max_results=1).to_dict()
         print(f"نتائج البحث: {json.dumps(results, indent=2, ensure_ascii=False)}")
         if not results:
-            return e.reply("لم يتم العثور على نتائج.")
+            return await e.reply("لم يتم العثور على نتائج.")
         res = results[0]
         print(f"أول نتيجة: {res}")
         if r.get(f'ytvideo{res["id"]}'):
@@ -83,4 +83,4 @@ async def yt_func(e, target):
                 os.remove(thumb)
         except Exception as e:
             print(f"حدث خطأ أثناء تحميل الفيديو: {e}")
-            m.reply("حدث خطأ أثناء التحميل، يرجى المحاولة لاحقًا.")
+            await e.reply("حدث خطأ أثناء التحميل، يرجى المحاولة لاحقًا.")
