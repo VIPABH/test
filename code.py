@@ -17,6 +17,7 @@ async def ytdownloaderHandler(e):
     if not e.is_group:return        
     cmd = e.pattern_match.group(1)
     l = lock(e, "يوتيوب")    
+    target = e.chat_id
     if cmd != 'حمل':
         if l:
             target = e.chat_id
