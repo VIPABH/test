@@ -2,6 +2,8 @@ import os
 from telethon import TelegramClient, events
 from faster_whisper import WhisperModel
 from ABH import *
+from Resources import *
+
 print("⏳ جاري تحميل نموذج الذكاء الاصطناعي...")
 model = WhisperModel("base", device="cpu", compute_type="int8")
 print("✅ النموذج جاهز للعمل!")
@@ -43,4 +45,3 @@ async def handle_voice_message(event):
                 os.remove(path)
 
 print("🤖 البوت يعمل الآن بنجاح... أرسل له أي فويس في تليجرام!")
-bot.run_until_disconnected()
