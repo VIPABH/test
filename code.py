@@ -7,6 +7,7 @@ model = WhisperModel("base", device="cpu", compute_type="int8")
 print("✅ النموذج جاهز للعمل!")
 bot = ABH
 @bot.on(events.NewMessage(incoming=True))
+@timer
 async def handle_voice_message(event):
     if event.message.voice or event.message.audio:
         
