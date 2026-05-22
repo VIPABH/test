@@ -210,3 +210,51 @@ async def yt_func(event, target):
                 await event.reply("❌ حظر من يوتيوب: يرجى رفع ملف كوكيز (cookies.txt) جديد وصالح عبر البوت.")
             else:
                 await event.reply(f"❌ حدث خطأ غير متوقع أثناء المعالجة: {err_msg}")
+
+@ABH.on(events.NewMessage(pattern=r'^(/cookies|كوكيز)$'))
+async def update_cookies_handler(event):
+    # تحقق أولاً من أن المرسل هو المطور أو الأدمن (يمكنك تعديل الشرط حسب رغبتك)
+    # مثال: if event.sender_id != DEVELOPER_ID: return
+    
+    # التحقق مما إذا كان الأمر رداً على ملف
+    if not event.is_reply:
+        return await event.reply("⚠️ يرجى إرسال ملف `cookies.txt` أولاً، ثم قم بالرد عليه بكتابة الأمر: `كوكيز` أو `/cookies`")
+        
+    reply_message = await event.get_reply_message()
+    
+    # التأكد من أن الرسالة التي يتم الرد عليها تحتوي على ملف (وثيقة)
+    if not reply_message or not reply_message.file:
+        return await event.reply("❌ الرسالة التي قمت بالرد عليها لا تحتوي على ملف!")
+        
+    # التحقق من أن امتداد الملف هو .txt
+    if not reply_message.file.name or not reply_message.file.name.endswith('.txt'):
+        return await event.reply("⚠️ خطأ في صيغة الملف! يجب أن يكون اسم الملف ينتهي بـ `.txt` (مثال: `cookies.txt`).")
+
+    wait_msg = await event.reply("⏳ جاري فحص ملف الكوكيز وحفظه...")
+    
+    try:
+        # مسار مؤقت لتحميل الملف والتأكد من بنيته
+        temp_path = "temp_cookies.txt"
+        await reply_message.download_media(file=temp_path)
+        
+        # قراءة محتوى الملف للتأكد من أنه كوكيز متوافق وليس نصاً عشوائياً
+        with open(temp_path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+            
+        # الكوكيز الصحيح الخاص بـ Netscape يجب أن يحتوي على ثوابت يوتيوب أو كلمة Netscape في البداية
+        if "youtube.com" not in content and "# Netscape" not in content:
+            if os.path.exists(temp_path): os.remove(temp_path)
+            return await wait_msg.edit("❌ الملف المرفوع لا يبدو أنه يحتوي على كوكيز يوتيوب صالحة! تأكد من استخراجه بصيغة Netscape.")
+            
+        # إذا كان صالحاً، نقوم بنقله إلى المسار الرئيسي المستخدم في كود اليوتيوب
+        # COOKIES_PATH تم تعريفه سابقاً بـ 'cookies.txt'
+        if os.path.exists(COOKIES_PATH):
+            os.remove(COOKIES_PATH)
+            
+        os.rename(temp_path, COOKIES_PATH)
+        
+        await wait_msg.edit("✅ تم تحديث ملف الكوكيز بنجاح! سيبدأ البوت الآن باستخدام الإعدادات الجديدة في عمليات التحميل القادمة.")
+        
+    except Exception as e:
+        if os.path.exists(temp_path): os.remove(temp_path)
+        await wait_msg.edit(f"❌ حدث خطأ أثناء حفظ الملف: {str(e)}")
