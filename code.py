@@ -1,116 +1,85 @@
-from ABH import *
-from telethon import Button
+import yt_dlp, os, re, time, wget, json
+from youtube_search import YoutubeSearch as Y88F8
+from threading import Thread
 from Resources import *
-async def send_admin_menu(event_or_message, is_callback=False):
-    admin_buttons = [
-        [
-            Button.inline("اوامر النشر", data='posting_commands'),
-            Button.inline("اوامر المحظورين", data='banned_commands')
-        ],
-        [
-            Button.inline("اوامر الاشتراك الاجباري", data='subscribe_commands')
-        ]
-    ]
-    text = '**أهلاً زعيم، شنو تحب تسوي؟ 👇🏾**'
-    
-    if is_callback:
-        await event_or_message.edit(text, buttons=admin_buttons)
-    else:
-        await event_or_message.reply(text, buttons=admin_buttons)
-REDIS_KEY = "users"
-@ABH.on(events.NewMessage(pattern="^/start$"))
-async def start(e):
-    id = e.sender_id
-    if id == 8655399180:
-        return await send_admin_menu(e, is_callback=False)   
-    user_buttons = [
-        [
-            Button.url("➕ أضفني لمجموعتك", url=f"https://t.me/vipabh_bot?startgroup=true&admin=ban_users+delete_messages+restrict_members+invite_users+pin_messages+change_info"),
-        ]
-    ]
-    await e.reply(
-        "أهلاً بك! أنا صانع بوتات.", 
-        buttons=user_buttons
-    )
-callbacknames = {
-'posting_commands': 'اوامر النشر', 
-'banned_commands': "اوامر المحظورين", 
-'subscribe_commands': 'اوامر الاشتراك الاجباري'
-}
-@ABH.on(events.CallbackQuery(pattern=r'(posting_commands|banned_commands|subscribe_commands|back_to_main)'))
-async def callback_handler(event):
-    data = event.data.decode()    
-    
-    if data == 'back_to_main':
-        return await send_admin_menu(event, is_callback=True)
-        
-    if data == 'posting_commands':
-        buttons = [
-            [
-                Button.inline("انشاء رسالة", data='creat_message'),
-                Button.inline("التقاط رسالة", data='catch_message')
-            ],
-            [Button.inline("🔙 عودة", data='back_to_main')] 
-        ]
-    elif data == 'banned_commands':
-        buttons = [
-            [
-                Button.inline("حظر عضو", data='ban_user'),
-                Button.inline("الغاء حظر عضو", data='unban_user')
-            ],
-            [
-                Button.inline("المحظورين", data='banned_users')
-            ],
-            [Button.inline("🔙 عودة", data='back_to_main')]
-        ]
-    elif data == 'subscribe_commands':
-        userslen = r.scard('users')
-        buttons = [
-            [
-                Button.inline(f"المستخدمين ( {userslen} )", data='ban_user'),
-                Button.inline("جلب اسامي المستخدمين", data='banned_users')
-            ],
-            [
-                Button.inline("البحث عن مستخدم", data='serch_user')
-            ],
-            [Button.inline("🔙 عودة", data='back_to_main')] 
-        ]        
-    await event.edit(f'اختر احد الازرار من قائمة {callbacknames[data]}', buttons=buttons)
-session = {}
-@ABH.on(events.CallbackQuery(pattern=r'(ban_user|unban_user|serch_user)'))
-async def callback_handler(e):
-    data = e.data.decode()
-    await e.edit(f'ارسل الان يوزر او ايدي الشخص')
-    session[e.sender_id] = data
-    await asyncio.sleep(120)
-    if e.sender_id not in session: return
-    ABH.add_event_handler(get_user, events.NewMessage(chats=e.chat_id))
-async def get_user(event):
-    id = event.sender_id
-    if id not in session: return
-    data = session[id]
-    t = event.message.text
-    target = await to(event, t)
-    if not target: return await event.reply('ارسل يوزر او ايدي صالح')
-    target_id = getattr(target, "sender_id", None) or getattr(target, "id", None)
-    if data == 'ban_user':
-        r.sadd("gban_users", target_id)
-        m = await ment(target_id)
-        await event.reply(f'تم حظر {m} بنجاح')
-    elif data == 'unban_user':
-        r.srem("gban_users", target_id)
-        m = await ment(target_id)
-        await event.reply(f'تم فك الحظر بنجاح')
-    elif data == 'serch_user':
-        is_member = r.sismember(REDIS_KEY, str(target_id))
-        if not is_member: return await event.reply('هذا الشخص غير موجود')
-        photo = await get_profile_photo(target_id)
-        caption = f'''
-        اسمه : {target.first_name}
-        اسمه بالبوت : {await ment(target_id)}
-        ايديه `{target_id}`
-        ترتيبه `{await get_order(target_id)}`
-        '''
-        await ABH.send_file(event.chat_id, photo, caption=caption, reply_to=event.message.id)
-    session.pop(id)
-    ABH.remove_event_handler(get_user, events.NewMessage(chats=e.chat_id))
+from ABH import *
+CHANNEL_KEY = 'x04ou'
+channel = r.get(CHANNEL_KEY)
+def time_to_seconds(time):
+    stringt = str(time)
+    return sum(int(x) * 60 ** i for i, x in enumerate(reversed(stringt.split(":"))))
+def Find(text):
+    m = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s!()\[\]{};:'\".,<>?«»“”‘’]))"
+    url = re.findall(m, text)
+    return [x[0] for x in url]
+@ABH.on(events.NewMessage(pattern='^(حمل|يوت|تحميل|yt) ?(.*)'))
+async def ytdownloaderHandler(e):
+    if not e.is_group:return        
+    cmd = e.pattern_match.group(1)
+    l = lock(e, "يوتيوب")    
+    if cmd != 'حمل':
+        if l:
+            target = e.chat_id
+        else:
+            target = r.get('channel_hint')
+    Thread(target=yt_func, args=(e, target)).start()
+async def yt_func(e, target):
+    text = e.text
+    if text.startswith('حمل ') or text.startswith('yt '):
+        query = text.split(None, 1)[1]
+        print(f"استعلام البحث: {query}")
+        results = Y88F8(query, max_results=1).to_dict()
+        print(f"نتائج البحث: {json.dumps(results, indent=2, ensure_ascii=False)}")
+        if not results:
+            return e.reply("لم يتم العثور على نتائج.")
+        res = results[0]
+        print(f"أول نتيجة: {res}")
+        if r.get(f'ytvideo{res["id"]}'):
+            aud = r.get(f'ytvideo{res["id"]}')
+            duration_string = time.strftime('%M:%S', time.gmtime(aud["duration"]))
+            return ABH.send_file(
+                target,
+                aud["audio"],
+                caption=f'@{channel} ~ {duration_string} ⏳',
+            )
+        url = f'https://youtu.be/{res["id"]}'
+        print(f"الرابط المستهدف: {url}")
+        ydl_ops = {
+            "format": "bestaudio[ext=m4a]",
+            "username": os.environ.get("u"),
+            "password": os.environ.get("p"),
+            "forceduration": True,
+            "noplaylist": True
+        }
+        try:
+            with yt_dlp.YoutubeDL(ydl_ops) as ydl:
+                info = ydl.extract_info(url, download=False)
+                print(f"معلومات الفيديو من yt_dlp:\n{json.dumps(info, indent=2, ensure_ascii=False)}")
+                title = info.get('title')
+                duration = info.get('duration')
+                thumbnail = info.get('thumbnail')
+                uploader = info.get('uploader')
+                duration_string = time.strftime('%M:%S', time.gmtime(duration))
+                audio_file = ydl.prepare_filename(info)
+                ydl.download([url])
+                os.rename(audio_file, audio_file.replace(".m4a", ".mp3"))
+                audio_file = audio_file.replace(".m4a", ".mp3")
+                thumb = wget.download(thumbnail)
+                a = await ABH.send_message(
+                    e.chat_id,
+                    audio_file,
+                    thumb=thumb,
+                    duration=duration,
+                    caption=f'@{channel} ~ {duration_string} ⏳',
+                    performer=uploader,
+                )
+                r.set(f'ytvideo{res["id"]}', {
+                    "type": "audio",
+                    "audio": a.audio.file_id,
+                    "duration": a.audio.duration
+                })
+                os.remove(audio_file)
+                os.remove(thumb)
+        except Exception as e:
+            print(f"حدث خطأ أثناء تحميل الفيديو: {e}")
+            m.reply("حدث خطأ أثناء التحميل، يرجى المحاولة لاحقًا.")
