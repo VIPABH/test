@@ -1,5 +1,5 @@
 from telethon import events, functions, types
-
+from ABH import *
 # تخزين آخر custom reactions تم اكتشافها
 CUSTOM_REACTIONS = set()
 
