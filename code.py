@@ -1,58 +1,58 @@
 from telethon import events, functions, types
-from ABH import *
-# تخزين آخر custom reactions تم اكتشافها
-CUSTOM_REACTIONS = set()
 
+LAST_REACTION = None
+
+# يكتشف التفاعلات الجديدة
 @ABH.on(events.Raw())
-async def detect_custom_reactions(update):
+async def watch_reactions(update):
+
+    global LAST_REACTION
 
     try:
 
-        # تحديثات التفاعلات
+        # إذا صار تحديث تفاعل
         if isinstance(update, types.UpdateMessageReactions):
 
-            reactions = update.reactions.results
+            if not update.reactions:
+                return
 
-            for r in reactions:
+            for r in update.reactions.results:
 
-                # إذا كان التفاعل مميز Premium
+                # فقط التفاعل المميز
                 if isinstance(r.reaction, types.ReactionCustomEmoji):
 
-                    doc_id = r.reaction.document_id
+                    LAST_REACTION = r.reaction.document_id
 
-                    if doc_id not in CUSTOM_REACTIONS:
-
-                        CUSTOM_REACTIONS.add(doc_id)
-
-                        print(f"New Custom Reaction Found: {doc_id}")
-
-        # عند وصول رسالة جديدة
-        elif isinstance(update, types.UpdateNewMessage):
-
-            message = update.message
-
-            # إذا عدنا تفاعل مميز مخزن
-            if CUSTOM_REACTIONS:
-
-                reaction_id = next(iter(CUSTOM_REACTIONS))
-
-                try:
-
-                    await ABH(functions.messages.SendReactionRequest(
-                        peer=message.peer_id,
-                        msg_id=message.id,
-                        reaction=[
-                            types.ReactionCustomEmoji(
-                                document_id=reaction_id
-                            )
-                        ],
-                        big=True
-                    ))
-
-                    print(f"Applied reaction: {reaction_id}")
-
-                except Exception as e:
-                    print(f"Reaction failed: {e}")
+                    print(f"Detected Custom Reaction: {LAST_REACTION}")
 
     except Exception as e:
-        print(f"Global Error: {e}")
+        print(e)
+
+
+# تطبيق آخر reaction مكتشف
+@ABH.on(events.NewMessage(pattern="فاعل"))
+async def react(event):
+
+    global LAST_REACTION
+
+    if not LAST_REACTION:
+        return await event.reply("ماكو تفاعل مميز مكتشف لحد الآن")
+
+    try:
+
+        await ABH(functions.messages.SendReactionRequest(
+            peer=event.chat_id,
+            msg_id=event.id,
+            reaction=[
+                types.ReactionCustomEmoji(
+                    document_id=LAST_REACTION
+                )
+            ],
+            big=True
+        ))
+
+        await event.reply("تم التفاعل")
+
+    except Exception as e:
+
+        await event.reply(str(e))
