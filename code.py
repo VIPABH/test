@@ -1,33 +1,26 @@
 import os
-from telethon import TelegramClient, events, functions, types
+from telethon import TelegramClient, events
 from faster_whisper import WhisperModel
 from ABH import *
 from Resources import *
 
 @ABH.on(events.NewMessage(incoming=True))
-async def try_specific_reaction(event):
-    # الـ ID المحدد الذي طلبته
-    TARGET_EMOJI_ID = 5276048898555669761
-    
-    # نتخطى الأوامر لكي لا يتداخل الفحص
+async def send_larger_hint(event):
+    # نتخطى الأوامر
     if event.text.startswith('/'):
         return
-        
-    print(f"[⏳] محاولة التفاعل بالرمز: {TARGET_EMOJI_ID} على الرسالة رقم {event.id}...")
+
+    CUSTOM_EMOJI_ID = 5276514176657812074 
+    
+    # صياغة الـ HTML القياسية لتليجرام: نضع الإيموجي الحقيقي ⬆️ داخل التاج ليقوم المخصص بتغطيته
+    text = f'الرقم الصحيح أكبر <tg-emoji emoji-id="{CUSTOM_EMOJI_ID}">⬆️</tg-emoji>'
     
     try:
-        text = f"الرقم الصحيح أكبر [  ](tg://emoji?id=5276514176657812074)"
-        await ABH.send_message(event.chat_id, text, parse_mode='md')
-        await ABH(functions.messages.SendReactionRequest(
-            peer=event.chat_id,
-            msg_id=event.id,
-            reaction=[
-                types.ReactionCustomEmoji(
-                    document_id=TARGET_EMOJI_ID
-                )
-            ]
-        ))
-        print("[✅] مذهل! السيرفر قبل التفاعل وتم إرساله بنجاح!")
-        
+        await ABH.send_message(
+            event.chat_id, 
+            text, 
+            parse_mode='html' # تفعيل الـ HTML بدلاً من الماركداون
+        )
+        print("[✅] تم إرسال الرسالة بالإيموجي المخصص بنجاح!")
     except Exception as e:
-        print(f"[❌] رفض السيرفر التفاعل. السبب التقني المباشر:\n{e}")
+        print(f"[❌] حدث خطأ أثناء الإرسال: {e}")
