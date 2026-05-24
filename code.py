@@ -1,4 +1,4 @@
-import os
+import os, random
 from telethon import TelegramClient, events
 from faster_whisper import WhisperModel
 from ABH import *
