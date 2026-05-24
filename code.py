@@ -1,41 +1,58 @@
-import os
-from telethon import TelegramClient, events, functions, types
-from faster_whisper import WhisperModel
-from ABH import *
-from Resources import *
+from telethon import events, functions, types
 
-@ABH.on(events.NewMessage(incoming=True))
-async def send_larger_hint(event):
+# تخزين آخر custom reactions تم اكتشافها
+CUSTOM_REACTIONS = set()
 
-    CUSTOM_EMOJI_ID = 5276514176657812074
+@ABH.on(events.Raw())
+async def detect_custom_reactions(update):
 
     try:
 
-        # إرسال الرسالة
-        msg = await ABH.send_message(
-            event.chat_id,
-            "نتيجتك للتخمين الحالي:",
-            buttons=[
-                [
-                    types.KeyboardButtonCallback(
-                        text="الرقم أكبر 📈",
-                        data=b"check_score"
-                    )
-                ]
-            ]
-        )
+        # تحديثات التفاعلات
+        if isinstance(update, types.UpdateMessageReactions):
 
-        # إرسال التفاعل المخصص
-        await ABH(functions.messages.SendReactionRequest(
-            peer=event.chat_id,
-            msg_id=msg.id,
-            reaction=[
-                types.ReactionCustomEmoji(
-                    document_id=CUSTOM_EMOJI_ID
-                )
-            ],
-            big=True
-        ))
+            reactions = update.reactions.results
+
+            for r in reactions:
+
+                # إذا كان التفاعل مميز Premium
+                if isinstance(r.reaction, types.ReactionCustomEmoji):
+
+                    doc_id = r.reaction.document_id
+
+                    if doc_id not in CUSTOM_REACTIONS:
+
+                        CUSTOM_REACTIONS.add(doc_id)
+
+                        print(f"New Custom Reaction Found: {doc_id}")
+
+        # عند وصول رسالة جديدة
+        elif isinstance(update, types.UpdateNewMessage):
+
+            message = update.message
+
+            # إذا عدنا تفاعل مميز مخزن
+            if CUSTOM_REACTIONS:
+
+                reaction_id = next(iter(CUSTOM_REACTIONS))
+
+                try:
+
+                    await ABH(functions.messages.SendReactionRequest(
+                        peer=message.peer_id,
+                        msg_id=message.id,
+                        reaction=[
+                            types.ReactionCustomEmoji(
+                                document_id=reaction_id
+                            )
+                        ],
+                        big=True
+                    ))
+
+                    print(f"Applied reaction: {reaction_id}")
+
+                except Exception as e:
+                    print(f"Reaction failed: {e}")
 
     except Exception as e:
-        print(f"Error sending reaction: {e}")
+        print(f"Global Error: {e}")
