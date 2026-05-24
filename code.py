@@ -16,6 +16,8 @@ async def try_specific_reaction(event):
     print(f"[⏳] محاولة التفاعل بالرمز: {TARGET_EMOJI_ID} على الرسالة رقم {event.id}...")
     
     try:
+        text = f"الرقم الصحيح أكبر [  ](tg://emoji?id=5276514176657812074)"
+        await ABH.send_message(event.chat_id, text, parse_mode='md')
         await ABH(functions.messages.SendReactionRequest(
             peer=event.chat_id,
             msg_id=event.id,
