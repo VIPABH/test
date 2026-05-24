@@ -5,7 +5,7 @@ from ABH import *
 from Resources import *
 
 @ABH.on(events.NewMessage(incoming=True))
-async def send_larger_hint(client, chat_id):
+async def send_larger_hint(event):
     text = "الرقم الصحيح أكبر "
     placeholder = " ⬆️" # مساحة نصية ليركب فوقها الإيموجي المخصص
     
