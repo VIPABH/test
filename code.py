@@ -1,5 +1,5 @@
 from telethon import events, functions, types
-
+from ABH import *
 LAST_REACTION = None
 
 # يكتشف التفاعلات الجديدة
