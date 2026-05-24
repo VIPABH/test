@@ -19,7 +19,7 @@ async def send_larger_hint(event):
     )
     
     await ABH.send_message(
-        eventزchat_id, 
+        event.chat_id, 
         text + placeholder, 
         formatting_entities=[entity]
     )
