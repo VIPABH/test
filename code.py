@@ -19,7 +19,7 @@ async def send_larger_hint(event):
         await ABH.send_message(
             event.chat_id, 
             text, 
-            parse_mode='html' # تفعيل الـ HTML بدلاً من الماركداون
+            # parse_mode='html' # تفعيل الـ HTML بدلاً من الماركداون
         )
         print("[✅] تم إرسال الرسالة بالإيموجي المخصص بنجاح!")
     except Exception as e:
