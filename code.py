@@ -6,29 +6,36 @@ from Resources import *
 
 @ABH.on(events.NewMessage(incoming=True))
 async def send_larger_hint(event):
-    CUSTOM_EMOJI_ID = 5276514176657812074 
-    
+
+    CUSTOM_EMOJI_ID = 5276514176657812074
+
     try:
-        # إرسال التفاعل (Reaction) على الرسالة الحالية التي وصلت للبوت
-        await ABH.send_message(
+
+        # إرسال الرسالة
+        msg = await ABH.send_message(
             event.chat_id,
             "نتيجتك للتخمين الحالي:",
             buttons=[
-                types.KeyboardButtonCallback(
-                    text=f"الرقم أكبر [  ](tg://emoji?id=5276514176657812074)", 
-                    data=b"check_score"
-                )
-            ],
-            parse_mode='md'
+                [
+                    types.KeyboardButtonCallback(
+                        text="الرقم أكبر 📈",
+                        data=b"check_score"
+                    )
+                ]
+            ]
         )
+
+        # إرسال التفاعل المخصص
         await ABH(functions.messages.SendReactionRequest(
             peer=event.chat_id,
-            msg_id=event.id,
+            msg_id=msg.id,
             reaction=[
                 types.ReactionCustomEmoji(
                     document_id=CUSTOM_EMOJI_ID
                 )
-            ]
+            ],
+            big=True
         ))
+
     except Exception as e:
         print(f"Error sending reaction: {e}")
