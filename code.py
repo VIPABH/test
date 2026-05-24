@@ -10,6 +10,17 @@ async def send_larger_hint(event):
     
     try:
         # إرسال التفاعل (Reaction) على الرسالة الحالية التي وصلت للبوت
+        await ABH.send_message(
+            event.chat_id,
+            "نتيجتك للتخمين الحالي:",
+            buttons=[
+                types.KeyboardButtonCallback(
+                    text=f"الرقم أكبر [  ](tg://emoji?id=5276514176657812074)", 
+                    data=b"check_score"
+                )
+            ],
+            parse_mode='md'
+        )
         await ABH(functions.messages.SendReactionRequest(
             peer=event.chat_id,
             msg_id=event.id,
