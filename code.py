@@ -5,8 +5,21 @@ from ABH import *
 from Resources import *
 
 @ABH.on(events.NewMessage(incoming=True))
-async def handler(event):
-    if event.message.entities:
-        for entity in event.message.entities:
-            if isinstance(entity, types.MessageEntityCustomEmoji):
-                print(f"Custom Emoji ID: {entity.document_id}")
+async def send_larger_hint(client, chat_id):
+    text = "الرقم الصحيح أكبر "
+    placeholder = " ⬆️" # مساحة نصية ليركب فوقها الإيموجي المخصص
+    
+    # الـ ID الذي أرسلته أنت
+    CUSTOM_EMOJI_ID = 5276514176657812074 
+    
+    entity = types.MessageEntityCustomEmoji(
+        offset=len(text.encode('utf-16-le')) // 2,
+        length=len(placeholder.encode('utf-16-le')) // 2,
+        document_id=CUSTOM_EMOJI_ID
+    )
+    
+    await ABH.send_message(
+        chat_id, 
+        text + placeholder, 
+        formatting_entities=[entity]
+    )
