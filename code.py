@@ -1,58 +1,54 @@
-from telethon import events, functions, types
+import os
+import re
+from telethon import TelegramClient, events, functions, types
+from faster_whisper import WhisperModel
 from ABH import *
-LAST_REACTION = None
+from Resources import *
 
-# يكتشف التفاعلات الجديدة
-@ABH.on(events.Raw())
-async def watch_reactions(update):
+# ====================================================================
+# 1. الـ Handler الأول: طباعة الـ ID الخاص بالتفاعل المخصص عند استقباله
+# ====================================================================
+@ABH.on(events.MessageReactionsUpdate())
+async def catch_reaction_id(event):
+    # نتحقق من وجود تفاعلات جديدة في التحديث
+    if event.reactions:
+        for r in event.reactions.results:
+            # التحقق إذا كان التفاعل من نوع إيموجي مخصص
+            if isinstance(r.reaction, types.ReactionCustomEmoji):
+                emoji_id = r.reaction.document_id
+                print(f"\n[🔥] تم رصد إيموجي مخصص!")
+                print(f"Chat ID: {event.chat_id}")
+                print(f"Message ID: {event.msg_id}")
+                print(f"Custom Emoji ID: {emoji_id}\n")
 
-    global LAST_REACTION
 
+# ====================================================================
+# 2. الـ Handler الثاني: أمر يستقبل الـ ID ويحاول عمل تفاعل به
+# ====================================================================
+@ABH.on(events.NewMessage(pattern=r'^/react (\d+)'))
+async def try_custom_reaction(event):
+    # استخراج الـ ID من الأمر باستخدام الـ Regex
+    emoji_id_str = event.pattern_match.group(1)
+    CUSTOM_EMOJI_ID = int(emoji_id_str)
+    
+    # سنقوم بالتفاعل على نفس رسالة الأمر التي أرسلها المستخدم
+    target_msg_id = event.id
+    
+    print(f"[⏳] محاولة إرسال التفاعل بالـ ID: {CUSTOM_EMOJI_ID}...")
+    
     try:
-
-        # إذا صار تحديث تفاعل
-        if isinstance(update, types.UpdateMessageReactions):
-
-            if not update.reactions:
-                return
-
-            for r in update.reactions.results:
-
-                # فقط التفاعل المميز
-                if isinstance(r.reaction, types.ReactionCustomEmoji):
-
-                    LAST_REACTION = r.reaction.document_id
-
-                    print(f"Detected Custom Reaction: {LAST_REACTION}")
-
-    except Exception as e:
-        print(e)
-
-
-# تطبيق آخر reaction مكتشف
-@ABH.on(events.NewMessage(pattern="فاعل"))
-async def react(event):
-
-    global LAST_REACTION
-
-    if not LAST_REACTION:
-        return await event.reply("ماكو تفاعل مميز مكتشف لحد الآن")
-
-    try:
-
         await ABH(functions.messages.SendReactionRequest(
             peer=event.chat_id,
-            msg_id=event.id,
+            msg_id=target_msg_id,
             reaction=[
                 types.ReactionCustomEmoji(
-                    document_id=LAST_REACTION
+                    document_id=CUSTOM_EMOJI_ID
                 )
-            ],
-            big=True
+            ]
         ))
-
-        await event.reply("تم التفاعل")
-
+        print("[✅] تم إرسال التفاعل بنجاح دون اعتراض السيرفر!")
+        await event.reply("✅ تم إرسال التفاعل المخصص بنجاح!")
+        
     except Exception as e:
-
-        await event.reply(str(e))
+        print(f"[❌] فشل إرسال التفاعل. السبب من السيرفر: {e}")
+        await event.reply(f"❌ فشل السيرفر في قبول التفاعل:\n`{e}`")
