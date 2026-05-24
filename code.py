@@ -17,6 +17,11 @@ async def send_larger_hint(event):
     
     try:
         await ABH.send_message(
+            event.chat_id,
+            "هلا [❤️](tg://emoji?id=5206607081334906820)",
+            parse_mode="md"
+)
+        await ABH.send_message(
             event.chat_id, 
             text, 
             # parse_mode='html' # تفعيل الـ HTML بدلاً من الماركداون
