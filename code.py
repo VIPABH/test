@@ -10,7 +10,7 @@ async def send_larger_hint(event):
     if event.text.startswith('/'):
         return
 
-    CUSTOM_EMOJI_ID = 5276514176657812074 
+    CUSTOM_EMOJI_ID = 527651417665781204 
     
     # صياغة الـ HTML القياسية لتليجرام: نضع الإيموجي الحقيقي ⬆️ داخل التاج ليقوم المخصص بتغطيته
     text = f'الرقم الصحيح أكبر <tg-emoji emoji-id="{CUSTOM_EMOJI_ID}">⬆️</tg-emoji>'
@@ -18,7 +18,7 @@ async def send_larger_hint(event):
     try:
         await ABH.send_message(
             event.chat_id,
-            "هلا [❤️](tg://emoji?id=5276514176657812074)",
+            "هلا [](tg://emoji?id=5276514176657812074)",
             parse_mode="md"
 )
         await ABH.send_message(
