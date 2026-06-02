@@ -3,13 +3,15 @@ from ABH import *
 
 @ABH.on(events.NewMessage(pattern='/test'))
 async def send_clean(e):
-    emoji_id = 5372913502140766965
-
-    # 1. النص يحتوي فقط على الرمز التعبيري وبجانبه رابط الآيدي الخاص به
-    raw_text = f"[⬆️](tg://emoji?id={emoji_id})"
+    # 1. نضع السهم العادي كنص للرسالة
+    text = "⬆️"
     
-    # 2. حساب الأبعاد تلقائياً للرمز بمفرده
-    text, entities = await e._client._parse_message_text(raw_text, parse_mode='md')
+    # 2. ننشئ كائن الإيموجي المميز مباشرة ونحدد أن طوله 2 (لأن السهم ياخذ مساحتين بالـ UTF-16)
+    emoji_entity = types.MessageEntityCustomEmoji(
+        offset=0, 
+        length=2, 
+        document_id=5372913502140766965
+    )
     
-    # 3. إرسال الإيموجي المميز فقط
-    await e.reply(text, formatting_entities=entities)
+    # 3. نرسل الرسالة مباشرة
+    await e.reply(text, formatting_entities=[emoji_entity])
