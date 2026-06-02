@@ -1,5 +1,7 @@
 from telethon import types, events
 from ABH import *
+from Resources import *
+
 
 @ABH.on(events.NewMessage(pattern='/test'))
 async def send_clean(e):
@@ -15,3 +17,4 @@ async def send_clean(e):
     
     # 3. نرسل الرسالة مباشرة
     await e.reply(text, formatting_entities=[emoji_entity])
+    await e.reply(f"![⬆️](tg://emoji?id=5372913502140766965) {await mention(e)}", parse_mode='md2')
