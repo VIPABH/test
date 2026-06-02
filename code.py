@@ -3,14 +3,26 @@ from telethon import TelegramClient, events
 from faster_whisper import WhisperModel
 from ABH import *
 from Resources import *
+from telethon import types, events
 
-@ABH.on(events.NewMessage(incoming=True))
-async def send_larger_hint(event):
-    # تم إضافة علامات الاقتباس \" حول الـ ID لتفادي مشاكل الـ HTML
-    custom_emoji = lambda emoji: f'<tg-emoji emoji-id="{random.choice(emoji)}">⬆️</tg-emoji>'
+@ABH.on(events.NewMessage(pattern='/test'))
+async def send_clean(e):
+    # 1. النص المجرد تماماً بدون أي وسوم أو أكواد
+    text = "المستخدم ( Anymous ) ما عنده قيود ⬆️"
     
-    # تم إضافة parse_mode='html' في نهاية سطر الإرسال
-    await event.reply(
-        f"{custom_emoji([5364105043907716258, 5422354988103901774, 5974388500458375909, 5469718869536940860, 5422354988103901774, 5348420849839912384, 5435891415055878798])}", 
-        parse_mode='html'
+    # 2. تحديد مكان المنشن بدقة (يبدأ من الحرف رقم 11 وطوله 7 أحرف)
+    mention_entity = types.MessageEntityMentionName(
+        offset=11,      # بداية الاسم داخل النص
+        length=7,       # طول الاسم (Anymous)
+        user_id=7908156943
     )
+    
+    # 3. تحديد مكان الإيموجي المميز (مكانه في آخر النص وطوله 2 حرف لأنه سهم)
+    emoji_entity = types.MessageEntityCustomEmoji(
+        offset=35,      # مكان السهم ⬆️ في النص
+        length=2,       # طول الرمز
+        document_id=5372913502140766965 # آيدي الإيموجي المميز
+    )
+    
+    # 4. إرسال الرسالة مع تمرير الـ entities
+    await e.reply(text, formatting_entities=[mention_entity, emoji_entity])
