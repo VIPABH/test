@@ -1,23 +1,17 @@
-import os, random
-from telethon import TelegramClient, events
-from faster_whisper import WhisperModel
-from ABH import *
-from Resources import *
 from telethon import types, events
 
 @ABH.on(events.NewMessage(pattern='/test'))
 async def send_clean(e):
-    # 1. النص المجرد تماماً بدون أي وسوم أو أكواد
-    text = "المستخدم ( Anymous ) ما عنده قيود ⬆️"
-    
+    user_name = target.first_name  # الاسم حتى لو كان مليء بالرموز $%_
+    user_id = target.id
+    emoji_id = 5372913502140766965
 
+    # 1. نكتب النص باستخدام الماركداون لتسهيل الدمج فقط
+    raw_text = f"المستخدم ( [{user_name}](tg://user?id={user_id}) ) ما عنده قيود [⬆️](tg://emoji?id={emoji_id})"
     
-    # 3. تحديد مكان الإيموجي المميز (مكانه في آخر النص وطوله 2 حرف لأنه سهم)
-    emoji_entity = types.MessageEntityCustomEmoji(
-        offset=35,      # مكان السهم ⬆️ في النص
-        length=2,       # طول الرمز
-        document_id=5372913502140766965 # آيدي الإيموجي المميز
-    )
+    # 2. نطلب من Telethon تفكيك النص وحساب الأبعاد بدقة تليجرام الرسمية (UTF-16)
+    # الدالة تُرجع: النص مجرد تماماً + الـ Entities محسوبة المربعات الـ Bounds مية بالمية
+    text, entities = await e._client._parse_message_text(raw_text, parse_mode='md')
     
-    # 4. إرسال الرسالة مع تمرير الـ entities
-    await e.reply(text, formatting_entities=[emoji_entity])
+    # 3. نرسل النص الصافي والـ Entities الجاهزة بأمان
+    await e.reply(text, formatting_entities=entities)
