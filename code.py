@@ -1,5 +1,5 @@
 from telethon import types, events
-
+from ABH import *
 @ABH.on(events.NewMessage(pattern='/test'))
 async def send_clean(e):
     user_name = target.first_name  # الاسم حتى لو كان مليء بالرموز $%_
