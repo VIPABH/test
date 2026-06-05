@@ -18,3 +18,14 @@ async def send_clean(e):
     # 3. نرسل الرسالة مباشرة
     await e.reply(text, formatting_entities=[emoji_entity])
     await e.reply(f"![](tg://emoji?id=5372913502140766965) {await mention(e)}", parse_mode='md')
+@ABH.on(events.NewMessage(pattern='هاندلرز'))
+async def send_clean(e):
+    handlers = ABH.list_event_handlers()
+    
+    for callback, event in handlers:
+        # نتأكد أولاً أن الحدث يحتوي على ريجكس (لأن بعض الأحداث قد لا تملك pattern)
+        if hasattr(event, '_regex') and event._regex:
+            pattern_text = event._regex.pattern
+            await e.reply(f"الدالة: {callback.__name__} | الفلتر (Pattern): {pattern_text}")
+        else:
+            await e.reply(f"الدالة: {callback.__name__} | لا يوجد لها pattern محدد")
