@@ -26,23 +26,24 @@ async def send_clean(e):
     for callback, event in handlers:
         pattern_text = None
         
-        # 1. الفحص المباشر للخاصية pattern الموجودة في السورس عندك
         if hasattr(event, 'pattern') and event.pattern:
-            # بما أن الـ pattern هو كائن Regex، نأخذ النص منه عبر .pattern
-            if hasattr(event.pattern, 'pattern'):
+            # 1. إذا كان الـ pattern عبارة عن دالة (method) مثل match
+            if hasattr(event.pattern, '__self__') and hasattr(event.pattern.__self__, 'pattern'):
+                pattern_text = event.pattern.__self__.pattern
+            # 2. إذا كان كائن ريجكس مباشر
+            elif hasattr(event.pattern, 'pattern'):
                 pattern_text = event.pattern.pattern
+            # 3. إذا كان نصاً عادياً
             else:
                 pattern_text = str(event.pattern)
                 
-        # 2. في حال كان الأمر يستخدم فلاتر مخصصة (دوال فحص) داخل 'func'
         elif hasattr(event, 'func') and event.func:
             pattern_text = f"دالة فحص مخصصة: {event.func.__name__}"
             
-        # بناء الرسالة بناءً على النتيجة
+        # بناء الرسالة
         if pattern_text:
             text_response += f"🔹 **الدالة:** `{callback.__name__}`\n🔻 **الـ Pattern:** `{pattern_text}`\n\n"
         else:
             text_response += f"🔹 **الدالة:** `{callback.__name__}`\n🔺 _لا يوجد لها pattern محدد_\n\n"
             
-    # إرسال التقرير كامل في رسالة واحدة
     await e.reply(text_response)
