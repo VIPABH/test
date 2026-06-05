@@ -21,24 +21,28 @@ async def send_clean(e):
 @ABH.on(events.NewMessage(pattern='^هاندلرز$'))
 async def send_clean(e):
     handlers = ABH.list_event_handlers()
+    text_response = "📋 **قائمة الهاندلرز والفلتر الخاص بها:**\n\n"
     
-    if not handlers:
-        return await e.reply("لا يوجد أي هاندلرز مسجلين!")
+    for callback, event in handlers:
+        pattern_text = None
         
-    # سنأخذ أول هاندلر كمثال ونطبع كل محتوياته لنعرف أين يختبئ الـ pattern
-    first_callback, first_event = handlers[0]
-    
-    # جلب جميع الخصائص (Attributes) الموجودة داخل كائن الـ event
-    event_attributes = list(first_event.__dict__.keys())
-    
-    debug_text = f"⚙️ **تقرير الفحص الداخلي للـ Event:**\n\n"
-    debug_text += f"🔹 **اسم الدالة الأولى:** `{first_callback.__name__}`\n"
-    debug_text += f"🔹 **نوع كائن الحدث:** `{type(first_event).__name__}`\n"
-    debug_text += f"🔹 **الخصائص المتوفرة داخله:**\n`{event_attributes}`\n\n"
-    
-    # إذا كان هناك خاصية باسم filter، دعنا نرى ما بداخلها أيضاً
-    if hasattr(first_event, 'filter') and first_event.filter:
-        filter_attributes = list(first_event.filter.__dict__.keys())
-        debug_text += f"🔍 **ماذا يوجد داخل الـ filter؟**\n`{filter_attributes}`\n"
-        
-    await e.reply(debug_text)
+        # 1. الفحص المباشر للخاصية pattern الموجودة في السورس عندك
+        if hasattr(event, 'pattern') and event.pattern:
+            # بما أن الـ pattern هو كائن Regex، نأخذ النص منه عبر .pattern
+            if hasattr(event.pattern, 'pattern'):
+                pattern_text = event.pattern.pattern
+            else:
+                pattern_text = str(event.pattern)
+                
+        # 2. في حال كان الأمر يستخدم فلاتر مخصصة (دوال فحص) داخل 'func'
+        elif hasattr(event, 'func') and event.func:
+            pattern_text = f"دالة فحص مخصصة: {event.func.__name__}"
+            
+        # بناء الرسالة بناءً على النتيجة
+        if pattern_text:
+            text_response += f"🔹 **الدالة:** `{callback.__name__}`\n🔻 **الـ Pattern:** `{pattern_text}`\n\n"
+        else:
+            text_response += f"🔹 **الدالة:** `{callback.__name__}`\n🔺 _لا يوجد لها pattern محدد_\n\n"
+            
+    # إرسال التقرير كامل في رسالة واحدة
+    await e.reply(text_response)
