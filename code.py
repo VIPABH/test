@@ -18,14 +18,32 @@ async def send_clean(e):
     # 3. نرسل الرسالة مباشرة
     await e.reply(text, formatting_entities=[emoji_entity])
     await e.reply(f"![](tg://emoji?id=5372913502140766965) {await mention(e)}", parse_mode='md')
-@ABH.on(events.NewMessage(pattern='هاندلرز'))
+@ABH.on(events.NewMessage(pattern='^هاندلرز$'))
 async def send_clean(e):
     handlers = ABH.list_event_handlers()
+    text_response = "📋 **قائمة الهاندلرز والفلتر الخاص بها:**\n\n"
     
     for callback, event in handlers:
-        # نتأكد أولاً أن الحدث يحتوي على ريجكس (لأن بعض الأحداث قد لا تملك pattern)
+        pattern_text = None
+        
+        # 1. فحص إذا كان الـ _regex موجود مباشرة في الحدث (في بعض النسخ المعدلة)
         if hasattr(event, '_regex') and event._regex:
             pattern_text = event._regex.pattern
-            await e.reply(f"الدالة: {callback.__name__} | الفلتر (Pattern): {pattern_text}")
+            
+        # 2. الطرق القياسية لـ Telethon للوصول للفلتر بشتى صوره
+        elif hasattr(event, 'filter') and event.filter:
+            # إذا كان الفلتر يحتوي على الـ _regex مباشرة
+            if hasattr(event.filter, '_regex') and event.filter._regex:
+                pattern_text = event.filter._regex.pattern
+            # إذا كان الفلتر عبارة عن كائن يحتوي على خاصية pattern نصية
+            elif hasattr(event.filter, 'pattern') and event.filter.pattern:
+                pattern_text = event.filter.pattern
+                
+        # إذا وجدنا الفلتر نقوم بإضافته للنص، وإلا نكتب لا يوجد
+        if pattern_text:
+            text_response += f"🔹 **الدالة:** `{callback.__name__}`\n🔻 **الـ Pattern:** `{pattern_text}`\n\n"
         else:
-            await e.reply(f"الدالة: {callback.__name__} | لا يوجد لها pattern محدد")
+            text_response += f"🔹 **الدالة:** `{callback.__name__}`\n🔺 _لا يوجد لها pattern محدد_\n\n"
+            
+    # إرسال النتيجة في رسالة واحدة مرتبة بدلاً من إرسال رسائل متعددة تسبب سبام للبوت
+    await e.reply(text_response)
