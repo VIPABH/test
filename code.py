@@ -21,29 +21,24 @@ async def send_clean(e):
 @ABH.on(events.NewMessage(pattern='^هاندلرز$'))
 async def send_clean(e):
     handlers = ABH.list_event_handlers()
-    text_response = "📋 **قائمة الهاندلرز والفلتر الخاص بها:**\n\n"
     
-    for callback, event in handlers:
-        pattern_text = None
+    if not handlers:
+        return await e.reply("لا يوجد أي هاندلرز مسجلين!")
         
-        # 1. فحص إذا كان الـ _regex موجود مباشرة في الحدث (في بعض النسخ المعدلة)
-        if hasattr(event, '_regex') and event._regex:
-            pattern_text = event._regex.pattern
-            
-        # 2. الطرق القياسية لـ Telethon للوصول للفلتر بشتى صوره
-        elif hasattr(event, 'filter') and event.filter:
-            # إذا كان الفلتر يحتوي على الـ _regex مباشرة
-            if hasattr(event.filter, '_regex') and event.filter._regex:
-                pattern_text = event.filter._regex.pattern
-            # إذا كان الفلتر عبارة عن كائن يحتوي على خاصية pattern نصية
-            elif hasattr(event.filter, 'pattern') and event.filter.pattern:
-                pattern_text = event.filter.pattern
-                
-        # إذا وجدنا الفلتر نقوم بإضافته للنص، وإلا نكتب لا يوجد
-        if pattern_text:
-            text_response += f"🔹 **الدالة:** `{callback.__name__}`\n🔻 **الـ Pattern:** `{pattern_text}`\n\n"
-        else:
-            text_response += f"🔹 **الدالة:** `{callback.__name__}`\n🔺 _لا يوجد لها pattern محدد_\n\n"
-            
-    # إرسال النتيجة في رسالة واحدة مرتبة بدلاً من إرسال رسائل متعددة تسبب سبام للبوت
-    await e.reply(text_response)
+    # سنأخذ أول هاندلر كمثال ونطبع كل محتوياته لنعرف أين يختبئ الـ pattern
+    first_callback, first_event = handlers[0]
+    
+    # جلب جميع الخصائص (Attributes) الموجودة داخل كائن الـ event
+    event_attributes = list(first_event.__dict__.keys())
+    
+    debug_text = f"⚙️ **تقرير الفحص الداخلي للـ Event:**\n\n"
+    debug_text += f"🔹 **اسم الدالة الأولى:** `{first_callback.__name__}`\n"
+    debug_text += f"🔹 **نوع كائن الحدث:** `{type(first_event).__name__}`\n"
+    debug_text += f"🔹 **الخصائص المتوفرة داخله:**\n`{event_attributes}`\n\n"
+    
+    # إذا كان هناك خاصية باسم filter، دعنا نرى ما بداخلها أيضاً
+    if hasattr(first_event, 'filter') and first_event.filter:
+        filter_attributes = list(first_event.filter.__dict__.keys())
+        debug_text += f"🔍 **ماذا يوجد داخل الـ filter؟**\n`{filter_attributes}`\n"
+        
+    await e.reply(debug_text)
