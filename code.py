@@ -1,23 +1,19 @@
 from telethon import types, events
 from ABH import *
-from Resources import *
-
+from Resources 
 @ABH.on(events.NewMessage(pattern="تيست"))
 async def test(e):
+    # جلب الرسالة التي رددت عليها
     r = await e.get_reply_message()
-    
     if not r:
-        await e.reply("عذراً، يجب أن ترد على رسالة معينة لاستخدام هذا الأمر.")
+        await e.reply("يرجى الرد على رسالة.")
         return
 
-    # نقوم بجلب الرسالة من السيرفر مباشرة لضمان الحصول على كائن 'replies' الكامل
-    # نستخدم get_messages مع معرف الرسالة ومعرف المحادثة
-    full_message = await e.client.get_messages(e.chat_id, ids=r.id)
-
-    # التحقق من وجود كائن الردود
-    if full_message.replies:
-        count = full_message.replies.replies
-        await e.reply(f"عدد الردود الفعلي على هذه الرسالة هو: {count}")
-    else:
-        # إذا كانت القيمة None، قد يعني ذلك أنها رسالة لا تحتوي على خيار الردود
-        await e.reply("لم يتم العثور على أي ردود مرتبطة بهذه الرسالة في السيرفر.")
+    # استخدام get_messages مع خاصية reply_to لجلب الردود فقط
+    # هذه الطريقة تجلب الرسائل التي تعتبر رسالتك هي الأصل لها
+    replies = await e.client.get_messages(e.chat_id, reply_to=r.id)
+    
+    # الخاصية total في كائن الرسائل تجلب العدد الإجمالي من السيرفر
+    count = replies.total
+    
+    await e.reply(f"عدد الردود الفعلي (طريقة البحث عن الردود) هو: {count}")
