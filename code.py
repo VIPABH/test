@@ -4,18 +4,17 @@ from Resources import *
 
 @ABH.on(events.NewMessage(pattern="تيست"))
 async def test(e):
-    print("تم تشغيل الامر")
     r = await e.get_reply_message()
     
     # التحقق من أن المستخدم قام بعمل "رد" (Reply) فعلاً
     if not r:
-        await e.edit("عذراً، يجب أن ترد على رسالة معينة لاستخدام هذا الأمر.")
+        await e.reply("عذراً، يجب أن ترد على رسالة معينة لاستخدام هذا الأمر.")
         return
 
     # التحقق مما إذا كانت الرسالة تحتوي على ردود (replies)
     # ملاحظة: في حال لم يكن هناك أي رد على الرسالة، قد تكون قيمة r.replies هي None
     if r.replies and r.replies.replies:
         count = r.replies.replies
-        await e.edit(f"عدد الردود على هذه الرسالة هو: {count}")
+        await e.reply(f"عدد الردود على هذه الرسالة هو: {count}")
     else:
-        await e.edit("لا توجد ردود على هذه الرسالة حالياً.")
+        await e.reply("لا توجد ردود على هذه الرسالة حالياً.")
