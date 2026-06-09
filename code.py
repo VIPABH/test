@@ -6,15 +6,18 @@ from Resources import *
 async def test(e):
     r = await e.get_reply_message()
     
-    # التحقق من أن المستخدم قام بعمل "رد" (Reply) فعلاً
     if not r:
         await e.reply("عذراً، يجب أن ترد على رسالة معينة لاستخدام هذا الأمر.")
         return
 
-    # التحقق مما إذا كانت الرسالة تحتوي على ردود (replies)
-    # ملاحظة: في حال لم يكن هناك أي رد على الرسالة، قد تكون قيمة r.replies هي None
-    if r.replies and r.replies.replies:
-        count = r.replies.replies
-        await e.reply(f"عدد الردود على هذه الرسالة هو: {count}")
+    # نقوم بجلب الرسالة من السيرفر مباشرة لضمان الحصول على كائن 'replies' الكامل
+    # نستخدم get_messages مع معرف الرسالة ومعرف المحادثة
+    full_message = await e.client.get_messages(e.chat_id, ids=r.id)
+
+    # التحقق من وجود كائن الردود
+    if full_message.replies:
+        count = full_message.replies.replies
+        await e.reply(f"عدد الردود الفعلي على هذه الرسالة هو: {count}")
     else:
-        await e.reply("لا توجد ردود على هذه الرسالة حالياً.")
+        # إذا كانت القيمة None، قد يعني ذلك أنها رسالة لا تحتوي على خيار الردود
+        await e.reply("لم يتم العثور على أي ردود مرتبطة بهذه الرسالة في السيرفر.")
