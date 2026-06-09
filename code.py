@@ -1,6 +1,5 @@
 from telethon import types, events
-from ABH import *
-from Resources 
+from ABH import * 
 @ABH.on(events.NewMessage(pattern="تيست"))
 async def test(e):
     # جلب الرسالة التي رددت عليها
