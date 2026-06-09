@@ -4,7 +4,7 @@ from Resources import *
 
 @ABH.on(events.NewMessage(pattern="تيست"))
 async def test(e):
-    # جلب الرسالة التي تم الرد عليها
+    print("تم تشغيل الامر")
     r = await e.get_reply_message()
     
     # التحقق من أن المستخدم قام بعمل "رد" (Reply) فعلاً
