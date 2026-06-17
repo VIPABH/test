@@ -1,5 +1,5 @@
 from telethon import events
-
+from ABH import *
 @ABH.on(events.NewMessage(pattern="تيست"))
 async def test(e):
     # إرسال رسالة أولية للمستخدم توضح أن العملية بدأت
