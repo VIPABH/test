@@ -1,18 +1,30 @@
-from telethon import types, events
-from ABH import * 
+from telethon import events
+
 @ABH.on(events.NewMessage(pattern="تيست"))
 async def test(e):
-    # جلب الرسالة التي رددت عليها
-    r = await e.get_reply_message()
-    if not r:
-        await e.reply("يرجى الرد على رسالة.")
-        return
-
-    # استخدام get_messages مع خاصية reply_to لجلب الردود فقط
-    # هذه الطريقة تجلب الرسائل التي تعتبر رسالتك هي الأصل لها
-    replies = await e.client.get_messages(e.chat_id, reply_to=r.id)
+    # إرسال رسالة أولية للمستخدم توضح أن العملية بدأت
+    status_msg = await e.reply("جاري فحص الرسائل، يرجى الانتظار...")
     
-    # الخاصية total في كائن الرسائل تجلب العدد الإجمالي من السيرفر
-    count = replies.total
+    # تحديد نطاق المعرفات
+    ids = list(range(502, 633)) 
     
-    await e.reply(f"عدد الردود الفعلي (طريقة البحث عن الردود) هو: {count}")
+    # جلب الرسائل
+    messages = await ABH.get_messages("x04ou", ids=ids)
+    
+    found = 0
+    deleted = 0
+    
+    # فرز الرسائل
+    for msg in messages:
+        if msg is not None:
+            found += 1
+        else:
+            deleted += 1
+            
+    # تحديث النتيجة للمستخدم
+    await status_msg.edit(
+        f"✅ **تم فحص الرسائل:**\n\n"
+        f"📌 **الرسائل الموجودة:** {found}\n"
+        f"🗑 **الرسائل المحذوفة:** {deleted}\n"
+        f"📊 **إجمالي النطاق:** {len(ids)}"
+    )
