@@ -31,21 +31,17 @@ from ABH import *
 #     )
 @ABH.on(events.NewMessage)
 async def monitor_guests(e):
-    # نتحقق من وجود الخاصية
     guest_info = getattr(e.message, 'guestchat_via_from', None)
     
     if guest_info is not None:
-        # استخراج الـ ID والاسم (إذا كان متاحاً)
-        guest_id = guest_info.id
-        guest_name = getattr(guest_info, 'first_name', 'غير معروف')
+        # إذا كان الكائن PeerUser، نستخدم .user_id بدلاً من .id
+        # نستخدم getattr كإجراء احترازي إذا تغير نوع الكائن مستقبلاً
+        guest_id = getattr(guest_info, 'user_id', getattr(guest_info, 'id', None))
         
-        # استخراج ID البوت الذي يشغل هذه العملية
-        # بما أنك داخل حدث، فإن البوت الذي استقبل الرسالة هو e.client
         bot_id = e.client.me.id
         
         alert = (
             f"⚠️ **نشاط ضيف جديد مكتشف**\n\n"
-            f"👤 **المستخدم:** {guest_name}\n"
             f"🆔 **ID الشخص:** `{guest_id}`\n"
             f"🤖 **ID البوت المشغل:** `{bot_id}`"
         )
