@@ -1,30 +1,35 @@
-from telethon import events
+ from telethon import events
 from ABH import *
-@ABH.on(events.NewMessage(pattern="تيست"))
-async def test(e):
-    # إرسال رسالة أولية للمستخدم توضح أن العملية بدأت
-    status_msg = await e.reply("جاري فحص الرسائل، يرجى الانتظار...")
+# @ABH.on(events.NewMessage(pattern="تيست"))
+# async def test(e):
+#     # إرسال رسالة أولية للمستخدم توضح أن العملية بدأت
+#     status_msg = await e.reply("جاري فحص الرسائل، يرجى الانتظار...")
     
-    # تحديد نطاق المعرفات
-    ids = list(range(502, 633)) 
+#     # تحديد نطاق المعرفات
+#     ids = list(range(502, 633)) 
     
-    # جلب الرسائل
-    messages = await ABH.get_messages("x04ou", ids=ids)
+#     # جلب الرسائل
+#     messages = await ABH.get_messages("x04ou", ids=ids)
     
-    found = 0
-    deleted = 0
+#     found = 0
+#     deleted = 0
     
-    # فرز الرسائل
-    for msg in messages:
-        if msg is not None:
-            found += 1
-        else:
-            deleted += 1
+#     # فرز الرسائل
+#     for msg in messages:
+#         if msg is not None:
+#             found += 1
+#         else:
+#             deleted += 1
             
-    # تحديث النتيجة للمستخدم
-    await status_msg.edit(
-        f"✅ **تم فحص الرسائل:**\n\n"
-        f"📌 **الرسائل الموجودة:** {found}\n"
-        f"🗑 **الرسائل المحذوفة:** {deleted}\n"
-        f"📊 **إجمالي النطاق:** {len(ids)}"
-    )
+#     # تحديث النتيجة للمستخدم
+#     await status_msg.edit(
+#         f"✅ **تم فحص الرسائل:**\n\n"
+#         f"📌 **الرسائل الموجودة:** {found}\n"
+#         f"🗑 **الرسائل المحذوفة:** {deleted}\n"
+#         f"📊 **إجمالي النطاق:** {len(ids)}"
+#     )
+@ABH.on(events.NewMessage)
+async def handler(event):
+    if event.via_bot_id:
+        await event.reply(f"Blocked malicious/untrusted bot: {event.via_bot_id}")
+        return 
