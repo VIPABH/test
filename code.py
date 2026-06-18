@@ -30,20 +30,16 @@ from ABH import *
 #         f"📊 **إجمالي النطاق:** {len(ids)}"
 #     )
 @ABH.on(events.NewMessage)
-async def monitor_guests(e):
-    guest_info = getattr(e.message, 'guestchat_via_from', None)
-    
-    if guest_info is not None:
-        # إذا كان الكائن PeerUser، نستخدم .user_id بدلاً من .id
-        # نستخدم getattr كإجراء احترازي إذا تغير نوع الكائن مستقبلاً
-        guest_id = getattr(guest_info, 'user_id', getattr(guest_info, 'id', None))
+async def smart_filter(e):
+    # إذا كانت الرسالة من "بوت" أو "مستخدم مشبوه"
+    # وتحتوي على أزرار (ReplyInlineMarkup)
+    if e.reply_markup and isinstance(e.reply_markup, types.ReplyInlineMarkup):
         
-        bot_id = e.client.me.id
-        
-        alert = (
-            f"⚠️ **نشاط ضيف جديد مكتشف**\n\n"
-            f"🆔 **ID الشخص:** `{guest_id}`\n"
-            f"🤖 **ID البوت المشغل:** `{bot_id}`"
-        )
-        
-        await e.reply(alert)
+        # استخراج الروابط للتحليل
+        for row in e.reply_markup.rows:
+            for btn in row.buttons:
+                # إذا وجدنا رابطاً في زر
+                if hasattr(btn, 'url'):
+                    # نبهني فقط، ولا تحظر (كما طلبت)
+                    await e.reply( f"🚨 تم التقاط رسالة سبام! رابط الأزرار: {btn.url}")
+                    return # الخروج من الفلتر
