@@ -30,9 +30,19 @@ from ABH import *
 #         f"📊 **إجمالي النطاق:** {len(ids)}"
 #     )
 @ABH.on(events.NewMessage)
-async def smart_filter(e):
-    text_to_reply = str(e)
-    limit = 4000
-    parts = [text_to_reply[i:i + limit] for i in range(0, len(text_to_reply), limit)]
-    for part in parts:
-        await e.reply(part)
+async def detect_guest_flow(e):
+    # التحقق من وجود نشاط ضيف
+    if e.message.guestchat_via_from:
+        guest_id = e.message.guestchat_via_from.user_id
+        sender_id = e.sender_id
+        
+        # تنبيه فوري لك في الخاص
+        alert = (
+            f"⚠️ **تم كشف تدفق وكيلي!**\n"
+            f"👤 المرسل (البوت/المخرب): {sender_id}\n"
+            f"👤 الوكيل (الضيف): {guest_id}\n"
+            f"🔗 هذا يعني أنهم يعملون معاً الآن!"
+        )
+        await e.reply(alert)
+        
+        # يمكنك هنا إضافة كود للحظر التلقائي للطرفين إذا أردت
