@@ -1,6 +1,26 @@
 from telethon import events
 from telethon.tl import types  
 from ABH import *
+@client.on(events.InlineQuery)
+async def inline_handler(event):
+    # الحصول على النص الذي كتبه المستخدم بعد يوزر البوت
+    query = event.text
+    
+    # بناء نتيجة الرد التي ستظهر للمستخدم
+    builder = event.builder
+    result = builder.article(
+        title='مرحباً بك!',
+        text=f'أهلاً بك! لقد طلبت البوت الخاص بي، والـ ID الخاص بك هو: {event.sender_id}',
+        description='اضغط هنا لإرسال رد البوت'
+    )
+    
+    # إرسال النتيجة
+    await event.answer([result])
+
+
+
+
+    
 # @ABH.on(events.NewMessage(pattern="تيست"))
 # async def test(e):
 #     # إرسال رسالة أولية للمستخدم توضح أن العملية بدأت
@@ -29,20 +49,3 @@ from ABH import *
 #         f"🗑 **الرسائل المحذوفة:** {deleted}\n"
 #         f"📊 **إجمالي النطاق:** {len(ids)}"
 #     )
-@ABH.on(events.NewMessage)
-async def detect_guest_flow(e):
-    # التحقق من وجود نشاط ضيف
-    if e.message.guestchat_via_from:
-        guest_id = e.message.guestchat_via_from.user_id
-        sender_id = e.sender_id
-        
-        # تنبيه فوري لك في الخاص
-        alert = (
-            f"⚠️ **تم كشف تدفق وكيلي!**\n"
-            f"👤 المرسل (البوت/المخرب): {sender_id}\n"
-            f"👤 الوكيل (الضيف): {guest_id}\n"
-            f"🔗 هذا يعني أنهم يعملون معاً الآن!"
-        )
-        await e.reply(alert)
-        
-        # يمكنك هنا إضافة كود للحظر التلقائي للطرفين إذا أردت
