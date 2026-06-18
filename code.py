@@ -1,4 +1,5 @@
 from telethon import events
+from telethon.tl import types  
 from ABH import *
 # @ABH.on(events.NewMessage(pattern="تيست"))
 # async def test(e):
