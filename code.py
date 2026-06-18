@@ -3,29 +3,39 @@ from telethon.tl import types
 from ABH import *
 from telethon import events
 
-client = ABH # تأكد أن هذا المتغير هو الـ Client الخاص بك
+import asyncio
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.enums import ParseMode
 
-# سنقوم بتعريف دالة للتحقق من أن البوت تم ذكره
-async def is_mentioned(event):
-    # تحقق مما إذا كان هناك رد على رسالة سابقة للبوت
-    if event.reply_to_msg_id:
-        reply_message = await event.get_reply_message()
-        if reply_message and reply_message.sender_id == (await client.get_me()).id:
-            return True
-    
-    # تحقق مما إذا كان البوت مذكوراً في النص (@username)
-    bot_username = (await client.get_me()).username
-    if bot_username and f"@{bot_username}" in event.raw_text:
-        return True
-        
-    return False
+# ضع التوكين الخاص بك هنا
 
-# نستخدم الحدث مع فلتر (func)
-@client.on(events.NewMessage(func=is_mentioned))
-async def handler(event):
-    await event.reply("مرحباً! تم استدعائي في وضع الضيف.")
 
-print("البوت يعمل الآن (سيستجيب فقط عند الإشارة إليه أو الرد عليه)...")
+bot = Bot(token=bot_token)
+dp = Dispatcher()
+
+# استخدام اسم المستخدم (بدون @) للفلترة الأدق
+BOT_USERNAME = "Hauehshbot"
+
+@dp.message(F.text.contains(f"@{BOT_USERNAME}")) 
+async def handle_mention(message: types.Message):
+    await message.reply("مرحباً! أنا Guest Bot، لقد تم استدعائي للتو.")
+
+@dp.message(F.reply_to_message)
+async def handle_reply(message: types.Message):
+    # التحقق من أن الرسالة التي تم الرد عليها هي من البوت الخاص بنا
+    bot_user = await bot.get_me()
+    if message.reply_to_message.from_user.id == bot_user.id:
+        await message.reply("شكراً لردك! كيف يمكنني مساعدتك؟")
+
+async def main():
+    print("البوت يعمل الآن...")
+    # حذف أي تحديثات قديمة عند البدء
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
+
+if __name__ == '__main__':
+    asyncio.run(main())
+
 
 
 
