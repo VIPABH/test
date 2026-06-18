@@ -31,6 +31,23 @@ from ABH import *
 #     )
 @ABH.on(events.NewMessage)
 async def monitor_guests(e):
-    if getattr(e.message, 'guestchat_via_from', None) is not None:
-        alert = f"⚠️ نشاط ضيف جديد مكتشف من: {e.message.guestchat_via_from}"
+    # نتحقق من وجود الخاصية
+    guest_info = getattr(e.message, 'guestchat_via_from', None)
+    
+    if guest_info is not None:
+        # استخراج الـ ID والاسم (إذا كان متاحاً)
+        guest_id = guest_info.id
+        guest_name = getattr(guest_info, 'first_name', 'غير معروف')
+        
+        # استخراج ID البوت الذي يشغل هذه العملية
+        # بما أنك داخل حدث، فإن البوت الذي استقبل الرسالة هو e.client
+        bot_id = e.client.me.id
+        
+        alert = (
+            f"⚠️ **نشاط ضيف جديد مكتشف**\n\n"
+            f"👤 **المستخدم:** {guest_name}\n"
+            f"🆔 **ID الشخص:** `{guest_id}`\n"
+            f"🤖 **ID البوت المشغل:** `{bot_id}`"
+        )
+        
         await e.reply(alert)
