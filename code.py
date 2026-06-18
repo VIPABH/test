@@ -1,25 +1,25 @@
 from telethon import events
 from telethon.tl import types  
 from ABH import *
-@client.on(events.InlineQuery)
-async def inline_handler(event):
-    # الحصول على النص الذي كتبه المستخدم بعد يوزر البوت
-    query = event.text
-    
-    # بناء نتيجة الرد التي ستظهر للمستخدم
+from telethon import events
+from telethon.tl.types import InputBotInlineResultArticle
+from telethon.tl.types import InputWebDocument
+
+@ABH.on(events.InlineQuery)
+async def inline_query(event):
+    query = event.text.strip()
+
+    if not query:
+        query = "مرحبا"
+
     builder = event.builder
-    result = builder.article(
-        title='مرحباً بك!',
-        text=f'أهلاً بك! لقد طلبت البوت الخاص بي، والـ ID الخاص بك هو: {event.sender_id}',
-        description='اضغط هنا لإرسال رد البوت'
-    )
-    
-    # إرسال النتيجة
-    await event.answer([result])
 
-
-
-
+    await event.answer([
+        builder.article(
+            title="إرسال السؤال",
+            text=f"سؤالك: {query}"
+        )
+    ])
     
 # @ABH.on(events.NewMessage(pattern="تيست"))
 # async def test(e):
