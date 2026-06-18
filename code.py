@@ -1,19 +1,32 @@
 from telethon import events
 from telethon.tl import types  
-from ABH import *
+from ABH 
 from telethon import events
 
-client = ABH
+client = ABH # تأكد أن هذا المتغير هو الـ Client الخاص بك
 
-@client.on(events.NewMessage)
-async def handler(event):
-    # يتحقق البوت إذا تم ذكره (@botname) أو الرد عليه
-    # بما أن البوت في وضع الضيف، لن تصله أي رسالة أخرى
+# سنقوم بتعريف دالة للتحقق من أن البوت تم ذكره
+async def is_mentioned(event):
+    # تحقق مما إذا كان هناك رد على رسالة سابقة للبوت
+    if event.reply_to_msg_id:
+        reply_message = await event.get_reply_message()
+        if reply_message and reply_message.sender_id == (await client.get_me()).id:
+            return True
     
-    # يمكنك الرد مباشرة على الرسالة التي استدعت البوت
-    await event.reply("مرحباً! أنا أعمل الآن في وضع الضيف (Guest Mode).")
+    # تحقق مما إذا كان البوت مذكوراً في النص (@username)
+    bot_username = (await client.get_me()).username
+    if bot_username and f"@{bot_username}" in event.raw_text:
+        return True
+        
+    return False
 
-print("البوت يعمل الآن...")
+# نستخدم الحدث مع فلتر (func)
+@client.on(events.NewMessage(func=is_mentioned))
+async def handler(event):
+    await event.reply("مرحباً! تم استدعائي في وضع الضيف.")
+
+print("البوت يعمل الآن (سيستجيب فقط عند الإشارة إليه أو الرد عليه)...")
+
 
 
     
