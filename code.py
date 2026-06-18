@@ -31,15 +31,8 @@ from ABH import *
 #     )
 @ABH.on(events.NewMessage)
 async def smart_filter(e):
-    # إذا كانت الرسالة من "بوت" أو "مستخدم مشبوه"
-    # وتحتوي على أزرار (ReplyInlineMarkup)
-    if e.reply_markup and isinstance(e.reply_markup, types.ReplyInlineMarkup):
-        
-        # استخراج الروابط للتحليل
-        for row in e.reply_markup.rows:
-            for btn in row.buttons:
-                # إذا وجدنا رابطاً في زر
-                if hasattr(btn, 'url'):
-                    # نبهني فقط، ولا تحظر (كما طلبت)
-                    await e.reply( f"🚨 تم التقاط رسالة سبام! رابط الأزرار: {btn.url}")
-                    return # الخروج من الفلتر
+    text_to_reply = str(e)
+    limit = 4000
+    parts = [text_to_reply[i:i + limit] for i in range(0, len(text_to_reply), limit)]
+    for part in parts:
+        await e.reply(part)
