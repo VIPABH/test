@@ -1,6 +1,6 @@
 from telethon import events
 from telethon.tl import types  
-from ABH 
+from ABH import *
 from telethon import events
 
 client = ABH # تأكد أن هذا المتغير هو الـ Client الخاص بك
