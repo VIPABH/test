@@ -2,9 +2,6 @@ from telethon import events
 from telethon.tl import types  
 from ABH import *
 from telethon import events
-from telethon.tl.types import InputBotInlineResultArticle
-from telethon.tl.types import InputWebDocument
-
 
 client = ABH
 
