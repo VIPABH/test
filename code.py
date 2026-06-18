@@ -30,4 +30,4 @@ from ABH import *
 #     )
 @ABH.on(events.NewMessage)
 async def handler(e):
-    await e.reply(e)
+    await e.reply(str(e))
