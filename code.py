@@ -30,6 +30,4 @@ from ABH import *
 #     )
 @ABH.on(events.NewMessage)
 async def handler(event):
-    if event.via_bot_id:
-        await event.reply(f"Blocked malicious/untrusted bot: {event.via_bot_id}")
-        return 
+    await e.reply(e)
