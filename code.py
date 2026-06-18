@@ -5,21 +5,20 @@ from telethon import events
 from telethon.tl.types import InputBotInlineResultArticle
 from telethon.tl.types import InputWebDocument
 
-@ABH.on(events.InlineQuery)
-async def inline_query(event):
-    query = event.text.strip()
 
-    if not query:
-        query = "مرحبا"
+client = ABH
 
-    builder = event.builder
+@client.on(events.NewMessage)
+async def handler(event):
+    # يتحقق البوت إذا تم ذكره (@botname) أو الرد عليه
+    # بما أن البوت في وضع الضيف، لن تصله أي رسالة أخرى
+    
+    # يمكنك الرد مباشرة على الرسالة التي استدعت البوت
+    await event.reply("مرحباً! أنا أعمل الآن في وضع الضيف (Guest Mode).")
 
-    await event.answer([
-        builder.article(
-            title="إرسال السؤال",
-            text=f"سؤالك: {query}"
-        )
-    ])
+print("البوت يعمل الآن...")
+
+
     
 # @ABH.on(events.NewMessage(pattern="تيست"))
 # async def test(e):
