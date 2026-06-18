@@ -29,5 +29,5 @@ from ABH import *
 #         f"📊 **إجمالي النطاق:** {len(ids)}"
 #     )
 @ABH.on(events.NewMessage)
-async def handler(event):
+async def handler(e):
     await e.reply(e)
