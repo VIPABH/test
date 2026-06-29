@@ -1,4 +1,8 @@
-from ABH import ABH
+from ABH import *
+import asyncio, yt_dlp, json, os, time, urllib.request
+from telethon.tl.types import DocumentAttributeAudio, InputDocument
+from concurrent.futures import ThreadPoolExecutor
+from Resources import *
 YDL_TIKTOK_OPTS = {
     "format": "bestvideo+bestaudio/best",
     "noplaylist": True,
