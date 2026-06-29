@@ -18,14 +18,7 @@ YDL_TIKTOK_OPTS = {
 
 @ABH.on(events.NewMessage(pattern='^(توك|تيك|تيكتوك|tt) ?(.*)'))
 async def tiktok_func(e):
-    if not e.is_group or not e.raw_text:
-        return        
-    
-    l = lock(e, "تيكتوk")   
-    target = e.chat_id
-    if not l:
-        target = int(r.get('channel_hint') or e.chat_id)
-        
+    target = e.chat_id        
     query = e.pattern_match.group(2)    
     if not query:
         re_msg = await e.get_reply_message()
