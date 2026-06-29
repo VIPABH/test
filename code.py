@@ -1,86 +1,138 @@
-import asyncio, yt_dlp, os
-from telethon import events, Button
-from telethon.tl.types import DocumentAttributeAudio
-from concurrent.futures import ThreadPoolExecutor
-from ABH import ABH 
-os.makedirs("downloads", exist_ok=True)
-executor = ThreadPoolExecutor(max_workers=10)
-YDL_OPTS = {
-    "format": "bestaudio/best",
-    "noplaylist": True,
-    "quiet": True,
-    "no_warnings": True,
-    "nocheckcertificate": True,
-    "outtmpl": "downloads/%(id)s.%(ext)s", 
-    "postprocessors": [{
-        "key": "FFmpegExtractAudio",
-        "preferredcodec": "m4a",
-    }],
-}
-async def run_sync(func, *args):
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(executor, func, *args)
-@ABH.on(events.NewMessage(pattern='^(حمل|يوت|تحميل|yt) ?(.*)'))
-async def search_handler(e):
-    # if not e.is_group:return
+@ABH.on(events.NewMessage(pattern='^(توك|تيك|تيكتوك|tt) ?(.*)'))
+async def tiktok_func(e):
+    if not e.is_group or not e.raw_text:
+        return        
+    
+    l = lock(e, "تيكتوk")   
+    target = e.chat_id
+    if not l:
+        target = int(r.get('channel_hint') or e.chat_id)
+        
     query = e.pattern_match.group(2)    
     if not query:
-        r = await e.get_reply_message()
-        if not r:return await e.reply("اذكر لي اسم المقطع او الرابط")
-        query = r.text
-    fast_opts = {"quiet": True, "extract_flat": True, "nocheckcertificate": True}
-    try:
-        with yt_dlp.YoutubeDL(fast_opts) as ydl:
-            info = await run_sync(ydl.extract_info, f"ytsearch5:{query}", False)
-            results = info.get('entries', [])
-        if not results:
-            return await e.reply("❌ لم يتم العثور على نتائج!")
-        buttons = []
-        for video in results:
-            title = video.get('title', 'بدون عنوان')
-            title = title[:50] + '...' if len(title) > 50 else title
-            vid_id = video.get('id')
-            buttons.append([Button.inline(title, data=f"yt_{vid_id}")])
-        await e.reply(f"• نتائج البحث لـ : **{query}**", buttons=buttons)
-    except Exception as ex:
-        await e.reply(f"❌ حدث خطأ أثناء البحث: {str(ex)}")
-@ABH.on(events.CallbackQuery(pattern=b'^yt_(.*)'))
-async def download_callback(e):
-    vid_id = e.data.decode().split('_')[1]
-    url = f"https://www.youtube.com/watch?v={vid_id}"
-    await e.answer("جاري التحميل...", alert=False)
-    wait_msg = await e.edit("📥 جاري التحميل، يرجى الانتظار...")
+        re_msg = await e.get_reply_message()
+        if re_msg and re_msg.text: 
+            query = re_msg.text
+        else: 
+            return await e.reply("ارسل رابط فيديو التيك توك مع الأمر")
+
+    # تنظيف واستخراج الروابط
+    if "tiktok.com" not in query:
+        return await e.reply("⚠️ يرجى إرسال رابط تيك توك صحيح.")
+
+    # استخراج معرف فريد للكاش بناءً على الرابط لمنع التكرار
+    clean_url = query.strip().split("?")[0]
+    # استخراج كود الفيديو أو الرابط المختصر ليكون مفتاح الكاش
+    track_id = clean_url.split("/video/")[-1].replace("/", "_") if "/video/" in clean_url else clean_url.split("tiktok.com/")[-1].replace("/", "_")
+    cache_key = f"ttvideo_{track_id}"
+
+    # 1. فحص الكاش الهجين (الذاكرة ثم ريدس)
+    cache_data = get_from_cache_system(cache_key) # نستخدم نفس النظام الذكي
+    if cache_data:
+        # إذا وجدنا الكاش نرسل الفيديو مباشرة عبر دالة الإرسال السريع بالكاش
+        try:
+            file_input = InputDocument(
+                id=cache_data["video_id"], 
+                access_hash=cache_data["access_hash"], 
+                file_reference=bytes.fromhex(cache_data["file_reference"])
+            )
+            await ABH.send_file(
+                target, file_input, 
+                reply_to=e.id,
+                caption=cache_data.get("caption", "")
+            )
+            return
+        except:
+            delete_from_cache_system(cache_key)
+
+    wait_msg = None
     actual_path = None
-    try:
-        with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
-            info = await run_sync(ydl.extract_info, url, False)
-            title = info.get('title', 'Unknown Title')
-            duration = int(info.get('duration', 0))
-            uploader = info.get('uploader', 'Unknown Artist')
-        opts = YDL_OPTS.copy()
-        await run_sync(lambda: yt_dlp.YoutubeDL(opts).download([url]))
-        actual_path = f"downloads/{vid_id}.m4a"
-        if not os.path.exists(actual_path):
-            for ext in ['mp3', 'ogg', 'opus', 'webm']:
-                test_path = f"downloads/{vid_id}.{ext}"
-                if os.path.exists(test_path):
-                    actual_path = test_path
-                    break
-        if not actual_path or not os.path.exists(actual_path):
-            raise Exception("اكتمل التحميل ولكن تعذر العثور على الملف.")
-        await wait_msg.edit("🚀 جاري الرفع إلى المجموعة...")
-        await ABH.send_file(
-            e.chat_id,
-            file=actual_path, 
-            caption=f"**{title}**",
-            attributes=[DocumentAttributeAudio(duration=duration, title=title, performer=uploader)]
-        )
-        await wait_msg.delete()
-    except Exception as ex:
-        await wait_msg.edit(f"❌ حدث خطأ: {str(ex)}")
-    finally:
-        if actual_path and os.path.exists(actual_path):
+    
+    # 2. التحميل الفعلي باستخدام السيموفور والـ ThreadPool
+    async with download_semaphore:
+        try:
+            if l:
+                wait_msg = await e.reply("⏳ جاري معالجة وتحميل فيديو التيك توك...")
+
+            # جلب معلومات الفيديو أولاً بدون تحميل
+            fast_opts = {"quiet": True, "cookiefile": COOKIES_PATH, "nocheckcertificate": True}
+            with yt_dlp.YoutubeDL(fast_opts) as ydl:
+                info = await run_sync(ydl.extract_info, query, False)
+            
+            if not info:
+                return await e.reply("❌ تعذر جلب معلومات الفيديو، قد يكون خاصاً أو محذوفاً.")
+
+            video_id = info.get('id', str(int(time.time())))
+            title = info.get('title', 'TikTok Video')
+            uploader = info.get('uploader', 'TikTok')
+            caption_text = f"👤 **المصمم:** {uploader}\n📝 **الوصف:** {title}"
+
+            # التحميل الفعلي للفيديو
+            opts = YDL_TIKTOK_OPTS.copy()
+            opts["outtmpl"] = f"downloads/tt_{video_id}.%(ext)s"
+            
+            await run_sync(lambda: yt_dlp.YoutubeDL(opts).download([query]))
+            
+            # تحديد مسار الملف بعد التحميل
+            actual_path = f"downloads/tt_{video_id}.mp4"
+            if not os.path.exists(actual_path):
+                # فحص امتدادات أخرى احتياطياً مثل mkv أو webm
+                for ext in ['mkv', 'webm', 'mov']:
+                    test_path = f"downloads/tt_{video_id}.{ext}"
+                    if os.path.exists(test_path):
+                        actual_path = test_path
+                        break
+
+            if not os.path.exists(actual_path):
+                raise Exception("فشل العثور على ملف الفيديو المنزّل في السيرفر.")
+
+            # رفع وإرسال الفيديو للمجموعة
+            uploaded_file = await fast_upload(ABH, actual_path)
+            
             try:
-                os.remove(actual_path)
-            except:
-                pass
+                sent = await ABH.send_file(
+                    target,
+                    file=uploaded_file, 
+                    caption=caption_text,
+                    reply_to=e.id,
+                    supports_streaming=True # تجعل الفيديو قابل للمشاهدة الفورية داخل التليجرام بدون تحميل كامل
+                )
+                
+                # تعديل رسالة الانتظار بشكل جمالي مثلما فعلت في الساوند
+                if wait_msg:
+                    try: await ABH.edit_message(target, message=wait_msg.id, text=f"[Enjoy Video](https://t.me/{BOT_FIRST_NAME})", link_preview=False)
+                    except: pass
+            except Exception as send_err:
+                # إذا حذفت رسالة الأمر نرسله بدون reply_to
+                reply_to_use = e.id if "REPLY_MESSAGE_ID_INVALID" not in str(send_err) else None
+                sent = await ABH.send_file(
+                    target,
+                    file=uploaded_file, 
+                    caption=caption_text,
+                    reply_to=reply_to_use,
+                    supports_streaming=True
+                )
+                if wait_msg:
+                    try: await wait_msg.delete()
+                    except: pass
+
+            # 3. تخزين الفيديو في نظام الكاش الهجين لسرعة الاستدعاء اللاحقة
+            if sent and hasattr(sent, 'media') and sent.media and hasattr(sent.media, 'document') and sent.media.document:
+                doc = sent.media.document
+                r.incr("tiktok_videos_count") # عداد إحصائيات منفصل إذا أردت
+                set_to_cache_system(cache_key, {
+                    "video_id": doc.id, 
+                    "access_hash": doc.access_hash, 
+                    "file_reference": doc.file_reference.hex(),
+                    "caption": caption_text
+                })
+
+        except Exception as ex:
+            await e.reply(f"❌ حدث خطأ أثناء تحميل التيك توك: {str(ex)}")
+        finally:
+            if wait_msg and not reply_to_use:
+                try: await wait_msg.delete()
+                except: pass
+            if actual_path and os.path.exists(actual_path):
+                try: os.remove(actual_path)
+                except: pass
