@@ -1,3 +1,17 @@
+from ABH import ABH
+YDL_TIKTOK_OPTS = {
+    "format": "bestvideo+bestaudio/best",
+    "noplaylist": True,
+    "quiet": True,
+    "no_warnings": True,
+    "nocheckcertificate": True,
+    "cookiefile": COOKIES_PATH,
+    "outtmpl": "downloads/tt_%(id)s.%(ext)s",
+    "add_header": [
+        'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+    ],
+}
+
 @ABH.on(events.NewMessage(pattern='^(توك|تيك|تيكتوك|tt) ?(.*)'))
 async def tiktok_func(e):
     if not e.is_group or not e.raw_text:
@@ -16,20 +30,15 @@ async def tiktok_func(e):
         else: 
             return await e.reply("ارسل رابط فيديو التيك توك مع الأمر")
 
-    # تنظيف واستخراج الروابط
     if "tiktok.com" not in query:
         return await e.reply("⚠️ يرجى إرسال رابط تيك توك صحيح.")
 
-    # استخراج معرف فريد للكاش بناءً على الرابط لمنع التكرار
     clean_url = query.strip().split("?")[0]
-    # استخراج كود الفيديو أو الرابط المختصر ليكون مفتاح الكاش
     track_id = clean_url.split("/video/")[-1].replace("/", "_") if "/video/" in clean_url else clean_url.split("tiktok.com/")[-1].replace("/", "_")
     cache_key = f"ttvideo_{track_id}"
 
-    # 1. فحص الكاش الهجين (الذاكرة ثم ريدس)
-    cache_data = get_from_cache_system(cache_key) # نستخدم نفس النظام الذكي
+    cache_data = get_from_cache_system(cache_key)
     if cache_data:
-        # إذا وجدنا الكاش نرسل الفيديو مباشرة عبر دالة الإرسال السريع بالكاش
         try:
             file_input = InputDocument(
                 id=cache_data["video_id"], 
@@ -47,14 +56,13 @@ async def tiktok_func(e):
 
     wait_msg = None
     actual_path = None
+    reply_to_use = e.id
     
-    # 2. التحميل الفعلي باستخدام السيموفور والـ ThreadPool
     async with download_semaphore:
         try:
             if l:
                 wait_msg = await e.reply("⏳ جاري معالجة وتحميل فيديو التيك توك...")
 
-            # جلب معلومات الفيديو أولاً بدون تحميل
             fast_opts = {"quiet": True, "cookiefile": COOKIES_PATH, "nocheckcertificate": True}
             with yt_dlp.YoutubeDL(fast_opts) as ydl:
                 info = await run_sync(ydl.extract_info, query, False)
@@ -67,16 +75,13 @@ async def tiktok_func(e):
             uploader = info.get('uploader', 'TikTok')
             caption_text = f"👤 **المصمم:** {uploader}\n📝 **الوصف:** {title}"
 
-            # التحميل الفعلي للفيديو
             opts = YDL_TIKTOK_OPTS.copy()
             opts["outtmpl"] = f"downloads/tt_{video_id}.%(ext)s"
             
             await run_sync(lambda: yt_dlp.YoutubeDL(opts).download([query]))
             
-            # تحديد مسار الملف بعد التحميل
             actual_path = f"downloads/tt_{video_id}.mp4"
             if not os.path.exists(actual_path):
-                # فحص امتدادات أخرى احتياطياً مثل mkv أو webm
                 for ext in ['mkv', 'webm', 'mov']:
                     test_path = f"downloads/tt_{video_id}.{ext}"
                     if os.path.exists(test_path):
@@ -86,7 +91,6 @@ async def tiktok_func(e):
             if not os.path.exists(actual_path):
                 raise Exception("فشل العثور على ملف الفيديو المنزّل في السيرفر.")
 
-            # رفع وإرسال الفيديو للمجموعة
             uploaded_file = await fast_upload(ABH, actual_path)
             
             try:
@@ -95,15 +99,12 @@ async def tiktok_func(e):
                     file=uploaded_file, 
                     caption=caption_text,
                     reply_to=e.id,
-                    supports_streaming=True # تجعل الفيديو قابل للمشاهدة الفورية داخل التليجرام بدون تحميل كامل
+                    supports_streaming=True
                 )
-                
-                # تعديل رسالة الانتظار بشكل جمالي مثلما فعلت في الساوند
                 if wait_msg:
                     try: await ABH.edit_message(target, message=wait_msg.id, text=f"[Enjoy Video](https://t.me/{BOT_FIRST_NAME})", link_preview=False)
                     except: pass
             except Exception as send_err:
-                # إذا حذفت رسالة الأمر نرسله بدون reply_to
                 reply_to_use = e.id if "REPLY_MESSAGE_ID_INVALID" not in str(send_err) else None
                 sent = await ABH.send_file(
                     target,
@@ -116,10 +117,9 @@ async def tiktok_func(e):
                     try: await wait_msg.delete()
                     except: pass
 
-            # 3. تخزين الفيديو في نظام الكاش الهجين لسرعة الاستدعاء اللاحقة
             if sent and hasattr(sent, 'media') and sent.media and hasattr(sent.media, 'document') and sent.media.document:
                 doc = sent.media.document
-                r.incr("tiktok_videos_count") # عداد إحصائيات منفصل إذا أردت
+                r.incr("tiktok_videos_count")
                 set_to_cache_system(cache_key, {
                     "video_id": doc.id, 
                     "access_hash": doc.access_hash, 
