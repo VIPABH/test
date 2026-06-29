@@ -16,6 +16,19 @@ YDL_TIKTOK_OPTS = {
     ],
 }
 
+YDL_TIKTOK_OPTS = {
+    "format": "bestvideo+bestaudio/best",
+    "noplaylist": True,
+    "quiet": True,
+    "no_warnings": True,
+    "nocheckcertificate": True,
+    "cookiefile": COOKIES_PATH,
+    "outtmpl": "downloads/tt_%(id)s.%(ext)s",
+    "add_header": [
+        'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+    ],
+}
+
 @ABH.on(events.NewMessage(pattern='^(توك|تيك|تيكتوك|tt) ?(.*)'))
 async def tiktok_func(e):
     target = e.chat_id        
@@ -27,12 +40,17 @@ async def tiktok_func(e):
         else: 
             return await e.reply("ارسل رابط فيديو التيك توك مع الأمر")
 
-    if "tiktok.com" not in query:
-        return await e.reply("⚠️ يرجى إرسال رابط تيك توك صحيح.")
+    # إذا كان البحث بالاسم (وليس رابطاً) نقوم بتحويله إلى صيغة بحث تيك توك عبر yt_dlp
+    if not query.startswith(("http://", "https://")):
+        search_query = f"tiktoksearch1:{query}"
+    else:
+        search_query = query
+        if "tiktok.com" not in search_query:
+            return await e.reply("⚠️ يرجى إرسال رابط تيك توك صحيح.")
 
-    clean_url = query.strip().split("?")[0]
-    track_id = clean_url.split("/video/")[-1].replace("/", "_") if "/video/" in clean_url else clean_url.split("tiktok.com/")[-1].replace("/", "_")
-    cache_key = f"ttvideo_{track_id}"
+    # إعداد مفتاح الكاش بناءً على البحث أو الرابط
+    clean_query = query.strip().split("?")[0].replace("/", "_").replace(" ", "_")
+    cache_key = f"ttvideo_{clean_query}"
 
     cache_data = get_from_cache_system(cache_key)
     if cache_data:
@@ -58,24 +76,27 @@ async def tiktok_func(e):
     async with download_semaphore:
         try:
             if l:
-                wait_msg = await e.reply("⏳ جاري معالجة وتحميل فيديو التيك توك...")
+                wait_msg = await e.reply("⏳ جاري البحث ومعالجة فيديو التيك توك...")
 
-            fast_opts = {"quiet": True, "cookiefile": COOKIES_PATH, "nocheckcertificate": True}
+            fast_opts = {"quiet": True, "cookiefile": COOKIES_PATH, "nocheckcertificate": True, "extract_flat": True}
             with yt_dlp.YoutubeDL(fast_opts) as ydl:
-                info = await run_sync(ydl.extract_info, query, False)
+                info = await run_sync(ydl.extract_info, search_query, False)
+                if info and 'entries' in info and info['entries']:
+                    info = info['entries'][0]
             
-            if not info:
+            if not info or not info.get('url'):
                 return await e.reply("❌ تعذر جلب معلومات الفيديو، قد يكون خاصاً أو محذوفاً.")
 
             video_id = info.get('id', str(int(time.time())))
             title = info.get('title', 'TikTok Video')
             uploader = info.get('uploader', 'TikTok')
+            video_url = info.get('url', query)
             caption_text = f"👤 **المصمم:** {uploader}\n📝 **الوصف:** {title}"
 
             opts = YDL_TIKTOK_OPTS.copy()
             opts["outtmpl"] = f"downloads/tt_{video_id}.%(ext)s"
             
-            await run_sync(lambda: yt_dlp.YoutubeDL(opts).download([query]))
+            await run_sync(lambda: yt_dlp.YoutubeDL(opts).download([video_url]))
             
             actual_path = f"downloads/tt_{video_id}.mp4"
             if not os.path.exists(actual_path):
