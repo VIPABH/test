@@ -22,7 +22,7 @@ async def run_sync(func, *args):
     return await loop.run_in_executor(executor, func, *args)
 @ABH.on(events.NewMessage(pattern='^(حمل|يوت|تحميل|yt) ?(.*)'))
 async def search_handler(e):
-    if not e.is_group:return
+    # if not e.is_group:return
     query = e.pattern_match.group(2)    
     if not query:
         r = await e.get_reply_message()
