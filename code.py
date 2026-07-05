@@ -4,7 +4,7 @@ from telethon.tl.types import DocumentAttributeAudio, InputDocument
 from concurrent.futures import ThreadPoolExecutor
 from Resources import *
 from telethon.tl.types import KeyboardButtonUserProfile, ReplyKeyboardMarkup, KeyboardButtonRow, KeyboardButton
-@ABH.on(events.NewMessage(pattern=r".?ازرار", outgoing=True))
+@ABH.on(events.NewMessage(pattern=r".?ازرار"))
 async def send_button(event):
     user_id = event.sender_id 
     profile_button = KeyboardButtonUserProfile(text="البروفايل", user_id=user_id)
