@@ -3,16 +3,14 @@ import asyncio, yt_dlp, json, os, time, urllib.request
 from telethon.tl.types import DocumentAttributeAudio, InputDocument
 from concurrent.futures import ThreadPoolExecutor
 from Resources import *
-from telethon.tl.types import KeyboardButtonUserProfile, ReplyKeyboardMarkup, KeyboardButtonRow, KeyboardButton
-@ABH.on(events.NewMessage(pattern=r".?ازرار"))
-async def send_button(event):
-    user_id = event.sender_id 
-    profile_button = KeyboardButtonUserProfile(text="البروفايل", user_id=user_id)
-    main_button = KeyboardButton(text="الرئيسي")
-    markup = ReplyKeyboardMarkup(
-        rows=[
-            KeyboardButtonRow(buttons=[profile_button, main_button])
-        ],
-        resize=True 
-    )
-    await event.reply("هذه هي الأزرار المطلوبة:", buttons=markup)
+from telethon import events
+from telethon.tl.types import MessageEntityMentionName
+@ABH.on(events.NewMessage(pattern=r".?ترحيب"))
+async def send_welcome(event):
+    user_id = 8829795448  # أيدي الشخص
+    name = "بايو Noor."
+    text = f"نورت قروبنا يـ {name} 🥂✨"
+    start = text.find(name)
+    end = start + len(name)
+    entity = MessageEntityMentionName(offset=start, length=len(name), user_id=user_id)
+    await event.reply(text, formatting_entities=[entity])
