@@ -21,19 +21,19 @@ async def math_callback(e):
     current_eq = math_session[e.sender_id].get('num', '')
     if data == "AC":
         math_session[e.sender_id]['num'] = ""
-        await e.edit(text="تم التصفير، ابدأ من جديد:", buttons=get_buttons())
+        await e.edit(text="تم تصفير الجلسة:", buttons=get_buttons())
     elif data == "C":
+        await e.edit(text=f"تم حذف ( {current_eq[-1]} ):\n{math_session[e.sender_id]['num']}", buttons=get_buttons())        
         math_session[e.sender_id]['num'] = current_eq[:-1]
-        await e.edit(text=f"المعادلة={math_session[e.sender_id]['num']}", buttons=get_buttons())        
     elif data.isdigit() or data == '.':
         math_session[e.sender_id]['num'] = current_eq + data
-        await e.edit(text=f"المعادلة={math_session[e.sender_id]['num']}", buttons=get_buttons())        
+        await e.edit(text=f"المعادلة:\n{math_session[e.sender_id]['num']}", buttons=get_buttons())        
     elif data in ['+', '-', '*', '/']:
         if current_eq and current_eq[-1] in ['+', '-', '*', '/']:
             math_session[e.sender_id]['num'] = current_eq[:-1] + data
         else:
             math_session[e.sender_id]['num'] = current_eq + data
-        await e.edit(text=f"المعادلة={math_session[e.sender_id]['num']}", buttons=get_buttons())        
+        await e.edit(text=f"المعادلة:\n{math_session[e.sender_id]['num']}", buttons=get_buttons())        
     elif data == '=':
         try:
             الناتج = eval(current_eq)
