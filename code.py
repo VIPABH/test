@@ -3,7 +3,7 @@ from ABH import ABH
 math_session = {}
 def get_buttons():
     return [
-        [Button.inline("AC", data="AC"), Button.inline("C", data="C"), Button.inline("/", data="/")],
+        [Button.inline("AC", data="AC"), Button.inline("C", data="C"), Button.inline("÷", data="/")],
         [Button.inline("7", data="7"), Button.inline("8", data="8"), Button.inline("9", data="9"), Button.inline("*", data="*")],
         [Button.inline("4", data="4"), Button.inline("5", data="5"), Button.inline("6", data="6"), Button.inline("-", data="-")],
         [Button.inline("1", data="1"), Button.inline("2", data="2"), Button.inline("3", data="3"), Button.inline("+", data="+")],
@@ -27,7 +27,7 @@ async def math_callback(e):
         await e.edit(text=f"المعادلة: {math_session[e.sender_id]['num']}", buttons=get_buttons())        
     elif data.isdigit() or data == '.':
         math_session[e.sender_id]['num'] = current_eq + data
-        await e.edit(text=f"المعادلة: {math_session[e.sender_id]['num']}", buttons=get_buttons())        
+        await e.edit(text=f"المعادلة:\n {math_session[e.sender_id]['num']}", buttons=get_buttons())        
     elif data in ['+', '-', '*', '/']:
         if current_eq and current_eq[-1] in ['+', '-', '*', '/']:
             math_session[e.sender_id]['num'] = current_eq[:-1] + data
@@ -40,5 +40,5 @@ async def math_callback(e):
             math_session[e.sender_id]['num'] = str(result)
             await e.edit(text=f"النتيجة: {result}", buttons=get_buttons())
         except Exception:
-            await e.answer("معادلة خاطئة!", alert=True)
+            await e.answer("معادلة خاطئة!")
     await e.answer()
