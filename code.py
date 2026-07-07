@@ -33,12 +33,12 @@ async def math_callback(e):
             math_session[e.sender_id]['num'] = current_eq[:-1] + data
         else:
             math_session[e.sender_id]['num'] = current_eq + data
-        await e.edit(text=f"المعادلة: {math_session[e.sender_id]['num']}", buttons=get_buttons())        
+        await e.edit(text=f"المعادلة: \n{math_session[e.sender_id]['num']}", buttons=get_buttons())        
     elif data == '=':
         try:
-            result = eval(current_eq)
-            math_session[e.sender_id]['num'] = str(result)
-            await e.edit(text=f"النتيجة: {result}", buttons=get_buttons())
+            الناتج = eval(current_eq)
+            math_session[e.sender_id]['num'] = str(الناتج)
+            await e.edit(text=f"{الناتج=}", buttons=get_buttons())
         except Exception:
             await e.answer("معادلة خاطئة!")
     await e.answer()
