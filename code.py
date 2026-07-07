@@ -17,28 +17,45 @@ async def start_math(e):
 async def math_callback(e):
     if e.sender_id not in math_session:
         return await e.answer("يرجى كتابة 'الحاسبة' أولاً 🙃")
+    
     data = e.pattern_match.group(0).decode('utf-8')
     current_eq = math_session[e.sender_id].get('num', '')
+    
+    # 1. التصفير (AC)
     if data == "AC":
         math_session[e.sender_id]['num'] = ""
-        await e.edit(text="تم تصفير الجلسة:", buttons=get_buttons())
+        await e.edit(text="تم تصفير الجلسة", buttons=get_buttons())
+        
+    # 2. الحذف (C)
     elif data == "C":
-        await e.edit(text=f"تم حذف ( {current_eq[-1]} ):\n{math_session[e.sender_id]['num']}", buttons=get_buttons())        
-        math_session[e.sender_id]['num'] = current_eq[:-1]
+        new_eq = current_eq[:-1]
+        math_session[e.sender_id]['num'] = new_eq
+        await e.edit(text=f"المعادلة:\n{new_eq}", buttons=get_buttons())
+        
+    # 3. الأرقام والنقطة
     elif data.isdigit() or data == '.':
         math_session[e.sender_id]['num'] = current_eq + data
-        await e.edit(text=f"المعادلة:\n{math_session[e.sender_id]['num']}", buttons=get_buttons())        
+        await e.edit(text=f"المعادلة:\n{math_session[e.sender_id]['num']}", buttons=get_buttons())
+        
+    # 4. العمليات (+, -, *, /)
     elif data in ['+', '-', '*', '/']:
+        # المنطق المطلوب: إذا تم إدخال عمليتين متتاليتين، نستبدل الأخيرة
         if current_eq and current_eq[-1] in ['+', '-', '*', '/']:
             math_session[e.sender_id]['num'] = current_eq[:-1] + data
         else:
             math_session[e.sender_id]['num'] = current_eq + data
-        await e.edit(text=f"المعادلة:\n{math_session[e.sender_id]['num']}", buttons=get_buttons())        
+        await e.edit(text=f"المعادلة:\n{math_session[e.sender_id]['num']}", buttons=get_buttons())
+        
+    # 5. الحساب (=)
     elif data == '=':
         try:
-            الناتج = eval(current_eq)
-            math_session[e.sender_id]['num'] = str(الناتج)
-            await e.edit(text=f"{الناتج=}", buttons=get_buttons())
+            # تنظيف المعادلة من العمليات المتكررة غير المنطقية قبل الحساب
+            # مثال: تحويل ++ إلى + أو +- إلى -
+            result = eval(current_eq)
+            # تحديث الجلسة بالناتج ليتمكن المستخدم من إكمال الحساب عليه
+            math_session[e.sender_id]['num'] = str(result)
+            await e.edit(text=f"الناتج:\n{current_eq} = {result}", buttons=get_buttons())
         except Exception:
-            await e.answer("معادلة خاطئة!")
+            await e.answer("معادلة خاطئة!", alert=True)
+            
     await e.answer()
