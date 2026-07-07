@@ -1,55 +1,44 @@
-from telethon import Button
-from ABH import *
+from telethon import events, Button
+from ABH import ABH 
 math_session = {}
-button = [
-    [
-        Button.inline("7", data="7"),
-        Button.inline("8", data="8"),
-        Button.inline("9", data="9"),
-        Button.inline("/", data="/")
-    ],
-    [
-        Button.inline("4", data="4"),
-        Button.inline("5", data="5"),
-        Button.inline("6", data="6"),
-        Button.inline("*", data="*")
-    ],
-    [
-        Button.inline("1", data="1"),
-        Button.inline("2", data="2"),
-        Button.inline("3", data="3"),
-        Button.inline("-", data="-")
-    ],
-    [
-        Button.inline("0", data="0"),
-        Button.inline(".", data="."),
-        Button.inline("=", data="="),
-        Button.inline("+", data="+")
+def get_buttons():
+    return [
+        [Button.inline("AC", data="AC"), Button.inline("C", data="C"), Button.inline("/", data="/")],
+        [Button.inline("7", data="7"), Button.inline("8", data="8"), Button.inline("9", data="9"), Button.inline("*", data="*")],
+        [Button.inline("4", data="4"), Button.inline("5", data="5"), Button.inline("6", data="6"), Button.inline("-", data="-")],
+        [Button.inline("1", data="1"), Button.inline("2", data="2"), Button.inline("3", data="3"), Button.inline("+", data="+")],
+        [Button.inline("0", data="0"), Button.inline(".", data="."), Button.inline("=", data="=")]
     ]
-]
 @ABH.on(events.NewMessage(pattern="الحاسبة"))
-async def math(e):
-    math_session.setdefault(e.sender_id, {})
-    await e.reply("الحاسبة العلمية شغاله, ادخل معادلتك", buttons=button)
-@ABH.on(events.CallbackQuery(pattern=b'^[0-9+\-*/.=]$'))
+async def start_math(e):
+    math_session[e.sender_id] = {'num': ''}
+    await e.reply("أهلاً بك في الحاسبة العلمية.\nابدأ بإدخال الأرقام:", buttons=get_buttons())
+@ABH.on(events.CallbackQuery(pattern=b'^[0-9+\-*/.=AC]+$'))
 async def math_callback(e):
-    if not (e.sender_id in math_session):
-        return await e.answer("🙃")
+    if e.sender_id not in math_session:
+        return await e.answer("يرجى كتابة 'الحاسبة' أولاً 🙃")
     data = e.pattern_match.group(0).decode('utf-8')
-    if data.isdigit() or data == '.':
-        current_eq = math_session[e.sender_id].get('num', '')
+    current_eq = math_session[e.sender_id].get('num', '')
+    if data == "AC":
+        math_session[e.sender_id]['num'] = ""
+        await e.edit(text="تم التصفير، ابدأ من جديد:", buttons=get_buttons())
+    elif data == "C":
+        math_session[e.sender_id]['num'] = current_eq[:-1]
+        await e.edit(text=f"المعادلة: {math_session[e.sender_id]['num']}", buttons=get_buttons())        
+    elif data.isdigit() or data == '.':
         math_session[e.sender_id]['num'] = current_eq + data
-        await e.edit(text=f"المعادلة: {math_session[e.sender_id]['num']}", buttons=button)        
+        await e.edit(text=f"المعادلة: {math_session[e.sender_id]['num']}", buttons=get_buttons())        
     elif data in ['+', '-', '*', '/']:
-        current_eq = math_session[e.sender_id].get('num', '')
-        math_session[e.sender_id]['num'] = current_eq + data
-        await e.edit(text=f"المعادلة: {math_session[e.sender_id]['num']}", buttons=button)
+        if current_eq and current_eq[-1] in ['+', '-', '*', '/']:
+            math_session[e.sender_id]['num'] = current_eq[:-1] + data
+        else:
+            math_session[e.sender_id]['num'] = current_eq + data
+        await e.edit(text=f"المعادلة: {math_session[e.sender_id]['num']}", buttons=get_buttons())        
     elif data == '=':
-        current_eq = math_session[e.sender_id].get('num', '0')
         try:
             result = eval(current_eq)
-            await e.edit(text=f"النتيجة: {current_eq} = {result}", buttons=button)
             math_session[e.sender_id]['num'] = str(result)
+            await e.edit(text=f"النتيجة: {result}", buttons=get_buttons())
         except Exception:
-            await e.answer("خطأ في المعادلة!", alert=True)
+            await e.answer("معادلة خاطئة!", alert=True)
     await e.answer()
