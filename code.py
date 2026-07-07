@@ -53,7 +53,7 @@ async def math_callback(e):
     # عرض النتيجة بتنسيق مرتب
     display_text = f"🔢 **المعادلة:**\n`{eq if eq else '0'}`"
     if data == '=':
-        display_text = f"✅ **الناتج النهائي:**\n`{eq}`"
+        display_text = f"✅ **الناتج النهائي:**\n`{eq:,}`"
         
     await e.edit(text=display_text, buttons=get_calc_keyboard(eq))
     await e.answer()
