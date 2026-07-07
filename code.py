@@ -1,6 +1,8 @@
 from telethon import events, Button
 from ABH import ABH 
+
 math_session = {}
+
 def get_buttons():
     return [
         [Button.inline("AC", data="AC"), Button.inline("C", data="C"), Button.inline("÷", data="/")],
@@ -9,10 +11,12 @@ def get_buttons():
         [Button.inline("1", data="1"), Button.inline("2", data="2"), Button.inline("3", data="3"), Button.inline("+", data="+")],
         [Button.inline("0", data="0"), Button.inline(".", data="."), Button.inline("=", data="=")]
     ]
+
 @ABH.on(events.NewMessage(pattern="الحاسبة"))
 async def start_math(e):
     math_session[e.sender_id] = {'num': ''}
-    await e.reply("أهلاً بك في الحاسبة العلمية.\nابدأ بإدخال الأرقام:", buttons=get_buttons())
+    await e.reply("🔢 **الحاسبة العلمية جاهزة**\n\nأدخل معادلتك:", buttons=get_buttons())
+
 @ABH.on(events.CallbackQuery(pattern=b'^[0-9+\-*/.=AC]+$'))
 async def math_callback(e):
     if e.sender_id not in math_session:
@@ -21,40 +25,47 @@ async def math_callback(e):
     data = e.pattern_match.group(0).decode('utf-8')
     current_eq = math_session[e.sender_id].get('num', '')
     
-    # 1. التصفير (AC)
+    # 1. تصفير
     if data == "AC":
         math_session[e.sender_id]['num'] = ""
-        await e.edit(text="تم تصفير الجلسة", buttons=get_buttons())
+        await e.edit(text="🔢 **تم التصفير، ابدأ من جديد:**", buttons=get_buttons())
         
-    # 2. الحذف (C)
+    # 2. حذف خانة
     elif data == "C":
-        new_eq = current_eq[:-1]
-        math_session[e.sender_id]['num'] = new_eq
-        await e.edit(text=f"المعادلة:\n{new_eq}", buttons=get_buttons())
+        new_val = current_eq[:-1]
+        math_session[e.sender_id]['num'] = new_val
+        await e.edit(text=f"🔢 **المعادلة:**\n`{new_val}`", buttons=get_buttons())
         
-    # 3. الأرقام والنقطة
+    # 3. أرقام ونقطة
     elif data.isdigit() or data == '.':
         math_session[e.sender_id]['num'] = current_eq + data
-        await e.edit(text=f"المعادلة:\n{math_session[e.sender_id]['num']}", buttons=get_buttons())
+        await e.edit(text=f"🔢 **المعادلة:**\n`{math_session[e.sender_id]['num']}`", buttons=get_buttons())
         
-    # 4. العمليات (+, -, *, /)
+    # 4. عمليات حسابية
     elif data in ['+', '-', '*', '/']:
-        # المنطق المطلوب: إذا تم إدخال عمليتين متتاليتين، نستبدل الأخيرة
         if current_eq and current_eq[-1] in ['+', '-', '*', '/']:
             math_session[e.sender_id]['num'] = current_eq[:-1] + data
         else:
             math_session[e.sender_id]['num'] = current_eq + data
-        await e.edit(text=f"المعادلة:\n{math_session[e.sender_id]['num']}", buttons=get_buttons())
+        await e.edit(text=f"🔢 **المعادلة:**\n`{math_session[e.sender_id]['num']}`", buttons=get_buttons())
         
-    # 5. الحساب (=)
+    # 5. حساب النتيجة
     elif data == '=':
+        eq = current_eq
+        # تصحيح الإشارات النهائية
+        if eq.endswith('-'): eq = '-' + eq[:-1]
+        elif eq.endswith('+'): eq = eq[:-1]
+            
         try:
-            # تنظيف المعادلة من العمليات المتكررة غير المنطقية قبل الحساب
-            # مثال: تحويل ++ إلى + أو +- إلى -
-            result = eval(current_eq)
-            # تحديث الجلسة بالناتج ليتمكن المستخدم من إكمال الحساب عليه
+            result = eval(eq)
+            # تنسيق الناتج بفاصلة للأرقام الكبيرة (إذا كان رقم)
+            formatted_result = f"{result:,.2f}" if isinstance(result, (int, float)) else result
+            
+            await e.edit(text=f"✅ **الناتج:**\n`{eq} = {formatted_result}`", buttons=get_buttons())
             math_session[e.sender_id]['num'] = str(result)
-            await e.edit(text=f"الناتج:\n{current_eq:,} = {result}", buttons=get_buttons())
+        except ZeroDivisionError:
+            await e.answer("خطأ: لا يمكن القسمة على صفر!", alert=True)
         except Exception:
             await e.answer("معادلة خاطئة!", alert=True)
+            
     await e.answer()
