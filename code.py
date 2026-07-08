@@ -25,7 +25,7 @@ async def start_math(e):
     math_session[e.sender_id] = {'num': '', 'mode': 'BASIC', 'par': True}
     await e.reply("🧮 **آلة حاسبة ذكية**", buttons=get_calc_keyboard("BASIC"))
 
-@ABH.on(events.CallbackQuery(pattern=rb'^[0-9+\-*/.=ACDELMOKSG().NPR]+$'))
+@ABH.on(events.CallbackQuery(pattern=rb'^[0-9+\-*/.=ACDELNPR]+|MODE_ADV|MODE_BAS$'))
 async def math_callback(e):
     data = e.pattern_match.group(0).decode('utf-8')
     uid = e.sender_id
