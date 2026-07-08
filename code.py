@@ -44,8 +44,10 @@ async def math_callback(e):
         s['num'] = ""
     elif data == "MODE_ADV": 
         s['mode'] = "ADV"
+        await e.edit(text="🧮 **آلة حاسبة ذكية**", buttons=get_calc_keyboard("ADV"))
     elif data == "MODE_BAS": 
         s['mode'] = "BASIC"
+        await e.edit(text="🧮 **آلة حاسبة ذكية**", buttons=get_calc_keyboard("BASIC"))
     elif data == "DEL": 
         s['num'] = s['num'][:-1]
     elif data == "NEG": 
