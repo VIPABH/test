@@ -31,8 +31,15 @@ async def math_callback(e):
     if data == "AC": s['num'] = ""
     elif data == "DEL": s['num'] = s['num'][:-1]
     elif data == "NEG": 
-        try: s['num'] = str(eval(s['num'] or '0') * -1)
-        except: pass
+        if s['num']:
+            try:
+                # إذا كانت المعادلة بسيطة، قم بقلب إشارتها
+                # نضيف أقواس إذا لزم الأمر للتعامل مع العمليات
+                res = eval(s['num'])
+                s['num'] = str(int(-res) if isinstance(res, (int, float)) and (-res).is_integer() else round(-res, 4))
+            except:
+                # كحل بديل: إذا كان هناك خطأ، أضف إشارة السالب في بداية النص
+                s['num'] = "-" + s['num']
     elif data == "PAR":
         s['num'] += "(" if s['par'] else ")"
         s['par'] = not s['par']
