@@ -2,11 +2,9 @@ from telethon import events, Button
 from ABH import ABH 
 import math, re
 
-# قاموس لتخزين حالة المستخدم
 math_session = {}
 
 def get_calc_keyboard(mode="BASIC"):
-    """لوحة مفاتيح الحاسبة بتصميم سريع ومبسط"""
     if mode == "BASIC":
         return [
             [Button.inline("AC", "AC"), Button.inline("( )", "PAR"), Button.inline("⌫", "DEL"), Button.inline("÷", "/")],
@@ -23,33 +21,30 @@ def get_calc_keyboard(mode="BASIC"):
         [Button.inline("⬅️ BAS", "MODE_BAS"), Button.inline("0", "0"), Button.inline(".", "."), Button.inline("=", "=")]
     ]
 
-@ABH.on(events.NewMessage(pattern="الحاسبة"))
-async def start_math(e):
-    math_session[e.sender_id] = {'num': '', 'mode': 'BASIC', 'par': True}
-    await e.reply("🧮 **آلة حاسبة ذكية**", buttons=get_calc_keyboard("BASIC"))
-
 @ABH.on(events.CallbackQuery(pattern=rb'^[0-9+\-*/.=ACDELMOKSG().NPR]+$'))
 async def math_callback(e):
     data = e.pattern_match.group(0).decode('utf-8')
     uid = e.sender_id
-    print(data)
-    # تأمين الجلسة ضد الأخطاء
+    
     if uid not in math_session or 'mode' not in math_session[uid]:
         math_session[uid] = {'num': '', 'mode': 'BASIC', 'par': True}
     
     s = math_session[uid]
     
-    # العمليات البرمجية
-    if data == "AC": 
-        s['num'] = ""
-    elif data == "MODE_ADV": 
+    # التعامل مع تغيير الأوضاع بشكل فوري
+    if data == "MODE_ADV": 
         s['mode'] = "ADV"
-        await e.edit(text="🧮 **آلة حاسبة ذكية**", buttons=get_calc_keyboard("ADV"))
+        await e.edit(text="🧮 **الوضع المتقدم:**", buttons=get_calc_keyboard("ADV"))
+        return await e.answer()
+        
     elif data == "MODE_BAS": 
         s['mode'] = "BASIC"
-        await e.edit(text="🧮 **آلة حاسبة ذكية**", buttons=get_calc_keyboard("BASIC"))
-    elif data == "DEL": 
-        s['num'] = s['num'][:-1]
+        await e.edit(text="🧮 **الوضع الأساسي:**", buttons=get_calc_keyboard("BASIC"))
+        return await e.answer()
+
+    # بقية العمليات
+    elif data == "AC": s['num'] = ""
+    elif data == "DEL": s['num'] = s['num'][:-1]
     elif data == "NEG": 
         try: s['num'] = str(eval(s['num'] or '0') * -1)
         except: pass
@@ -58,18 +53,16 @@ async def math_callback(e):
         s['par'] = not s['par']
     elif data == '=':
         try:
-            # معالجة آمنة
             res = eval(s['num'].replace('sqrt(', 'math.sqrt('), {"__builtins__": None}, {"math": math, "sqrt": math.sqrt})
             s['num'] = str(int(res) if isinstance(res, float) and res.is_integer() else round(res, 4))
         except: await e.answer("خطأ رياضي", alert=True)
     elif data in ['0','1','2','3','4','5','6','7','8','9','+','-','*','/','.','sqrt(','**2']:
-        # منع تكرار الرموز
         if data in ['+','-','*','/'] and s['num'] and s['num'][-1] in ['+','-','*','/']:
             s['num'] = s['num'][:-1] + data
         else:
             s['num'] += data
 
-    # تحديث الواجهة
+    # تحديث الشاشة للأرقام
     try:
         await e.edit(text=f"🔢 `{s['num'] or '0'}`", buttons=get_calc_keyboard(s['mode']))
     except: pass
