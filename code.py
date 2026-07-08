@@ -5,7 +5,7 @@ import random, asyncio
 
 killamordersession = {}
 
-@ABH.on(events.NewMessage(pattern='(/killamorder|القاتل والمقتول)$'))
+@ABH.on(events.NewMessage(pattern=r'(?i)(/killamorder|القاتل والمقتول)$'))
 async def killamorderstart(e):
     chat = e.chat_id
     user = e.sender_id
