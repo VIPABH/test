@@ -32,7 +32,7 @@ async def start_math(e):
 async def math_callback(e):
     data = e.pattern_match.group(0).decode('utf-8')
     uid = e.sender_id
-    
+    print(data)
     # تأمين الجلسة ضد الأخطاء
     if uid not in math_session or 'mode' not in math_session[uid]:
         math_session[uid] = {'num': '', 'mode': 'BASIC', 'par': True}
