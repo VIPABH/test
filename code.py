@@ -21,7 +21,10 @@ def get_calc_keyboard(mode="BASIC"):
         [Button.inline("1", "1"), Button.inline("2", "2"), Button.inline("3", "3"), Button.inline("+", "+")],
         [Button.inline("⬅️ BAS", "MODE_BAS"), Button.inline("0", "0"), Button.inline(".", "."), Button.inline("=", "=")]
     ]
-
+@ABH.on(events.NewMessage(pattern="الحاسبة"))
+async def start_math(e):
+    math_session[e.sender_id] = {'num': ''}
+    await e.reply("🧮 **آلة حاسبة ذكية**\n\nأدخل الأرقام للبدء:", buttons=get_calc_keyboard('>'))
 @ABH.on(events.CallbackQuery(pattern=b'^[0-9+\-*/.=ACDELMOKSG().NPR]+$'))
 async def math_callback(e):
     data = e.pattern_match.group(0).decode('utf-8')
