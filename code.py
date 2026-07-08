@@ -5,7 +5,6 @@ import math, re
 math_session = {}
 
 def get_calc_keyboard(mode="BASIC"):
-    # استخدام قوائم ثابتة لتسريع الاستجابة
     if mode == "BASIC":
         return [
             [Button.inline("AC", "AC"), Button.inline("( )", "PAR"), Button.inline("⌫", "DEL"), Button.inline("÷", "/")],
@@ -21,35 +20,39 @@ def get_calc_keyboard(mode="BASIC"):
         [Button.inline("1", "1"), Button.inline("2", "2"), Button.inline("3", "3"), Button.inline("+", "+")],
         [Button.inline("⬅️ BAS", "MODE_BAS"), Button.inline("0", "0"), Button.inline(".", "."), Button.inline("=", "=")]
     ]
-@ABH.on(events.NewMessage(pattern="الحاسبة"))
-async def start_math(e):
-    math_session[e.sender_id] = {'num': ''}
-    await e.reply("🧮 **آلة حاسبة ذكية**\n\nأدخل الأرقام للبدء:", buttons=get_calc_keyboard('BASIC'))
-@ABH.on(events.CallbackQuery(pattern=b'^[0-9+\-*/.=ACDELMOKSG().NPR]+$'))
+
+# استخدام r'' لتجنب مشاكل الـ SyntaxWarning
+@ABH.on(events.CallbackQuery(pattern=rb'^[0-9+\-*/.=ACDELMOKSG().NPR]+$'))
 async def math_callback(e):
     data = e.pattern_match.group(0).decode('utf-8')
     uid = e.sender_id
-    if uid not in math_session: math_session[uid] = {'num': '', 'mode': 'BASIC', 'par': True}
+    
+    # تأمين الجلسة: إذا كانت الجلسة ناقصة، يتم تحديثها فوراً
+    if uid not in math_session or 'mode' not in math_session[uid]:
+        math_session[uid] = {'num': '', 'mode': 'BASIC', 'par': True}
     
     s = math_session[uid]
     
-    # تنفيذ سريع جداً للعمليات
     if data == "AC": s['num'] = ""
     elif data == "MODE_ADV": s['mode'] = "ADV"
     elif data == "MODE_BAS": s['mode'] = "BASIC"
     elif data == "DEL": s['num'] = s['num'][:-1]
-    elif data == "NEG": s['num'] = str(eval(s['num'] or '0') * -1)
-    elif data == "PAR": # زر الأقواس الذكي
+    elif data == "NEG": 
+        try: s['num'] = str(eval(s['num'] or '0') * -1)
+        except: pass
+    elif data == "PAR":
         s['num'] += "(" if s['par'] else ")"
         s['par'] = not s['par']
     elif data == '=':
         try:
+            # معالجة آمنة لـ eval
             res = eval(s['num'].replace('sqrt(', 'math.sqrt('), {"__builtins__": None}, {"math": math, "sqrt": math.sqrt})
-            s['num'] = str(int(res) if isinstance(res, float) and res.is_integer() else res)
-        except: await e.answer("خطأ", alert=True)
+            s['num'] = str(int(res) if isinstance(res, float) and res.is_integer() else round(res, 4))
+        except: await e.answer("خطأ رياضي", alert=True)
     elif data in ['0','1','2','3','4','5','6','7','8','9','+','-','*','/','.','sqrt(','**2']:
         s['num'] += data
 
-    # تحديث سريع للواجهة
-    await e.edit(text=f"🔢 `{s['num'] or '0'}`", buttons=get_calc_keyboard(s['mode']))
+    try:
+        await e.edit(text=f"🔢 `{s['num'] or '0'}`", buttons=get_calc_keyboard(s['mode']))
+    except: pass
     await e.answer()
