@@ -4,57 +4,56 @@ import math
 
 math_session = {}
 
-def get_calc_keyboard():
-    return [
-        [Button.inline("AC", "AC"), Button.inline("( )", "PAR"), Button.inline("⌫", "DEL"), Button.inline("÷", "/")],
+def get_calc_keyboard(current_text=""):
+    """دالة لإنشاء لوحة مفاتيح الحاسبة بشكل مرتب"""
+    buttons = [
+        [Button.inline("AC", "AC"), Button.inline("C", "C"), Button.inline("⌫", "DEL"), Button.inline("÷", "/")],
         [Button.inline("7", "7"), Button.inline("8", "8"), Button.inline("9", "9"), Button.inline("×", "*")],
         [Button.inline("4", "4"), Button.inline("5", "5"), Button.inline("6", "6"), Button.inline("-", "-")],
         [Button.inline("1", "1"), Button.inline("2", "2"), Button.inline("3", "3"), Button.inline("+", "+")],
         [Button.inline("+/-", "NEG"), Button.inline("0", "0"), Button.inline(".", "."), Button.inline("=", "=")]
     ]
+    return buttons
 
 @ABH.on(events.NewMessage(pattern="الحاسبة"))
 async def start_math(e):
-    math_session[e.sender_id] = {'num': '', 'par': True}
-    await e.reply("🧮 **الحاسبة:**", buttons=get_calc_keyboard())
+    math_session[e.sender_id] = {'num': ''}
+    await e.reply("🧮 **آلة حاسبة ذكية**\n\nأدخل الأرقام للبدء:", buttons=get_calc_keyboard())
 
-@ABH.on(events.CallbackQuery(pattern=rb'^[0-9+\-*/.=ACDELNP]+$'))
+@ABH.on(events.CallbackQuery(pattern=b'^[0-9+\-*/.=ACDELNEG]+$'))
 async def math_callback(e):
-    data = e.pattern_match.group(0).decode('utf-8')
     uid = e.sender_id
+    if uid not in math_session: return await e.answer("انتهت الجلسة، اكتب 'الحاسبة' مجدداً")
     
-    if uid not in math_session:
-        math_session[uid] = {'num': '', 'par': True}
+    data = e.pattern_match.group(0).decode('utf-8')
+    eq = math_session[uid].get('num', '')
     
-    s = math_session[uid]
-    
-    if data == "AC": s['num'] = ""
-    elif data == "DEL": s['num'] = s['num'][:-1]
-    elif data == "NEG": 
-        if s['num']:
-            try:
-                # إذا كانت المعادلة بسيطة، قم بقلب إشارتها
-                # نضيف أقواس إذا لزم الأمر للتعامل مع العمليات
-                res = eval(s['num'])
-                s['num'] = str(int(-res) if isinstance(res, (int, float)) and (-res).is_integer() else round(-res, 4))
-            except:
-                # كحل بديل: إذا كان هناك خطأ، أضف إشارة السالب في بداية النص
-                s['num'] = "-" + s['num']
-    elif data == "PAR":
-        s['num'] += "(" if s['par'] else ")"
-        s['par'] = not s['par']
+    # معالجة الأزرار
+    if data == "AC":
+        eq = ""
+    elif data == "DEL":
+        eq = eq[:-1]
+    elif data == "NEG":
+        # قلب إشارة آخر رقم
+        if eq: eq = str(eval(eq) * -1)
+    elif data.isdigit() or data == '.':
+        eq += data
+    elif data in ['+', '-', '*', '/']:
+        if eq and eq[-1] in ['+', '-', '*', '/']: eq = eq[:-1] + data
+        else: eq += data
     elif data == '=':
         try:
-            res = eval(s['num'], {"__builtins__": None})
-            s['num'] = str(int(res) if isinstance(res, float) and res.is_integer() else round(res, 4))
-        except: await e.answer("خطأ", alert=True)
-    elif data in ['0','1','2','3','4','5','6','7','8','9','+','-','*','/','.']:
-        if data in ['+','-','*','/'] and s['num'] and s['num'][-1] in ['+','-','*','/']:
-            s['num'] = s['num'][:-1] + data
-        else:
-            s['num'] += data
-
-    try:
-        await e.edit(text=f"🔢 `{s['num'] or '0'}`", buttons=get_calc_keyboard())
-    except: pass
+            res = eval(eq)
+            eq = str(int(res) if isinstance(res, float) and res.is_integer() else res)
+        except:
+            await e.answer("خطأ رياضي!")
+    
+    math_session[uid]['num'] = eq
+    
+    # عرض النتيجة بتنسيق مرتب
+    display_text = f"🔢 **المعادلة:**\n`{eq if eq else '0'}`"
+    if data == '=':
+        display_text = f"✅ **الناتج النهائي:**\n`{str(eq):,}`"
+        
+    await e.edit(text=display_text, buttons=get_calc_keyboard(eq))
     await e.answer()
