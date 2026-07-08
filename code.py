@@ -1,66 +1,165 @@
 from telethon import events, Button
-from ABH import ABH 
+from Resources import mention
+from ABH import ABH
+import random, asyncio
 
-# قاموس لتخزين حالة كل مستخدم
-math_session = {}
+killamordersession = {}
 
-def get_calc_keyboard():
-    return [
-        [Button.inline("AC", "AC"), Button.inline("( )", "C"), Button.inline("⌫", "DEL"), Button.inline("÷", "/")],
-        [Button.inline("7", "7"), Button.inline("8", "8"), Button.inline("9", "9"), Button.inline("×", "*")],
-        [Button.inline("4", "4"), Button.inline("5", "5"), Button.inline("6", "6"), Button.inline("-", "-")],
-        [Button.inline("1", "1"), Button.inline("2", "2"), Button.inline("3", "3"), Button.inline("+", "+")],
-        [Button.inline("+/-", "NEG"), Button.inline("0", "0"), Button.inline(".", "."), Button.inline("=", "=")]
+@ABH.on(events.NewMessage(pattern='(/killamorder|القاتل والمقتول)$'))
+async def killamorderstart(e):
+    chat = e.chat_id
+    user = e.sender_id
+    
+    if chat in killamordersession:
+        return await e.reply("اللعبة قيد التشغيل بالفعل")
+
+    m = await mention(e)
+    killamordersession[chat] = {
+        "owner": user,
+        "players": {user: {"name": m, "points": 2}},
+    }
+
+    msg = await e.reply("تم تشغيل لعبة القاتل والمقتول — أرسل (انا) للانضمام")
+    killamordersession[chat]["edit"] = msg.id
+
+
+@ABH.on(events.NewMessage(pattern=r'^انا$'))
+async def register_player(e):
+    chat = e.chat_id
+    user = e.sender_id
+    
+    if chat not in killamordersession:
+        return
+
+    players = killamordersession[chat]["players"]
+
+    if user in players:
+        return await e.reply("سجلتك مسبقًا")
+
+    m = await mention(e)
+    players[user] = {"name": m, "points": 2}
+
+    # تحديث قائمة اللاعبين
+    msg = "تم تشغيل لعبة القاتل والمقتول — أرسل (انا) للانضمام\n"
+    for P in players.values():
+        msg += f"اللاعب: {P['name']}\n"
+
+    await ABH.edit_message(chat, killamordersession[chat]["edit"], msg)
+    await e.reply(f"تم تسجيلك: {m}")
+
+
+@ABH.on(events.NewMessage(pattern='اللاعبين'))
+async def show_players(e):
+    chat = e.chat_id
+
+    if chat not in killamordersession:
+        return await e.reply("لا توجد لعبة شغالة")
+
+    msg = "اللاعبين:\n"
+    for p in killamordersession[chat]["players"].values():
+        msg += f"- {p['name']}\n"
+
+    await e.reply(msg)
+
+
+@ABH.on(events.NewMessage(pattern='تم', incoming=True))
+async def start_game(e):
+    chat = e.chat_id
+
+    if chat not in killamordersession:
+        return
+
+    await e.reply("يتم بدء اللعبة ...")
+    players_count = len(killamordersession[chat]["players"]) * 2
+
+    for _ in range(players_count):
+        await set_auto_killer(e)
+        await asyncio.sleep(10)
+
+
+async def set_auto_killer(e):
+    chat = e.chat_id
+    session = killamordersession[chat]
+    players = session["players"]
+
+    # لا يوجد لاعبين
+    if not players:
+        del killamordersession[chat]
+        return
+
+    # فائز وحيد
+    if len(players) == 1:
+        winner = next(iter(players.values()))["name"]
+        await e.reply(f"🎉 مبروك! الفائز هو: {winner}")
+        del killamordersession[chat]
+        return
+
+    # اختيار القاتل
+    player_id, pdata = random.choice(list(players.items()))
+    killer_name = pdata["name"]
+    points = pdata["points"]
+
+    # ان مات (0 نقاط)
+    if points <= 0:
+        await e.reply(f"الله يرحمك ( {killer_name} ) — ماتت نقاطك")
+        del players[player_id]
+        return
+
+    # حفظ القاتل
+    session["killer"] = player_id
+
+    # أزرار
+    btns = [
+        Button.inline("تحديد الضحية", data="choice_to_kill"),
+        Button.inline("قتل عشوائي", data="autokill")
     ]
 
-@ABH.on(events.NewMessage(pattern="الحاسبة"))
-async def start_math(e):
-    math_session[e.sender_id] = {'num': '', 'par': True}
-    await e.reply("🧮 **آلة حاسبة ذكية**", buttons=get_calc_keyboard())
+    await e.reply(f"أنت القاتل يا ( {killer_name} ) — اختر نوع القتل", buttons=btns)
 
-@ABH.on(events.CallbackQuery(pattern=rb'^[0-9+\-*/.=ACDELNEG]+$'))
-async def math_callback(e):
-    uid = e.sender_id
-    if uid not in math_session: 
-        return await e.answer("تم حذف الجلسة، أرسل 'الحاسبة' مجدداً")
-    
-    data = e.pattern_match.group(0).decode('utf-8')
-    s = math_session[uid]
-    eq = s['num']
-    display_text = ""
+    # إنقاص النقاط
+    session["players"][player_id]["points"] -= 1
 
-    if data == "AC":
-        eq = ""
-    elif data == "DEL":
-        eq = eq[:-1]
-    elif data == "C": 
-        eq += "(" if s['par'] else ")"
-        s['par'] = not s['par']
-    elif data == "NEG":
-        if eq: 
-            try: eq = str(eval(eq) * -1)
-            except: await e.answer("خطأ!")
-    elif data.isdigit() or data == '.':
-        eq += data
-    elif data in ['+', '-', '*', '/']:
-        # منع تكرار الرموز
-        if eq and eq[-1] in ['+', '-', '*', '/']: eq = eq[:-1] + data
-        else: eq += data
-    elif data == '=':
-        try:
-            res = eval(eq)
-            # تنسيق الناتج: إذا كان عدداً صحيحاً لا نعرض الفاصلة
-            res_str = str(int(res) if isinstance(res, (int, float)) and (float(res)).is_integer() else res)
-            display_text = f"🔢 **النتيجة:**\n`{eq} = {res_str}`"
-            s['num'] = res_str # تخزين الناتج للمواصلة عليه
-            await e.edit(text=display_text, buttons=get_calc_keyboard())
-            await e.answer()
-            return # الخروج لأننا قمنا بالتعديل
-        except:
-            await e.answer("خطأ رياضي!")
+
+@ABH.on(events.CallbackQuery)
+async def kill_callback(e):
+    chat = e.chat_id
+    session = killamordersession.get(chat)
+    if not session:
+        return
+
+    killer = session.get("killer")
+    if not killer or e.sender_id != killer:
+        return
+
+    data = e.data.decode()
+
+    players = session["players"]
+
+    if data == "autokill":  # قتل عشوائي
+        victim_id, victim_data = random.choice(list(players.items()))
+
+        if victim_id == killer:
+            await e.edit(f"انتحر اللاعب ( {victim_data['name']} ) 🤦‍♂️")
+            del players[victim_id]
+            session["killer"] = None
             return
 
-    s['num'] = eq    
-    display_text = f"🔢 **المعادلة:**\n`{eq if eq else '0'}`"
-    await e.edit(text=display_text, buttons=get_calc_keyboard())
-    await e.answer()
+        await e.edit(f"تم قتل اللاعب ( {victim_data['name']} )")
+        del players[victim_id]
+        session["killer"] = None
+        return
+    if data == "choice_to_kill":  # تحديد ضحية
+        txt = "اختر الضحية:\n"
+        btns = []
+
+        for uid, pdata in players.items():
+            if uid != killer:
+                btns.append([Button.inline(pdata["name"], data=f"kill:{uid}")])
+        await e.edit(txt, buttons=btns)
+        return
+    if data.startswith("kill:"):
+        victim_id = int(data.split(":")[1])
+        victim = players[victim_id]["name"]
+        del players[victim_id]
+        await e.edit(f"تم قتل ( {victim} ) بنجاح")
+        session["killer"] = None
