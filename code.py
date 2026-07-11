@@ -36,15 +36,17 @@ async def killamorderstart(e):
     game = Game(user)
     killamorder[chat] = game
     game.add_player(user, m)
-@ABH.on(events.NewMessage(pattern='killamorder:'))
+@ABH.on(events.NewMessage(pattern='killamorder:([0-9]+)$'))
 async def start_game(e):
-    chat = e.text.replace('killamorder:', '')
-    if chat not in killamorder:
-        return await e.reply("لا توجد لعبة شغالة")
-    game = killamorder[chat]
+    chat_id = int(e.pattern_match.group(1))
+    if chat_id not in killamorder:
+        return await e.reply("لا توجد لعبة شغالة في هذه المجموعة")
+    game = killamorder[chat_id]    
+    if game.is_player(e.sender_id):
+        return await e.reply("أنت بالفعل داخل اللعبة!")
     m = await mention(e)
     game.add_player(e.sender_id, m)
-    await e.reply("تم اضافتك للعبة")
+    await e.reply(f"تم إضافتك للعبة بنجاح! عدد اللاعبين الآن: {len(game.players)}")
 @ABH.on(events.NewMessage(pattern='اللاعبين'))
 async def show_players(e):
     chat = e.chat_id
@@ -134,4 +136,3 @@ async def kill_callback(e):
         game.remove_player(victim_id)
         await e.edit(f"تم قتل ( {victim} ) بنجاح")
         return
-
