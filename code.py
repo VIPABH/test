@@ -36,7 +36,7 @@ async def killamorderstart(e):
     game = Game(user)
     killamorder[chat] = game
     game.add_player(user, m)
-@ABH.on(events.NewMessage(pattern='killamorder:([0-9]+)$'))
+@ABH.on(events.NewMessage(pattern='killamorder_([0-9]+)$'))
 async def start_game(e):
     chat_id = int(e.pattern_match.group(1))
     if chat_id not in killamorder:
