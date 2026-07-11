@@ -3,9 +3,8 @@ from Resources import mention
 from ABH import ABH
 import random, asyncio
 class Game:
-    def __init__(self, owner_id, msg_id):
+    def __init__(self, owner_id):
         self.owner = owner_id
-        self.msg_id = msg_id
         self.players = {} 
     def add_player(self, user_id, name):
         self.players[user_id] = {"name": name, "points": 2}
@@ -28,13 +27,13 @@ killamorder = {}
 async def killamorderstart(e):
     chat = e.chat_id
     user = e.sender_id
-    if chat in killamorder:
+    if chat in game:
         return await e.reply("اللعبة قيد التشغيل بالفعل")
     m = await mention(e)
     my = await ABH.get_me()
     b = Button.url('اضغط هنا للانضمام', url=f"https://t.me/{my.username}?start=killamorder:{chat}")
     msg = await e.reply("تم تشغيل لعبة القاتل والمقتول ", buttons=[b])
-    game = Game(owner=user, msg_id=msg.id)
+    game = Game(user)
     killamorder[chat] = game
     game.add_player(user, m)
 @ABH.on(events.NewMessage(pattern='killamorder:([0-9]+)$'))
