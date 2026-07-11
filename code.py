@@ -27,7 +27,7 @@ killamorder = {}
 async def killamorderstart(e):
     chat = e.chat_id
     user = e.sender_id
-    if chat in game:
+    if chat in killamorder:
         return await e.reply("اللعبة قيد التشغيل بالفعل")
     m = await mention(e)
     my = await ABH.get_me()
@@ -134,3 +134,4 @@ async def kill_callback(e):
         game.remove_player(victim_id)
         await e.edit(f"تم قتل ( {victim} ) بنجاح")
         return
+
