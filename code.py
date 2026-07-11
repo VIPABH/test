@@ -36,22 +36,22 @@ async def killamorderstart(e):
     game = Game(user)
     killamorder[chat] = game
     game.add_player(user, m)
-@ABH.on(events.NewMessage(pattern='killamorder_([0-9]+)$'))
+@ABH.on(events.NewMessage(pattern=r'/start killamorder_([0-9]+)$'))
 async def start_game(e):
     chat_id = int(e.pattern_match.group(1))
     if chat_id not in killamorder:
         return await e.reply("لا توجد لعبة شغالة في هذه المجموعة")
     game = killamorder[chat_id]
     if game.is_player(e.sender_id):
-        return await e.reply("أنت بالفعل داخل اللعبة!")
+        return await e.reply("أنت بالفعل داخل اللعبة!")        
     m = await mention(e)
-    game.add_player(e.sender_id, m)
+    game.add_player(e.sender_id, m)    
     await e.reply(f"تم إضافتك للعبة بنجاح! عدد اللاعبين الآن: {len(game.players)}")
 @ABH.on(events.NewMessage(pattern='اللاعبين'))
 async def show_players(e):
     chat = e.chat_id
     if chat not in killamorder:
-        return await e.reply("لا توجد لعبة شغالة")
+        return 
     game = killamorder[chat]
     msg = "اللاعبين:\n"
     for _, pdata in game.players.items():
