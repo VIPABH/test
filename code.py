@@ -27,16 +27,16 @@ killamorder = {}
 async def killamorderstart(e):
     chat = e.chat_id
     user = e.sender_id
-    if chat in killamorder:
+    if chat in game:
         return await e.reply("اللعبة قيد التشغيل بالفعل")
     m = await mention(e)
     my = await ABH.get_me()
     b = Button.url('اضغط هنا للانضمام', url=f"https://t.me/{my.username}?start=killamorder:{chat}")
-    msg = await e.reply("تم تشغيل لعبة القاتل والمقتول ", buttons=[b])
+    msg = await e.reply(f"تم تشغيل لعبة القاتل والمقتول \n انت مالك اللعبة ( {m} )", buttons=[b])
     game = Game(user)
     killamorder[chat] = game
     game.add_player(user, m)
-@ABH.on(events.NewMessage(pattern='killamorder:([0-9]+)$'))
+@ABH.on(events.NewMessage(pattern='killamorder:'))
 async def start_game(e):
     chat = e.text.replace('killamorder:', '')
     if chat not in killamorder:
