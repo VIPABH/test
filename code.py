@@ -31,7 +31,7 @@ async def killamorderstart(e):
         return await e.reply("اللعبة قيد التشغيل بالفعل")
     m = await mention(e)
     my = await ABH.get_me()
-    b = Button.url('اضغط هنا للانضمام', url=f"https://t.me/{my.username}?start=killamorder:{chat}")
+    b = Button.url('اضغط هنا للانضمام', url=f"https://t.me/{my.username}?start=killamorder_{chat}")
     msg = await e.reply(f"تم تشغيل لعبة القاتل والمقتول \n انت مالك اللعبة ( {m} )", buttons=[b])
     game = Game(user)
     killamorder[chat] = game
@@ -41,7 +41,7 @@ async def start_game(e):
     chat_id = int(e.pattern_match.group(1))
     if chat_id not in killamorder:
         return await e.reply("لا توجد لعبة شغالة في هذه المجموعة")
-    game = killamorder[chat_id]    
+    game = killamorder[chat_id]
     if game.is_player(e.sender_id):
         return await e.reply("أنت بالفعل داخل اللعبة!")
     m = await mention(e)
