@@ -1,7 +1,7 @@
 from telethon import TelegramClient, events
 from telethon.tl.types import (
     ReplyInlineMarkup,
-    KeyboardButtonRow,
+    KeyboardButtonRow)
     
 
 @ABH.on(events.NewMessage(pattern=r'\.زر'))
