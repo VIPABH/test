@@ -10,7 +10,7 @@ from telethon.tl.types import (
 
 
 @ABH.on(events.NewMessage))
-async def main():
+async def main(e):
     target_user_id = 1910015590   # آيدي المستخدم اللي تريد الزر يودي لبروفايله
     button_text = 'ابـ،ـن،هـ.ـاشـ.ـم ✘'
 
@@ -28,7 +28,7 @@ async def main():
     )
 
     await ABH.send_message(
-        'target_chat_or_channel',
+        e.chat_id,
         'نص الرسالة هنا',
         buttons=markup
     )
