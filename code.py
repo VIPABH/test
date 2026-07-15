@@ -2,7 +2,7 @@ from telethon import TelegramClient, events
 from telethon.tl.types import (
     ReplyInlineMarkup,
     KeyboardButtonRow)
-    
+from ABH import ABH
 
 @ABH.on(events.NewMessage(pattern=r'\.زر'))
 async def main(e):
