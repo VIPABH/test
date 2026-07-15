@@ -1,17 +1,12 @@
-from telethon import events, Button
-from Resources import mention
-from ABH import ABH
-from telethon import TelegramClient
+from telethon import TelegramClient, events
 from telethon.tl.types import (
     ReplyInlineMarkup,
     KeyboardButtonRow,
-    KeyboardButtonUserProfile,
-)
+    
 
-
-@ABH.on(events.NewMessage)
+@ABH.on(events.NewMessage(pattern=r'\.زر'))
 async def main(e):
-    target_user_id = 1910015590   # آيدي المستخدم اللي تريد الزر يودي لبروفايله
+    target_user_id = 1910015590
     button_text = 'ابـ،ـن،هـ.ـاشـ.ـم ✘'
 
     markup = ReplyInlineMarkup(
@@ -27,9 +22,5 @@ async def main(e):
         ]
     )
 
-    await ABH.send_message(
-        e.chat_id,
-        'نص الرسالة هنا',
-        buttons=markup
-    )
+    await ABH.send_message(e.chat_id, 'نص الرسالة هنا', buttons=markup)
 
