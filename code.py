@@ -1,7 +1,9 @@
-from telethon import TelegramClient, events
+from telethon import events
 from telethon.tl.types import (
     ReplyInlineMarkup,
-    KeyboardButtonRow)
+    KeyboardButtonRow,
+    KeyboardButtonUserProfile,
+)
 from ABH import ABH
 
 @ABH.on(events.NewMessage(pattern=r'\.زر'))
@@ -23,4 +25,3 @@ async def main(e):
     )
 
     await ABH.send_message(e.chat_id, 'نص الرسالة هنا', buttons=markup)
-
