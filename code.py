@@ -9,7 +9,7 @@ from telethon.tl.types import (
 )
 
 
-@ABH.on(events.NewMessage))
+@ABH.on(events.NewMessage)
 async def main(e):
     target_user_id = 1910015590   # آيدي المستخدم اللي تريد الزر يودي لبروفايله
     button_text = 'ابـ،ـن،هـ.ـاشـ.ـم ✘'
