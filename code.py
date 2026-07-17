@@ -2,7 +2,44 @@ from ABH import *
 import ast
 from pathlib import Path
 client = ABH
-# --- 1. تحديث منطق إعادة تنظيم المتغيرات ---
+def count_project_text(project_path: str) -> str:
+    """
+    تقوم بمسح كامل المجلد (بما في ذلك المجلدات الفرعية) 
+    وتوليد تقرير عن عدد التعريفات والاستخدامات.
+    """
+    # تهيئة الكائن الذي سيقوم بالعد
+    counter = ProjectCounter()
+    
+    # تحويل المسار إلى كائن Path للتعامل السهل مع المجلدات
+    root = Path(project_path)
+    
+    # البحث عن جميع ملفات بايثون داخل المجلد ومجلداته الفرعية
+    # قمنا بإضافة تجاهل تلقائي لمجلدات venv و __pycache__ و .git لتسريع العملية
+    py_files = [
+        f for f in root.rglob("*.py") 
+        if not any(part in [".venv", "venv", "__pycache__", ".git"] for part in f.parts)
+    ]
+    
+    warnings = []
+    
+    # مسح الملفات
+    for pyfile in py_files:
+        try:
+            # قراءة الكود وتحليله
+            source = pyfile.read_text(encoding="utf-8")
+            tree = ast.parse(source, filename=str(pyfile))
+            counter.visit(tree)
+        except (SyntaxError, UnicodeDecodeError) as e:
+            warnings.append(f"تعذر تحليل {pyfile.name}: {e}")
+        except Exception as e:
+            warnings.append(f"خطأ غير متوقع في {pyfile.name}: {e}")
+
+    # في حال عدم العثور على ملفات
+    if not py_files:
+        return "⚠️ لم يتم العثور على ملفات .py في هذا المسار."
+
+    # توليد التقرير النهائي
+    return format_project_report(counter, len(py_files), warnings)
 def reorder_code_variables(source_code: str) -> str:
     """يقوم بنقل جميع تعريفات المتغيرات (Assign/AnnAssign) إلى أعلى الملف وترتيبها أبجدياً."""
     tree = ast.parse(source_code)
