@@ -1,6 +1,20 @@
 from ABH import *
 import ast
 from pathlib import Path
+import ast
+from collections import Counter
+from pathlib import Path
+
+# --- 1. يجب أن يكون الكلاس هنا في الأعلى ---
+class ProjectCounter(ast.NodeVisitor):
+    def __init__(self):
+        self.func_defs = Counter()
+        # ... بقية تعريفات الكلاس ...
+
+# --- 2. ثم تأتي الدالة التي تستخدمه ---
+def count_project_text(project_path: str) -> str:
+    counter = ProjectCounter()  # الآن سيعرف بايثون ما هو ProjectCounter
+    # ... بقية كود الدالة ...
 client = ABH
 def count_project_text(project_path: str) -> str:
     """
