@@ -1,7 +1,7 @@
 from ABH import *
 import ast
 from pathlib import Path
-
+client = ABH
 # --- 1. تحديث منطق إعادة تنظيم المتغيرات ---
 def reorder_code_variables(source_code: str) -> str:
     """يقوم بنقل جميع تعريفات المتغيرات (Assign/AnnAssign) إلى أعلى الملف وترتيبها أبجدياً."""
