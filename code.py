@@ -1,4 +1,4 @@
-from ABH import ABH as clinet
+from ABH import ABH as client
 """
 نظام Anti-Flood دقيق بالوقت لبوت Telethon
 =============================================
