@@ -93,8 +93,8 @@ async def handler(event):
     # تحقق من الفلود
     if is_flooding(user_id):
         # اكتشفنا فلود -> نطبق الإجراء
-        muted_users[user_id] = time.time() + MUTE_DURATION
-        user_timestamps[user_id].clear()  # نصفر السجل
+        #muted_users[user_id] = time.time() + MUTE_DURATION
+        user_timestamps[user_id].clear()  # نصفر السجل#
 
         try:
             await event.reply(
