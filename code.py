@@ -1,4 +1,5 @@
 from ABH import *
+from telethon import Button
 
 @ABH.on(events.NewMessage(pattern=r"^زر(?:\s+(.+))?$"))
 async def handler(event):
