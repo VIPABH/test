@@ -1,124 +1,274 @@
 """
-نظام Anti-Flood دقيق بالوقت لبوت Telethon
-=============================================
-الفكرة (مصححة):
-- كل مستخدم عنده سجل بآخر أوقات رسائله (timestamps).
-- نجمع آخر MAX_ATTEMPTS رسالة (مثلاً 5)، ونشوف الفرق الزمني الكلي
-  بين أول رسالة وآخر رسالة بهالمجموعة.
-- إذا هذا الفرق الكلي أقل من MIN_GAP ثانية (يعني 5 رسائل انبعتت
-  خلال أقل من 3 ثواني) => فلود مؤكد.
-- إذا الفرق الكلي 3 ثواني أو أكثر => طبيعي، حتى لو المستخدم يحچي
-  بسرعة نسبياً، لأنه مو سريع بالشكل الآلي/المشبوه.
+إنشاء رسالة تفاعلية - Flow كامل
+=================================
+المراحل:
+  1) نص الرسالة (إجباري)
+  2) الميديا (اختياري) - يدعم صورة/فيديو واحد أو ألبوم (عدة صور برسالة وحدة)
+     بعد كل ميديا يُسأل المستخدم: "هل تريد إضافة المزيد؟"
+  3) الأزرار (اختياري) - صيغة حرة يتحكم بيها parse_buttons()
+     - سطر جديد  = صف جديد من الأزرار
+     - "|"       = يفصل بين زرين بنفس الصف
+     - نوع الزر الأول:  "نص الزر - رابط"                -> زر رابط عادي
+     - نوع الزر الثاني: "نص الزر - @username نص الرسالة" -> زر يفتح محادثة
+       المستخدم مع رسالة معبأة مسبقاً عبر tg://resolve
 
-ملاحظة مهمة: هذا مختلف عن النسخة القديمة اللي كانت تشترط إن *كل*
-فجوة بين كل رسالتين متتاليتين تكون أقل من 3 ثواني - هذا الشرط كان
-صارم جداً وكان يسبب false positives (يقيّد ناس يحچون طبيعي بس
-صدفة رسالتين منهم انبعتن قريبات من بعض).
+بعد كل خطوة تُرسل معاينة (Preview) للرسالة بحالتها الحالية.
+
+ملاحظة مهمة:
+هذا الكود مبني على افتراض أن مكتبة ABH تشبه Telethon من ناحية:
+  - events.NewMessage / e.reply / e.text / e.sender_id / e.media
+  - e.message.grouped_id  لتمييز رسائل الألبوم (قد يختلف الاسم عندك، عدّله حسب توثيق ABH)
+  - كلاس Button (Button.url(text, url)) لإرسال الأزرار
+إذا كانت التسميات مختلفة في ABH، بدّلها بنفس الأماكن المعلّق عليها بـ "# TODO".
 """
 
-from ABH import ABH as client
-from telethon import events
-from collections import defaultdict
-import time
+from ABH import *
+import asyncio
+import urllib.parse
 
-# ------------------ الإعدادات ------------------
-MAX_ATTEMPTS = 5          # عدد المحاولات المسموحة
-MIN_GAP = 3.0             # أقل مدة كلية (بالثواني) لإرسال MAX_ATTEMPTS رسالة قبل ما تعتبر فلود
-MUTE_DURATION = 60        # مدة الحظر المؤقت بالثواني بعد اكتشاف الفلود
+# ============================================================
+#  حالة كل مستخدم (Session) - مفصولة بالكامل عن باقي المستخدمين
+# ============================================================
 
-# ------------------ تخزين البيانات ------------------
-# لكل مستخدم: قائمة بأوقات آخر رسائله
-user_timestamps = defaultdict(list)
-# المستخدمين المحظورين مؤقتاً ووقت انتهاء الحظر
-muted_users = {}
+class CreateMessageSession:
+    def __init__(self):
+        self.text = ''
+        self.media = []      # كل عنصر: إما رسالة ميديا مفردة أو list (ألبوم)
+        self.buttons_raw = ''
+        self.buttons = []    # نتيجة parse_buttons النهائية
+        self.step = 'text'   # text -> media -> buttons -> done
 
 
-def is_flooding(user_id: int) -> bool:
+sessions = {}          # sender_id -> CreateMessageSession
+album_buffers = {}      # sender_id -> {'grouped_id':.., 'messages':[..], 'task':asyncio.Task}
+
+ALBUM_DEBOUNCE = 1.2    # ثانية ننتظرها بعد آخر رسالة ألبوم قبل ما نعتبره اكتمل
+
+
+# ============================================================
+#  دالة الأزرار - بالتنسيق اللي حددته
+# ============================================================
+
+def parse_buttons(raw_text: str):
     """
-    يتحقق إذا المستخدم يسوي فلود سريع:
-    - ياخذ آخر MAX_ATTEMPTS من الأوقات المسجلة.
-    - يشوف الفرق الزمني الكلي من أول رسالة لآخر رسالة بهالمجموعة.
-    - إذا هذا الفرق أقل من MIN_GAP ثانية => فلود (5 رسائل بأقل من 3 ثواني).
-    - إذا 3 ثواني أو أكثر => طبيعي.
+    تحوّل نص الأزرار الخام إلى صفوف أزرار (list of list of Button).
+
+    الصيغة:
+        نص الزر - https://example.com               -> زر رابط عادي
+        نص الزر - @username نص الرسالة المطلوب إرسالها  -> زر يفتح محادثة اليوزر
+                                                          مع نص جاهز عبر tg://resolve
+        زر1 - target1 | زر2 - target2                -> بنفس الصف
+        (سطر جديد)                                    -> صف جديد
+
+    إذا كان النص فاضي أو = "تخطي" ترجع [].
     """
-    now = time.time()
-    timestamps = user_timestamps[user_id]
+    raw_text = (raw_text or '').strip()
+    if not raw_text or raw_text in ('تخطي', 'تخطى'):
+        return []
 
-    # نضيف الوقت الحالي للسجل
-    timestamps.append(now)
+    rows = []
+    for line in raw_text.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
 
-    # نحتفظ فقط بآخر MAX_ATTEMPTS وقت (نحذف الأقدم)
-    if len(timestamps) > MAX_ATTEMPTS:
-        timestamps.pop(0)
+        row = []
+        for part in line.split('|'):
+            part = part.strip()
+            if ' - ' not in part:
+                # صيغة غير صحيحة، نتجاهل هذا الزر بدل ما نفشل الرسالة كلها
+                continue
 
-    # إذا ما وصلنا للعدد المطلوب بعد، مو فلود
-    if len(timestamps) < MAX_ATTEMPTS:
-        return False
+            label, target = part.split(' - ', 1)
+            label = label.strip()
+            target = target.strip()
 
-    # الفرق الزمني الكلي بين أول وآخر رسالة بالنافذة الحالية
-    total_span = timestamps[-1] - timestamps[0]
+            if target.startswith('@'):
+                # نوع 2: زر يفتح محادثة مع المستخدم ونص جاهز
+                # الصيغة: @username نص الرسالة
+                pieces = target.split(' ', 1)
+                username = pieces[0].lstrip('@')
+                prefill_text = pieces[1] if len(pieces) > 1 else ''
+                encoded_text = urllib.parse.quote(prefill_text)
+                url = f'tg://resolve?domain={username}&text={encoded_text}'
+            else:
+                # نوع 1: زر رابط عادي
+                url = target
 
-    if total_span < MIN_GAP:
-        # يعني MAX_ATTEMPTS رسالة انبعتت خلال أقل من MIN_GAP ثانية => فلود
-        return True
+            # TODO: تأكد من اسم الكلاس الصحيح في ABH (Button.url أو غيره)
+            row.append(Button.url(label, url))
 
-    # الفرق 3 ثواني أو أكثر => طبيعي، مو فلود
-    return False
+        if row:
+            rows.append(row)
+
+    return rows
 
 
-def is_muted(user_id: int) -> bool:
-    """يتحقق إذا المستخدم بفترة حظر مؤقت حالياً."""
-    if user_id in muted_users:
-        if time.time() < muted_users[user_id]:
-            return True
+# ============================================================
+#  المعاينة (Preview) - تُرسل بعد كل خطوة
+# ============================================================
+
+async def send_preview(e, sess: CreateMessageSession, note: str = ''):
+    """
+    ترسل معاينة للرسالة بحالتها الحالية (نص + آخر ميديا مضافة + الأزرار إن وجدت).
+    """
+    header = '📋 معاينة الرسالة الحالية:\n\n'
+    body = sess.text or '(بدون نص بعد)'
+    footer = ''
+    if sess.media:
+        footer += f'\n\n🖼 عدد عناصر/ألبومات الميديا المضافة: {len(sess.media)}'
+    if note:
+        footer += f'\n\n{note}'
+
+    buttons = sess.buttons if sess.buttons else None
+
+    # إرسال نص + أزرار كمعاينة نصية دايماً (بسيط وآمن)
+    await e.reply(header + body + footer, buttons=buttons)
+
+    # لو فيه ميديا، أعد إرسال آخر عنصر/ألبوم مضاف كمعاينة بصرية
+    if sess.media:
+        last = sess.media[-1]
+        if isinstance(last, list):
+            # ألبوم: أعد إرساله كمجموعة
+            # TODO: عدّل حسب دالة إرسال الألبومات الفعلية في ABH
+            await e.client.send_file(e.chat_id, [m.media for m in last])
         else:
-            # انتهت مدة الحظر
-            del muted_users[user_id]
-    return False
+            # عنصر مفرد
+            # TODO: عدّل حسب دالة إرسال الميديا الفعلية في ABH
+            await e.client.send_file(e.chat_id, last.media)
 
 
-@client.on(events.NewMessage)
-async def handler(event):
-    user_id = event.sender_id
+# ============================================================
+#  بدء العملية
+# ============================================================
 
-    # تجاهل رسائل البوتات نفسها لو موجودة بالمجموعة
-    if event.sender and getattr(event.sender, "bot", False):
+@ABH.on(events.NewMessage(pattern=r'^انشاء رسال[هة]$'))
+async def create_message_handler(e):
+    sessions[e.sender_id] = CreateMessageSession()
+    await e.reply('🛠 يجري إنشاء رسالة جديدة...')
+    await asyncio.sleep(1)
+    await e.reply('✍️ أرسل الآن نص الرسالة:')
+
+
+# ============================================================
+#  إنهاء الألبوم بعد فترة سكوت (Debounce)
+# ============================================================
+
+async def finalize_album(e, sess: CreateMessageSession, sender_id):
+    await asyncio.sleep(ALBUM_DEBOUNCE)
+    buf = album_buffers.pop(sender_id, None)
+    if not buf:
         return
 
-    # تحقق أول إذا المستخدم محظور مؤقتاً
-    if is_muted(user_id):
-        await event.delete()  # يحذف رسائله وهو بفترة الحظر
+    sess.media.append(buf['messages'])  # نضيف الألبوم كوحدة واحدة (list)
+    await ask_add_more(e, sess)
+
+
+async def ask_add_more(e, sess: CreateMessageSession):
+    await send_preview(e, sess, note='✅ تمت إضافة الميديا.')
+    await asyncio.sleep(0.5)
+    await e.reply('➕ هل تريد إضافة المزيد من الميديا؟ (اكتب: نعم / لا)')
+    # يبقى step = 'media'، وبانتظار رد المستخدم بـ نعم/لا أو ميديا جديدة مباشرة
+
+
+# ============================================================
+#  الراوتر الرئيسي - Handler واحد ثابت لكل الرسائل
+# ============================================================
+
+@ABH.on(events.NewMessage)
+async def router(e):
+    sender_id = e.sender_id
+    sess = sessions.get(sender_id)
+    if not sess:
+        return  # المستخدم مو داخل عملية إنشاء رسالة
+
+    if e.text in ('انشاء رسالة', 'انشاء رساله'):
+        return  # هذا الأمر يعالجه create_message_handler فقط
+
+    # ------------------------------------------------------
+    # المرحلة 1: النص
+    # ------------------------------------------------------
+    if sess.step == 'text':
+        if not e.text:
+            await e.reply('⚠️ لازم ترسل نص. حاول مرة ثانية:')
+            return
+
+        sess.text = e.text
+        sess.step = 'media'
+        await send_preview(e, sess, note='✅ تم حفظ النص.')
+        await asyncio.sleep(0.5)
+        await e.reply('🖼 أرسل الآن الميديا (صورة/فيديو/ألبوم)، أو اكتب "تخطي":')
         return
 
-    # تحقق من الفلود
-    if is_flooding(user_id):
-        # اكتشفنا فلود -> نطبق الإجراء
-        #muted_users[user_id] = time.time() + MUTE_DURATION
-        user_timestamps[user_id].clear()  # نصفر السجل#
-
-        try:
-            await event.reply(
-                f"⚠️ تم رصد فلود من طرفك. تم تقييدك لمدة {MUTE_DURATION} ثانية."
+    # ------------------------------------------------------
+    # المرحلة 2: الميديا (يدعم ألبومات)
+    # ------------------------------------------------------
+    if sess.step == 'media':
+        # المستخدم يريد تخطي الميديا كلياً أو إنهاء الإضافة
+        if e.text and e.text.strip() in ('تخطي', 'تخطى'):
+            sess.step = 'buttons'
+            await send_preview(e, sess, note='⏭ تم تخطي الميديا.')
+            await asyncio.sleep(0.5)
+            await e.reply(
+                '🔘 أرسل الآن الأزرار بهذه الصيغة، أو اكتب "تخطي":\n\n'
+                'نص الزر - رابط\n'
+                'نص الزر - @username نص الرسالة\n'
+                'زر1 - target1 | زر2 - target2   (لنفس الصف)\n'
+                '(سطر جديد لكل صف جديد)'
             )
-        except Exception:
-            pass
+            return
 
-        # هنا تكدر تضيف: طرد، حظر بالمجموعة، تسجيل بقاعدة بيانات، ...
-        # مثال حظر فعلي بالمجموعة (لازم البوت يكون أدمن):
-        #
-        # from telethon.tl.functions.channels import EditBannedRequest
-        # from telethon.tl.types import ChatBannedRights
-        # await client(EditBannedRequest(
-        #     event.chat_id, user_id,
-        #     ChatBannedRights(until_date=int(time.time() + MUTE_DURATION), send_messages=True)
-        # ))
+        if e.text and e.text.strip() == 'لا':
+            sess.step = 'buttons'
+            await e.reply(
+                '🔘 أرسل الآن الأزرار بهذه الصيغة، أو اكتب "تخطي":\n\n'
+                'نص الزر - رابط\n'
+                'نص الزر - @username نص الرسالة\n'
+                'زر1 - target1 | زر2 - target2   (لنفس الصف)\n'
+                '(سطر جديد لكل صف جديد)'
+            )
+            return
+
+        if e.text and e.text.strip() == 'نعم':
+            await e.reply('🖼 أرسل الميديا الإضافية الآن:')
+            return
+
+        if not e.media:
+            await e.reply('⚠️ هذي مو ميديا. أرسل صورة/فيديو، أو اكتب "تخطي" أو "لا".')
+            return
+
+        # TODO: تأكد من اسم الخاصية الصحيحة لـ grouped_id في ABH (قد تكون e.message.grouped_id)
+        grouped_id = getattr(e.message, 'grouped_id', None)
+
+        if grouped_id:
+            # جزء من ألبوم
+            buf = album_buffers.get(sender_id)
+            if buf and buf['grouped_id'] == grouped_id:
+                buf['messages'].append(e.message)
+                buf['task'].cancel()
+            else:
+                buf = {'grouped_id': grouped_id, 'messages': [e.message], 'task': None}
+                album_buffers[sender_id] = buf
+
+            buf['task'] = asyncio.create_task(finalize_album(e, sess, sender_id))
+        else:
+            # ميديا مفردة
+            sess.media.append(e.message)
+            await ask_add_more(e, sess)
         return
 
-    # إذا وصلنا لهنا، الرسالة طبيعية وما راح نسوي شي
+    # ------------------------------------------------------
+    # المرحلة 3: الأزرار
+    # ------------------------------------------------------
+    if sess.step == 'buttons':
+        sess.buttons_raw = e.text or ''
+        sess.buttons = parse_buttons(sess.buttons_raw)
+        sess.step = 'done'
 
+        await send_preview(e, sess, note='✅ تم إنشاء الرسالة بنجاح.')
+        await asyncio.sleep(0.5)
+        await e.reply('🎉 اكتملت الرسالة! أرسل "انشاء رسالة" لإنشاء رسالة جديدة.')
 
-print("Anti-flood handler loaded.")
-# ملاحظة: ما نستدعي client.run_until_disconnected() هنا لأن الكلاينت
-# (ABH) غالباً يتم تشغيله من ملف رئيسي ثاني بالمشروع (main.py مثلاً).
-# إذا هذا الملف هو نقطة التشغيل الوحيدة عندك، فك التعليق عن السطر التالي:
-# client.run_until_disconnected()
+        # هنا تقدر تحفظ sess (نص + ميديا + أزرار) بقاعدة بيانات قبل ما تمسح الجلسة
+        del sessions[sender_id]
+        return
