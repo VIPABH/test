@@ -1,4 +1,3 @@
-```python
 from ABH import *
 from telethon import Button
 
@@ -136,4 +135,3 @@ async def handler(event):
         await event.reply(
             "لا يمكن نسخ نوع هذه الرسالة."
         )
-```
