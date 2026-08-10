@@ -1,4 +1,5 @@
-```python
+from ABH import *
+
 @ABH.on(events.NewMessage(pattern=r"^زر(?:\s+(.+))?$"))
 async def handler(event):
 
@@ -98,4 +99,3 @@ async def handler(event):
         await event.reply(
             "لا يمكن نسخ نوع هذه الرسالة."
         )
-```
