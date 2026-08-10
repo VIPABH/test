@@ -1,4 +1,4 @@
-from ABH import *
+```python
 @ABH.on(events.NewMessage(pattern=r"^زر(?:\s+(.+))?$"))
 async def handler(event):
 
@@ -9,11 +9,11 @@ async def handler(event):
 
     if not full_text:
         return await event.reply(
-            "يرجى كتابة الأزرار بالصيغة:\n\n"
-            "`اسم الزر \\ الرابط \\ اللون \\ الايموجي`\n\n"
+            "يرجى كتابة الأزرار بعد الأمر، بصيغة:\n"
+            "`اسم الزر الرابط اللون الايموجي`\n\n"
             "مثال:\n"
-            "`زر المطور \\ https://t.me/k_4x1 \\ ازرق \\ 🌚`\n\n"
-            "ويمكن إضافة أكثر من زر بفصلهم بـ `|`"
+            "`زر المطور https://t.me/k_4x1 blue 🌚`\n\n"
+            "لإضافة زر جديد استخدم `|`"
         )
 
     if not event.is_reply:
@@ -24,14 +24,8 @@ async def handler(event):
     items = [
         item.strip()
         for item in full_text.split("|")
-        if "\\" in item
+        if item.strip()
     ]
-
-    if not items:
-        return await event.reply(
-            "تأكد من كتابة الأزرار بصيغة:\n"
-            "`اسم الزر \\ الرابط \\ اللون \\ الايموجي`"
-        )
 
     reply_msg = await event.get_reply_message()
 
@@ -40,31 +34,39 @@ async def handler(event):
 
     for item in items:
         try:
-            parts = [x.strip() for x in item.split("\\")]
+            parts = item.split()
 
             if len(parts) < 2:
                 continue
 
-            label = parts[0]
-            url = parts[1]
+            # الرابط
+            url_index = next(
+                i for i, x in enumerate(parts)
+                if x.startswith(("http://", "https://", "tg://"))
+            )
 
-            # اللون
-            color = parts[2] if len(parts) >= 3 else ""
+            # اسم الزر
+            label = " ".join(parts[:url_index])
 
-            # الإيموجي
-            emoji = parts[3] if len(parts) >= 4 else ""
+            # الرابط
+            url = parts[url_index]
 
-            # إضافة الإيموجي إلى اسم الزر
-            if emoji:
-                label = f"{emoji} {label}"
+            # اللون اختياري
+            style = parts[url_index + 1] if len(parts) > url_index + 1 else None
 
-            # اللون يتم قراءته هنا
-            # Telegram لا يسمح بتغيير لون Button.url
-            # لذلك نخليه محفوظًا بدون أن يؤثر على الزر حاليًا
-            button = Button.url(label, url)
+            # الايموجي اختياري
+            icon = parts[url_index + 2] if len(parts) > url_index + 2 else None
 
-            row.append(button)
+            row.append(
+                Button.url(
+                    label,
+                    url,
+                    style=style,
+                    icon=icon
+                )
+            )
 
+            # زرين في كل صف
             if len(row) == 2:
                 buttons.append(row)
                 row = []
@@ -96,3 +98,4 @@ async def handler(event):
         await event.reply(
             "لا يمكن نسخ نوع هذه الرسالة."
         )
+```
