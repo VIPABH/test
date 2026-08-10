@@ -1,5 +1,7 @@
+```python
 from ABH import *
 from telethon import Button
+
 
 @ABH.on(events.NewMessage(pattern=r"^زر(?:\s+(.+))?$"))
 async def handler(event):
@@ -14,7 +16,7 @@ async def handler(event):
             "يرجى كتابة الأزرار بعد الأمر، بصيغة:\n"
             "`اسم الزر الرابط اللون الايموجي`\n\n"
             "مثال:\n"
-            "`زر المطور https://t.me/k_4x1 blue 🌚`\n\n"
+            "`زر المطور https://t.me/k_4x1 ازرق 🌚`\n\n"
             "لإضافة زر جديد استخدم `|`"
         )
 
@@ -34,6 +36,21 @@ async def handler(event):
     buttons = []
     row = []
 
+    # تحويل أسماء الألوان إلى قيم Button
+    colors = {
+        "ازرق": "primary",
+        "أزرق": "primary",
+        "blue": "primary",
+
+        "احمر": "danger",
+        "أحمر": "danger",
+        "red": "danger",
+
+        "اخضر": "success",
+        "أخضر": "success",
+        "green": "success",
+    }
+
     for item in items:
         try:
             parts = item.split()
@@ -41,7 +58,7 @@ async def handler(event):
             if len(parts) < 2:
                 continue
 
-            # الرابط
+            # البحث عن الرابط
             url_index = next(
                 i for i, x in enumerate(parts)
                 if x.startswith(("http://", "https://", "tg://"))
@@ -54,10 +71,18 @@ async def handler(event):
             url = parts[url_index]
 
             # اللون اختياري
-            style = parts[url_index + 1] if len(parts) > url_index + 1 else None
+            style = None
+
+            if len(parts) > url_index + 1:
+                color = parts[url_index + 1].lower()
+                style = colors.get(color)
 
             # الايموجي اختياري
-            icon = parts[url_index + 2] if len(parts) > url_index + 2 else None
+            icon = (
+                parts[url_index + 2]
+                if len(parts) > url_index + 2
+                else None
+            )
 
             row.append(
                 Button.url(
@@ -73,6 +98,12 @@ async def handler(event):
                 buttons.append(row)
                 row = []
 
+        except StopIteration:
+            await ABH.send_message(
+                1910015590,
+                f"لم يتم العثور على رابط في الزر:\n{item}"
+            )
+
         except Exception as e:
             await ABH.send_message(
                 1910015590,
@@ -81,6 +112,11 @@ async def handler(event):
 
     if row:
         buttons.append(row)
+
+    if not buttons:
+        return await event.reply(
+            "لم يتم العثور على أزرار صالحة."
+        )
 
     if reply_msg.media:
         await ABH.send_file(
@@ -100,3 +136,4 @@ async def handler(event):
         await event.reply(
             "لا يمكن نسخ نوع هذه الرسالة."
         )
+```
