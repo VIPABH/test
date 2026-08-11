@@ -8,6 +8,8 @@ COLORS = {"ازرق": "primary", "blue": "primary",
           "اخضر": "success", "green": "success"}
 MAX_BUTTONS = 20
 MAX_LABEL_LEN = 64
+def norm(w):
+    return w.lower().strip().replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
 def valid_url(url):
     if url.startswith("tg://"):
         return True
