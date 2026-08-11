@@ -37,8 +37,8 @@ def valid_url(url):
 @ABH.on(events.NewMessage(pattern=r"^زر(?:\s+(.+))?$"))
 async def handler(event):
 
-    if not event.is_group:
-        return
+    # if not event.is_group:
+    #     return
 
     full_text = event.pattern_match.group(1)
 
