@@ -1,21 +1,54 @@
 from ABH import *
 from telethon import Button
+from urllib.parse import urlparse
+
+
+COLORS = {
+    "ازرق": "primary",
+    "أزرق": "primary",
+    "blue": "primary",
+
+    "احمر": "danger",
+    "أحمر": "danger",
+    "red": "danger",
+
+    "اخضر": "success",
+    "أخضر": "success",
+    "green": "success",
+}
+
+
+def valid_url(url):
+    try:
+        if url.startswith("tg://"):
+            return True
+
+        parsed = urlparse(url)
+
+        return (
+            parsed.scheme in ("http", "https")
+            and bool(parsed.netloc)
+        )
+
+    except Exception:
+        return False
 
 
 @ABH.on(events.NewMessage(pattern=r"^زر(?:\s+(.+))?$"))
 async def handler(event):
 
-    # if not event.is_group:
-    #     return
+    if not event.is_group:
+        return
 
     full_text = event.pattern_match.group(1)
 
     if not full_text:
         return await event.reply(
-            "يرجى كتابة الأزرار بعد الأمر، بصيغة:\n"
-            "`اسم الزر الرابط اللون الايموجي`\n\n"
+            "يرجى كتابة الأزرار بعد الأمر، بصيغة:\n\n"
+            "`زر [اللون] [اسم الزر] الرابط [الايموجي]`\n\n"
             "مثال:\n"
-            "`زر المطور https://t.me/k_4x1 ازرق 🌚`\n\n"
+            "`زر ازرق المطور https://t.me/k_4x1 🌚`\n\n"
+            "اللون والايموجي اختياريان.\n"
             "لإضافة زر جديد استخدم `|`"
         )
 
@@ -30,108 +63,189 @@ async def handler(event):
         if item.strip()
     ]
 
+    if len(items) > 20:
+        return await event.reply(
+            "الحد الأقصى هو 20 زرًا."
+        )
+
     reply_msg = await event.get_reply_message()
 
     buttons = []
     row = []
-
-    # تحويل أسماء الألوان إلى قيم Button
-    colors = {
-        "ازرق": "primary",
-        "أزرق": "primary",
-        "blue": "primary",
-
-        "احمر": "danger",
-        "أحمر": "danger",
-        "red": "danger",
-
-        "اخضر": "success",
-        "أخضر": "success",
-        "green": "success",
-    }
+    invalid = []
 
     for item in items:
-        try:
-            parts = item.split()
 
-            if len(parts) < 2:
+        parts = item.split()
+
+        if not parts:
+            invalid.append(item)
+            continue
+
+        # البحث عن الرابط
+        url_index = None
+
+        for i, value in enumerate(parts):
+            if value.startswith(("http://", "https://", "tg://")):
+                url_index = i
+                break
+
+        if url_index is None:
+            invalid.append(item)
+            continue
+
+        url = parts[url_index]
+
+        # التحقق من الرابط
+        if not valid_url(url):
+            invalid.append(item)
+            continue
+
+        # ------------------------------------------------
+        # كل شيء قبل الرابط
+        # ------------------------------------------------
+
+        before_url = parts[:url_index]
+
+        style = None
+        label_parts = []
+
+        # إذا أول كلمة لون
+        if before_url:
+            first = before_url[0].lower()
+
+            if first in COLORS:
+                style = COLORS[first]
+                label_parts = before_url[1:]
+            else:
+                label_parts = before_url
+
+        # اسم الزر
+        label = " ".join(label_parts).strip()
+
+        # اسم افتراضي إذا لم يكتب اسم
+        if not label:
+            label = "اضغط هنا"
+
+        if len(label) > 64:
+            invalid.append(item)
+            continue
+
+        # ------------------------------------------------
+        # ما بعد الرابط = الايقونة
+        # ------------------------------------------------
+
+        after_url = parts[url_index + 1:]
+
+        icon = None
+
+        if len(after_url) > 1:
+            # أكثر من شيء بعد الرابط
+            invalid.append(item)
+            continue
+
+        if after_url:
+            icon = after_url[0]
+
+            if len(icon) > 10:
+                invalid.append(item)
                 continue
 
-            # البحث عن الرابط
-            url_index = next(
-                i for i, x in enumerate(parts)
-                if x.startswith(("http://", "https://", "tg://"))
+        # ------------------------------------------------
+        # إنشاء الزر
+        # ------------------------------------------------
+
+        try:
+
+            button = Button.url(
+                label,
+                url,
+                style=style,
+                icon=icon
             )
 
-            # اسم الزر
-            label = " ".join(parts[:url_index])
-
-            # الرابط
-            url = parts[url_index]
-
-            # اللون اختياري
-            style = None
-
-            if len(parts) > url_index + 1:
-                color = parts[url_index + 1].lower()
-                style = colors.get(color)
-
-            # الايموجي اختياري
-            icon = (
-                parts[url_index + 2]
-                if len(parts) > url_index + 2
-                else None
-            )
-
-            row.append(
-                Button.url(
-                    label,
-                    url,
-                    style=style,
-                    icon=icon
-                )
-            )
+            row.append(button)
 
             # زرين في كل صف
             if len(row) == 2:
                 buttons.append(row)
                 row = []
 
-        except StopIteration:
-            await ABH.send_message(
-                1910015590,
-                f"لم يتم العثور على رابط في الزر:\n{item}"
-            )
+        except Exception:
+            invalid.append(item)
 
-        except Exception as e:
-            await ABH.send_message(
-                1910015590,
-                f"حدث خطأ في الأزرار: {e}"
-            )
-
+    # إضافة الصف الأخير
     if row:
         buttons.append(row)
 
+    # لا توجد أزرار
     if not buttons:
         return await event.reply(
-            "لم يتم العثور على أزرار صالحة."
+            "لم يتم العثور على أي أزرار صالحة."
         )
 
-    if reply_msg.media:
-        await ABH.send_file(
-            event.chat_id,
-            reply_msg.media,
-            caption=reply_msg.message or "",
-            buttons=buttons
+    # رسالة تحذير للأزرار الخاطئة
+    warning = ""
+
+    if invalid:
+
+        invalid_text = "\n".join(
+            f"• `{x}`"
+            for x in invalid[:5]
         )
 
-    elif reply_msg.text:
-        await event.respond(
-            reply_msg.text,
-            buttons=buttons
+        warning = (
+            "\n\n⚠️ تم تجاهل بعض الأزرار:\n"
+            f"{invalid_text}"
         )
 
-    else:
-        await event.reply(
-            "لا يمكن نسخ نوع هذه الرسالة."
+        if len(invalid) > 5:
+            warning += (
+                f"\n... و {len(invalid) - 5} أخرى."
+            )
+
+    try:
+
+        # رسالة تحتوي على ميديا
+        if reply_msg.media:
+
+            await ABH.send_file(
+                event.chat_id,
+                reply_msg.media,
+                caption=reply_msg.message or "",
+                buttons=buttons
+            )
+
+        # رسالة نصية
+        elif reply_msg.message:
+
+            await ABH.send_message(
+                event.chat_id,
+                reply_msg.message,
+                buttons=buttons
+            )
+
+        else:
+
+            return await event.reply(
+                "لا يمكن نسخ نوع هذه الرسالة."
+            )
+
+        # حذف أمر زر
+        try:
+            await event.delete()
+        except Exception:
+            pass
+
+        # إرسال التحذير إذا كان هناك زر خاطئ
+        if warning:
+            await ABH.send_message(
+                event.chat_id,
+                f"تم إنشاء الأزرار بنجاح.{warning}"
+            )
+
+    except Exception:
+
+        return await event.reply(
+            "حدث خطأ أثناء إنشاء الرسالة والأزرار."
         )
