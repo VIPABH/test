@@ -15,7 +15,7 @@ settings_items = {
         'items':['ردود','ميم']}}
 @ABH.on(events.NewMessage(pattern='^(عرض الاعدادات|الاعدادات|/settings)$'))
 async def settings(e):
-    if not e.is_group:return
+    # if not e.is_group:return
     a = await auth(e)
     if not a:return await chs(e,'عذرا بس ماعندك صلاحية تفتح الاعدادات')
     bot_info=await bot()
