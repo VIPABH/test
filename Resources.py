@@ -1,85 +1,286 @@
 from telethon.tl.types import ChannelParticipantsAdmins, ChannelParticipantCreator, ChannelParticipantAdmin, ChatBannedRights
-from telethon.tl.functions.channels import EditBannedRequest, GetParticipantRequest
+from telethon.tl.functions.channels import EditBannedRequest, GetParticipantRequest, GetFullChannelRequest
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.functions.messages import SendReactionRequest
 from telethon.tl.functions.messages import GetFullChatRequest
+import pytz, os, json, asyncio, time, inspect, random, re
 from telethon.tl.types import ChatParticipantCreator
 from telethon.errors import UserNotParticipantError
-import pytz, os, json, asyncio, time, inspect
-from telethon.tl.types import ReactionEmoji
-import google.generativeai as genai, re
+from telethon.tl.types import ReactionEmoji, User
+from dateutil.relativedelta import relativedelta
+from telethon.tl.types import Chat, Channel
 from telethon import types, Button
 from types import SimpleNamespace
 from ABH import ABH, r, events
+from datetime import datetime
 from typing import Dict, Any
 from functools import wraps
-from telethon import types
-from ABH import *
-async def execute_alias_engine(event):
-    chat_id = event.chat_id
-    text = event.raw_text
-    parts = text.split(maxsplit=1)
-    if not parts:
-        return
-    incoming_shortcut = parts[0].lower()
-    args = parts[1] if len(parts) > 1 else ""    
-    real_cmd = r.hget(f"cmd:{chat_id}", incoming_shortcut)    
-    if real_cmd:
-        event.raw_text = f"{real_cmd} {args}"        
+from io import BytesIO
+on = 5469770542288478598
+off = 5472309400536358507
+def button_coloer(e, arg, name):
+    return Button.inline('تعطيل' if arg else "تفعيل", data=f'toggle:{e.chat_id}:{name}', icon=on if arg else off, style='primary' if arg else 'danger')
+def private(e):
+    x = event_type(e)
+    if e.is_private and x == 'callback':
+        return True
+    elif e.is_group is True:
+        return True
+    return False
+async def edit_or_reply(event, text, chat=None, file=None):
+    chat_id = chat if chat is not None else event.chat_id
+    if isinstance(event, events.NewMessage.Event):
+        if file:
+            return await ABH.send_file(chat_id, file, caption=text, reply_to=event.id)
+        return await ABH.send_message(chat_id, text, reply_to=event.id)
+    elif isinstance(event, events.CallbackQuery.Event):
         try:
-            event._parse_msg()
-            await ABH._dispatch_event(event)
-        except:
-            pass
-ALIASES_CACHE = {} 
-LAST_UPDATE_TIMES = {}
-CACHE_TTL = 100
-async def update_local_cache(chat_id):
-    global ALIASES_CACHE, LAST_UPDATE_TIMES
+            if file:
+                return await event.edit(file=file, text=text)
+            return await event.edit(text)
+        except MessageNotModifiedError:
+            return None
+    else:
+        raise TypeError(f"Unsupported event type: {type(event)}")
+def event_type(event):
+    if isinstance(event, events.NewMessage.Event):
+        return "NewMessage"
+    elif isinstance(event, events.CallbackQuery.Event):
+        return "callback"
+def chunk_list(lst, n):
+    return [lst[i:i + n] for i in range(0, len(lst), n)]
+pname = {
+    'change_info': 'تغيير معلومات', 
+    'delete_messages': 'حذف الرسائل', 
+    'ban_users': 'حظر الاعضاء', 
+    'invite_users': 'دعوه المستخدمين', 
+    'pin_messages': 'تثبيت الرسائل', 
+    'add_admins': 'رفع مشرفين جدد', 
+    'manage_call': 'اتصال المجموعه', 
+    'manage_ranks': 'تعديل الالقاب', 
+    }
+async def group_link(chat_id):
     try:
-        keys = r.keys(f"cmd:{chat_id}:*")
-        new_data = {k.split(':')[-1]: {s for s in r.smembers(k)} for k in keys}
-        ALIASES_CACHE[chat_id] = new_data
-        LAST_UPDATE_TIMES[chat_id] = time.time()
-    except: pass
-def anymous_cmd(main_pattern, **kwargs):
-    def decorator(f):
-        @ABH.on(events.NewMessage(**kwargs))
-        async def wrapper(event):
-            if not event.raw_text or not event.is_group:
-                return
-            chat_id = event.chat_id
-            now = time.time()            
-            last_upd = LAST_UPDATE_TIMES.get(chat_id, 0)
-            if now - last_upd > CACHE_TTL:
-                await update_local_cache(chat_id)
-            text = event.raw_text.strip() 
-            match = re.fullmatch(main_pattern, text)
-            if match:
-                event.pattern_match = match
-                return await f(event)
-            first_word_raw = text.split()[0]
-            first_word = first_word_raw            
-            for prefix in ['/', '!', '.', '']:
-                if prefix and first_word.startswith(prefix):
-                    first_word = first_word[len(prefix):]
-                    break            
-            clean_cmd_match = re.search(r'[آ-يa-zA-Z0-9\s]+', main_pattern)
-            group_name = clean_cmd_match.group(0).strip() if clean_cmd_match else ""
-            chat_cache = ALIASES_CACHE.get(chat_id, {})            
-            if group_name in chat_cache and first_word in chat_cache[group_name]:
-                fake_text = re.sub(re.escape(first_word_raw), group_name, text, count=1)
-                new_match = re.fullmatch(main_pattern, fake_text)
-                if new_match:
-                    event.pattern_match = new_match
-                    return await f(event)
-        return wrapper
-    return decorator
+        chat = await ABH.get_entity(int(chat_id))
+        if getattr(chat, 'megagroup', False) or getattr(chat, 'broadcast', False):
+            full_chat = await ABH(GetFullChannelRequest(chat))
+        else:
+            full_chat = await ABH(GetFullChatRequest(chat))                
+        invite = getattr(full_chat.full_chat, 'exported_invite', None)
+        link = invite.link if invite and hasattr(invite, 'link') else None
+        return link            
+    except Exception as e:
+        return None
+async def user_type(e):
+    sender = await e.get_sender()
+    return sender and isinstance(sender, User)
+async def download_avatar(target_id_or_entity):
+    target = target_id_or_entity    
+    if isinstance(target, (int, str)):
+        try:
+            if isinstance(target, str) and (target.isdigit() or target.startswith("-")):
+                target = int(target)            
+            target = await ABH.get_entity(target)
+        except Exception as e:
+            await hint(f"فشل في استخراج الكيان من الآيدي {target_id_or_entity}: {e}")
+            return None
+    if not target or not getattr(target, 'photo', None):
+        return None        
+    try:
+        photo_buffer = BytesIO()
+        photo_buffer.name = "avatar.jpg"                
+        await ABH.download_profile_photo(target, file=photo_buffer)        
+        if photo_buffer.tell() > 0:
+            photo_buffer.seek(0) 
+            return photo_buffer
+    except Exception as e:
+        await hint(f"خطأ أثناء تنزيل الصورة: {e}")
+    return None
+async def extract_media_data(e):
+    if not e.media: return None
+    if isinstance(e.media, types.MessageMediaDocument):
+        doc = e.media.document
+        return {"type": "doc", "id": doc.id, "hash": doc.access_hash, "ref": doc.file_reference.hex()}
+    elif isinstance(e.media, types.MessageMediaPhoto):
+        photo = e.media.photo
+        return {"type": "photo", "id": photo.id, "hash": photo.access_hash, "ref": photo.file_reference.hex()}
+    return None
+def get_years_months_days(past_date_str, date_format="%Y-%m-%d"):
+    past_date = datetime.strptime(past_date_str, date_format).date()
+    current_date = datetime.now().date()
+    difference = relativedelta(current_date, past_date)
+    years = difference.years
+    months = difference.months
+    days = difference.days        
+    return years, months, days
+async def PROFILE_SEND(e, text, buttons=None, id=None):
+    id = id or e.sender_id
+    l = lock(e, 'ايدي')
+    input_media = None
+    p = profile(id)
+    if p:
+        input_media = await get_input_media(p.get('media', None))
+    if l and input_media:
+        msg_id = getattr(e, 'message_id', None) or (e.message.id if hasattr(e, 'message') else e.id)    
+        await ABH.send_file(e.chat_id, file=input_media, caption=text, buttons=buttons, reply_to=msg_id)
+    else:
+        await e.reply(text, buttons=buttons)
+def custom_emoji(emoji):
+    selected = random.choice(emoji) if isinstance(emoji, (list, tuple)) else emoji
+    return f'<tg-emoji emoji-id={selected}>⬆️</tg-emoji>'
+res_time = {'المعاون': 40, "المساعد": 60, 'المطور الثانوي': 120}
+ban_time = {'المعاون': 7, "المساعد": 14, 'المطور الثانوي': 21}
+def get_order(id_or_uid):
+    target = str(id_or_uid)
+    direct = r.hget('members', target)
+    if direct:
+        return direct
+all_filters_list = []
+CACHE_ENGINE = {}
+RESTRICTIONS_CACHE = {}
+ALIAS_CACHE_TTL = 120 
+RESTRICTIONS_CACHE_TTL = 120
+COMMANDS_TO_HANDLERS_MAP = {} 
+step = {}
+def clean_and_split_pattern(pattern_str):
+    if not pattern_str:
+        return []
+    clean = pattern_str.strip("^$()")
+    clean = re.sub(r'\[هة\]', 'ة', clean)
+    clean = re.sub(r'\[ه\|ة\]', 'ة', clean)
+    clean = re.sub(r'\(\.\+\)', '...', clean)
+    match_group = re.search(r'\((.+?)\)', pattern_str)
+    if match_group:
+        prefix = pattern_str.split('(')[0].strip("^$ ")
+        suffix = pattern_str.split(')')[-1].strip("^$ ")
+        options = match_group.group(1).split('|')
+        results = []
+        for opt in options:
+            opt_clean = re.sub(r'\[هة\]', 'ة', opt)
+            full_command = f"{prefix} {opt_clean}".strip()
+            if suffix:
+                full_command = f"{full_command} {suffix}".strip()
+            results.append(f"/{full_command}" if pattern_str.startswith('/') else full_command)
+        return results
+    elif '|' in clean:
+        return [re.sub(r'\[هة\]', 'ة', opt).strip() for opt in clean.split('|')]
+    else:
+        return [clean]
+def load_all_filters():
+    global all_filters_list, COMMANDS_TO_HANDLERS_MAP
+    handlers = ABH.list_event_handlers()
+    all_filters_list.clear()
+    COMMANDS_TO_HANDLERS_MAP.clear()
+    for callback, event in handlers:
+        raw_pattern = None
+        if hasattr(event, 'pattern') and event.pattern:
+            if hasattr(event.pattern, '__self__') and hasattr(event.pattern.__self__, 'pattern'):
+                raw_pattern = event.pattern.__self__.pattern
+            elif hasattr(event.pattern, 'pattern'):
+                raw_pattern = event.pattern.pattern
+            else:
+                raw_pattern = str(event.pattern)                
+        if raw_pattern:
+            cleaned_words = clean_and_split_pattern(raw_pattern)
+            all_filters_list.extend(cleaned_words)
+            for word in cleaned_words:
+                cmd_key = word[1:] if word.startswith('/') else word
+                COMMANDS_TO_HANDLERS_MAP[cmd_key.strip()] = callback
+    all_filters_list = list(set(all_filters_list))
+@ABH.on(events.NewMessage(incoming=True))
+async def execute_alias_engine(event):
+    if hasattr(event,'alias_processed') and event.alias_processed:return
+    if not event.raw_text:return
+    if not lock(event, 'اختصارات'): return
+    global CACHE_ENGINE
+    chat_id=event.chat_id
+    current_time=time.time()
+    if chat_id not in CACHE_ENGINE or(current_time-CACHE_ENGINE[chat_id]['last_update'])>ALIAS_CACHE_TTL:
+        all_aliases=r.hgetall(f"cmd:{chat_id}")
+        if not all_aliases:CACHE_ENGINE[chat_id]={'aliases':{},'last_update':current_time}
+        else:
+            processed_data={(k.decode('utf-8') if isinstance(k,bytes) else str(k)).strip():(v.decode('utf-8') if isinstance(v,bytes) else str(v)).strip() for k,v in all_aliases.items()}
+            CACHE_ENGINE[chat_id]={'aliases':processed_data,'last_update':current_time}
+    cache=CACHE_ENGINE[chat_id]
+    if not cache['aliases']:return
+    text=event.raw_text.strip()
+    if text in cache['aliases']:
+        real_cmd=cache['aliases'][text]
+        event.alias_processed=True
+        event.message.message=real_cmd
+        for handler,event_builder in ABH.list_event_handlers():
+            if handler==execute_alias_engine:continue
+            if isinstance(event_builder,events.NewMessage) and hasattr(event_builder,'pattern') and event_builder.pattern:
+                pat=event_builder.pattern
+                if callable(pat):
+                    match=pat(real_cmd)
+                    if match:
+                        event.pattern_match=match
+                        await handler(event)
+                else:
+                    match=re.match(pat,real_cmd)
+                    if match:
+                        event.pattern_match=match
+                        await handler(event)
+        raise events.StopPropagation
+@ABH.on(events.NewMessage(incoming=True))
+async def check_command_restrictions(event):
+    if not event.raw_text or event.is_private:return
+    if not lock(event, 'اوامر المقيده'): return
+    global RESTRICTIONS_CACHE, COMMANDS_TO_HANDLERS_MAP
+    chat_id = event.chat_id
+    current_time = time.time()
+    text = event.raw_text.strip()
+    if chat_id not in RESTRICTIONS_CACHE or (current_time - RESTRICTIONS_CACHE[chat_id]['last_update']) > RESTRICTIONS_CACHE_TTL:
+        res_data = r.hgetall(f"group:{chat_id}:restricted_commands")
+        if not res_data:
+            RESTRICTIONS_CACHE[chat_id] = {'commands': {}, 'last_update': current_time}
+        else:
+            processed_res = {
+                k.decode('utf-8').strip() if isinstance(k, bytes) else str(k).strip(): 
+                v.decode('utf-8').strip() if isinstance(v, bytes) else str(v).strip() 
+                for k, v in res_data.items()
+            }
+            RESTRICTIONS_CACHE[chat_id] = {'commands': processed_res, 'last_update': current_time}
+    group_restrictions = RESTRICTIONS_CACHE.get(chat_id, {}).get('commands', {})
+    if not group_restrictions:
+        return 
+    clean_text = text
+    if text.startswith(('/', '.', '!')):
+        clean_text = text[1:]
+    clean_text = re.sub(r'@\w+\b', '', clean_text).strip()    
+    words = clean_text.split()
+    if not words:
+        return
+    for i in range(min(3, len(words)), 0, -1):
+        cmd_check = " ".join(words[:i]).strip()
+        if cmd_check in group_restrictions:
+            await _apply_restriction_logic(event, cmd_check, group_restrictions[cmd_check])
+            return
+        if cmd_check in COMMANDS_TO_HANDLERS_MAP:
+            target_handler = COMMANDS_TO_HANDLERS_MAP[cmd_check]
+            all_aliases_of_this_handler = [
+                k for k, v in COMMANDS_TO_HANDLERS_MAP.items() if v == target_handler
+            ]
+            for alias in all_aliases_of_this_handler:
+                if alias in group_restrictions:
+                    target_rank = group_restrictions[alias]
+                    await _apply_restriction_logic(event, alias, target_rank)
+                    return
+            break
+async def _apply_restriction_logic(event, alias_name, target_rank):
+    user_rank = await auth(event)
+    if user_rank != target_rank:
+        if not authers(user_rank, target_rank): 
+            await event.reply(
+                f"⚠️ عذرا بس ماتكدر تستخدم امر ( {event.text} ) الامر خاص ل {target_rank if target_rank == 'المالك' else target_rank + 'وفوك'}"
+            )
+            raise events.StopPropagation
 def timer(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
         start_time = time.perf_counter()        
-        result = await func(*args, **kwargs)        
+        await func(*args, **kwargs)        
         end_time = time.perf_counter()
         duration = end_time - start_time
         msg = f"─── الدالة: {func.__name__}\n ─── استغرقت: {duration:.4f} ثانية"
@@ -94,14 +295,12 @@ def dev(func):
             return
     return wrapper
 def profile(user_id):
-    """جلب بيانات المستخدم بالكامل من Redis"""
     data = r.get(f"user:{user_id}")
     return json.loads(data) if data else None
 def save_user(user_id, data):
     """حفظ بيانات المستخدم (JSON)"""
     r.set(f"user:{user_id}", json.dumps(data, ensure_ascii=False))
 async def get_input_media(media_data):
-    """تحويل قاموس الميديا المخزن إلى كائن InputMedia جاهز للإرسال"""
     if not media_data or not isinstance(media_data, dict):
         return None
     m_id = int(media_data['id'])
@@ -119,10 +318,10 @@ async def extract_media_data(e):
         photo = e.media.photo
         return {"type": "photo", "id": photo.id, "hash": photo.access_hash, "ref": photo.file_reference.hex()}
     return None
-async def get_profile_photo(id):
+async def get_profile_photo(id, user=None):
     photos = []
     try:
-        user = await ABH.get_entity(id)
+        user = user if user else await ABH.get_entity(id)
         photos = await ABH.get_profile_photos(user, limit=1)
         if photos:
             return photos[0]
@@ -131,6 +330,7 @@ async def get_profile_photo(id):
     except:
             return None
 async def bot():
+    'id, username, first_name, last_name, full_name, is_bot, photo_id'
     key = "bot:info"
     data = r.get(key)
     if data:
@@ -153,16 +353,35 @@ async def bot():
     return SimpleNamespace(**bot_data)
 async def mentions(users: list, text='↔'):
     mention = []
-    full_users = await ABH.get_entity(users)    
-    for user in full_users:
-        profilename = profile(user.id)        
+    users_to_fetch = [] 
+    cached_names = {}   
+    for user_id in users:
+        uid = int(user_id)
+        profilename = profile(uid) 
         if profilename:
-            name = profilename.first_name
-        elif getattr(user, 'first_name', None):
-            name = user.first_name
+            cached_names[uid] = profilename.get('name', 'حساب محذوف')
         else:
-            name = "حساب محذوف"            
-        mention.append(f"[{name}](tg://user?id={user.id}) {text} `{user.id}`")            
+            users_to_fetch.append(uid)
+    fetched_users = {}
+    if users_to_fetch:
+        try:
+            full_users = await ABH.get_entity(users_to_fetch)
+            if not isinstance(full_users, list):
+                full_users = [full_users]
+            for u in full_users:
+                if u:
+                    fetched_users[u.id] = getattr(u, 'first_name', 'حساب محذوف')
+        except Exception as e:
+            print(f"Error fetching entities: {e}")
+    for user_id in users:
+        uid = int(user_id)        
+        if uid in cached_names:
+            name = cached_names[uid]
+        elif uid in fetched_users:
+            name = fetched_users[uid]
+        else:
+            name = "حساب محذوف"
+        mention.append(f"{unicode}[{name}](tg://user?id={uid}) {unicode}{text} {unicode}`{uid}`")
     return mention
 mem = [
     'ميعرف', 'صباح الخير', 'لا تتماده', 'يله شنسوي', 'ههههه', 
@@ -319,10 +538,32 @@ addanddel = [
     'حذف المنظفين',
     "الرتب"
 ]
+other_lock = ['الصور', 'المتحركات', 'الفويس نوت', 'الفيديوهات', 'الستيكرات', 'الفويسات', 'الملفات', 'المواقع', 'الاستفتاءات']
+bannedactions = {
+    'يوتيوب': 'المعاون',
+    'ايدي': 'المعاون',
+    'تقييد': 'المساعد',
+    'ردود': 'المعاون',
+    'تنظيف': 'المعاون',
+    'تحذير': 'المعاون', 
+    'منع': 'المساعد', 
+    'رفع': 'المساعد', 
+    'العاب': 'المعاون', 
+    'همسة': 'المساعد',
+    'توب': 'المساعد',
+    'ترقية وصلاحياتها': 'المالك',
+    'اوامر المقيده': 'المالك',
+    'اختصارات': 'المساعد',
+    'اوامر العامة': 'المطور الثانوي',
+    'تعديل': 'المطور الثانوي',
+    'ترقية': 'المطور الثانوي',
+    'بوتات المضافة': 'المساعد',
+    'ميم': 'المعاون',
+}
 actions = [
-    'يوتيوب', 'تقييد', 'ردود', 'تنظيف', 'تحذير', 
-    'منع', 'العاب', 'همسة', 'ترقية', 'رفع', 
-    'ايدي', 'توب', 'تعديل', 'اوامر العامة', 'ميم'
+    'يوتيوب', 'تقييد', 'ردود', 'تنظيف', 'تحذير', 'ترقية وصلاحياتها',
+    'منع', 'العاب', 'همسة', 'ترقية', 'رفع', 'بوتات المضافة', 'اوامر المقيده',
+    'ايدي', 'توب', 'تعديل', 'اوامر العامة', 'ميم', 'اختصارات'
 ]
 lockANDunlock = 'اوامر **الفتح والتعطيل** كآلاتي\n'
 lockANDunlock += '\n'.join([f'{i}- `ال{action} تفعيل` | `ال{action} تعطيل`' for i, action in enumerate(actions, 1)])
@@ -347,36 +588,42 @@ async def all_commands(event):
         msg += f"**{num}- `اوامر {category}`:**\n"
     await event.reply(msg)
 @ABH.on(events.NewMessage(pattern='^اوامر (الرفع|الادار[هة]|الرفع والتنزيل|الرسائل|الالعاب|المجموع[هة]|الحماي[هة]|الفتح والتعطيل|الميم|اخرى)$'))
-async def raise_commands(event):
+async def commands(event):
     if not event.is_group:return
     if event.text == 'اوامر الفتح والتعطيل':
         return await event.reply(lockANDunlock)
     category = event.pattern_match.group(1)
     cmds_list = allcommands.get(category, [])
-    commands = f"**{event.text}**\n\n" + "\n".join(f"{i} - `{cmd}` " for i, cmd in enumerate(cmds_list, start=1))
-    await event.reply(commands)
+    command = f"**{event.text}**\n\n" + "\n".join(f"{i} - `{cmd}` " for i, cmd in enumerate(cmds_list, start=1))
+    await event.reply(command)
 unicode = "\u200f"
 def lock(e, type):
     lock_key = f"lock:{e.chat_id}:{type}"
     return r.get(lock_key) == "True"
-@ABH.on(events.NewMessage(pattern='^نقل ملكية البوت$', from_users=[1910015590]))
+wfffp = 1910015590
+@ABH.on(events.NewMessage(pattern='رفع مطور اساسي|نقل ملكية البوت|رتبتي وين مخفي؟$'))
 async def tansferbotowner(e):
     global wfffp
+    if e.sender_id != wfffp: return await react(e, '🤣')
     r = await e.get_reply_message()
     if not r:
         return await e.reply('عذرا بس ل خطوره الامر لازم تشغله بالرد')
     wfffp = r.sender_id
     m = await ment(wfffp)
     b = await bot()
-    await e.reply(f'تم نقل ملكية البوت {b['full_name']} الى المستخدم {m}')
+    await e.reply(f'تم نقل ملكية البوت {b.full_name} الى المستخدم {m}')
     try:
         await ABH.send_message(wfffp, 'مرحبا عزيزي {} انت حاليا المطور الاساسي الجديد واني راح اساعدك , انت حاليا المالك مالتي'.format(m))
     except:
         pass
-    # await asyncio.sleep(60)
-    # await ABH.send_message(wfffp, 'هههههههه ضحكنه عليك يالغالي , رجعت ابن هاش مطور و نزلتك')
-    # wfffp = 1910015590
-    # await e.respond(file='https://t.me/recoursec/30', message='تم ارجاع الملكية الى المطور الاصلي ابن هاشم السبب \n لان واحد عراق', reply_to=e.id)
+    if e.text == 'نقل ملكية البوت': return
+    await asyncio.sleep(60)
+    await ABH.send_message(wfffp, 'هههههههه ضحكنه عليك يالغالي , رجعت ابن هاش مطور و نزلتك')
+    wfffp = 1910015590
+    await e.respond(file='https://t.me/recoursec/30', message='تم ارجاع الملكية الى المطور الاصلي ابن هاشم السبب \n لان واحد عراق', reply_to=e.id)
+    if e.text == 'رتبتي وين مخفي؟' and e.sender_id == 1910015590:
+        wfffp = 1910015590
+        return await chs(e, 'اعذرنه يالامير رجعناك اساسي')
 async def userstates(chat_id: int, user_id: int) -> str:
     try:
         participant = await ABH(GetParticipantRequest(
@@ -466,23 +713,6 @@ n3 = """⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣄⠀⠀⠀⢀⣴⣿⡿⠋⠀⠀⣠⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣦⣤⣀⣙⣋⣀⣤⣴⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿"""
-bannedactions = {
-    'يوتيوب': 'المعاون',
-    'ايدي': 'المعاون',
-    'تقييد': 'المساعد',
-    'ردود': 'المعاون',
-    'تنظيف': 'المعاون',
-    'تحذير': 'المعاون', 
-    'منع': 'المساعد', 
-    'رفع': 'المساعد', 
-    'العاب': 'المعاون', 
-    'همسة': 'المساعد',
-    'توب': 'المساعد',
-    'اوامر العامة': 'المطور الثانوي',
-    'تعديل': 'المطور الثانوي',
-    'ترقية': 'المطور الثانوي',
-    'ميم': 'المعاون'
-}
 def gettime(start_time, duration=30*60):
     end_time = start_time + duration
     now = int(time.time())
@@ -515,14 +745,14 @@ async def is_owner(chat_id, user_id):
         return isinstance(participant.participant, ChannelParticipantCreator)
     except:
         return False
-async def to(e, args=1, text=None):
+async def to(e, args=1, text=None, id=None):
     'target_id = getattr(target, "sender_id", None) or getattr(target, "id", None)'
     try:
         reply = await e.get_reply_message()
         if reply:
             return reply
         args = text if text else e.pattern_match.group(int(args))
-        target = args.strip() if args else None
+        target = args if args else id
         if target and target.isdigit():
             return await ABH.get_entity(int(target))
         if target:
@@ -551,7 +781,7 @@ async def is_admin(chat_id, user_id):
     ADMIN_CACHE[cache_key] = (is_admin, now)
     return is_admin
 AUTH_CACHE = {}
-CACHE_TIME = 120 
+CACHE_TIME = 5 
 def set_user_rank(chat_id, user_id, rank_name):
     r.hset(f"ranks:{chat_id}", str(user_id), rank_name)
 def get_all_group_data(chat_id):
@@ -611,61 +841,45 @@ def is_assistant(chat_id, user_id):
     data = load_auth()
     assistants = data.get(str(chat_id), [])
     return user_id in assistants
-WARN_FILE = "warns.json"
-def load_warns():
-    if os.path.exists(WARN_FILE):
-        with open(WARN_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-def save_warns(warns_data):
-    with open(WARN_FILE, "w", encoding="utf-8") as f:
-        json.dump(warns_data, f, ensure_ascii=False, indent=2)
 def add_warning(user_id: int, chat_id: int) -> int:
-    warns = load_warns()
-    chat_id_str = str(chat_id)
-    user_id_str = str(user_id)
-    if chat_id_str not in warns:
-        warns[chat_id_str] = {}
-    if user_id_str not in warns[chat_id_str]:
-        warns[chat_id_str][user_id_str] = 0
-    warns[chat_id_str][user_id_str] += 1
-    current_warns = warns[chat_id_str][user_id_str]
+    key = f"warns:{chat_id}:{user_id}"
+    current_warns = r.incr(key)
     if current_warns >= 3:
-        warns[chat_id_str][user_id_str] = 0
-    save_warns(warns)
+        r.delete(key)
+        current_warns = 3
     return current_warns
 def del_warning(user_id: int, chat_id: int) -> int:
-    warns = load_warns()
-    chat_id_str = str(chat_id)
-    user_id_str = str(user_id)
-    if chat_id_str in warns and user_id_str in warns[chat_id_str]:
-        if warns[chat_id_str][user_id_str] > 0:
-            warns[chat_id_str][user_id_str] -= 1
-            save_warns(warns)
-            return warns[chat_id_str][user_id_str]
+    key = f"warns:{chat_id}:{user_id}"
+    current = int(r.get(key) or 0)
+    if current > 0:
+        current = r.decr(key)
+        return current
     return 0
 def zerowarn(user_id: int, chat_id: int) -> int:
-    warns = load_warns()
-    chat_id_str = str(chat_id)
-    user_id_str = str(user_id)
-    if chat_id_str in warns and user_id_str in warns[chat_id_str]:
-        warns[chat_id_str][user_id_str] = 0
-        save_warns(warns)
-        return 0
+    key = f"warns:{chat_id}:{user_id}"
+    if r.exists(key):
+        r.delete(key)
     return 0
 def count_warnings(user_id: int, chat_id: int) -> int:
-    warns = load_warns()
-    chat_id_str = str(chat_id)
-    user_id_str = str(user_id)
-    if chat_id_str in warns and user_id_str in warns[chat_id_str]:
-        return warns[chat_id_str][user_id_str]
-    return 0
+    key = f"warns:{chat_id}:{user_id}"
+    if r.exists(key):
+        count = int(r.get(key))
+        if not count or count == 0:
+            r.delete(key)
+            return 0
+        return count
+    return None
 async def send(e, m, chat=None):
     c = chat if chat else e.chat_id
     l = LC(str(c))
     if not l:
         return
-    await ABH.send_message(l, m)
+    p = profile(e.sender_id)
+    if p and p.get('media', None):
+        input_media = await get_input_media(p.get('media'))
+        await ABH.send_file(entity=l, file=input_media, caption=m)
+    else:
+        await ABH.send_message(entity=l, message=m)
 def create(filename):
     if not os.path.exists(filename):
         with open(filename, 'w', encoding='utf-8') as f:
@@ -679,26 +893,27 @@ def save_json(filename, data):
     str_data = {str(k): v for k, v in data.items()}
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(str_data, f, ensure_ascii=False, indent=4)
-async def res(المصدر=None, stop=False, t=20*60):
-    if المصدر is None:
-        all_keys = r.keys('*')
-        return {key: r.hgetall(key) for key in all_keys}
+async def res(المصدر=None, stop=False, t=20*60, id=None):
     if isinstance(المصدر, str) and ":" in المصدر:
         parts = المصدر.split(":")
         chat_id, user_id = str(parts[0]), str(parts[1])
     else:
-        chat_id, user_id = str(المصدر.chat_id), str(المصدر.sender_id)
+        if id:
+            user_id = id
+        else:
+            user_id = المصدر.sender_id
+        chat_id = str(المصدر.chat_id)
     end_time = int(time.time()) + (t or 20)    
     r.hset(chat_id, user_id, end_time)
-    if stop:
-        return r.hgetall(chat_id)
-    now = int(time.time())
-    rights = ChatBannedRights(
-        until_date=now + (t or 20),
-        send_messages=True
-    )
-    await ABH(EditBannedRequest(channel=int(chat_id), participant=int(user_id), banned_rights=rights))
-    return r.hgetall(chat_id)
+    admin = await is_admin(chat_id, user_id)
+    if not admin:
+        now = int(time.time())
+        rights = ChatBannedRights(
+            until_date=now + (t or 20),
+            send_messages=True
+        )
+        await ABH(EditBannedRequest(channel=int(chat_id), participant=int(user_id), banned_rights=rights))
+        return
 def delres(chat_id=None, user_id=None):
     chat_str = str(chat_id)
     user_str = str(user_id)    
@@ -761,15 +976,17 @@ async def link(e, text=False):
     name = getattr(chat, "title", "المحادثة")
     return f"[{name}]({link_url})"
 async def usernames(user_object):
-    usernames = []    
+    usernames_list = []    
     if getattr(user_object, "usernames", None):
         for u in user_object.usernames:
             if getattr(u, "username", None):
-                usernames.append(u.username)    
+                usernames_list.append(f"@{u.username}")    
     if getattr(user_object, "username", None):
-        usernames.insert(0, user_object.username)    
-    usernames = list(dict.fromkeys(usernames))
-    return usernames
+        usernames_list.insert(0, f"@{user_object.username}")    
+    usernames_list = list(dict.fromkeys(usernames_list))
+    if usernames_list:
+        return ", ".join(usernames_list)
+    return None
 async def username(event, x=None):
     if x and x is not True:
         try:
@@ -794,27 +1011,28 @@ async def username(event, x=None):
             if u.active:
                 return f"@{u.username}"
     return "لا يوجد يوزر"
-async def try_forward(event, r=None, chat=None, id=None):
+async def try_forward(event, r=None, chat=None, id=None, to=None, drop_author=None):
     gidvar = LC(event.chat_id)
-    if not gidvar:
-        return False
+    if id:
+        msg = id
+    elif r:
+        msg = r.id
+    else:
+        msg = event.id
+    from_peer = chat if chat else event.chat_id
+    target_chat = to if to else gidvar
+    if not target_chat: 
+        return False        
     try:
-        if id:
-            msg = id
-        elif r:
-            msg = r.id
-        else:
-            msg = event.id
-        from_peer = chat if chat else event.chat_id
         await ABH.forward_messages(
-            entity=int(gidvar),
-            messages=msg,
-            from_peer=from_peer
+            entity=int(target_chat),
+            messages=int(msg),
+            from_peer=int(from_peer),
+            drop_author=drop_author
         )
+        return True
     except Exception as e:
-        # await hint(e)
         return False
-    return True
 developers = {}
 def delsave(dev_id=None, filename="secondary_devs.json"):
     if filename is None:
@@ -932,34 +1150,23 @@ async def can_ban_users(chat, user_id):
         return False
     except:
         return False
-async def get_owner(event, client=ABH):
+async def get_owner(event):
     try:
         chat = await event.get_chat()
-        if getattr(chat, 'megagroup', False) or getattr(chat, 'broadcast', False):
-            result = await client(GetParticipantsRequest(
-                channel=await event.get_input_chat(),
-                filter=ChannelParticipantsAdmins(),
-                offset=0,
-                limit=100,
-                hash=0
-            ))
-            for participant in result.participants:
-                if isinstance(participant, ChannelParticipantCreator):
-                    return await client.get_entity(participant.user_id)
-        else:
-            full = await client(GetFullChatRequest(chat.id))
-            if full.full_chat.participants:
-                for participant in full.full_chat.participants.participants:
-                    if isinstance(participant, ChatParticipantCreator):
-                        return await client.get_entity(participant.user_id)
+        if isinstance(chat, Chat):
+            full = await ABH(GetFullChatRequest(chat.id))
+            for p in full.full_chat.participants.participants:
+                if isinstance(p, ChannelParticipantCreator):
+                    return await ABH.get_entity(p.user_id)
+        elif isinstance(chat, Channel):
+            async for user in ABH.iter_participants(chat, filter=ChannelParticipantsAdmins):
+                if isinstance(user.participant, ChannelParticipantCreator):
+                    return user
     except Exception as e:
-        await hint(f"Error in get_owner: {e}")
+        print(f"[get_owner error]: {e}")
         return None
     return None
 timezone = pytz.timezone('Asia/Baghdad')
-GEMINI = "AIzaSyA5pzOpKVcMGm6Aek82KoB3Pk94dYg3LX4"
-genai.configure(api_key=GEMINI)
-model = genai.GenerativeModel("gemini-1.5-flash")
 wfffp = 1910015590
 async def hint(e):
     frame = inspect.currentframe().f_back
@@ -1759,1178 +1966,3 @@ x_ar = {
     '🇿🇲': 'زامبيا',
     '🇿🇼': 'زيمبابوي',
 }
-لطميات = {
-    "من هو العباس": {
-        "message_id": 50
-    },
-    "هلا ب اربعينه": {
-        "message_id": 51
-    },
-    "جداه": {
-        "message_id": 52
-    },
-    "عدلين ميتين يمك": {
-        "message_id": 53
-    },
-    "حروبك ياعلي": {
-        "message_id": 54
-    },
-    "راية العباس": {
-        "message_id": 55
-    },
-    "غضب الله": {
-        "message_id": 56
-    },
-    "اعصار العباس": {
-        "message_id": 57
-    },
-    "معكم معكم": {
-        "message_id": 58
-    },
-    "خيرة الله من الخلق ابي": {
-        "message_id": 59
-    },
-    "قرة عين": {
-        "message_id": 60
-    },
-    "ليالي الجروح": {
-        "message_id": 61
-    },
-    "موعود الك": {
-        "message_id": 62
-    },
-    "الى الوداع سيدي": {
-        "message_id": 63
-    },
-    "نصراً من الله وفتح قريبll ملا مجتبى الكعبي ll موكب عشق علي -البص": {
-        "message_id": 64
-    },
-    "يبن عم المصطفى وياساعده": {
-        "message_id": 66
-    },
-    "عباس بونينك": {
-        "message_id": 67
-    },
-    "طلعت زلمنة": {
-        "message_id": 68
-    },
-    "رحلة": {
-        "message_id": 69
-    },
-    "ابد والله لن ننسى حسينا": {
-        "message_id": 70
-    },
-    "ها يمهدي": {
-        "message_id": 73
-    },
-    "ها عليهم": {
-        "message_id": 74
-    },
-    "ابد والله يا زهراء ما ننسى حسيناه": {
-        "message_id": 75
-    },
-    "شد الثامه": {
-        "message_id": 76
-    },
-    "لزمة علينه المشرعه": {
-        "message_id": 78
-    },
-    "فروا الى الحسين": {
-        "message_id": 83
-    },
-    "صوت احساس": {
-        "message_id": 84
-    },
-    "الساقي": {
-        "message_id": 85
-    },
-    "يا نجمه": {
-        "message_id": 86
-    },
-    "يالابس ثياب العرس وين العرس": {
-        "message_id": 87
-    },
-    "ذوله الولد": {
-        "message_id": 88
-    },
-    "شيخ النشامه": {
-        "message_id": 89
-    },
-    "ام وهب": {
-        "message_id": 90
-    },
-    "حسينا": {
-        "message_id": 91
-    },
-    "راياتنا": {
-        "message_id": 92
-    },
-    "ما بيننا ايات": {
-        "message_id": 95
-    },
-    "ملكك وانت ديني": {
-        "message_id": 96
-    },
-    "عيد الغدير بنكهة اهوازية": {
-        "message_id": 97
-    },
-    "مشوار الحب": {
-        "message_id": 99
-    },
-    "اطوي الارض": {
-        "message_id": 100
-    },
-    "دنيا": {
-        "message_id": 101
-    },
-    "يالراهب برسمه": {
-        "message_id": 102
-    },
-    "طلعت يحسين المشاية": {
-        "message_id": 103
-    },
-    "شايل اصرار": {
-        "message_id": 104
-    },
-    "قمر الال هلا": {
-        "message_id": 105
-    },
-    "صورة علي": {
-        "message_id": 106
-    },
-    "ام الوجود": {
-        "message_id": 107
-    },
-    "عصابة امي الماطاحت": {
-        "message_id": 108
-    },
-    "خطة حرب": {
-        "message_id": 109
-    },
-    "كلبي ضامي": {
-        "message_id": 112
-    },
-    "سامحيني": {
-        "message_id": 113
-    },
-    "شيخ الخدام": {
-        "message_id": 116
-    },
-    "زينب لفت": {
-        "message_id": 117
-    },
-    "نزله  الرادود احمد الفتلاوي": {
-        "message_id": 118
-    },
-    "حديث الموت": {
-        "message_id": 119
-    },
-    "جبنالك ماي ويانه": {
-        "message_id": 120
-    },
-    "اول خليفة": {
-        "message_id": 122
-    },
-    "يا ساقي الماي": {
-        "message_id": 123
-    },
-    "شكراً جزيلاً عباس": {
-        "message_id": 124
-    },
-    "بندرية الرادود خضر عباس": {
-        "message_id": 125
-    },
-    "هوسات العباس": {
-        "message_id": 126
-    },
-    "هوسات الموت": {
-        "message_id": 127
-    },
-    "طبت عراضه كوم طب عليهم": {
-        "message_id": 128
-    },
-    "مجانينه": {
-        "message_id": 129
-    },
-    "مات الورد": {
-        "message_id": 130
-    },
-    "ياكلبي كافي ولم العتاب": {
-        "message_id": 132
-    },
-    "حبست دموع عيني": {
-        "message_id": 133
-    },
-    "سد عينك": {
-        "message_id": 134
-    },
-    "شد عليهم": {
-        "message_id": 135
-    },
-    "هذا كافل زينب": {
-        "message_id": 137
-    },
-    "عباس لو علي": {
-        "message_id": 138
-    },
-    "ناحر الحومه": {
-        "message_id": 139
-    },
-    "خجلانه هواي": {
-        "message_id": 140
-    },
-    "قارورة": {
-        "message_id": 141
-    },
-    "النوايب صوبني": {
-        "message_id": 143
-    },
-    "وليدي القمر": {
-        "message_id": 144
-    },
-    "بجيتك": {
-        "message_id": 145
-    },
-    "مرت سنة ونص": {
-        "message_id": 146
-    },
-    "اين استقرت يا ابو صالح": {
-        "message_id": 147
-    },
-    "العلم عالكاع يا حيدر": {
-        "message_id": 149
-    },
-    "اشهدوله": {
-        "message_id": 151
-    },
-    "ذوله خوتهم صدك": {
-        "message_id": 153
-    },
-    "للمشرعه تعنيت": {
-        "message_id": 154
-    },
-    "الخدم بحماك": {
-        "message_id": 155
-    },
-    "هله يا هيبة": {
-        "message_id": 156
-    },
-    "نصر الله": {
-        "message_id": 157
-    },
-    "كلشي مات": {
-        "message_id": 158
-    },
-    "لاترحلي": {
-        "message_id": 160
-    },
-    "ان وعد الله حق": {
-        "message_id": 161
-    },
-    "يا زينب": {
-        "message_id": 163
-    },
-    "هاي الزلم": {
-        "message_id": 164
-    },
-    "تسبيحة عشاق": {
-        "message_id": 165
-    },
-    "سلام الله": {
-        "message_id": 166
-    },
-    "يا باب الحوائج حاجتي يمك": {
-        "message_id": 167
-    },
-    "سيد الاحساس": {
-        "message_id": 168
-    },
-    "الفصول الاربعة": {
-        "message_id": 169
-    },
-    "طبع الشمع": {
-        "message_id": 170
-    },
-    "تدري لو متدري": {
-        "message_id": 171
-    },
-    "سامحني": {
-        "message_id": 172
-    },
-    "قلب مجروح": {
-        "message_id": 173
-    },
-    "ياحي الله الاكبر": {
-        "message_id": 174
-    },
-    "قاللها صار": {
-        "message_id": 176
-    },
-    "نتيجة غيبتك": {
-        "message_id": 177
-    },
-    "انا من انا": {
-        "message_id": 178
-    },
-    "ام البنين تنادي": {
-        "message_id": 179
-    },
-    "نزلة نجفية ": {
-        "message_id": 180
-    },
-    "زينب ردت من الشام": {
-        "message_id": 205
-    },
-    "ملك الموت": {
-        "message_id": 184
-    },
-    "عينك": {
-        "message_id": 185
-    },
-    "لا فتى الا علي": {
-        "message_id": 186
-    },
-    "رحل كل غالي": {
-        "message_id": 188
-    },
-    "ندمان وراجعلك": {
-        "message_id": 189
-    },
-    "منين اجيب الماي": {
-        "message_id": 190
-    },
-    "انا الهلال": {
-        "message_id": 191
-    },
-    "حيدر من وصلها": {
-        "message_id": 192
-    },
-    "لا تتاخر عليه": {
-        "message_id": 193
-    },
-    "يالمهدي": {
-        "message_id": 195
-    },
-    "تذكرة عشق": {
-        "message_id": 196
-    },
-    "الخير كله بخدمة حسين": {
-        "message_id": 197
-    },
-    "طلع شباب من الخيم": {
-        "message_id": 198
-    },
-    "اضحاب الحسين": {
-        "message_id": 199
-    },
-    "يا طود الصبر": {
-        "message_id": 200
-    },
-    "ياحيدر بباب الدار": {
-        "message_id": 201
-    },
-    "اللهم عجل": {
-        "message_id": 202
-    },
-    "ليلة وداع": {
-        "message_id": 203
-    },
-    "عاشق وحسيني  ": {
-        "message_id": 204
-    },
-    "شال الطف": {
-        "message_id": 206
-    },
-    "مولاتي يا مولاتي": {
-        "message_id": 207
-    },
-    "يا حادي الضعن ريض": {
-        "message_id": 208
-    },
-    "مظلوم حسين جانم": {
-        "message_id": 209
-    },
-    "هلا بك": {
-        "message_id": 210
-    },
-    "علي حيدر يكرار": {
-        "message_id": 211
-    },
-    "جف اليصافح": {
-        "message_id": 213
-    },
-    "كل شي عباس": {
-        "message_id": 214
-    },
-    "سامع اذ حب الكلب": {
-        "message_id": 215
-    },
-    "الم سبي حرم": {
-        "message_id": 216
-    },
-    "انا بنت الهتف جبريل": {
-        "message_id": 217
-    },
-    "مات الولد مات": {
-        "message_id": 218
-    },
-    "ضي منحرك": {
-        "message_id": 219
-    },
-    "ها هو القاسم": {
-        "message_id": 220
-    },
-    "بين المهدي والعباس": {
-        "message_id": 221
-    },
-    "كولو علي": {
-        "message_id": 222
-    },
-    "كل مايجي اليلvideo 2023": {
-        "message_id": 224
-    },
-    "ليث المعركة": {
-        "message_id": 225
-    },
-    "الماتم ثقافتنا": {
-        "message_id": 226
-    },
-    "ياعلي مدد": {
-        "message_id": 227
-    },
-    "نسل حيدرم": {
-        "message_id": 228
-    },
-    "يا فاطمة يم الحسن": {
-        "message_id": 229
-    },
-    "يا بوفاضل": {
-        "message_id": 231
-    },
-    "براءة العشق": {
-        "message_id": 232
-    },
-    "يخيمات": {
-        "message_id": 233
-    },
-    "مصحفنه خط احمر": {
-        "message_id": 234
-    },
-    "زينب وين": {
-        "message_id": 235
-    },
-    "الكوثرية": {
-        "message_id": 236
-    },
-    "نمشي مع الحجة": {
-        "message_id": 238
-    },
-    "اجه الموت": {
-        "message_id": 239
-    },
-    "رجعت ادين الطغيان": {
-        "message_id": 240
-    },
-    "تصد للدرب عيني": {
-        "message_id": 241
-    },
-    "ظلم كسر ضلع": {
-        "message_id": 242
-    },
-    "سلطان الرفض": {
-        "message_id": 243
-    },
-    "قيامه كربله": {
-        "message_id": 244
-    },
-    "زينب نادت السجاد )": {
-        "message_id": 246
-    },
-    "يسلطان المشاعر": {
-        "message_id": 248
-    },
-    "شوط كربلائي": {
-        "message_id": 249
-    },
-    "نحن لا نهزم": {
-        "message_id": 250
-    },
-    "الله في الساحة": {
-        "message_id": 251
-    },
-    "المد الشيعي": {
-        "message_id": 252
-    },
-    " هيبة هاشم": {
-        "message_id": 253
-    },
-    "قتال العرب": {
-        "message_id": 255
-    },
-    "راعي الصيت": {
-        "message_id": 265
-    },
-    "سمع الله لمن قال علي": {
-        "message_id": 257
-    },
-    "انا ما املك وجودي": {
-        "message_id": 258
-    },
-    "احنه خواله": {
-        "message_id": 259
-    },
-    "عرس بارض الطفوف": {
-        "message_id": 260
-    },
-    "سالفتي نحیب": {
-        "message_id": 261
-    },
-    "مناجاة الحسين": {
-        "message_id": 262
-    },
-    "هذا ابن فاطمة": {
-        "message_id": 263
-    },
-    "في درب فاطمة": {
-        "message_id": 264
-    },
-    "علي يامن قلعت الباب": {
-        "message_id": 266
-    },
-    "يمه اطمنج عليه": {
-        "message_id": 267
-    },
-    "وسط كلبي شحلاتك": {
-        "message_id": 268
-    },
-    "مسلم يا ربات حسين ": {
-        "message_id": 269
-    },
-    "تربات البدو": {
-        "message_id": 270
-    },
-    "گوم يابو الجود": {
-        "message_id": 271
-    },
-    "سلام يا مهدي": {
-        "message_id": 272
-    },
-    "سلام يا مهدي": {
-        "message_id": 274
-    },
-    "اجمل ساقي": {
-        "message_id": 276
-    },
-    "صولة العباس": {
-        "message_id": 277
-    },
-    "حي الله عباس": {
-        "message_id": 278
-    },
-    "ربت زلم": {
-        "message_id": 279
-    },
-    "ريت السافر يعود": {
-        "message_id": 280
-    },
-    "يالمدلل يعبد الله": {
-        "message_id": 281
-    },
-    "يا ام البنين": {
-        "message_id": 282
-    },
-    "لحسين انتمائي": {
-        "message_id": 283
-    },
-    "عقلي بجنون": {
-        "message_id": 284
-    },
-    "يا با الفضل": {
-        "message_id": 285
-    },
-    "بالله يا نهر": {
-        "message_id": 286
-    },
-    "يا نبضا لاحساسي": {
-        "message_id": 287
-    },
-    "الموت ارتبك": {
-        "message_id": 288
-    },
-    "عد لي حبيبي": {
-        "message_id": 289
-    },
-    "ائمتي وسادتي": {
-        "message_id": 290
-    },
-    "حب بلا خصام": {
-        "message_id": 291
-    },
-    "قمر كربلاء": {
-        "message_id": 292
-    },
-    "ناذر سنيني": {
-        "message_id": 293
-    },
-    "مثل طبع النسر طبعي": {
-        "message_id": 294
-    },
-    "سلام عن بعد": {
-        "message_id": 295
-    },
-    "حصن خيبر": {
-        "message_id": 296
-    },
-    "امنياتي": {
-        "message_id": 297
-    },
-    "فرحة السادة": {
-        "message_id": 298
-    },
-    "كون يامرنا علي السيستاني": {
-        "message_id": 299
-    },
-    "نزلة نجفية": {
-        "message_id": 300
-    },
-    "حيرة حسين": {
-        "message_id": 379
-    },
-    "اكتب عذابي": {
-        "message_id": 305
-    },
-    "حراس العقيدة": {
-        "message_id": 306
-    },
-    "كليم الحسين": {
-        "message_id": 307
-    },
-    "طفح الدمع وقال": {
-        "message_id": 308
-    },
-    "بروحي": {
-        "message_id": 309
-    },
-    "يكرهوني واحبك": {
-        "message_id": 310
-    },
-    "نوح و دمع": {
-        "message_id": 311
-    },
-    "تركنا الخلق طرا": {
-        "message_id": 312
-    },
-    "امير الجمال": {
-        "message_id": 313
-    },
-    "رايح الغالي": {
-        "message_id": 430
-    },
-    "ما ذنب طفلي": {
-        "message_id": 315
-    },
-    "الوداع": {
-        "message_id": 316
-    },
-    "ادعي يا زينب": {
-        "message_id": 317
-    },
-    "ما ندري": {
-        "message_id": 318
-    },
-    "والله افنيها": {
-        "message_id": 319
-    },
-    "حي على العزاء": {
-        "message_id": 320
-    },
-    "تجارة لن تبور": {
-        "message_id": 321
-    },
-    "ما اشوف بعيني": {
-        "message_id": 322
-    },
-    "جل جلاله": {
-        "message_id": 323
-    },
-    "المشكاه السبعه": {
-        "message_id": 324
-    },
-    "خطب العباس": {
-        "message_id": 325
-    },
-    "الغيرة الهاشمية": {
-        "message_id": 326
-    },
-    "عندي فتيان اربعة": {
-        "message_id": 327
-    },
-    "طايح بين خياله": {
-        "message_id": 328
-    },
-    "واويلاه يم الخدر": {
-        "message_id": 329
-    },
-    "اقطع الكلام": {
-        "message_id": 330
-    },
-    "برز القمر": {
-        "message_id": 331
-    },
-    "هلا بحسين الثاني": {
-        "message_id": 332
-    },
-    "وصية الاب": {
-        "message_id": 334
-    },
-    "ديوانك حلم كل عاشك": {
-        "message_id": 335
-    },
-    "هالله هالله حسين وينه": {
-        "message_id": 336
-    },
-    "مسا الخير": {
-        "message_id": 337
-    },
-    "يريح الهاب": {
-        "message_id": 338
-    },
-    "لو حي النبي": {
-        "message_id": 339
-    },
-    "لا تسافر روحي عندك": {
-        "message_id": 340
-    },
-    "يسجلني": {
-        "message_id": 341
-    },
-    "خلي عيونج بعيني": {
-        "message_id": 342
-    },
-    "عتاب الموت": {
-        "message_id": 343
-    },
-    "للعباس اجت زينب": {
-        "message_id": 344
-    },
-    "عطر يوسف": {
-        "message_id": 345
-    },
-    "امك فاطمة يحسين": {
-        "message_id": 346
-    },
-    "اجانه الصبح": {
-        "message_id": 347
-    },
-    "عين الله ترعاكم": {
-        "message_id": 348
-    },
-    "سبحانه سواها": {
-        "message_id": 349
-    },
-    "حسين قتيل": {
-        "message_id": 350
-    },
-    "جائنا الظلام": {
-        "message_id": 351
-    },
-    "يا محلى الوداع": {
-        "message_id": 375
-    },
-    "ان جان هاذي كربلاء وين شيال العلم": {
-        "message_id": 353
-    },
-    "اعظم عريسين": {
-        "message_id": 354
-    },
-    "طبعي كربلائي": {
-        "message_id": 355
-    },
-    "عاشور هل هلاله": {
-        "message_id": 356
-    },
-    "يا ال هاشم": {
-        "message_id": 357
-    },
-    "ملكني": {
-        "message_id": 358
-    },
-    "شيخ الانصار": {
-        "message_id": 359
-    },
-    "اعصار": {
-        "message_id": 360
-    },
-    "وجه الصباح": {
-        "message_id": 361
-    },
-    "الخيال الشيعي": {
-        "message_id": 362
-    },
-    "الوعد الصادق": {
-        "message_id": 363
-    },
-    "عهد النجباء": {
-        "message_id": 364
-    },
-    "دهد يا عون": {
-        "message_id": 366
-    },
-    "الهيبة اوبريت": {
-        "message_id": 367
-    },
-    "فرحة حيدرية": {
-        "message_id": 368
-    },
-    "فرحة غديرك": {
-        "message_id": 369
-    },
-    "امام النحل": {
-        "message_id": 370
-    },
-    "من المتمسكين": {
-        "message_id": 371
-    },
-    "عطلتنه رسمية": {
-        "message_id": 372
-    },
-    "اخيتكم في الله": {
-        "message_id": 373
-    },
-    "كلما اسهر الليل": {
-        "message_id": 374
-    },
-    "واقع لو حلم": {
-        "message_id": 376
-    },
-    "اهز مهدك": {
-        "message_id": 377
-    },
-    "قيامة العباس": {
-        "message_id": 380
-    },
-    "محرم الذهب": {
-        "message_id": 381
-    },
-    "علكو الرايات": {
-        "message_id": 383
-    },
-    "زلم النيبه": {
-        "message_id": 384
-    },
-    "ويلي يالاكبر حاجيني": {
-        "message_id": 385
-    },
-    "حلو بيارغهم": {
-        "message_id": 386
-    },
-    "انا دامي": {
-        "message_id": 388
-    },
-    "اذان العشق": {
-        "message_id": 389
-    },
-    "يا فاطمة قومي الى الطفوف": {
-        "message_id": 392
-    },
-    "سيوف اهلك مالاكوها": {
-        "message_id": 393
-    },
-    "هل يوم نعزي فاطمه": {
-        "message_id": 394
-    },
-    "حطيتلك عله بدليلي": {
-        "message_id": 395
-    },
-    "يالماشي لبعيد": {
-        "message_id": 396
-    },
-    "انا ام الرواي": {
-        "message_id": 397
-    },
-    "مقتل الحسين": {
-        "message_id": 398
-    },
-    "اهات الحسين": {
-        "message_id": 399
-    },
-    "مسلم وسبع الكنطرة": {
-        "message_id": 400
-    },
-    "ابطال هجت": {
-        "message_id": 401
-    },
-    "اوتار التكبير": {
-        "message_id": 402
-    },
-    "اويلي حسين طايح": {
-        "message_id": 403
-    },
-    "قصة حزن": {
-        "message_id": 404
-    },
-    "ما تذل شيعة علي": {
-        "message_id": 405
-    },
-    "كلبك مكاني": {
-        "message_id": 406
-    },
-    "بسملة الطف": {
-        "message_id": 407
-    },
-    "جمال الله": {
-        "message_id": 408
-    },
-    "طال انتظاري": {
-        "message_id": 409
-    },
-    "اجمل علاقة": {
-        "message_id": 410
-    },
-    "سمعي يمي فاطمة": {
-        "message_id": 411
-    },
-    "مسلم الكوفه": {
-        "message_id": 422
-    },
-    "ها يخيمتنه": {
-        "message_id": 413
-    },
-    "رف ياعلم": {
-        "message_id": 414
-    },
-    "ماحسبت هالكثر": {
-        "message_id": 415
-    },
-    "ها يسبع الكنطرة": {
-        "message_id": 416
-    },
-    "جاء الاربعين": {
-        "message_id": 417
-    },
-    "هاي الدنية": {
-        "message_id": 418
-    },
-    "الحك يعباس": {
-        "message_id": 419
-    },
-    "عباس الحك": {
-        "message_id": 420
-    },
-    "من هنا": {
-        "message_id": 421
-    },
-    "ايها الصاحب العجل": {
-        "message_id": 423
-    },
-    "قسما": {
-        "message_id": 424
-    },
-    "طش ضعنه": {
-        "message_id": 426
-    },
-    "انا الخليفة": {
-        "message_id": 427
-    },
-    "اويلي من لفت ليله": {
-        "message_id": 428
-    },
-    "يا هاجر": {
-        "message_id": 429
-    },
-    "شلون اصبر على الاه": {
-        "message_id": 431
-    },
-    "طلع شباب من الخيم": {
-        "message_id": 432
-    },
-    "هاك جروح يا مهدينه": {
-        "message_id": 433
-    },
-    "فنة يجي": {
-        "message_id": 434
-    },
-    "ماغفت عيني": {
-        "message_id": 435
-    },
-    "بنات النبي": {
-        "message_id": 436
-    },
-    "مهلا بنات النبي": {
-        "message_id": 437
-    },
-    "يليله يرمله": {
-        "message_id": 438
-    },
-    "عوف المشرعه": {
-        "message_id": 439
-    },
-    "انني عرش النحيب": {
-        "message_id": 441
-    },
-    "علي يشبه علي": {
-        "message_id": 442
-    },
-    "شيخ القادة": {
-        "message_id": 443
-    },
-    "مو انه يا حزن": {
-        "message_id": 444
-    },
-    "مكطوع جف العباس": {
-        "message_id": 445
-    },
-    "دنكت لحسين مهضومه السهام": {
-        "message_id": 447
-    },
-    "مو عليله": {
-        "message_id": 448
-    },
-    "حيهم صاح حيهم": {
-        "message_id": 449
-    },
-    "حيدريون": {
-        "message_id": 450
-    },
-    "لعب جوله بيوم الهد": {
-        "message_id": 451
-    },
-    "اذن الغضب": {
-        "message_id": 452
-    },
-    "يا رايه ليش الوحدج": {
-        "message_id": 453
-    },
-    "سلام وعن بعد": {
-        "message_id": 454
-    },
-    "يغادر كل ملك": {
-        "message_id": 455
-    },
-    "لميت المواكب": {
-        "message_id": 456
-    },
-    "قصة الاكبر": {
-        "message_id": 457
-    },
-    "اكبري اكبري": {
-        "message_id": 458
-    },
-    "اولسنا على الحق": {
-        "message_id": 459
-    },
-    "مملوك الحسين": {
-        "message_id": 460
-    },
-    "فاطمة ملجؤنا": {
-        "message_id": 473
-    },
-    "ياليتنا": {
-        "message_id": 462
-    },
-    "شاهد الخلائق": {
-        "message_id": 463
-    },
-    "مولانا ابا الفضل": {
-        "message_id": 464
-    },
-    "مسلم المهيوب": {
-        "message_id": 465
-    },
-    "الما يعزب للضيف": {
-        "message_id": 466
-    },
-    "ياساقي العشق": {
-        "message_id": 467
-    },
-    "سيد العشق": {
-        "message_id": 468
-    },
-    "احبك يابو فاضل": {
-        "message_id": 469
-    },
-    "توه حله": {
-        "message_id": 470
-    },
-    "لليزور حسين": {
-        "message_id": 471
-    },
-    "هل ترانا": {
-        "message_id": 472
-    },
-    "حيهم يجرحي": {
-        "message_id": 474
-    },
-    "رديتلك": {
-        "message_id": 475
-    },
-    "اية للسائلين": {
-        "message_id": 476
-    },
-    "حرة نسب": {
-        "message_id": 477
-    },
-    "جريمة قتل": {
-        "message_id": 478
-    },
-    "لمحة بصر": {
-        "message_id": 480
-    },
-    "مالي ذنب": {
-        "message_id": 481
-    },
-    "شيعوا نعش الطاهرة المظلومة": {
-        "message_id": 482
-    },
-    "يا اسماء": {
-        "message_id": 483
-    },
-    "زينب هالمسيه": {
-        "message_id": 484
-    },
-    "صلت صلاة الايات": {
-        "message_id": 485
-    },
-    "للنبي محروكه باب": {
-        "message_id": 487
-    },
-    "هل انبا المسمار خير الورى": {
-        "message_id": 488
-    },
-    "قادم بثاري": {
-        "message_id": 489
-    },
-    "اذكر انه": {
-        "message_id": 490
-    },
-    "فارس السبع الشداد": {
-        "message_id": 491
-    },
-    "ليلة وفاتي": {
-        "message_id": 493
-    },
-    "دار الوكت": {
-        "message_id": 494
-    },
-    "فكر انته بمقتلك": {
-        "message_id": 495
-    },
-    "لو فرض": {
-        "message_id": 496
-    },
-    "سواد الطف": {
-        "message_id": 497
-    },
-    "انا العباس ابو النوماس": {
-        "message_id": 498
-    },
-    "وحي الشريعة": {
-        "message_id": 499
-    },
-    "زينب تلطم على الراس": {
-        "message_id": 500
-    },
-    "غضب رب العباد": {
-        "message_id": 501
-    }
-    }
