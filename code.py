@@ -35,7 +35,7 @@ async def open_settings_category(e):
     data = e.data.decode().split(':')[1]
     text = f'{settings_items.get('title')}'
     b = (button_coloer(e, lock(e, name), name) for name in settings_items[data])
-    await e.reply(text, buttons=b, parse_mode='html')
+    await e.reply(text, buttons=list(b), parse_mode='html')
 @ABH.on(events.NewMessage(pattern=r'^/start settings_(-?\d+)_(\d+)$'))
 async def private_settings(e):
     if not e.is_private: return
