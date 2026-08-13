@@ -1,59 +1,41 @@
 from Resources import *
 from ABH import *
 settings_items = {
-    'addanddel': ['ترقية وصلاحياتها', 'ترقية', 'رفع'],
-    'count': ['توب'],
-    'games': ['العاب'],
-    'group': ["اوامر المقيدة", "اختصارات", "ايدي"],
-    'guard': ['بوتات المضافة', 'منع', 'تعديل', 'تحذير'],
-    'mem': ['ميم'],
-    'other': ['همسة'],
-    'reply': ['ردود'],
-    'clean': ['تنظيف'],
-}
-trans = {
-    'addanddel': 'الرفع والتنزيل',
-    'count': 'الرسائل',
-    'games': 'الالعاب',
-    'group': 'المجموعة',
-    'guard': 'الحماية',
-    'mem': 'الميم',
-    'other': 'اخرى',
-    'reply': 'الردود',
-    'clean': 'التنظيف',
-    }
-settings_button = (Button.inline('اوامر'+trans[item], data=settings_items[item]) for item in settings_items)
+    'g1':{
+        'icon': 5784876246798180386,
+        'title':'أوامر الحماية',
+        'items':['تقييد','منع','تحذير','ترقية','اوامر العامة','تعديل','رفع', 'بوتات المضافة']},
+    'g2':{
+        'icon': 5372926953978341366,
+        'title':'أوامر المجموعة',
+        'items':['تنظيف','همسة','العاب','توب','ايدي','يوتيوب']},
+    'g3':{
+        'icon': 5465374681915727405,
+        'title':'الردود والميمز',
+        'items':['ردود','ميم']}}
 @ABH.on(events.NewMessage(pattern='^(عرض الاعدادات|الاعدادات|/settings)$'))
 async def settings(e):
-    # if not e.is_group:return
-    a=await auth(e)
-    if not a:
-        return await chs(e,'عذرا بس ماعندك صلاحية تفتح الاعدادات')
+    if not e.is_group:return
+    a = await auth(e)
+    if not a:return await chs(e,'عذرا بس ماعندك صلاحية تفتح الاعدادات')
     bot_info=await bot()
     buttons = [
-        [Button.inline('🛡️ اوامر الحماية', b'settings:general'),
-         Button.inline('👥 اوامر المجموعة', b'settings:group')],
-        [Button.inline('🎭 الردود والميمز', b'settings:reply'),
+        [Button.inline('🛡️ اوامر الحماية', b'settings:g1'),
+         Button.inline('👥 اوامر المجموعة', b'settings:g2')],
+        [Button.inline('🎭 الردود والميمز', b'settings:g3'),
          Button.url("📩 فتح بالخاص", f"https://t.me/{bot_info.username}?start=settings_{e.chat_id}_{e.sender_id}")]]
     await PROFILE_SEND(e,"⚙️ **قائمة الإعدادات:**",buttons=buttons)
-@ABH.on(events.CallbackQuery(pattern=b'^settings:(general|group|reply)$'))
+_dict = {
+    'g1': "",
+    }
+@ABH.on(events.CallbackQuery(pattern=b'^settings:(g1|g2|g3)$'))
 async def open_settings_category(e):
     a=await auth(e)
-    if not a:
-        return await e.answer('🙂')
-    category=e.data.decode().split(':')[1]
-    buttons=await build_settings_buttons(e.chat_id,category)
-    await e.edit(f"⚙️ **{SETTINGS_CATEGORIES[category]['title']}**",buttons=buttons)
-@ABH.on(events.CallbackQuery(pattern=b'^settings_back$'))
-async def settings_back(e):
-    a=await auth(e)
     if not a:return await e.answer('🙂')
-    buttons=[
-        [Button.inline('🛡️ اوامر الحماية',b'settings:general'),
-        Button.inline('👥 اوامر المجموعة',b'settings:group'),],
-        [Button.inline('🎭 الردود والميمز',b'settings:reply')]
-    ]
-    await e.edit("⚙️ **قائمة الإعدادات:**",buttons=buttons)
+    data = e.data.decode().split(':')[1]
+    text = f'{settings_items.get('title')}'
+    b = (button_coloer(e, lock(e, name), name) for name in settings_items[data])
+    await e.reply(text, buttons=b, parse_mode='html')
 @ABH.on(events.NewMessage(pattern=r'^/start settings_(-?\d+)_(\d+)$'))
 async def private_settings(e):
     if not e.is_private: return
