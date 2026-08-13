@@ -25,7 +25,7 @@ trans = {
 settings_button = (Button.inline('اوامر'+trans[item], data=settings_items[item]) for item in settings_items)
 @ABH.on(events.NewMessage(pattern='^(عرض الاعدادات|الاعدادات|/settings)$'))
 async def settings(e):
-    if not e.is_group:return
+    # if not e.is_group:return
     a=await auth(e)
     if not a:
         return await chs(e,'عذرا بس ماعندك صلاحية تفتح الاعدادات')
