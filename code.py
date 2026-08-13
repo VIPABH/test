@@ -33,7 +33,7 @@ async def open_settings_category(e):
     a=await auth(e)
     if not a:return await e.answer('🙂')
     data = e.data.decode().split(':')[1]
-    text = f'{settings_items.get('title')}'
+    text = f'{settings_items[data].get('title')}'
     b = (button_coloer(e, lock(e, name), name) for name in settings_items[data])
     await e.reply(text, buttons=list(b), parse_mode='html')
 @ABH.on(events.NewMessage(pattern=r'^/start settings_(-?\d+)_(\d+)$'))
