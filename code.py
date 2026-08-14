@@ -27,13 +27,13 @@ async def settings(e):
     await PROFILE_SEND(e,"⚙️ **قائمة الإعدادات:**",buttons=buttons)
 @ABH.on(events.CallbackQuery(pattern=b'^settings:(g1|g2|g3)$'))
 async def open_settings_category(e):
-    a = await auth(e)
-    if not a:return await e.answer('🙂')
+    # a = await auth(e)
+    # if not a:return await e.answer('🙂')
     data = e.data.decode().split(':')[1]
     text = f'{settings_items[data].get('title')}'
     row_b = (button_coloer(e, lock(e, name), name) for name in settings_items[data])
     b = chunk_list(row_b, 2)
-    await e.reply(text, buttons=list(b), parse_mode='html')
+    await e.edit(text, buttons=list(b), parse_mode='html')
 @ABH.on(events.NewMessage(pattern=r'^/start settings_(-?\d+)_(\d+)$'))
 async def private_settings(e):
     if not e.is_private: return
