@@ -31,7 +31,10 @@ async def open_settings_category(e):
     # if not a:return await e.answer('🙂')
     data = e.data.decode().split(':')[1]
     text = f'{settings_items[data].get('title')}'
-    row_b = [button_coloer(e, lock(e, name), name) for name in settings_items[data]]
+    row_b = [
+        [Button.inline(name, data=f'toggle:{name}', style='primary' if not lock(e, name) else 'danger')]
+        for name in settings_items[data]['items']
+        ]
     b = chunk_list(row_b, 2)
     await e.edit(text, buttons=list(b), parse_mode='html')
 @ABH.on(events.NewMessage(pattern=r'^/start settings_(-?\d+)_(\d+)$'))
