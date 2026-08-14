@@ -24,7 +24,7 @@ async def settings(e):
          Button.inline('👥 اوامر المجموعة', b'settings:g2')],
         [Button.inline('🎭 الردود والميمز', b'settings:g3'),
          Button.url("📩 فتح بالخاص", f"https://t.me/{bot_info.username}?start=settings_{e.chat_id}_{e.sender_id}")]]
-    await PROFILE_SEND(e,"⚙️ **قائمة الإعدادات:**",buttons=buttons)
+    await e.reply("⚙️ **قائمة الإعدادات:**",buttons=buttons)
 @ABH.on(events.CallbackQuery(pattern=b'^settings:(g1|g2|g3)$'))
 async def open_settings_category(e):
     # a = await auth(e)
