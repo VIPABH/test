@@ -36,7 +36,7 @@ async def open_settings_category(e):
         for name in settings_items[data]['items']
         ]
     b = chunk_list(row_b, 2)
-    await e.edit(text, buttons=list(b), parse_mode='html')
+    await e.edit(text, buttons=b, parse_mode='html')
 @ABH.on(events.NewMessage(pattern=r'^/start settings_(-?\d+)_(\d+)$'))
 async def private_settings(e):
     if not e.is_private: return
