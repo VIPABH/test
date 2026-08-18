@@ -1,5 +1,5 @@
 from ABH import *
-import os, asyncio, uuid, gc, matplotlib
+import os, asyncio, uuid, gc, traceback, matplotlib
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from Resources import *
@@ -140,9 +140,11 @@ async def generate_top10_chart(e):
 
         chat = await e.get_chat()
         background = await download_group_background(chat, bg_path)
+        await hint(f"🔍 تشخيص: جاهز للرسم — background موجود؟ {background is not None}")
 
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, _draw_chart, plot_data, background, output_path)
+        await hint("🔍 تشخيص: خلص الرسم بنجاح، جاري الإرسال...")
 
         await ABH.send_file(
             e.chat_id,
@@ -153,7 +155,8 @@ async def generate_top10_chart(e):
         await msg.delete()
         return True
     except Exception as ex:
-        await hint(f'صار خطأ اثناء تمثيل البيانات: {ex}')
+        tb = traceback.format_exc()
+        await hint(f'صار خطأ اثناء تمثيل البيانات: {ex}\n\n📄 التفاصيل:\n{tb[-3500:]}')
         return False
     finally:
         if os.path.exists(bg_path):
