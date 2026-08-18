@@ -1,168 +1,166 @@
+import os, asyncio, uuid, matplotlib
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+from Program import chs
 from Resources import *
-from ABH import *
-settings_items = {
-    'g1':{
-        'icon': 5784876246798180386,
-        'title':'أوامر الحماية',
-        'items':['تقييد','منع','تحذير','ترقية','اوامر العامة','تعديل','رفع', 'بوتات المضافة']},
-    'g2':{
-        'icon': 5372926953978341366,
-        'title':'أوامر المجموعة',
-        'items':['تنظيف','همسة','العاب','توب','ايدي','يوتيوب']},
-    'g3':{
-        'icon': 5465374681915727405,
-        'title':'الردود والميمز',
-        'items':['ردود','ميم']}}
-@ABH.on(events.NewMessage(pattern='^(عرض الاعدادات|الاعدادات|/settings)$'))
-async def settings(e):
-    # if not e.is_group:return
-    a = await auth(e)
-    if not a:return await chs(e,'عذرا بس ماعندك صلاحية تفتح الاعدادات')
-    bot_info=await bot()
-    buttons = [
-        [Button.inline('🛡️ اوامر الحماية', b'settings:g1'),
-         Button.inline('👥 اوامر المجموعة', b'settings:g2')],
-        [Button.inline('🎭 الردود والميمز', b'settings:g3'),
-         Button.url("📩 فتح بالخاص", f"https://t.me/{bot_info.username}?start=settings_{e.chat_id}_{e.sender_id}")]]
-    await e.reply("⚙️ **قائمة الإعدادات:**",buttons=buttons)
-@ABH.on(events.CallbackQuery(pattern=b'^settings:(g1|g2|g3)$'))
-async def open_settings_category(e):
-    # a = await auth(e)
-    # if not a:return await e.answer('🙂')
-    data = e.data.decode().split(':')[1]
-    text = f'{settings_items[data].get('title')}'
-    row_b = [
-        (Button.inline(name, data=f'toggle:{name}', style='primary' if not lock(e, name) else 'danger'))
-        for name in settings_items[data]['items']
-        ]
-    b = chunk_list(row_b, 2)
-    await e.edit(text, buttons=list(b), parse_mode='html')
-@ABH.on(events.NewMessage(pattern=r'^/start settings_(-?\d+)_(\d+)$'))
-async def private_settings(e):
-    if not e.is_private: return
-    if e.sender_id != wfffp: return await e.reply('قريبا ...')
-    chat_id, user_id = map(int, e.pattern_match.groups())
-    a = await auth(e, chat=chat_id, to=user_id)
-    if not authers(a, 'المطور الثانوي'): 
-        return await e.reply('عذرا بس ماعندك صلاحية تفتح الاعدادات')
-    buttons = [
-        [Button.inline('ملف الرفع', data=f'config:addanddel:{chat_id}')],
-        [Button.inline('🛡️ اوامر الحظر', data=f'config:ban:{chat_id}')]]
-    chat = await ABH.get_entity(chat_id)
-    photo_file = None
-    if chat.photo:
-        photo_bytes = await ABH.download_profile_photo(chat, file=bytes)
-        if photo_bytes:
-            photo_file = BytesIO(photo_bytes)
-            photo_file.name = "photo.jpg"
-    if photo_file:
-        return await e.reply("⚙️ **قائمة الإعدادات:**", file=photo_file, buttons=buttons)
-    return await e.reply("⚙️ **قائمة الإعدادات:**", buttons=buttons)
-@ABH.on(events.CallbackQuery(pattern=b'^config:(addanddel):'))
-async def configcallbck(e):
-    msg = await e.get_message()
-    chat = e.data.decode().split(':')[-1]
-    button = [
-        Button.inline('الرتب', data=f'config:addanddel:ranks:{chat}'),
-        Button.inline('الاعدادات', data=f'config:addanddel:settings:{chat}'),
-        Button.inline('الاوامر كاملة', data=f'config:addanddel:allcommand:{chat}'),
-        ]
-    await e.edit(f'~~{msg.text}~~\nاختر ما تريد فعله', buttons=button)
-@ABH.on(events.CallbackQuery(pattern=b'^config:addanddel:(ranks|settings|allcommand):'))
-async def addanddel_callback(e):
-    all_data = data = e.data.decode().split(':')
-    data = all_data[1]
-    if data == 'ranks':
-        return await showranks(e, all_data[-1])
-    elif data == 'allcommand':
-        return await raise_commands(e)
-    elif data == 'settings':
-        buttons = [
-            [Button.inline('صلاحيات الترقية✍🏾', data=f'settings:promote:{data}'),
-            Button.inline('اوامر القفل والفتح', data=f'settings:lock:{data}')],
-            [Button.inline('تنظيف الرتب', data=f'settings:clean:{data}')]]
-        await e.edit("⚙️ **قائمة الإعدادات:**", buttons=buttons)
-        return
-async def set_buttons(e, chat=None, b=None):
-    if not chat:
-        chat = e.chat_id
-    buttons = [
-        [
-            Button.inline(
-            x,
-            data=f'stoggle:{x}:{chat}',
-            style='primary' if r.get(f"lock:{chat}:{x}") == "True" else 'danger'
-            )
-        ]
-        for x in ['رفع', 'ترقية', 'الترقية وصلاحياتها']
-        ]
-    if b:return buttons
-    command = e.reply if event_type(e) == 'NewMessage' else e.edit
-    await command('اختر من بين الازرار', buttons=buttons)
-@ABH.on(events.CallbackQuery(pattern='^stoggle:'))
-async def xcallback(event):
-    a = await auth(event)
-    if not a:
-        return await event.answer('🙂')
-    _, feature, chat = event.data.decode().split(':')
-    required_rank=bannedactions.get(feature)
-    if not required_rank:return await event.answer('الخيار غير موجود')
-    if not authers(a,required_rank):return await event.answer(f'صلاحيتك ما تأهلك تعدل على {feature}')
-    lock_key=f"lock:{chat}:{feature}"
-    current=r.get(lock_key)
-    new_state="True" if current!="True" else "False"
-    r.set(lock_key,new_state)
-    status="تفعيل" if new_state=="True" else "تعطيل"
-    m=await mention(event)
-    await send(
-        event,
-        f'#القفل_والفتح\n'
-        f'{a} ({m})\n'
-        f'ايديه (`{event.sender_id}`)\n'
-        f'{status} {feature}\n'
-    )
-    text = "تعطيل" if current and current == "True" else 'تفعيل'
-    button = await set_buttons(event, chat=chat, b=True)
-    msg = await event.get_message()
-    await event.edit(f'~~{msg.text}~~\nتم {status} {feature}', buttons=button)
-@ABH.on(events.CallbackQuery(pattern=b'^settings:(promote|lock|clean):'))
-async def second_litsener_callback(e):
-    _, arg, chat = e.data.decode().split(':')
-    if arg == 'promote':return await lock_admin(e)
-    elif arg == 'clean':return await clean_ranks(e)
-    elif arg == 'lock':return await set_buttons(e, chat=chat)
-@ABH.on(events.CallbackQuery(pattern=b'^toggle:(.+?):(.+)$'))
-async def toggle_button(event):
-    a=await auth(event)
-    if not a:
-        return await event.answer('🙂')
-    category,feature=event.data.decode().split(':',2)[1:]
-    required_rank=bannedactions.get(feature)
-    if not required_rank:
-        return await event.answer('الخيار غير موجود')
-    if not authers(a,required_rank):
-        return await event.answer(f'صلاحيتك ما تأهلك تعدل على {feature}')
-    lock_key=f"lock:{event.chat_id}:{feature}"
-    current=r.get(lock_key)
-    new_state="True" if current!="True" else "False"
-    r.set(lock_key,new_state)
-    status="تفعيل" if new_state=="True" else "تعطيل"
+import seaborn as sns
+import pandas as pd
+matplotlib.use("Agg")
+
+
+async def download_group_background(chat, bg_path: str):
     try:
-        m=await mention(event)
-        await send(
-            event,
-            f'#القفل_والفتح\n'
-            f'{a} ({m})\n'
-            f'ايديه (`{event.sender_id}`)\n'
-            f'{status} {feature}\n'
-            f'الرابط ({await link(event)})'
-        )
-    except:
-        pass
-    if category == 'None':
-        text = "تعطيل" if current and current == "True" else 'تفعيل'
-        button = Button.inline(text, data=f"toggle:{'None'}:{feature}")
-        await event.edit(f'تم {status} {feature}', buttons=button)
+        photo = getattr(chat, "photo", None)
+        if not photo:
+            await hint("🔍 تشخيص: الكروب ماعنده chat.photo (مافيه صورة بروفايل أصلاً)")
+            return None
+
+        await hint(f"🔍 تشخيص: نوع chat.photo = {type(photo).__name__}, chat_id = {getattr(chat, 'id', '?')}")
+
+        path = await ABH.download_profile_photo(chat.id, file=bg_path, download_big=True)
+
+        if not path or not os.path.exists(bg_path):
+            await hint(f"🔍 تشخيص: فشل تحميل صورة الكروب بـ chat.id. path={path}, exists={os.path.exists(bg_path)}")
+            return None
+        # تصغير الصورة إذا كانت كبيرة، حتى نقلل استهلاك الذاكرة وقت الرسم
+        from PIL import Image
+        with Image.open(bg_path) as pil_img:
+            pil_img.thumbnail((800, 800))
+            return mpimg.pil_to_array(pil_img.convert("RGB"))
+    except Exception as err:
+        await hint(f"❌ خطأ في تحميل صورة الكروب: {type(err).__name__}: {err}")
+        return None
+
+
+async def resolve_users(user_ids):
+    users_dict = {}
+    for uid in user_ids:
+        name_val = profile(uid)
+        if name_val and isinstance(name_val, dict):
+            users_dict[uid] = name_val.get("name")
+            continue
+        try:
+            user = await ABH.get_entity(uid)
+            users_dict[uid] = user.first_name if hasattr(user, "first_name") else "مستخدم"
+        except Exception:
+            users_dict[uid] = "مستخدم"
+    return users_dict
+
+
+def _draw_chart(plot_data: pd.DataFrame, background, output_path: str):
+    """
+    الجزء الثقيل (matplotlib) — دالة sync عادية تشتغل بخيط منفصل
+    عن طريق run_in_executor حتى ما تبلك الـ event loop وقت الرسم.
+    """
+    plt.close("all")  # تنظيف أي رسومات قديمة متراكمة بالذاكرة من محاولات سابقة
+    messages = plot_data["messages"].tolist()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    try:
+        _render(fig, ax, plot_data, messages, background)
+        fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    finally:
+        plt.close(fig)  # نضمن قفل الرسمة بأي حالة (نجاح أو خطأ) حتى ما تصير تسريبات ذاكرة
+    return output_path
+
+
+def _render(fig, ax, plot_data, messages, background):
+    sns.barplot(
+        data=plot_data,
+        x="messages",
+        y="name",
+        hue="name",
+        palette="viridis",
+        legend=False,
+        ax=ax,
+    )
+    ax.invert_yaxis()
+    if background is not None:
+        # تطبيق الخلفية: تغطي كامل مساحة الرسمة (0 إلى 1 بإحداثيات المحور)
+        # بغض النظر عن قيم البيانات، وترسم ورا الأعمدة (zorder واطي).
+        ax.imshow(background, extent=[0, 1, 0, 1], transform=ax.transAxes, aspect="auto", zorder=0)
+        ax.axis("off")
+        title_color = "white"
+        text_color = "white"
     else:
-        buttons=await build_settings_buttons(event.chat_id,category)
-        await event.edit(f'تم {status} {feature}', buttons=buttons)
+        title_color = "black"
+        text_color = "black"
+    ax.set_title("أكثر 10 أعضاء إرسالاً للرسائل", fontsize=18, color=title_color, pad=20)
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    max_val = max(messages) if messages else 0
+    for i, value in enumerate(messages):
+        ax.text(
+            value + max_val * 0.01,
+            i,
+            str(value),
+            va="center",
+            color=text_color,
+        )
+    plt.tight_layout()
+
+
+async def generate_top10_chart(e):
+    """
+    داله شاملة وذكية تسوي كل شي بنفسها:
+    1) تسترجع بيانات الأسبوع من stats.json
+    2) تجيب أسماء المستخدمين وتبني الشارت (برسم بخيط منفصل عشان ما تبلك البوت)
+    3) ترسل الصورة كرد على رسالة المستخدم
+    4) تحذف الملفات المؤقتة (خلفية + صورة الشارت) بأي حالة (نجاح أو فشل)
+
+    ترجع True إذا نجحت العملية، وترسل رسالة خطأ عن طريق hint() إذا صار خطأ.
+    """
+    if not e.is_group:
+        return False
+
+    row_data = create('stats.json')
+    data = row_data.get('weekly', {}).get(str(e.chat_id), {})
+    if not data:
+        await chs(e, 'ماكو معلومات كافية حته امثل بيها البيانات')
+        return False
+
+    msg = await e.reply('⏳ جاري جلب البيانات وتصميم الصورة، انتظر لحظة...')
+
+    uid_token = uuid.uuid4().hex[:8]
+    bg_path = f"group_bg_{e.chat_id}_{uid_token}.jpg"
+    output_path = f"weekly_top10_{e.chat_id}_{uid_token}.png"
+
+    try:
+        user_ids = [int(uid) for uid in data.keys()]
+        users_dict = await resolve_users(user_ids)
+        names = [users_dict.get(uid, "مستخدم") for uid in user_ids]
+        counts = [int(data[str(uid)]) for uid in user_ids]
+
+        plot_data = pd.DataFrame({'name': names, 'messages': counts})
+        plot_data = plot_data.sort_values('messages', ascending=False).head(10)
+
+        chat = await e.get_chat()
+        background = await download_group_background(chat, bg_path)
+
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _draw_chart, plot_data, background, output_path)
+
+        await ABH.send_file(
+            e.chat_id,
+            output_path,
+            caption="🏆 أكثر 10 أعضاء إرسالاً للرسائل أسبوعياً",
+            reply_to=e.id,
+        )
+        await msg.delete()
+        return True
+    except Exception as ex:
+        await hint(f'صار خطأ اثناء تمثيل البيانات: {ex}')
+        return False
+    finally:
+        if os.path.exists(bg_path):
+            os.remove(bg_path)
+        if os.path.exists(output_path):
+            os.remove(output_path)
+
+
+@ABH.on(events.NewMessage(pattern=r'^تمثيل البيانات$', from_users=[wfffp]))
+async def count_pic(e):
+    if not authers(await auth(e), 'المطور الثانوي'):
+        return await chs(e, 'عذرا الامر يخص المطور الثانوي وفوك')
+    if not lock(e, 'توب'):
+        return await chs(e, 'عذرا بس التوب معطل')
+    await generate_top10_chart(e)
