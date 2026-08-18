@@ -2,7 +2,6 @@ from ABH import *
 import os, asyncio, uuid, gc, matplotlib
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-from Program import chs
 from Resources import *
 import seaborn as sns
 import pandas as pd
