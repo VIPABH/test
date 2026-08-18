@@ -1,8 +1,9 @@
-import os, asyncio, uuid, matplotlib
+from ABH import *
+import os, asyncio, uuid, gc, matplotlib
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+from Program import chs
 from Resources import *
-from ABH import *
 import seaborn as sns
 import pandas as pd
 matplotlib.use("Agg")
@@ -17,15 +18,16 @@ async def download_group_background(chat, bg_path: str):
 
         await hint(f"🔍 تشخيص: نوع chat.photo = {type(photo).__name__}, chat_id = {getattr(chat, 'id', '?')}")
 
-        path = await ABH.download_profile_photo(chat.id, file=bg_path, download_big=True)
+        path = await ABH.download_profile_photo(chat.id, file=bg_path, download_big=False)
 
         if not path or not os.path.exists(bg_path):
             await hint(f"🔍 تشخيص: فشل تحميل صورة الكروب بـ chat.id. path={path}, exists={os.path.exists(bg_path)}")
             return None
         # تصغير الصورة إذا كانت كبيرة، حتى نقلل استهلاك الذاكرة وقت الرسم
+        # (السيرفر بموارد محدودة 1GB رام، فنخلي الصورة صغيرة قد الإمكان)
         from PIL import Image
         with Image.open(bg_path) as pil_img:
-            pil_img.thumbnail((800, 800))
+            pil_img.thumbnail((400, 400))
             return mpimg.pil_to_array(pil_img.convert("RGB"))
     except Exception as err:
         await hint(f"❌ خطأ في تحميل صورة الكروب: {type(err).__name__}: {err}")
@@ -54,12 +56,13 @@ def _draw_chart(plot_data: pd.DataFrame, background, output_path: str):
     """
     plt.close("all")  # تنظيف أي رسومات قديمة متراكمة بالذاكرة من محاولات سابقة
     messages = plot_data["messages"].tolist()
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(8, 5))
     try:
         _render(fig, ax, plot_data, messages, background)
-        fig.savefig(output_path, dpi=150, bbox_inches="tight")
+        fig.savefig(output_path, dpi=100, bbox_inches="tight")
     finally:
         plt.close(fig)  # نضمن قفل الرسمة بأي حالة (نجاح أو خطأ) حتى ما تصير تسريبات ذاكرة
+        gc.collect()  # تنظيف ذاكرة صريح — مهم بسيرفر موارده محدودة
     return output_path
 
 
@@ -96,7 +99,10 @@ def _render(fig, ax, plot_data, messages, background):
             va="center",
             color=text_color,
         )
-    plt.tight_layout()
+    try:
+        plt.tight_layout()
+    except Exception:
+        pass  # تجاهل التحذير لو تعذر ضبط الهوامش (لا يؤثر على النتيجة النهائية)
 
 
 async def generate_top10_chart(e):
