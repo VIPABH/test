@@ -165,7 +165,7 @@ async def generate_top10_chart(e):
             os.remove(output_path)
 
 
-@ABH.on(events.NewMessage(pattern=r'^تمثيل البيانات$', from_users=[wfffp]))
+# @ABH.on(events.NewMessage(pattern=r'^تمثيل البيانات$', from_users=[wfffp]))
 async def count_pic(e):
     if not authers(await auth(e), 'المطور الثانوي'):
         return await chs(e, 'عذرا الامر يخص المطور الثانوي وفوك')
