@@ -16,6 +16,11 @@ from datetime import datetime
 from typing import Dict, Any
 from functools import wraps
 from io import BytesIO
+CHANNEL_KEY = 'anymousupdate'
+ch = r.get(CHANNEL_KEY)
+buttons = Button.url('🫆', url=f'https://t.me/{ch}')
+async def chs(event, c):
+    await ABH.send_message(event.chat_id, c, reply_to=event.id, buttons=buttons)
 on = 5469770542288478598
 off = 5472309400536358507
 def button_coloer(e, arg, name):
