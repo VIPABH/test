@@ -2,6 +2,7 @@ from ABH import ABH, events, bot_token
 import json, asyncio, os, sys
 from datetime import datetime
 from code import *
+from Program import *
 async def run_cmd(command: str):
     process = await asyncio.create_subprocess_shell(
         command,
