@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import os, asyncio, uuid, gc
 from Resources import *
-from Program import chs
+# from Program import chs
 import seaborn as sns
 import pandas as pd
 from ABH import *
@@ -224,24 +224,3 @@ async def اليومي(event):
         top_users.append(f"{unicode}{idx}. {unicode}{m} - {unicode}{msg_count} {unicode}رسالة")
     await event.reply("\n".join(top_users))
     await react(event, "🌚")
-@ABH.on(events.NewMessage(pattern=r'^(رسائله|رسائلة|الرسائل|رسائلي)$'))
-async def his_res(event):
-    if event.text in ('رسائلي', 'الرسائل'):
-        unm1 = str(event.sender_id)
-        guid1 = str(event.chat_id)
-    else:
-        rpl = await event.get_reply_message()
-        if not rpl:
-            await react(event, "🤔")
-            return
-        unm1 = str(rpl.sender_id)
-        guid1 = str(event.chat_id)
-    daily = r.hget(f"daily:{guid1}", unm1) or 0
-    weekly = r.hget(f"weekly:{guid1}", unm1) or 0
-    x = await info(event, None)
-    total = x.get("الرسائل", 0)
-    await react(event, "👍")
-    await chs(
-        event,
-        f'اليومية: {daily}\nالاسبوعية: {weekly}\n {unicode}الكليّة: {total}'
-    )
