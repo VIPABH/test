@@ -29,7 +29,7 @@ async def whisper(e):
         elif user.startswith('@'):
             full_user = await ABH.get_entity(user)
             users.append(full_user.id)
-    if len(target) > 1:
+    if len(targets) > 1:
         for user in targets:
             custom_user(user)
     else:
