@@ -31,9 +31,9 @@ async def whisper(e):
             users.append(full_user.id)
     if len(targets) > 1:
         for user in targets:
-            custom_user(user)
+            await custom_user(user)
     else:
-        custom_user(users)
+        await custom_user(users)
     owner_name = await mention(e)
     whisper_id = str(uuid.uuid4())[:6]
     whisper_session.setdefault(id, {})
