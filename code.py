@@ -48,4 +48,4 @@ async def whisper(e):
     start_button = Button.url('اضغط هنا للبدء', url=url, style=blue)
     del_button = Button.inline("حذف الهمسة", data=f'del_l:{id}', style=red)
     text = f'همسة جارية الانشاء من ( {await mention(e)} ) إلى ( {'و'.join(whisper_session[id]['to_name'])} ) 🙂🙂'
-    await e.reply(text, button=[start_button])
+    await e.reply(text, buttons=[start_button])
