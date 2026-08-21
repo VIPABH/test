@@ -8,9 +8,9 @@ async def whisper(e):
     #     return await e.reply('اوامر الهمسة معطلة💔')
     id = e.sender_id
     # if id in whisper_session:
-    target = await to(e)
-    target_id = getattr(target, "sender_id", None) or getattr(target, "id", None)
-    if not target:return await e.reply("حاول تشغل الامر اما بالرد او باليوزر او المنشن")
+    # target = await to(e)
+    # target_id = getattr(target, "sender_id", None) or getattr(target, "id", None)
+    # if not target:return await e.reply("حاول تشغل الامر اما بالرد او باليوزر او المنشن")
     if getattr(target, "bot", False):
         return 
     if target_id == id:
