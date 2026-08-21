@@ -11,10 +11,12 @@ async def whisper(e):
     # target = await to(e)
     # target_id = getattr(target, "sender_id", None) or getattr(target, "id", None)
     # if not target:return await e.reply("حاول تشغل الامر اما بالرد او باليوزر او المنشن")
-    if getattr(target, "bot", False):
-        return 
-    if target_id == id:
-        return await e.reply("شني خالي تسوي همسه لنفسك")
+    # if e.reply_to_msg_id:
+    #     r = await e.get_reply_message()
+    # if getattr(target, "bot", False):
+    #     return 
+    # if target_id == id:
+    #     return await e.reply("شني خالي تسوي همسه لنفسك")
     anymous = await bot()
     if target_id == anymous.id:
         return await e.reply("تسويلي همسه 😁؟")
