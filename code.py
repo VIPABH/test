@@ -18,8 +18,8 @@ async def whisper(e):
     # if target_id == id:
     #     return await e.reply("شني خالي تسوي همسه لنفسك")
     anymous = await bot()
-    if target_id == anymous.id:
-        return await e.reply("تسويلي همسه 😁؟")
+    # if target_id == anymous.id:
+    #     return await e.reply("تسويلي همسه 😁؟")
     users = []
     targets = e.pattern_match.group(2)
     if not targets:return await react(e, '😁')
