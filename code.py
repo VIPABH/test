@@ -12,17 +12,13 @@ async def whisper(e):
         return await react(e, '😁')
     async def custom_user(user):
         user = user.strip()
-        if not user:
+        if not user:return
+        try:
+            full_user = await ABH.get_entity(user)
+            if not getattr(full_user, "bot", False):
+                users.add(full_user.id)
+        except ValueError:
             return
-        if user.isdigit():
-            users.add(int(user))
-        elif user.startswith('@') and len(user) > 1:
-            try:
-                full_user = await ABH.get_entity(user)
-                if not getattr(full_user, "bot", False):
-                    users.add(full_user.id)
-            except ValueError:
-                return
     for user in re.findall(r'@\w+|\d+', targets):
         await custom_user(user)
     users = list(users)
