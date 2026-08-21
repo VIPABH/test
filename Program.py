@@ -369,17 +369,17 @@ async def run_cmd(command: str):
     )
     stdout, stderr = await process.communicate()
     return stdout.decode().strip(), stderr.decode().strip(), process.returncode
-@ABH.on(events.NewMessage(pattern="^(تحديث|up)$", from_users=[1910015590]))
-async def update_repo(event):
-    try:
-        stdout, stderr, code = await run_cmd("git pull")
-        if code == 0:
-            await event.reply(f" تم تحديث السورس بنجاح\n\n{stdout or 'لا توجد تحديثات'}")
-            os.execv(sys.executable, [sys.executable, os.path.abspath("config.py")])
-        else:
-            await hint(f" حدث خطأ أثناء التحديث:\n\n{stderr}")
-    except Exception as e:
-        await hint(f"⚠️ خطأ غير متوقع:\n\n{e}")
+# @ABH.on(events.NewMessage(pattern="^(تحديث|up)$", from_users=[1910015590]))
+# async def update_repo(event):
+#     try:
+#         stdout, stderr, code = await run_cmd("git pull")
+#         if code == 0:
+#             await event.reply(f" تم تحديث السورس بنجاح\n\n{stdout or 'لا توجد تحديثات'}")
+#             os.execv(sys.executable, [sys.executable, os.path.abspath("config.py")])
+#         else:
+#             await hint(f" حدث خطأ أثناء التحديث:\n\n{stderr}")
+#     except Exception as e:
+#         await hint(f"⚠️ خطأ غير متوقع:\n\n{e}")
 @ABH.on(events.NewMessage(pattern=r'^تعيين قناة chs (.+)', from_users=[1910015590]))
 async def add_channel(event):
     global CHANNEL_KEY
