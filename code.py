@@ -4,8 +4,8 @@ import uuid
 whisper_session = {}
 @ABH.on(events.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$'))
 async def whisper(e):
-    if not lock(e, 'همسة'):
-        return await e.reply('اوامر الهمسة معطلة💔')
+    # if not lock(e, 'همسة'):
+    #     return await e.reply('اوامر الهمسة معطلة💔')
     id = e.sender_id
     # if id in whisper_session:
     target = await to(e)
