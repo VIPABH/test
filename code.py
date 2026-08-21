@@ -20,7 +20,7 @@ async def whisper(e):
             try:
                 full_user = await ABH.get_entity(user)
                 if not getattr(full_user, "bot", False):
-                    users.append(full_user.id)
+                    users.add(full_user.id)
             except ValueError:
                 return
     for user in re.findall(r'@\w+|\d+', targets):
