@@ -5,14 +5,14 @@ whisper_session = {}
 @ABH.on(events.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$'))
 async def whisper(e):
     if not lock(e, 'همسة'):
-        return await chs(e, 'اوامر الهمسة معطلة💔')
+        return await e.reply('اوامر الهمسة معطلة💔')
     id = e.sender_id
     # if id in whisper_session:
     target = await to(e)
     target_id = getattr(target, "sender_id", None) or getattr(target, "id", None)
     if not target:return await e.reply("حاول تشغل الامر اما بالرد او باليوزر او المنشن")
     if getattr(target, "bot", False):
-        return await chs(e, 'عزيزي تسوي همسه ل بوت انت شكد حديقه')
+        return 
     if target_id == id:
         return await e.reply("شني خالي تسوي همسه لنفسك")
     anymous = await bot()
