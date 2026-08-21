@@ -16,11 +16,9 @@ from datetime import datetime
 from typing import Dict, Any
 from functools import wraps
 from io import BytesIO
-CHANNEL_KEY = 'anymousupdate'
-ch = r.get(CHANNEL_KEY)
-buttons = Button.url('🫆', url=f'https://t.me/{ch}')
-async def chs(event, c):
-    await ABH.send_message(event.chat_id, c, reply_to=event.id, buttons=buttons)
+red = "danger"
+green = "success"
+blue = "primary"
 on = 5469770542288478598
 off = 5472309400536358507
 def button_coloer(e, arg, name):
@@ -677,11 +675,19 @@ def special(e):
     return id != wfffp
 ranks_weights = {
     'المطور الاساسي': 1, 
-    'المالك': 2, 
-    'المطور ثانوي': 3,
-    'المساعد': 4, 
-    'المعاون': 5,
+    'الرقيب هاشم': 2,
+    'المالك': 3, 
+    'المطور ثانوي': 4,
+    'المساعد': 5, 
+    'المعاون': 6,
 }
+# ranks_weights = {
+#     'المطور الاساسي': 1, 
+#     'المالك': 2, 
+#     'المطور ثانوي': 3,
+#     'المساعد': 4, 
+#     'المعاون': 5,
+# }
 def authers(arg1, arg2):
     a1 = ranks_weights.get(arg1, 100)
     a2 = ranks_weights.get(arg2, None)
@@ -812,6 +818,8 @@ async def auth(event, x=False, to=None, chat=None):
     user_id_str = str(user_id)
     if user_id == wfffp:
         return "المطور الاساسي"
+    elif user_id == 7400171284:
+        return 'الرقيب هاشم'
     if chat_id in AUTH_CACHE:
         if user_id_str in AUTH_CACHE[chat_id]:
             return AUTH_CACHE[chat_id][user_id_str]
@@ -1204,7 +1212,7 @@ async def mention(event):
     if user_id not in mentions_dict:
         mentions_dict[user_id] = f"[{name}](tg://user?id={user_id})"
     return f"[{name}](tg://user?id={user_id})"
-async def ment(entity):
+async def ment(entity, text=None):
     try:
         user_id = None
         name = None
@@ -1229,6 +1237,8 @@ async def ment(entity):
             name = getattr(entity, 'first_name', 'مستخدم') or 'مستخدم'
         if user_id not in mentions_dict:
             mentions_dict[user_id] = f"[{name}](tg://user?id={user_id})"
+            if text: 
+                return name
         return f"[{name}](tg://user?id={user_id})"
     except Exception as e:
         return "غير معروف"
