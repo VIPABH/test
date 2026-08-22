@@ -76,34 +76,36 @@ async def start_with_param(e):
 @ABH.on(events.NewMessage(incoming=True))
 async def recive_whisper(e):
     id = e.sender_id
-    # نقلنا التحقق هنا بدل from_users حتى يشتغل بشكل ديناميكي
     if id not in whisper_session: return 
     
     if not e.is_private: return
-    # خلينا تحقق e.text حتى ما يطلع خطأ اذا كانت الرسالة بس ميديا بدون نص
     if e.text and e.text.startswith('/start'): return
     
-    msg = e.message # تعديل الاسم من event إلى e
+    # نقلنا التحقق مال 'دز' للبداية حتى ما يخزن الكلمة كنص ويمسح الميديا الي قبلها
+    if e.text == 'دز':
+        if id in message:
+            await e.reply(str(message[id]))
+        return
+        
+    msg = e.message 
     
     if msg.media:
         if e.grouped_id:
-            if id not in message: await chs(e, 'تم ارسال الهمسة ب نجاح')
-            # تأكدنا انه مفتاح الايدي موجود قبل لا نضيف اله
-            if id not in message: message[id] = {'media': [], 'type': 'group_media'}
+            # ضفنا شرط `or 'media' not in message[id]` حتى نتأكد انه مفتاح الميديا موجود قبل الـ append
+            if id not in message or 'media' not in message[id]: 
+                await chs(e, 'تم ارسال الهمسة ب نجاح')
+                message[id] = {'media': [], 'type': 'group_media'}
             message[id]['media'].append(await extract_media_data(e))
         else:
             message[id] = {'media': [], 'type': 'media'}
             message[id]['media'].append(await extract_media_data(e))
     else:
         message[id] = {'type': 'text', 'text': e.text}
-        
-    if e.text == 'دز':
-        await e.reply(str(message[id])) # خليناها str حتى ما يصير كراش عند الارسال
 
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
-    data = e.data # حافظتلك على المتغير بس شلت الـ decode حسب توجيهاتك السابقة
-    id = int(e.pattern_match.group(1)) # استخراج الايدي مباشرة من النمط
+    data = e.data 
+    id = int(e.pattern_match.group(1)) 
     sender_id = e.sender_id
     if id != sender_id:
         return await e.answer('🙄')
