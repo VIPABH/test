@@ -12,7 +12,8 @@ async def handle_media(event):
   if not event.media:
     return
 
-  # إذا كانت تنتمي لمجموعة (ألبوم) أو رسالة مفردة، يتم الرد عليها فوراً لكل رسالة تصل
+  await e.reply(event)
+  await e.reply(event.grouped_id)
   if event.grouped_id:
     await event.reply(
         f"تم استلام عنصر من ألبوم (Group ID: {event.grouped_id}) - رقم الرسالة:"
