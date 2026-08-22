@@ -65,14 +65,19 @@ async def recive_whisper(e):
     if e.text.startswith('/start'):return
     msg = event.message
     id = e.sender_id
-    media = {}
+    message = {}
     if msg.media:
         if e.grouped_id:
-            if id not in media: await chs(e, 'تم ارسال الهمسة ب نجاح')
-            media[id] = {e.grouped_id: set()}
-            media[id].add(await extract_media_data(e))
+            if id not in message: await chs(e, 'تم ارسال الهمسة ب نجاح')
+            message[id] = {'media': [], 'type': 'group_media'}
+            message[id]['media'].append(await extract_media_data(e))
         else:
-            media[id] = await extract_media_data(e)
+            message[id] = {'media': [], 'type': 'media'}
+            message[id]['media'].append(await extract_media_data(e))
+    else:
+        message[id] = {'type': 'text', 'text': e.text}
+    if e.text == 'دز':
+        await e.reply(message[id])
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
     data = e.data.decode('utf-8')
