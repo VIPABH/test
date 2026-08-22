@@ -1,7 +1,10 @@
 from Resources import *
 from ABH import *
 import uuid, re
+
 whisper_session = {}
+message = {}  # طلعنا المتغير بره حتى ما يترست وي كل رسالة توصل
+
 @ABH.on(events.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$'))
 async def whisper(e):
     id = e.sender_id
@@ -10,47 +13,57 @@ async def whisper(e):
     targets = e.pattern_match.group(2)
     if not targets:
         return await react(e, '😁')
+        
     if id in whisper_session:
         session = whisper_session[id]
         text = f'عذرا ماتكدر تسوي همسة \n عندك جلسة بعدك ما مكملها'
         del_button = [
-            Button.inline("حذف الهمسة",data=f'del_l:{id}', style=red, icon=5258130763148172425),
-            Button.url("أكمال الهمسة",url=f"https://t.me/{anymous.username}?start={session['whisper_id']}", style=green, icon=5258073068852485953),
-            Button.url("رابط الهمسة",url=session['link'], style=blue, icon=5258262708838472996),]
+            Button.inline("حذف الهمسة", data=f'del_l:{id}', style=red, icon=5258130763148172425),
+            Button.url("أكمال الهمسة", url=f"https://t.me/{anymous.username}?start={session['whisper_id']}", style=green, icon=5258073068852485953),
+            Button.url("رابط الهمسة", url=session['link'], style=blue, icon=5258262708838472996),
+        ]
         button = chunk_list(del_button, 2)
         return await e.reply(text, buttons=button)
+        
     async def custom_user(user):
         user = user.strip()
-        if not user:return
+        if not user: return
         try:
             full_user = await ABH.get_entity(user)
             if not getattr(full_user, "bot", False):
                 users.add(full_user.id)
         except ValueError:
             return
+            
     for user in re.findall(r'@\w+|\d+', targets):
         await custom_user(user)
+        
     users = list(users)
-    if not users:return await e.reply("ما لكيت المستخدم.")
+    if not users: return await e.reply("ما لكيت المستخدم.")
+    
     owner_name = await mention(e)
     whisper_id = str(uuid.uuid4())[:6]
     url = f"https://t.me/{anymous.username}?start={whisper_id}"
-    start_button = Button.url('اضغط هنا للبدء',url=url, style=green, icon=5258073068852485953)
+    start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     _mentions = [await ment(user) for user in users]
     to_names = ' و '.join(_mentions)
+    
     text = (
         f'همسة جارية الانشاء من '
         f'( {owner_name} ) إلى '
-        f'( {to_names} ) 🙂🙂')
+        f'( {to_names} ) 🙂🙂'
+    )
     msg = await PROFILE_SEND(e, text, buttons=[start_button])
+    
     whisper_session[id] = {
         'to': users,
         'to_name': _mentions,
         'whisper_id': whisper_id,
         'link': row_link(e),
         'msg': msg.id,
-        }
-    await e.reply(str(list(map(int, whisper_session.keys()))))
+    }
+    await e.reply(list(map(int, whisper_session.keys())))
+
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
@@ -60,29 +73,38 @@ async def start_with_param(e):
     session = whisper_session[id]
     await chs(e, 'ارسل الان همسة ميديا او نص')
     del session
-@ABH.on(events.NewMessage(incoming=True, from_users=list(map(int, whisper_session.keys()))))
+
+@ABH.on(events.NewMessage(incoming=True))
 async def recive_whisper(e):
-    if not e.is_private:return
-    if e.text.startswith('/start'):return
-    msg = event.message
     id = e.sender_id
-    message = {}
+    # نقلنا التحقق هنا بدل from_users حتى يشتغل بشكل ديناميكي
+    if id not in whisper_session: return 
+    
+    if not e.is_private: return
+    # خلينا تحقق e.text حتى ما يطلع خطأ اذا كانت الرسالة بس ميديا بدون نص
+    if e.text and e.text.startswith('/start'): return
+    
+    msg = e.message # تعديل الاسم من event إلى e
+    
     if msg.media:
         if e.grouped_id:
             if id not in message: await chs(e, 'تم ارسال الهمسة ب نجاح')
-            message[id] = {'media': [], 'type': 'group_media'}
+            # تأكدنا انه مفتاح الايدي موجود قبل لا نضيف اله
+            if id not in message: message[id] = {'media': [], 'type': 'group_media'}
             message[id]['media'].append(await extract_media_data(e))
         else:
             message[id] = {'media': [], 'type': 'media'}
             message[id]['media'].append(await extract_media_data(e))
     else:
         message[id] = {'type': 'text', 'text': e.text}
+        
     if e.text == 'دز':
-        await e.reply(message[id])
+        await e.reply(str(message[id])) # خليناها str حتى ما يصير كراش عند الارسال
+
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
-    data = e.data.decode('utf-8')
-    id = int(data.replace('del_l:', ''))
+    data = e.data # حافظتلك على المتغير بس شلت الـ decode حسب توجيهاتك السابقة
+    id = int(e.pattern_match.group(1)) # استخراج الايدي مباشرة من النمط
     sender_id = e.sender_id
     if id != sender_id:
         return await e.answer('🙄')
