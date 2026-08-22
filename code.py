@@ -54,11 +54,11 @@ async def whisper(e):
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     id = e.sender_id
-    if not id in whisper_session[id]:
+    if not (id in whisper_session):
         return await chs(e, 'عزيزي انت اصلا ما عندك جلسة اهمس')
     session = whisper_session[id]
-    whisper_id = session['whisper_id']
     await chs(e, 'ارسل الان همسة ميديا او نص')
+    del session
 @ABH.on(events.NewMessage(incoming=True, from_users=list(map(int, whisper_session.keys()))))
 async def recive_whisper(e):
     if not e.is_private:return
