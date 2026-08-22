@@ -42,7 +42,7 @@ async def whisper(e):
         f'همسة جارية الانشاء من '
         f'( {owner_name} ) إلى '
         f'( {to_names} ) 🙂🙂')
-    msg = await e.reply(text, buttons=[start_button])
+    msg = await PROFILE_SEND(e, text, buttons=[start_button])
     whisper_session[id] = {
         'to': users,
         'to_name': _mentions,
