@@ -51,7 +51,7 @@ async def whisper(e):
         'msg': msg.id,
         }
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
-async def start_with_param(event):
+async def start_with_param(e):
     whisper_id = event.pattern_match.group(1)
     id = e.sender_id
     if not id in whisper_session[id]:
