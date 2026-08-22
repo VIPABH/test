@@ -13,7 +13,7 @@ async def handle_media(event):
     return
 
   e = event
-  await e.reply(event)
+  await e.reply(str(event))
   await e.reply(event.grouped_id)
   if event.grouped_id:
     await event.reply(
