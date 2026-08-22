@@ -130,9 +130,10 @@ async def PROFILE_SEND(e, text, buttons=None, id=None):
         input_media = await get_input_media(p.get('media', None))
     if l and input_media:
         msg_id = getattr(e, 'message_id', None) or (e.message.id if hasattr(e, 'message') else e.id)    
-        await ABH.send_file(e.chat_id, file=input_media, caption=text, buttons=buttons, reply_to=msg_id)
+        msg = await ABH.send_file(e.chat_id, file=input_media, caption=text, buttons=buttons, reply_to=msg_id)
     else:
-        await e.reply(text, buttons=buttons)
+        msg = await e.reply(text, buttons=buttons)
+    return msg
 def custom_emoji(emoji):
     selected = random.choice(emoji) if isinstance(emoji, (list, tuple)) else emoji
     return f'<tg-emoji emoji-id={selected}>⬆️</tg-emoji>'
