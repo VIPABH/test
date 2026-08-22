@@ -12,3 +12,8 @@ r = redis.StrictRedis(
     db=0,
     decode_responses=True
 )
+CHANNEL_KEY = 'anymousupdate'
+ch = r.get(CHANNEL_KEY)
+buttons = Button.url('🫆', url=f'https://t.me/{ch}')
+async def chs(event, c):
+    await ABH.send_message(event.chat_id, c, reply_to=event.id, buttons=buttons)
