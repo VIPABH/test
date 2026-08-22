@@ -10,6 +10,15 @@ async def whisper(e):
     targets = e.pattern_match.group(2)
     if not targets:
         return await react(e, '😁')
+    if id in whisper_session:
+        session = whisper_session[id]
+        text = f'عذرا ماتكدر تسوي همسة \n عندك جلسة بعدك ما مكملها'
+        del_button = [
+            Button.url("أكمال الهمسة",url=f"https://t.me/{anymous.username}?start={session['whisper_id']}", style=green, icon=5258073068852485953),
+            Button.inline("حذف الهمسة",data=f'del_l:{id}', style=red, icon=5258130763148172425),
+            Button.url("رابط الهمسة",url=session['link'], style=blue, icon=5258262708838472996),]
+        buttons = chunk_list(del_button, 2)
+        return await e.reply(text, buttons=button)
     async def custom_user(user):
         user = user.strip()
         if not user:return
@@ -25,18 +34,19 @@ async def whisper(e):
     if not users:return await e.reply("ما لكيت المستخدم.")
     owner_name = await mention(e)
     whisper_id = str(uuid.uuid4())[:6]
-    whisper_session[id] = {
-        'owmer': e.sender_id,
-        'owner_name': owner_name,
-        'to': users,
-        'to_name': [await ment(user) for user in users],
-        'whisper_id': whisper_id,}
     url = f"https://t.me/{anymous.username}?start={whisper_id}"
     start_button = Button.url('اضغط هنا للبدء',url=url)
-    del_button = Button.inline("حذف الهمسة",data=f'del_l:{id}')
     to_names = ' و '.join(whisper_session[id]['to_name'])
     text = (
         f'همسة جارية الانشاء من '
         f'( {owner_name} ) إلى '
         f'( {to_names} ) 🙂🙂')
-    await e.reply(text, buttons=[start_button])
+    msg = await e.reply(text, buttons=[start_button])
+    whisper_session[id] = {
+        'owmer': e.sender_id,
+        'owner_name': owner_name,
+        'to': users,
+        'to_name': [await ment(user) for user in users],
+        'whisper_id': whisper_id,
+        'link': row_link(e),
+        }
