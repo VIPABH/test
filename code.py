@@ -36,7 +36,8 @@ async def whisper(e):
     whisper_id = str(uuid.uuid4())[:6]
     url = f"https://t.me/{anymous.username}?start={whisper_id}"
     start_button = Button.url('اضغط هنا للبدء',url=url)
-    to_names = ' و '.join(whisper_session[id]['to_name'])
+    _mentions = [await ment(user) for user in users]
+    to_names = ' و '.join(_mentions)
     text = (
         f'همسة جارية الانشاء من '
         f'( {owner_name} ) إلى '
@@ -46,7 +47,7 @@ async def whisper(e):
         'owmer': e.sender_id,
         'owner_name': owner_name,
         'to': users,
-        'to_name': [await ment(user) for user in users],
+        'to_name': _mentions,
         'whisper_id': whisper_id,
         'link': row_link(e),
         }
