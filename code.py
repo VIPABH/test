@@ -1,6 +1,10 @@
-from Resources import *
+import asyncio
+import re
+import uuid
 from ABH import ABH as client
-import uuid, re
+from Resources import *
+from telethon import events
+
 processed_albums = set()
 album_buffers = {}
 
@@ -24,7 +28,6 @@ async def handle_media(event):
     album_buffers[gid].append(event)
 
     # انتظار قصير (0.8 ثانية) لتجميع باقي صور/ملفات الألبوم الواصلة
-    await asyncio.sleep(0.8)
 
     if gid in processed_albums:
       return
@@ -32,14 +35,10 @@ async def handle_media(event):
 
     # استخراج الرسائل الخاصة بهذا الألبوم للتعامل معها
     messages = album_buffers[gid]
-    print(
-        f"تم استلام ألبوم يحتوي على {len(messages)} عناصر برقم المجموعة:"
-        f" {gid}"
-    )
 
-    # الرد على أول رسالة في الألبوم (أو يمكنك الرد على الكل بحسب رغبتك)
+    # الرد على أول رسالة في الألبوم
     await messages[0].reply(
-        "تم استلام ألبوم الميديا بنجاح! عدد العناصر:" f" {len(messages)}"
+        f"تم استلام ألبوم الميديا بنجاح! عدد العناصر: {len(messages)}"
     )
 
     # تنظيف الذاكرة المؤقتة بعد فترة
@@ -49,9 +48,4 @@ async def handle_media(event):
 
   # الحالة الثانية: إذا كانت رسالة ميديا مفردة (وليست ألبوم)
   else:
-    print(f"تم استلام ميديا مفردة برقم الرسالة: {event.id}")
-    await event.reply("تم استلام ملف الميديا بنجاح!")
-
-
-client.start()
-client.run_until_disconnected()
+    await event.reply(f"تم استلام ميديا مفردة برقم الرسالة: {event.id}")
