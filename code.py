@@ -14,11 +14,11 @@ async def whisper(e):
         session = whisper_session[id]
         text = f'عذرا ماتكدر تسوي همسة \n عندك جلسة بعدك ما مكملها'
         del_button = [
-            Button.url("أكمال الهمسة",url=f"https://t.me/{anymous.username}?start={session['whisper_id']}", style=green, icon=5258073068852485953),
             Button.inline("حذف الهمسة",data=f'del_l:{id}', style=red, icon=5258130763148172425),
+            Button.url("أكمال الهمسة",url=f"https://t.me/{anymous.username}?start={session['whisper_id']}", style=green, icon=5258073068852485953),
             Button.url("رابط الهمسة",url=session['link'], style=blue, icon=5258262708838472996),]
         buttons = chunk_list(del_button, 2)
-        return await e.reply(text, buttons=buttons)
+        return await e.reply(text, buttons=button)
     async def custom_user(user):
         user = user.strip()
         if not user:return
@@ -35,7 +35,7 @@ async def whisper(e):
     owner_name = await mention(e)
     whisper_id = str(uuid.uuid4())[:6]
     url = f"https://t.me/{anymous.username}?start={whisper_id}"
-    start_button = Button.url('اضغط هنا للبدء',url=url)
+    start_button = Button.url('اضغط هنا للبدء',url=url, style=green, icon=5258073068852485953)
     _mentions = [await ment(user) for user in users]
     to_names = ' و '.join(_mentions)
     text = (
