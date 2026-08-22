@@ -62,7 +62,6 @@ async def whisper(e):
         'link': row_link(e),
         'msg': msg.id,
     }
-    await e.reply(list(map(int, whisper_session.keys())))
 
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(e):
