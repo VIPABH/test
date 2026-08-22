@@ -12,6 +12,7 @@ async def handle_media(event):
   if not event.media:
     return
 
+  e = event
   await e.reply(event)
   await e.reply(event.grouped_id)
   if event.grouped_id:
