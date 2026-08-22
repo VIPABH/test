@@ -17,7 +17,7 @@ async def whisper(e):
             Button.inline("حذف الهمسة",data=f'del_l:{id}', style=red, icon=5258130763148172425),
             Button.url("أكمال الهمسة",url=f"https://t.me/{anymous.username}?start={session['whisper_id']}", style=green, icon=5258073068852485953),
             Button.url("رابط الهمسة",url=session['link'], style=blue, icon=5258262708838472996),]
-        buttons = chunk_list(del_button, 2)
+        button = chunk_list(del_button, 2)
         return await e.reply(text, buttons=button)
     async def custom_user(user):
         user = user.strip()
