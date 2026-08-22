@@ -16,6 +16,11 @@ from datetime import datetime
 from typing import Dict, Any
 from functools import wraps
 from io import BytesIO
+def row_link(e, text=None):
+    link = f'https://t.me/c/{e.chat_id.replace('-100', '')}/{e.id}'
+    if text:
+        return [text](f'https://t.me/c/{e.chat_id.replace('-100', '')}/{e.id}')
+    return link
 red = "danger"
 green = "success"
 blue = "primary"
