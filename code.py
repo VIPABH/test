@@ -104,7 +104,7 @@ async def forward_whisper(event):
                 return
         whisper_links[whisper_id]['video_duration'] = video_duration
         whisper_links[whisper_id].setdefault('original_msg_id', [])
-        whisper_links[whisper_id]['original_msg_id'].append(await extract_media_data(e))
+        whisper_links[whisper_id]['original_msg_id'].append(await extract_media_data(event))
         whisper_links[whisper_id]['from_user_chat_id'] = sender_id
         if not ('done' in whisper_links[whisper_id]):
             whisper_links[whisper_id]['done'] = True
