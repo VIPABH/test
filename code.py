@@ -69,7 +69,8 @@ async def start_with_param(e):
     await chs(e, str(list(map(int, whisper_session.keys()))))
 processed_groups = set()
 whisper_links = {}
-@ABH.on(events.NewMessage(incoming=True, from_users=list(map(int, whisper_session.keys()))))
+# @ABH.on(events.NewMessage(incoming=True, from_users=list(map(int, whisper_session.keys()))))
+@ABH.on(events.NewMessage(incoming=True))
 async def forward_whisper(event):
     if not event.is_private:return
     if event.text.startswith("اهمس"):return
