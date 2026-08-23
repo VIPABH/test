@@ -65,14 +65,11 @@ async def start_with_param(e):
         return await chs(e, 'هذا الرابط غير صالح لجلستك الحالية')
     await chs(e, 'ارسل الان همسة ميديا او نص')
     await chs(e, str(list(map(int, whisper_session.keys()))))
-# @ABH.on(events.NewMessage(incoming=True, from_users=list(map(int, whisper_session.keys()))))
-@ABH.on(events.NewMessage(incoming=True))
+@ABH.on(events.NewMessage(incoming=True, from_users=list(map(int, whisper_session.keys()))))
 async def recive_whisper(e):
     if not e.is_private:return
     if e.text and e.text.startswith('/start'):return
     id = e.sender_id
-    l = list(map(int, whisper_session.keys()))
-    print(l)
     msg = e.message
     if msg.media:
         await e.reply(".")
