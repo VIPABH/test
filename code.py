@@ -43,6 +43,7 @@ async def whisper(e):
     url = f"https://t.me/{anymous.username}?start={whisper_id}"
     start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     _mentions = [await ment(user) for user in users]
+    count = len(_mentions)
     to_names = ' و '.join(_mentions)
     text = (
         f'همسة جارية الانشاء من '
@@ -52,7 +53,8 @@ async def whisper(e):
     whisper_session[id] = {
         'owner': await mention(e),
         'to': users,
-        'to_name': _mentions,
+        'to_name': to_names,
+        'count': count,
         'whisper_id': whisper_id,
         'link': row_link(e),
         'chat_id': e.chat_id,
@@ -69,14 +71,13 @@ async def start_with_param(e):
     if session['whisper_id'] != whisper_id:
         return await chs(e, 'هذا الرابط غير صالح لجلستك الحالية')
     await chs(e, 'ارسل الان همسة ميديا او نص')
-    await chs(e, str(list(map(int, whisper_session.keys()))))
 processed_groups = set()
 whisper_links = {}
 # @ABH.on(events.NewMessage(incoming=True, from_users=list(map(int, whisper_session.keys()))))
 @ABH.on(events.NewMessage(incoming=True))
 async def forward_whisper(event):
     if not event.is_private:return
-    if event.text.startswith("اهمس"):return
+    if event.text.startswith("اهمس") or event.text.startswith("/start"):return
     sender_id = event.sender_id
     if sender_id not in whisper_session:return
     session = whisper_session[sender_id]
@@ -125,7 +126,7 @@ async def forward_whisper(event):
         buttons=[b]
     )
     await event.reply(str(t))
-    await ABH.send_message(data['chat_id'], f'هَمستك عزيزي (  {data["reciver_mention"]} )', reply_to=msg.id)
+    await ABH.send_message(data['chat_id'], f'{'هَمستك' if whisper_session[sender_id]['count '] > 1 else 'همستكم'} عزيزي (  {whisper_session[sender_id]["to_name"]} )', reply_to=msg.id)
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
     data = e.data
