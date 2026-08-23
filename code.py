@@ -64,7 +64,7 @@ async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     id = e.sender_id
     if whisper_id in whisper_links:
-        return await e.reply(str(whisper_links(whisper_id)))
+        return await e.reply(str(whisper_links[whisper_id]))
     if id not in whisper_session:
         return await chs(e, 'عزيزي انت اصلا ما عندك جلسة اهمس')
     session = whisper_session[id]
@@ -125,7 +125,7 @@ async def forward_whisper(event):
         text=f'همسة مرسلة من ({whisper_session[sender_id]["to_name"]} ) إلى ( {whisper_session[sender_id]["to_name"]} ) 🙂🙂',
         buttons=[b]
     )
-    await event.reply(str(t))
+    await e.reply(str(whisper_links[whisper_id]))
     await ABH.send_message(whisper_session[sender_id]['chat_id'], f'{'هَمستك' if whisper_session[sender_id]['count '] > 1 else 'همستكم'} عزيزي (  {whisper_session[sender_id]["to_name"]} )', reply_to=msg.id)
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
