@@ -118,8 +118,8 @@ async def forward_whisper(event):
             return
         processed_groups.add(gid)
     msg = await ABH.edit_message(
-        whisper_session[id]['chat_id'],
-        whisper_session[id]['msg'], 
+        whisper_session[sender_id]['chat_id'],
+        whisper_session[sender_id]['msg'], 
         text=f'همسة مرسلة من ({data["sender_mention"]} ) إلى ( {data["reciver_mention"]} ) 🙂🙂',
         buttons=[b]
     )
