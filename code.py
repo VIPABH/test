@@ -70,8 +70,7 @@ async def recive_whisper(e):
     if not e.is_private:return
     if e.text and e.text.startswith('/start'):return
     id = e.sender_id
-    msg = e.message
-    if msg.media:
+    if e.media:
         await e.reply(".")
         if e.grouped_id:
             if id not in message:
