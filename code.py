@@ -64,6 +64,7 @@ async def start_with_param(e):
     if session['whisper_id'] != whisper_id:
         return await chs(e, 'هذا الرابط غير صالح لجلستك الحالية')
     await chs(e, 'ارسل الان همسة ميديا او نص')
+    await chs(e, str(list(map(int, whisper_session.keys()))))
 @ABH.on(events.NewMessage(incoming=True, from_users=list(map(int, whisper_session.keys()))))
 async def recive_whisper(e):
     if not e.is_private:return
