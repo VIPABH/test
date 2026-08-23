@@ -125,7 +125,7 @@ async def forward_whisper(event):
         text=f'همسة مرسلة من ({whisper_session[sender_id]["to_name"]} ) إلى ( {whisper_session[sender_id]["to_name"]} ) 🙂🙂',
         buttons=[b]
     )
-    await e.reply(str(whisper_links[whisper_id]))
+    await event.reply(str(whisper_links[whisper_id]))
     await ABH.send_message(whisper_session[sender_id]['chat_id'], f'{'هَمستك' if whisper_session[sender_id]['count '] > 1 else 'همستكم'} عزيزي (  {whisper_session[sender_id]["to_name"]} )', reply_to=msg.id)
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
