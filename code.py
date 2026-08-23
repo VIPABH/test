@@ -58,6 +58,8 @@ async def whisper(e):
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     id = e.sender_id
+    if whisper_id in whisper_links:
+        return await e.reply(str(whisper_links(whisper_id)))
     if id not in whisper_session:
         return await chs(e, 'عزيزي انت اصلا ما عندك جلسة اهمس')
     session = whisper_session[id]
@@ -65,25 +67,63 @@ async def start_with_param(e):
         return await chs(e, 'هذا الرابط غير صالح لجلستك الحالية')
     await chs(e, 'ارسل الان همسة ميديا او نص')
     await chs(e, str(list(map(int, whisper_session.keys()))))
+processed_groups = set()
+whisper_links = {}
 @ABH.on(events.NewMessage(incoming=True, from_users=list(map(int, whisper_session.keys()))))
-async def recive_whisper(e):
-    if not e.is_private:return
-    if e.text and e.text.startswith('/start'):return
-    id = e.sender_id
-    if e.media:
-        await e.reply(".")
-        if e.grouped_id:
-            if id not in message:
-                message[id] = {'media': [], 'type': 'media'}
-                await chs(e, 'تم ارسال الهمسة ب نجاح')
-            message[id]['media'].append(await extract_media_data(e))
-        else:
-            message[id] = {'media': [], 'type': 'media'}
-            message[id]['media'].append(await extract_media_data(e))
-            await chs(e, 'تم ارسال الهمسة ب نجاح')
-    else:
-        message[id] = {'type': 'text', 'text': e.text}
-        await chs(e, 'تم ارسال الهمسة ب نجاح')
+async def forward_whisper(event):
+    if not event.is_private:return
+    if event.text.startswith("اهمس"):return
+    sender_id = event.sender_id
+    if sender_id not in whisper_session:return
+    session = whisper_session[sender_id]
+    whisper_id = session['whisper_id']
+    if not whisper_id:return
+    b = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
+    msg = event.message
+    is_photo = getattr(msg.media, 'photo', None)
+    is_video = False
+    video_duration = None
+    if getattr(msg, "voice", None) or (msg.document and msg.document.mime_type == "audio/ogg"):
+        video_duration = None
+    if msg.media and (is_photo or getattr(msg.media, 'document', None) or getattr(msg, "voice", None)):
+        if is_photo:
+            video_duration = 30
+        elif getattr(msg.media, 'document', None):
+            for attr in msg.media.document.attributes:
+                if isinstance(attr, DocumentAttributeVideo):
+                    video_duration = attr.duration
+                    is_video = True
+                    break
+            if not is_video and not (msg.document and msg.document.mime_type == "audio/ogg"):
+                return
+        whisper_links.setdefault(whisper_id, {})
+        whisper_links[whisper_id]['video_duration'] = video_duration
+        whisper_links[whisper_id].setdefault('original_msg_id', [])
+        whisper_links[whisper_id]['original_msg_id'].append(msg.id)
+        whisper_links[whisper_id]['from_user_chat_id'] = sender_id
+        if not ('done' in whisper_links[whisper_id]):
+            whisper_links[whisper_id]['done'] = True
+        t = "تم إرسال همسة ميديا بنجاح."
+    elif msg.text:
+        whisper_links[whisper_id]['text'] = msg.text
+        if not ('done' in whisper_links[whisper_id]):
+            whisper_links[whisper_id]['done'] = True
+        t = "تم إرسال همسة بنجاح."
+    save_whispers()
+    l[sender_id] = False
+    gid = getattr(msg, 'grouped_id', None)
+    if msg.media and gid:
+        if gid in processed_groups:
+            return
+        processed_groups.add(gid)
+    msg = await ABH.edit_message(
+        data['chat_id'],
+        data['editmsg_id'], 
+        text=f'همسة مرسلة من ({data["sender_mention"]} ) إلى ( {data["reciver_mention"]} ) 🙂🙂',
+        buttons=[b]
+    )
+    await event.reply(str(t))
+    await ABH.send_message(data['chat_id'], f'هَمستك عزيزي (  {data["reciver_mention"]} )', reply_to=msg.id)
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
     data = e.data
