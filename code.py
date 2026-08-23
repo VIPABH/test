@@ -50,6 +50,7 @@ async def whisper(e):
         f'( {to_names} ) 🙂🙂')
     msg = await PROFILE_SEND(e, text, buttons=[start_button])
     whisper_session[id] = {
+        'owner': await mention(e),
         'to': users,
         'to_name': _mentions,
         'whisper_id': whisper_id,
@@ -120,7 +121,7 @@ async def forward_whisper(event):
     msg = await ABH.edit_message(
         whisper_session[sender_id]['chat_id'],
         whisper_session[sender_id]['msg'], 
-        text=f'همسة مرسلة من ({data["sender_mention"]} ) إلى ( {data["reciver_mention"]} ) 🙂🙂',
+        text=f'همسة مرسلة من ({whisper_session[sender_id]["to_name"]} ) إلى ( {whisper_session[sender_id]["to_name"]} ) 🙂🙂',
         buttons=[b]
     )
     await event.reply(str(t))
