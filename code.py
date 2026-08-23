@@ -126,7 +126,7 @@ async def forward_whisper(event):
         buttons=[b]
     )
     await event.reply(str(t))
-    await ABH.send_message(data['chat_id'], f'{'هَمستك' if whisper_session[sender_id]['count '] > 1 else 'همستكم'} عزيزي (  {whisper_session[sender_id]["to_name"]} )', reply_to=msg.id)
+    await ABH.send_message(whisper_session[sender_id]['chat_id'], f'{'هَمستك' if whisper_session[sender_id]['count '] > 1 else 'همستكم'} عزيزي (  {whisper_session[sender_id]["to_name"]} )', reply_to=msg.id)
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
     data = e.data
