@@ -1,3 +1,4 @@
+from telethon.tl.types import DocumentAttributeVideo
 from Resources import *
 from ABH import *
 import uuid, re
@@ -78,6 +79,7 @@ async def forward_whisper(event):
     if sender_id not in whisper_session:return
     session = whisper_session[sender_id]
     whisper_id = session['whisper_id']
+    whisper_links.setdefault(whisper_id, {})
     if not whisper_id:return
     b = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
     msg = event.message
@@ -97,7 +99,6 @@ async def forward_whisper(event):
                     break
             if not is_video and not (msg.document and msg.document.mime_type == "audio/ogg"):
                 return
-        whisper_links.setdefault(whisper_id, {})
         whisper_links[whisper_id]['video_duration'] = video_duration
         whisper_links[whisper_id].setdefault('original_msg_id', [])
         whisper_links[whisper_id]['original_msg_id'].append(msg.id)
