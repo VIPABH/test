@@ -1,10 +1,8 @@
 from Resources import *
 from ABH import *
 import uuid, re
-
 whisper_session = {}
-message = {}  # طلعنا المتغير بره حتى ما يترست وي كل رسالة توصل
-
+message = {}
 @ABH.on(events.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$'))
 async def whisper(e):
     id = e.sender_id
@@ -13,7 +11,6 @@ async def whisper(e):
     targets = e.pattern_match.group(2)
     if not targets:
         return await react(e, '😁')
-        
     if id in whisper_session:
         session = whisper_session[id]
         text = f'عذرا ماتكدر تسوي همسة \n عندك جلسة بعدك ما مكملها'
@@ -24,7 +21,6 @@ async def whisper(e):
         ]
         button = chunk_list(del_button, 2)
         return await e.reply(text, buttons=button)
-        
     async def custom_user(user):
         user = user.strip()
         if not user: return
@@ -34,35 +30,28 @@ async def whisper(e):
                 users.add(full_user.id)
         except ValueError:
             return
-            
     for user in re.findall(r'@\w+|\d+', targets):
         await custom_user(user)
-        
     users = list(users)
     if not users: return await e.reply("ما لكيت المستخدم.")
-    
     owner_name = await mention(e)
     whisper_id = str(uuid.uuid4())[:6]
     url = f"https://t.me/{anymous.username}?start={whisper_id}"
     start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     _mentions = [await ment(user) for user in users]
     to_names = ' و '.join(_mentions)
-    
     text = (
         f'همسة جارية الانشاء من '
         f'( {owner_name} ) إلى '
-        f'( {to_names} ) 🙂🙂'
-    )
+        f'( {to_names} ) 🙂🙂')
     msg = await PROFILE_SEND(e, text, buttons=[start_button])
-    
     whisper_session[id] = {
         'to': users,
         'to_name': _mentions,
         'whisper_id': whisper_id,
         'link': row_link(e),
-        'msg': msg.id,
-    }
-
+        'msg': msg.id,}
+    await e.reply(list(map(int, whisper_session.keys())))
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
@@ -72,40 +61,31 @@ async def start_with_param(e):
     session = whisper_session[id]
     await chs(e, 'ارسل الان همسة ميديا او نص')
     del session
-
 @ABH.on(events.NewMessage(incoming=True))
 async def recive_whisper(e):
     id = e.sender_id
-    if id not in whisper_session: return 
-    
+    if id not in whisper_session: return     
     if not e.is_private: return
     if e.text and e.text.startswith('/start'): return
-    
-    # نقلنا التحقق مال 'دز' للبداية حتى ما يخزن الكلمة كنص ويمسح الميديا الي قبلها
     if e.text == 'دز':
-        if id in message:
-            await e.reply(str(message[id]))
+        await e.reply(str(message[id]))
         return
-        
     msg = e.message 
-    
     if msg.media:
         if e.grouped_id:
-            # ضفنا شرط `or 'media' not in message[id]` حتى نتأكد انه مفتاح الميديا موجود قبل الـ append
-            if id not in message or 'media' not in message[id]: 
+            if id not in message:
+                message[id] = {'media': [], 'type': 'media'}
                 await chs(e, 'تم ارسال الهمسة ب نجاح')
-                message[id] = {'media': [], 'type': 'group_media'}
             message[id]['media'].append(await extract_media_data(e))
         else:
             message[id] = {'media': [], 'type': 'media'}
             message[id]['media'].append(await extract_media_data(e))
     else:
         message[id] = {'type': 'text', 'text': e.text}
-
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
-    data = e.data 
-    id = int(e.pattern_match.group(1)) 
+    data = e.data
+    id = int(e.pattern_match.group(1))
     sender_id = e.sender_id
     if id != sender_id:
         return await e.answer('🙄')
