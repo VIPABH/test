@@ -54,6 +54,7 @@ async def whisper(e):
         'to_name': _mentions,
         'whisper_id': whisper_id,
         'link': row_link(e),
+        'chat_id': e.chat_id,
         'msg': msg.id,}
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(e):
@@ -117,8 +118,8 @@ async def forward_whisper(event):
             return
         processed_groups.add(gid)
     msg = await ABH.edit_message(
-        data['chat_id'],
-        data['editmsg_id'], 
+        whisper_session[id]['chat_id'],
+        whisper_session[id]['msg'], 
         text=f'همسة مرسلة من ({data["sender_mention"]} ) إلى ( {data["reciver_mention"]} ) 🙂🙂',
         buttons=[b]
     )
