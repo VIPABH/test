@@ -111,8 +111,6 @@ async def forward_whisper(event):
         if not ('done' in whisper_links[whisper_id]):
             whisper_links[whisper_id]['done'] = True
         t = "تم إرسال همسة بنجاح."
-    save_whispers()
-    l[sender_id] = False
     gid = getattr(msg, 'grouped_id', None)
     if msg.media and gid:
         if gid in processed_groups:
