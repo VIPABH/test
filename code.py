@@ -147,8 +147,8 @@ async def send_whisper_to_targets(e, id):
     await e.reply(f'تم إرسال الهمسة إلى {sent_count} من أصل {len(targets)}.')
 
     # تنظيف الجلسة والمحتوى بعد الإرسال
-    whisper_session.pop(id, None)
-    message.pop(id, None)
+    # whisper_session.pop(id, None)
+    # message.pop(id, None)
 
 
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
