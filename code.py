@@ -89,7 +89,7 @@ async def start_with_param(e):
             file = await get_input_media(row_file)
             try:
                 await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=int(video_duration))
-            except telethon.errors.TtlMediaInvalidError:
+            except TtlMediaInvalidError:
                 await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
     await chs(e, 'ارسل الان همسة ميديا او نص')
 processed_groups = set()
