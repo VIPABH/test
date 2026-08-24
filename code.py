@@ -71,7 +71,7 @@ async def start_with_param(e):
     if _type == 'text':
         text = messages[whisper_id]['text']
         return await e.reply(text)
-    else:
+    elif _type == 'media':
         files = messages[whisper_id]['file']
         texts = messages[whisper_id]['text']
         ttls = messages[whisper_id]['video_duration']
@@ -82,6 +82,8 @@ async def start_with_param(e):
                 await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=int(video_duration))
             except telethon.errors.TtlMediaInvalidError:
                 await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
+    else:
+        return await chs(e, 'همستك جارية الانشاء عزيزي')
     session = whisper_session[id]
     if session['whisper_id'] != whisper_id:
         return await chs(e, 'هذا الرابط غير صالح لجلستك الحالية')
