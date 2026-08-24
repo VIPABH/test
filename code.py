@@ -3,6 +3,7 @@ from Resources import *
 from ABH import *
 import uuid, re
 whisper_session = {}
+messages = {}
 @ABH.on(events.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$'))
 async def whisper(e):
     id = e.sender_id
@@ -75,14 +76,14 @@ async def start_with_param(e):
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
     if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
-    _type = messages[id]['type']
+    _type = messages[whisper_id]['type']
     if _type == 'text':
-        text = messages[id]['text']
+        text = messages[whisper_id]['text']
         return await e.reply(text)
     elif _type == 'media':
-        files = messages[id]['file']
-        texts = messages[id]['text']
-        ttls = messages[id]['video_duration']
+        files = messages[whisper_id]['file']
+        texts = messages[whisper_id]['text']
+        ttls = messages[whisper_id]['video_duration']
         grouped = list(zip(files, texts, ttls))
         for row_file, text, video_duration in grouped:
             file = await get_input_media(row_file)
@@ -92,7 +93,6 @@ async def start_with_param(e):
                 await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
     await chs(e, 'ارسل الان همسة ميديا او نص')
 processed_groups = set()
-messages = {}
 @ABH.on(events.NewMessage(incoming=True))
 async def recive_whisper(e):
     if not e.is_private:return
