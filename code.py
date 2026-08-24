@@ -85,10 +85,10 @@ processed_groups = set()
 whisper_links = {}
 # @ABH.on(events.NewMessage(incoming=True, from_users=list(map(int, whisper_session.keys()))))
 @ABH.on(events.NewMessage(incoming=True))
-async def forward_whisper(event):
-    if not event.is_private:return
-    if event.text.startswith("اهمس") or event.text.startswith("/start"):return
-    sender_id = event.sender_id
+async def forward_whisper(e):
+    if not e.is_private:return
+    if e.text.startswith("اهمس") or e.text.startswith("/start"):return
+    sender_id = e.sender_id
     if sender_id not in whisper_session:return
     session = whisper_session[sender_id]
     whisper_id = session['whisper_id']
@@ -101,7 +101,7 @@ async def forward_whisper(event):
     })
     if not whisper_id:return
     b = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
-    msg = event.message
+    msg = e.message
     is_photo = getattr(msg.media, 'photo', None)
     is_video = False
     video_duration = None
@@ -137,7 +137,7 @@ async def forward_whisper(event):
         whisper_session[sender_id]['msg'], 
         text=f'همسة مرسلة من ({whisper_session[sender_id]["to_name"]} ) إلى ( {whisper_session[sender_id]["to_name"]} ) 🙂🙂',
         buttons=[b])
-    await event.reply(t)
+    await e.reply(t)
     await ABH.send_message(whisper_session[sender_id]['chat_id'], f'هَمستك عزيزي (  {whisper_session[sender_id]["to_name"]} )', reply_to=msg.id)
     whisper_session.pop(id, None)
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
