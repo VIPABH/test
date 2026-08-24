@@ -104,15 +104,6 @@ async def download_avatar(target_id_or_entity):
     except Exception as e:
         await hint(f"خطأ أثناء تنزيل الصورة: {e}")
     return None
-async def extract_media_data(e):
-    if not e.media: return None
-    if isinstance(e.media, types.MessageMediaDocument):
-        doc = e.media.document
-        return {"type": "doc", "id": doc.id, "hash": doc.access_hash, "ref": doc.file_reference.hex()}
-    elif isinstance(e.media, types.MessageMediaPhoto):
-        photo = e.media.photo
-        return {"type": "photo", "id": photo.id, "hash": photo.access_hash, "ref": photo.file_reference.hex()}
-    return None
 def get_years_months_days(past_date_str, date_format="%Y-%m-%d"):
     past_date = datetime.strptime(past_date_str, date_format).date()
     current_date = datetime.now().date()
@@ -310,14 +301,36 @@ def save_user(user_id, data):
     """حفظ بيانات المستخدم (JSON)"""
     r.set(f"user:{user_id}", json.dumps(data, ensure_ascii=False))
 async def get_input_media(media_data):
-    if not media_data or not isinstance(media_data, dict):
+    if not media_data:
         return None
-    m_id = int(media_data['id'])
-    m_hash = int(media_data['hash'])
-    m_ref = bytes.fromhex(media_data['ref'])    
-    if media_data['type'] == "doc":
-        return types.InputDocument(id=m_id, access_hash=m_hash, file_reference=m_ref)
-    return types.InputPhoto(id=m_id, access_hash=m_hash, file_reference=m_ref)
+    def _parse_single(item):
+        if not isinstance(item, dict):
+            return None        
+        m_id = int(item['id'])
+        m_hash = int(item['hash'])
+        m_ref = bytes.fromhex(item['ref'])
+        if item.get('type') == "doc":
+            return types.InputMediaDocument(
+                id=m_id, 
+                access_hash=m_hash, 
+                file_reference=m_ref
+            )
+        else:
+            return types.InputMediaPhoto(
+                id=m_id, 
+                access_hash=m_hash, 
+                file_reference=m_ref
+            )
+    if isinstance(media_data, list):
+        result_list = []
+        for item in media_data:
+            parsed = _parse_single(item)
+            if parsed:
+                result_list.append(parsed)
+        return result_list if result_list else None
+    elif isinstance(media_data, dict):
+        return _parse_single(media_data)
+    return None
 async def extract_media_data(e):
     if not e.media: return None
     if isinstance(e.media, types.MessageMediaDocument):
