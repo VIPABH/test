@@ -301,35 +301,50 @@ def save_user(user_id, data):
     """حفظ بيانات المستخدم (JSON)"""
     r.set(f"user:{user_id}", json.dumps(data, ensure_ascii=False))
 async def get_input_media(media_data):
+    """
+    تتعامل بذكاء مع عنصر واحد (dict) أو قائمة عناصر (list)
+    وتعيد كائنات InputMedia التي تقبلها دوال الإرسال في Telethon بشكل صحيح.
+    """
     if not media_data:
         return None
-    def _parse_single(item, is_list=False):
+
+    def _parse_single(item):
         if not isinstance(item, dict):
-            return None        
+            return None
+        
         m_id = int(item['id'])
         m_hash = int(item['hash'])
         m_ref = bytes.fromhex(item['ref'])
+        
+        # استخدام InputMediaDocument و InputMediaPhoto دائماً لأنهما الصنفان 
+        # اللذان يدعمهما الـ Client في الإرسال الفردي أو ضمن الألبومات (SendMultiMediaRequest)
         if item.get('type') == "doc":
-            if is_list:
-                return types.InputMediaDocument(
-                    id=types.InputDocument(id=m_id, access_hash=m_hash, file_reference=m_ref))
-            else:
-                return types.InputDocument(id=m_id, access_hash=m_hash, file_reference=m_ref)
+            return types.InputMediaDocument(
+                id=types.InputDocument(
+                    id=m_id,
+                    access_hash=m_hash,
+                    file_reference=m_ref
+                )
+            )
         else:
-            if is_list:
-                return types.InputMediaPhoto(
-                    id=types.InputPhoto(id=m_id, access_hash=m_hash, file_reference=m_ref))
-            else:
-                return types.InputPhoto(id=m_id, access_hash=m_hash, file_reference=m_ref)
+            return types.InputMediaPhoto(
+                id=types.InputPhoto(
+                    id=m_id,
+                    access_hash=m_hash,
+                    file_reference=m_ref
+                )
+            )
+
+    # 1. إذا كان المدخل قائمة (List) لأكثر من ميديا
     if isinstance(media_data, list):
         result_list = []
         for item in media_data:
-            parsed = _parse_single(item, is_list=True)
+            parsed = _parse_single(item)
             if parsed:
                 result_list.append(parsed)
         return result_list if result_list else None
     elif isinstance(media_data, dict):
-        return _parse_single(media_data, is_list=False)
+        return _parse_single(media_data)
     return None
 async def extract_media_data(e):
     if not e.media: return None
