@@ -51,8 +51,7 @@ async def whisper(e):
         f'( {to_names} ) 🙂🙂')
     msg = await PROFILE_SEND(e, text, buttons=[start_button])
     whisper_session[id] = {
-        'owner': await mention(e),
-        'owner_id': e.sender_id, 
+        'owner': e.sender_id, 
         'to': users,
         'to_name': to_names,
         'whisper_id': whisper_id,
@@ -63,47 +62,51 @@ async def whisper(e):
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     id = e.sender_id
-    if whisper_id in whisper_links:
-        _type = whisper_links[whisper_id]['type']
-        if _type == 'text':
-            text = whisper_links[whisper_id]['text']
-            return await e.reply(text)
-        else:
-            files = whisper_links[whisper_id]['file']
-            texts = whisper_links[whisper_id]['text']
-            ttls = whisper_links[whisper_id]['video_duration']
-            grouped = list(zip(files, texts, ttls))
-            for row_file, text, video_duration in grouped:
-                file = await get_input_media(row_file)                
-                try:
-                    await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=int(video_duration))
-                except telethon.errors.TtlMediaInvalidError:
-                    await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
-    if id not in whisper_session:
-        return await chs(e, 'عزيزي انت اصلا ما عندك جلسة اهمس')
+    if whisper_id not in messages:return
+    whisper = messages[whisper_id]
+    if id not in whisper['to'] or id != whisper['owner']:
+        return await chs(e, 'اخذلك فره وتعال')
+    if not whisper['done'] and id in whisper['to']:return await chs(e, 'همستك جارية الانشاء عزيزي')
+    _type = messages[whisper_id]['type']
+    if _type == 'text':
+        text = messages[whisper_id]['text']
+        return await e.reply(text)
+    else:
+        files = messages[whisper_id]['file']
+        texts = messages[whisper_id]['text']
+        ttls = messages[whisper_id]['video_duration']
+        grouped = list(zip(files, texts, ttls))
+        for row_file, text, video_duration in grouped:
+            file = await get_input_media(row_file)                
+            try:
+                await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=int(video_duration))
+            except telethon.errors.TtlMediaInvalidError:
+                await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
     session = whisper_session[id]
     if session['whisper_id'] != whisper_id:
         return await chs(e, 'هذا الرابط غير صالح لجلستك الحالية')
     await chs(e, 'ارسل الان همسة ميديا او نص')
 processed_groups = set()
-whisper_links = {}
-# @ABH.on(events.NewMessage(incoming=True, from_users=list(map(int, whisper_session.keys()))))
+messages = {}
 @ABH.on(events.NewMessage(incoming=True))
-async def forward_whisper(e):
+async def recive_whisper(e):
     if not e.is_private:return
     if e.text.startswith("اهمس") or e.text.startswith("/start"):return
     sender_id = e.sender_id
     if sender_id not in whisper_session:return
     session = whisper_session[sender_id]
     whisper_id = session['whisper_id']
-    whisper_links.setdefault(whisper_id, {
+    messages.setdefault(whisper_id, {
         'type': '',
+        'done': False,
         'text': [],
         'video_duration': [],
         'file': [],
-        'full_info': whisper_session[sender_id],
-    })
+        'to': whisper_session[sender_id]['to'],
+        'owner': whisper_session[sender_id]['owner'],})
     if not whisper_id:return
+    # url = f"https://t.me/{anymous.username}?start={whisper_id}"
+    # start_button = Button.url('فتح الهمسة', url=url, style=green, icon=5258073068852485953)
     b = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
     msg = e.message
     is_photo = getattr(msg.media, 'photo', None)
@@ -122,20 +125,21 @@ async def forward_whisper(e):
                     break
             if not is_video and not (msg.document and msg.document.mime_type == "audio/ogg"):
                 return
-        whisper_links[whisper_id]['type'] = 'media'
-        whisper_links[whisper_id]['text'].append(e.text)
-        whisper_links[whisper_id]['video_duration'].append(video_duration)
-        whisper_links[whisper_id]['file'].append(await extract_media_data(e))
+        messages[whisper_id]['type'] = 'media'
+        messages[whisper_id]['text'].append(e.text)
+        messages[whisper_id]['video_duration'].append(video_duration)
+        messages[whisper_id]['file'].append(await extract_media_data(e))
         t = "تم إرسال همسة ميديا بنجاح."
     else:
-        whisper_links[whisper_id]['type'] = 'text'
-        whisper_links[whisper_id]['text'] = msg.text
+        messages[whisper_id]['type'] = 'text'
+        messages[whisper_id]['text'] = msg.text
         t = "تم إرسال همسة بنجاح."
     gid = getattr(msg, 'grouped_id', None)
     if msg.media and gid:
         if gid in processed_groups:
             return
         processed_groups.add(gid)
+    messages[whisper_id]['done'] = True
     msg = await ABH.edit_message(
         whisper_session[sender_id]['chat_id'],
         whisper_session[sender_id]['msg'], 
@@ -154,4 +158,4 @@ async def delete_whisper_callback(e):
     whisper_session.pop(id, None)
     await e.edit(
         'تم حذف جلسة الهمسة',
-        buttons=Button.url("كيف اهمس", url=f"https://t.me/{(await bot()).username}?start=how_can_i_whisper", style=red))
+        buttons=Button.url("كيف اهمس", url=f"https://t.me/{(await bot()).username}?start=how_can_i_whisper", style=blue))
