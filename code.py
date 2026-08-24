@@ -61,7 +61,6 @@ async def whisper(e):
         'msg': msg.id,}
     messages.setdefault(whisper_id, {
         'type': None,
-        'done': False,
         'text': [],
         'video_duration': [],
         'file': [],
@@ -122,21 +121,20 @@ async def recive_whisper(e):
                     break
             if not is_video and not (msg.document and msg.document.mime_type == "audio/ogg"):
                 return
-        messages[sender_id]['type'] = 'media'
-        messages[sender_id]['text'].append(e.text)
-        messages[sender_id]['video_duration'].append(video_duration)
-        messages[sender_id]['file'].append(await extract_media_data(e))
+        messages[whisper_id]['type'] = 'media'
+        messages[whisper_id]['text'].append(e.text)
+        messages[whisper_id]['video_duration'].append(video_duration)
+        messages[whisper_id]['file'].append(await extract_media_data(e))
         t = "تم إرسال همسة ميديا بنجاح."
     else:
-        messages[sender_id]['type'] = 'text'
-        messages[sender_id]['text'] = msg.text
+        messages[whisper_id]['type'] = 'text'
+        messages[whisper_id]['text'] = msg.text
         t = "تم إرسال همسة بنجاح."
     gid = getattr(msg, 'grouped_id', None)
     if msg.media and gid:
         if gid in processed_groups:
             return
         processed_groups.add(gid)
-    messages[sender_id]['done'] = True
     msg = await ABH.edit_message(
         whisper_session[sender_id]['chat_id'],
         whisper_session[sender_id]['msg'], 
