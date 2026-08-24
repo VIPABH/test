@@ -62,7 +62,7 @@ async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     id = e.sender_id
     messages.setdefault(id, {
-        'type': '',
+        'type': None,
         'done': False,
         'text': [],
         'video_duration': [],
@@ -72,8 +72,7 @@ async def start_with_param(e):
     whisper = messages[id]
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
-    print(whisper['done'] , whisper['to'] )
-    if whisper['done'] is False and id in whisper['to']:return await chs(e, 'همستك جارية الانشاء عزيزي')
+    if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
     _type = messages[id]['type']
     if _type == 'text':
         text = messages[id]['text']
