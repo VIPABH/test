@@ -72,7 +72,8 @@ async def start_with_param(e):
     whisper = messages[id]
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
-    if not whisper['done'] and id in whisper['to']:return await chs(e, 'همستك جارية الانشاء عزيزي')
+    print(whisper['done'] , whisper['to'] )
+    if whisper['done'] is False and id in whisper['to']:return await chs(e, 'همستك جارية الانشاء عزيزي')
     _type = messages[id]['type']
     if _type == 'text':
         text = messages[id]['text']
