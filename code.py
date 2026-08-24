@@ -50,11 +50,10 @@ async def whisper(e):
         f'( {owner_name} ) إلى '
         f'( {to_names} ) 🙂🙂')
     msg = await PROFILE_SEND(e, text, buttons=[start_button])
-    whisper_session[id] = {
+    whisper_session[whisper_id] = {
         'owner': e.sender_id, 
         'to': users,
         'to_name': to_names,
-        'whisper_id': whisper_id,
         'link': row_link(e),
         'chat_id': e.chat_id,
         'msg': msg.id,}
@@ -62,26 +61,26 @@ async def whisper(e):
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     id = e.sender_id
-    messages.setdefault(whisper_id, {
+    messages.setdefault(id, {
         'type': '',
         'done': False,
         'text': [],
         'video_duration': [],
         'file': [],
-        'to': whisper_session[id]['to'],
-        'owner': whisper_session[id]['owner'],})
-    whisper = messages[whisper_id]
+        'to': whisper_session[whisper_id]['to'],
+        'owner': whisper_session[whisper_id]['owner'],})
+    whisper = messages[id]
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
     if not whisper['done'] and id in whisper['to']:return await chs(e, 'همستك جارية الانشاء عزيزي')
-    _type = messages[whisper_id]['type']
+    _type = messages[id]['type']
     if _type == 'text':
-        text = messages[whisper_id]['text']
+        text = messages[id]['text']
         return await e.reply(text)
     elif _type == 'media':
-        files = messages[whisper_id]['file']
-        texts = messages[whisper_id]['text']
-        ttls = messages[whisper_id]['video_duration']
+        files = messages[id]['file']
+        texts = messages[id]['text']
+        ttls = messages[id]['video_duration']
         grouped = list(zip(files, texts, ttls))
         for row_file, text, video_duration in grouped:
             file = await get_input_media(row_file)
@@ -91,7 +90,7 @@ async def start_with_param(e):
                 await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
     else:
         return await chs(e, 'همستك جارية الانشاء عزيزي')
-    session = whisper_session[id]
+    session = whisper_session[whisper_id]
     if session['whisper_id'] != whisper_id:
         return await chs(e, 'هذا الرابط غير صالح لجلستك الحالية')
     await chs(e, 'ارسل الان همسة ميديا او نص')
@@ -126,21 +125,21 @@ async def recive_whisper(e):
                     break
             if not is_video and not (msg.document and msg.document.mime_type == "audio/ogg"):
                 return
-        messages[whisper_id]['type'] = 'media'
-        messages[whisper_id]['text'].append(e.text)
-        messages[whisper_id]['video_duration'].append(video_duration)
-        messages[whisper_id]['file'].append(await extract_media_data(e))
+        messages[sender_id]['type'] = 'media'
+        messages[sender_id]['text'].append(e.text)
+        messages[sender_id]['video_duration'].append(video_duration)
+        messages[sender_id]['file'].append(await extract_media_data(e))
         t = "تم إرسال همسة ميديا بنجاح."
     else:
-        messages[whisper_id]['type'] = 'text'
-        messages[whisper_id]['text'] = msg.text
+        messages[sender_id]['type'] = 'text'
+        messages[sender_id]['text'] = msg.text
         t = "تم إرسال همسة بنجاح."
     gid = getattr(msg, 'grouped_id', None)
     if msg.media and gid:
         if gid in processed_groups:
             return
         processed_groups.add(gid)
-    messages[whisper_id]['done'] = True
+    messages[sender_id]['done'] = True
     msg = await ABH.edit_message(
         whisper_session[sender_id]['chat_id'],
         whisper_session[sender_id]['msg'], 
