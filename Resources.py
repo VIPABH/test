@@ -303,37 +303,33 @@ def save_user(user_id, data):
 async def get_input_media(media_data):
     if not media_data:
         return None
-    def _parse_single(item):
+    def _parse_single(item, is_list=False):
         if not isinstance(item, dict):
-            return None
+            return None        
         m_id = int(item['id'])
         m_hash = int(item['hash'])
-        m_ref = bytes.fromhex(item['ref'])        
+        m_ref = bytes.fromhex(item['ref'])
         if item.get('type') == "doc":
-            return types.InputMediaDocument(
-                id=types.InputDocument(
-                    id=m_id,
-                    access_hash=m_hash,
-                    file_reference=m_ref
-                )
-            )
+            if is_list:
+                return types.InputMediaDocument(
+                    id=types.InputDocument(id=m_id, access_hash=m_hash, file_reference=m_ref))
+            else:
+                return types.InputDocument(id=m_id, access_hash=m_hash, file_reference=m_ref)
         else:
-            return types.InputMediaPhoto(
-                id=types.InputPhoto(
-                    id=m_id,
-                    access_hash=m_hash,
-                    file_reference=m_ref
-                )
-            )
+            if is_list:
+                return types.InputMediaPhoto(
+                    id=types.InputPhoto(id=m_id, access_hash=m_hash, file_reference=m_ref))
+            else:
+                return types.InputPhoto(id=m_id, access_hash=m_hash, file_reference=m_ref)
     if isinstance(media_data, list):
         result_list = []
         for item in media_data:
-            parsed = _parse_single(item)
+            parsed = _parse_single(item, is_list=True)
             if parsed:
                 result_list.append(parsed)
         return result_list if result_list else None
     elif isinstance(media_data, dict):
-        return _parse_single(media_data)
+        return _parse_single(media_data, is_list=False)
     return None
 async def extract_media_data(e):
     if not e.media: return None
