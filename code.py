@@ -62,7 +62,7 @@ async def whisper(e):
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     id = e.sender_id
-    if whisper_id not in messages:return
+    # if whisper_id not in messages:return
     whisper = messages[whisper_id]
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
@@ -77,7 +77,7 @@ async def start_with_param(e):
         ttls = messages[whisper_id]['video_duration']
         grouped = list(zip(files, texts, ttls))
         for row_file, text, video_duration in grouped:
-            file = await get_input_media(row_file)                
+            file = await get_input_media(row_file)
             try:
                 await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=int(video_duration))
             except telethon.errors.TtlMediaInvalidError:
