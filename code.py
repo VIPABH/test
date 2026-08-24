@@ -142,7 +142,7 @@ async def recive_whisper(e):
         buttons=[b])
     await e.reply(t)
     await ABH.send_message(whisper_session[sender_id]['chat_id'], f'هَمستك عزيزي (  {whisper_session[sender_id]["to_name"]} )', reply_to=msg.id)
-    del whisper_session[id]
+    del whisper_session[sender_id]
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
     data = e.data
