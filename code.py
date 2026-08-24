@@ -38,7 +38,7 @@ async def whisper(e):
     if not users:
         return await e.reply("ما لكيت المستخدم.")
     owner_name = await mention(e)
-    whisper_id = str(uuid.uuid4())[:6]
+    whisper_id = "nr"+str(uuid.uuid4())[:6]
     # url = f"https://t.me/{anymous.username}?start={whisper_id}"
     # start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     start_button = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
@@ -50,9 +50,10 @@ async def whisper(e):
         f'( {owner_name} ) إلى '
         f'( {to_names} ) 🙂🙂')
     msg = await PROFILE_SEND(e, text, buttons=[start_button])
-    whisper_session[whisper_id] = {
+    whisper_session[id] = {
         'owner': e.sender_id, 
         'to': users,
+        'whisper_id': whisper_id,
         'to_name': to_names,
         'link': row_link(e),
         'chat_id': e.chat_id,
@@ -66,9 +67,7 @@ async def start_with_param(e):
         'done': False,
         'text': [],
         'video_duration': [],
-        'file': [],
-        'to': whisper_session[whisper_id]['to'],
-        'owner': whisper_session[whisper_id]['owner'],})
+        'file': [],})
     whisper = messages[id]
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
