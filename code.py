@@ -1,4 +1,5 @@
 from telethon.tl.types import DocumentAttributeVideo
+from telethon.errors import TtlMediaInvalidError
 from Resources import *
 from ABH import *
 import uuid, re
