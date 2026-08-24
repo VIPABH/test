@@ -314,24 +314,24 @@ async def get_input_media(media_data):
                 id=types.InputDocument(
                     id=m_id,
                     access_hash=m_hash,
-                    file_reference=m_ref
-                )
-            )
+                    file_reference=m_ref))
         else:
             return types.InputMediaPhoto(
                 id=types.InputPhoto(
                     id=m_id,
                     access_hash=m_hash,
-                    file_reference=m_ref
-                )
-            )
+                    file_reference=m_ref))
     if isinstance(media_data, list):
         result_list = []
         for item in media_data:
             parsed = _parse_single(item)
             if parsed:
                 result_list.append(parsed)
-        return result_list if result_list else None
+        if not result_list:
+            return None        
+        if len(result_list) == 1:
+            return result_list[0]            
+        return result_list
     elif isinstance(media_data, dict):
         return _parse_single(media_data)
     return None
