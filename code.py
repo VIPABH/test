@@ -75,7 +75,10 @@ async def start_with_param(e):
             grouped = list(zip(files, texts, ttls))
             for row_file, text, video_duration in grouped:
                 file = await get_input_media(row_file)                
-                await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=int(video_duration))
+                try:
+                    await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=int(video_duration))
+                except telethon.errors.TtlMediaInvalidError:
+                    await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
     if id not in whisper_session:
         return await chs(e, 'عزيزي انت اصلا ما عندك جلسة اهمس')
     session = whisper_session[id]
