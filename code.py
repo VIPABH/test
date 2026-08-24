@@ -72,8 +72,8 @@ async def start_with_param(e):
         if _type == 'text':
             return await e.reply(text)
         else:
-            print(type(_file))
-            await ABH.send_file(e.chat_id, file=_file, caption=text, )
+            video_duration = whisper_links[whisper_id]['video_duration']
+            await ABH.send_file(e.chat_id, file=_file, caption=text, reply_to=e.id, ttl=video_duration)
     if id not in whisper_session:
         return await chs(e, 'عزيزي انت اصلا ما عندك جلسة اهمس')
     session = whisper_session[id]
@@ -112,7 +112,7 @@ async def forward_whisper(event):
             if not is_video and not (msg.document and msg.document.mime_type == "audio/ogg"):
                 return
         whisper_links[whisper_id]['type'] = 'media'
-        whisper_links[whisper_id]['text'] = msg.text or ''
+        whisper_links[whisper_id]['text'] = msg.text if msg.text else None
         whisper_links[whisper_id]['video_duration'] = video_duration
         whisper_links[whisper_id].setdefault('file', [])
         whisper_links[whisper_id]['file'].append(await extract_media_data(event))
