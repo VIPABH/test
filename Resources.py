@@ -305,21 +305,25 @@ async def get_input_media(media_data):
         return None
     def _parse_single(item):
         if not isinstance(item, dict):
-            return None        
+            return None
         m_id = int(item['id'])
         m_hash = int(item['hash'])
-        m_ref = bytes.fromhex(item['ref'])
+        m_ref = bytes.fromhex(item['ref'])        
         if item.get('type') == "doc":
             return types.InputMediaDocument(
-                id=m_id, 
-                access_hash=m_hash, 
-                file_reference=m_ref
+                id=types.InputDocument(
+                    id=m_id,
+                    access_hash=m_hash,
+                    file_reference=m_ref
+                )
             )
         else:
             return types.InputMediaPhoto(
-                id=m_id, 
-                access_hash=m_hash, 
-                file_reference=m_ref
+                id=types.InputPhoto(
+                    id=m_id,
+                    access_hash=m_hash,
+                    file_reference=m_ref
+                )
             )
     if isinstance(media_data, list):
         result_list = []
