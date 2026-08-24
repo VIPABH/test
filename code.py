@@ -31,9 +31,7 @@ async def whisper(e):
             full_user = await ABH.get_entity(user)
             if not getattr(full_user, "bot", False):
                 users.add(full_user.id)
-        except Exception as ex:
-            # نسجل الخطأ بدل ما نبلعه بصمت الكامل، يساعد بالتتبع لاحقاً
-            print(f"[whisper] فشل جلب المستخدم '{user}': {ex}")
+        except Exception:
             return
     for user in re.findall(r'@\w+|\d+', targets):
         await custom_user(user)
@@ -55,8 +53,7 @@ async def whisper(e):
         f'( {to_names} ) 🙂🙂')
     msg = await PROFILE_SEND(e, text, buttons=[start_button])
     whisper_session[id] = {
-        'owner': e.sender_id,
-        'owner_name': owner_name,
+        'owner': e.sender_id, 
         'to': users,
         'whisper_id': whisper_id,
         'to_name': to_names,
@@ -68,38 +65,32 @@ async def whisper(e):
         'text': [],
         'video_duration': [],
         'file': [],
-        'owner': e.sender_id,
+        'owner': e.sender_id, 
         'to': users,
         })
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     id = e.sender_id
-    # إصلاح #3: تفادي الكراش إذا الرابط قديم/غير صحيح أو البوت انعاد تشغيله
-    whisper = messages.get(whisper_id)
-    if whisper is None:
-        return await chs(e, 'الرابط منتهي أو غير صحيح، جرب تسوي همسة جديدة.')
+    whisper = messages[whisper_id]
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
     if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
-    _type = whisper['type']
+    _type = messages[whisper_id]['type']
     if _type == 'text':
-        text = whisper['text']
-        # النص الآن قد يكون list (بسبب إصلاح #1)، نطبعه كسطر واحد لو كان list
-        if isinstance(text, list):
-            text = '\n'.join(t for t in text if t)
+        text = messages[whisper_id]['text']
         return await e.reply(text)
     elif _type == 'media':
-        files = whisper['file']
-        texts = whisper['text']
-        ttls = whisper['video_duration']
+        files = messages[whisper_id]['file']
+        texts = messages[whisper_id]['text']
+        ttls = messages[whisper_id]['video_duration']
         grouped = list(zip(files, texts, ttls))
         for row_file, text, video_duration in grouped:
             file = await get_input_media(row_file)
             try:
-                await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=int(video_duration))
+                return await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=int(video_duration))
             except TtlMediaInvalidError:
-                await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
+                return await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
     await chs(e, 'ارسل الان همسة ميديا او نص')
 processed_groups = set()
 @ABH.on(events.NewMessage(incoming=True))
@@ -137,23 +128,18 @@ async def recive_whisper(e):
         messages[whisper_id]['file'].append(await extract_media_data(e))
         t = "تم إرسال همسة ميديا بنجاح."
     else:
-        # إصلاح #1: نخليها list دايماً بدل استبدالها بـ string
-        # حتى تتوافق مع فرع الميديا اللي يستخدم append()
         messages[whisper_id]['type'] = 'text'
-        messages[whisper_id]['text'].append(msg.text)
+        messages[whisper_id]['text'] = msg.text
         t = "تم إرسال همسة بنجاح."
     gid = getattr(msg, 'grouped_id', None)
     if msg.media and gid:
         if gid in processed_groups:
             return
         processed_groups.add(gid)
-    # إصلاح #2: صاحب الهمسة يروح بالطرف الأول، والمستلم بالطرف الثاني
-    owner_name = whisper_session[sender_id].get('owner_name', whisper_session[sender_id]['to_name'])
-    to_name = whisper_session[sender_id]['to_name']
     msg = await ABH.edit_message(
         whisper_session[sender_id]['chat_id'],
-        whisper_session[sender_id]['msg'],
-        text=f'همسة مرسلة من ({owner_name}) إلى ({to_name}) 🙂🙂',
+        whisper_session[sender_id]['msg'], 
+        text=f'همسة مرسلة من ({whisper_session[sender_id]["to_name"]} ) إلى ( {whisper_session[sender_id]["to_name"]} ) 🙂🙂',
         buttons=[b])
     await e.reply(t)
     await ABH.send_message(whisper_session[sender_id]['chat_id'], f'هَمستك عزيزي (  {whisper_session[sender_id]["to_name"]} )', reply_to=msg.id)
