@@ -55,7 +55,6 @@ async def whisper(e):
         'owner_id': e.sender_id, 
         'to': users,
         'to_name': to_names,
-        'count': count,
         'whisper_id': whisper_id,
         'link': row_link(e),
         'chat_id': e.chat_id,
@@ -66,14 +65,16 @@ async def start_with_param(e):
     id = e.sender_id
     if whisper_id in whisper_links:
         _type = whisper_links[whisper_id]['type']
-        text = whisper_links[whisper_id]['text']
-        file = whisper_links[whisper_id]['file']
-        _file = await get_input_media(file)
         if _type == 'text':
+            text = whisper_links[whisper_id]['text']
             return await e.reply(text)
         else:
-            video_duration = whisper_links[whisper_id]['video_duration']
-            await ABH.send_file(e.chat_id, file=_file, caption=text, reply_to=e.id, ttl=video_duration)
+            files = whisper_links[whisper_id]['file']
+            texts = whisper_links[whisper_id]['text']
+            ttls = whisper_links[whisper_id]['video_duration']
+            grouped = list(zip(files, texts, ttls))
+            for file, text, video_duration in grouped:
+                await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=video_duration)
     if id not in whisper_session:
         return await chs(e, 'عزيزي انت اصلا ما عندك جلسة اهمس')
     session = whisper_session[id]
@@ -91,7 +92,13 @@ async def forward_whisper(event):
     if sender_id not in whisper_session:return
     session = whisper_session[sender_id]
     whisper_id = session['whisper_id']
-    whisper_links.setdefault(whisper_id, {})
+    whisper_links.setdefault(whisper_id, {
+        'type': '',
+        'text': [],
+        'video_duration': [],
+        'file': [],
+        'full_info': whisper_links[sender_id],
+    })
     if not whisper_id:return
     b = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
     msg = event.message
@@ -112,15 +119,12 @@ async def forward_whisper(event):
             if not is_video and not (msg.document and msg.document.mime_type == "audio/ogg"):
                 return
         whisper_links[whisper_id]['type'] = 'media'
-        whisper_links[whisper_id]['text'] = msg.text if msg.text else None
-        whisper_links[whisper_id]['video_duration'] = video_duration
-        whisper_links[whisper_id].setdefault('file', [])
-        whisper_links[whisper_id]['file'].append(await extract_media_data(event))
-        whisper_links[whisper_id]['full_info'] = whisper_session[sender_id]
+        whisper_links[whisper_id]['text'].append(e.text)
+        whisper_links[whisper_id]['video_duration'].append(video_duration)
+        whisper_links[whisper_id]['file'].append(await extract_media_data(e))
         t = "تم إرسال همسة ميديا بنجاح."
     else:
         whisper_links[whisper_id]['type'] = 'text'
-        whisper_links[whisper_id]['full_info'] = whisper_session[sender_id]
         whisper_links[whisper_id]['text'] = msg.text
         t = "تم إرسال همسة بنجاح."
     gid = getattr(msg, 'grouped_id', None)
