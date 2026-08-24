@@ -3,7 +3,6 @@ from Resources import *
 from ABH import *
 import uuid, re
 whisper_session = {}
-message = {}
 @ABH.on(events.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$'))
 async def whisper(e):
     id = e.sender_id
@@ -40,8 +39,9 @@ async def whisper(e):
         return await e.reply("ما لكيت المستخدم.")
     owner_name = await mention(e)
     whisper_id = str(uuid.uuid4())[:6]
-    url = f"https://t.me/{anymous.username}?start={whisper_id}"
-    start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
+    # url = f"https://t.me/{anymous.username}?start={whisper_id}"
+    # start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
+    start_button = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
     _mentions = [await ment(user) for user in users]
     count = len(_mentions)
     to_names = ' و '.join(_mentions)
@@ -52,6 +52,7 @@ async def whisper(e):
     msg = await PROFILE_SEND(e, text, buttons=[start_button])
     whisper_session[id] = {
         'owner': await mention(e),
+        'owner_id': e.sender_id, 
         'to': users,
         'to_name': to_names,
         'count': count,
@@ -102,17 +103,14 @@ async def forward_whisper(event):
                     break
             if not is_video and not (msg.document and msg.document.mime_type == "audio/ogg"):
                 return
+        whisper_links[whisper_id]['full_info'] = whisper_session[sender_id]
         whisper_links[whisper_id]['video_duration'] = video_duration
-        whisper_links[whisper_id].setdefault('original_msg_id', [])
-        whisper_links[whisper_id]['original_msg_id'].append(await extract_media_data(event))
-        whisper_links[whisper_id]['from_user_chat_id'] = sender_id
-        if not ('done' in whisper_links[whisper_id]):
-            whisper_links[whisper_id]['done'] = True
+        whisper_links[whisper_id].setdefault('file', [])
+        whisper_links[whisper_id]['file'].append(await extract_media_data(event))
         t = "تم إرسال همسة ميديا بنجاح."
-    elif msg.text:
+    else:
+        whisper_links[whisper_id]['full_info'] = whisper_session[sender_id]
         whisper_links[whisper_id]['text'] = msg.text
-        if not ('done' in whisper_links[whisper_id]):
-            whisper_links[whisper_id]['done'] = True
         t = "تم إرسال همسة بنجاح."
     gid = getattr(msg, 'grouped_id', None)
     if msg.media and gid:
@@ -123,10 +121,10 @@ async def forward_whisper(event):
         whisper_session[sender_id]['chat_id'],
         whisper_session[sender_id]['msg'], 
         text=f'همسة مرسلة من ({whisper_session[sender_id]["to_name"]} ) إلى ( {whisper_session[sender_id]["to_name"]} ) 🙂🙂',
-        buttons=[b]
-    )
-    await event.reply(str(whisper_links[whisper_id]))
+        buttons=[b])
+    await event.reply(t)
     await ABH.send_message(whisper_session[sender_id]['chat_id'], f'هَمستك عزيزي (  {whisper_session[sender_id]["to_name"]} )', reply_to=msg.id)
+    whisper_session.pop(id, None)
 @ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
     data = e.data
@@ -135,7 +133,6 @@ async def delete_whisper_callback(e):
     if id != sender_id:
         return await e.answer('🙄')
     whisper_session.pop(id, None)
-    message.pop(id, None)
     await e.edit(
         'تم حذف جلسة الهمسة',
         buttons=Button.url("كيف اهمس", url=f"https://t.me/{(await bot()).username}?start=how_can_i_whisper", style=red))
