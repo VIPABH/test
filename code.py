@@ -58,16 +58,19 @@ async def whisper(e):
         'link': row_link(e),
         'chat_id': e.chat_id,
         'msg': msg.id,}
-@ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
-async def start_with_param(e):
-    whisper_id = e.pattern_match.group(1)
-    id = e.sender_id
-    messages.setdefault(id, {
+    messages.setdefault(whisper_id, {
         'type': None,
         'done': False,
         'text': [],
         'video_duration': [],
-        'file': [],})
+        'file': [],
+        'owner': e.sender_id, 
+        'to_name': to_names,
+        })
+@ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
+async def start_with_param(e):
+    whisper_id = e.pattern_match.group(1)
+    id = e.sender_id
     whisper = whisper_session[id]
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
