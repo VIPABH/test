@@ -72,6 +72,7 @@ async def start_with_param(e):
         if _type == 'text':
             return await e.reply(text)
         else:
+            print(type(_file))
             await ABH.send_file(e.chat_id, file=_file, caption=text, )
     if id not in whisper_session:
         return await chs(e, 'عزيزي انت اصلا ما عندك جلسة اهمس')
