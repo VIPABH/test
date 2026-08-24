@@ -4,7 +4,7 @@ from Resources import *
 from ABH import *
 import uuid, re
 messages = {}
-@ABH.on(events.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$'))
+@ABH.on(es.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$'))
 async def whisper(e):
     id = e.sender_id
     anymous = await bot()
@@ -79,14 +79,14 @@ else:
 def save_whispers():
     with open(whispers_file, 'w', encoding='utf-8') as f:
         json.dump(whisper_session, f, ensure_ascii=False, indent=2)
-async def _start_with_param(event):
+async def _start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     data = whisper_links.get(whisper_id)
     if not data:
         return
-    sender_id = event.sender_id
+    sender_id = e.sender_id
     if sender_id not in (data['from'], data['to']):
-        await event.reply("لا يمكنك مشاهدة هذه الهمسة.")
+        await e.reply("لا يمكنك مشاهدة هذه الهمسة.")
         return
     if sender_id == data['to']:
         fb = [
@@ -124,7 +124,7 @@ async def _start_with_param(event):
                         sender_id,
                         file=original,
                         caption=original.message or None,
-                        reply_to=event.id,
+                        reply_to=e.id,
                         ttl=int(video_duration) if video_duration else None
                     )
                 except Exception:
@@ -132,13 +132,13 @@ async def _start_with_param(event):
                         sender_id,
                         file=original,
                         caption=original.message or None,
-                        reply_to=event.id
+                        reply_to=e.id
                     )
             elif original.text:
                 await ABH.send_message(sender_id, original.text)
     elif 'text' in data:
-        await event.reply(data['text'])
-@ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
+        await e.reply(data['text'])
+@ABH.on(es.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     if not whisper_id.startswith('nr'):return await _start_with_param(e)
@@ -164,7 +164,7 @@ async def start_with_param(e):
                 return await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
     await chs(e, 'ارسل الان همسة ميديا او نص')
 processed_groups = set()
-@ABH.on(events.NewMessage(incoming=True))
+@ABH.on(es.NewMessage(incoming=True))
 async def recive_whisper(e):
     if not e.is_private:return
     if e.text.startswith("اهمس") or e.text.startswith("/start"):return
@@ -215,7 +215,7 @@ async def recive_whisper(e):
     await e.reply(t)
     await ABH.send_message(whisper_session[sender_id]['chat_id'], f'هَمستك عزيزي (  {whisper_session[sender_id]["to_name"]} )', reply_to=msg.id)
     del whisper_session[sender_id]
-@ABH.on(events.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
+@ABH.on(es.CallbackQuery(pattern=b'^del_l:(\\d+)$'))
 async def delete_whisper_callback(e):
     data = e.data
     id = int(e.pattern_match.group(1))
