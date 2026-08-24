@@ -73,8 +73,8 @@ async def start_with_param(e):
             texts = whisper_links[whisper_id]['text']
             ttls = whisper_links[whisper_id]['video_duration']
             grouped = list(zip(files, texts, ttls))
-            for file, text, video_duration in grouped:
-                print(type(file))
+            for row_file, text, video_duration in grouped:
+                file = await get_input_media(row_file)                
                 await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=video_duration)
     if id not in whisper_session:
         return await chs(e, 'عزيزي انت اصلا ما عندك جلسة اهمس')
