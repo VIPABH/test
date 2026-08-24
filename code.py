@@ -81,8 +81,13 @@ def save_whispers():
         json.dump(whisper_session, f, ensure_ascii=False, indent=2)
 async def _start_with_param(event):
     whisper_id = e.pattern_match.group(1)
-    data = messages[whisper_id]
-    sender_id = e.sender_id
+    data = whisper_links.get(whisper_id)
+    if not data:
+        return
+    sender_id = event.sender_id
+    if sender_id not in (data['from'], data['to']):
+        await event.reply("لا يمكنك مشاهدة هذه الهمسة.")
+        return
     if sender_id == data['to']:
         fb = [
             Button.inline(
@@ -136,12 +141,12 @@ async def _start_with_param(event):
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
+    if not whisper_id.startswith('nr'):return await _start_with_param(e)
     id = e.sender_id
     whisper = messages[whisper_id]
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
     if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
-    if not whisper_id.startswith('nr'):return await _start_with_param(e)
     _type = messages[whisper_id]['type']
     if _type == 'text':
         text = messages[whisper_id]['text']
