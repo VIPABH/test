@@ -300,7 +300,7 @@ def profile(user_id):
 def save_user(user_id, data):
     """حفظ بيانات المستخدم (JSON)"""
     r.set(f"user:{user_id}", json.dumps(data, ensure_ascii=False))
-async def get_input_media(media_data):
+async def _get_input_media(media_data):
     if not media_data:
         return None
     def _parse_single(item):
@@ -335,6 +335,14 @@ async def get_input_media(media_data):
     elif isinstance(media_data, dict):
         return _parse_single(media_data)
     return None
+async def get_input_media(media_data):
+    if not media_data or not isinstance(media_data, dict):return None
+    m_id = int(media_data['id'])
+    m_hash = int(media_data['hash'])
+    m_ref = bytes.fromhex(media_data['ref'])    
+    if media_data['type'] == "doc":
+        return types.InputDocument(id=m_id, access_hash=m_hash, file_reference=m_ref)
+    return types.InputPhoto(id=m_id, access_hash=m_hash, file_reference=m_ref)
 async def extract_media_data(e):
     if not e.media: return None
     if isinstance(e.media, types.MessageMediaDocument):
