@@ -66,13 +66,13 @@ async def whisper(e):
         'video_duration': [],
         'file': [],
         'owner': e.sender_id, 
-        'to_name': to_names,
+        'to': users,
         })
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     id = e.sender_id
-    whisper = whisper_session[id]
+    whisper = messages[whisper_id]
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
     if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
