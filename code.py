@@ -62,12 +62,11 @@ async def whisper(e):
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     id = e.sender_id
-    #if whisper_id not in messages:return
+    if whisper_id not in messages:return
     whisper = messages[whisper_id]
-    if id not in whisper['to'] and id != whisper['owner']:
+    if id not in whisper['to'] or id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
-    await e.reply(whisper['done'] is False+id in whisper['to']+ whisper['to']+ whisper['done'])
-    if id in whisper['to'] and whisper['done'] is False :return await chs(e, 'همستك جارية الانشاء عزيزي')
+    if not whisper['done'] and id in whisper['to']:return await chs(e, 'همستك جارية الانشاء عزيزي')
     _type = messages[whisper_id]['type']
     if _type == 'text':
         text = messages[whisper_id]['text']
