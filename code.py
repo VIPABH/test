@@ -68,7 +68,7 @@ async def start_with_param(e):
         'text': [],
         'video_duration': [],
         'file': [],})
-    whisper = messages[id]
+    whisper = whisper_session[id]
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
     if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
