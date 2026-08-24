@@ -81,7 +81,7 @@ def save_whispers():
         json.dump(whisper_session, f, ensure_ascii=False, indent=2)
 async def _start_with_param(e):
     whisper_id = e.pattern_match.group(1)
-    data = whisper_links.get(whisper_id)
+    data = whisper_session.get(whisper_id)
     if not data:
         return
     sender_id = e.sender_id
