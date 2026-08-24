@@ -62,7 +62,14 @@ async def whisper(e):
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     id = e.sender_id
-    # if whisper_id not in messages:return
+    messages.setdefault(whisper_id, {
+        'type': '',
+        'done': False,
+        'text': [],
+        'video_duration': [],
+        'file': [],
+        'to': whisper_session[sender_id]['to'],
+        'owner': whisper_session[sender_id]['owner'],})
     whisper = messages[whisper_id]
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
@@ -98,14 +105,6 @@ async def recive_whisper(e):
     if sender_id not in whisper_session:return
     session = whisper_session[sender_id]
     whisper_id = session['whisper_id']
-    messages.setdefault(whisper_id, {
-        'type': '',
-        'done': False,
-        'text': [],
-        'video_duration': [],
-        'file': [],
-        'to': whisper_session[sender_id]['to'],
-        'owner': whisper_session[sender_id]['owner'],})
     if not whisper_id:return
     # url = f"https://t.me/{anymous.username}?start={whisper_id}"
     # start_button = Button.url('فتح الهمسة', url=url, style=green, icon=5258073068852485953)
