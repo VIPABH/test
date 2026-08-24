@@ -97,7 +97,7 @@ async def forward_whisper(event):
         'text': [],
         'video_duration': [],
         'file': [],
-        'full_info': whisper_links[sender_id],
+        'full_info': whisper_session[sender_id],
     })
     if not whisper_id:return
     b = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
