@@ -3,7 +3,6 @@ from telethon.errors import TtlMediaInvalidError
 from Resources import *
 from ABH import *
 import uuid, re
-whisper_session = {}
 messages = {}
 @ABH.on(events.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$'))
 async def whisper(e):
@@ -68,6 +67,72 @@ async def whisper(e):
         'owner': e.sender_id, 
         'to': users,
         })
+whispers_file = 'whispers.json'
+if os.path.exists(whispers_file):
+    try:
+        with open(whispers_file, 'r', encoding='utf-8') as f:
+            whisper_session = json.load(f)
+    except json.JSONDecodeError:
+        whisper_session = {}
+else:
+    whisper_session = {}
+def save_whispers():
+    with open(whispers_file, 'w', encoding='utf-8') as f:
+        json.dump(whisper_session, f, ensure_ascii=False, indent=2)
+async def _start_with_param(event):
+    whisper_id = e.pattern_match.group(1)
+    data = messages[whisper_id]
+    sender_id = e.sender_id
+    if sender_id == data['to']:
+        fb = [
+            Button.inline(
+                'حذف الهمسة',
+                data=f"del_l:{data['from']}"
+            ),
+            Button.url(
+                "رؤية الهمسة",
+                url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}"
+            )
+        ]
+        try:
+            await ABH.edit_message(
+                data['chat_id'],
+                data['editmsg_id'],
+                text=(
+                    f"همسة مرسلة من ({data['sender_mention']}) "
+                    f"إلى ({data['reciver_mention']}) 🙂"
+                ),
+                buttons=fb
+            )
+        except Exception:
+            pass
+    if 'original_msg_id' in data and 'from_user_chat_id' in data:
+        originals = await ABH.get_messages(
+            data['from_user_chat_id'],
+            ids=data['original_msg_id']
+        )
+        for original in originals:
+            if original.media:
+                video_duration = data.get('video_duration')
+                try:
+                    await ABH.send_file(
+                        sender_id,
+                        file=original,
+                        caption=original.message or None,
+                        reply_to=event.id,
+                        ttl=int(video_duration) if video_duration else None
+                    )
+                except Exception:
+                    await ABH.send_file(
+                        sender_id,
+                        file=original,
+                        caption=original.message or None,
+                        reply_to=event.id
+                    )
+            elif original.text:
+                await ABH.send_message(sender_id, original.text)
+    elif 'text' in data:
+        await event.reply(data['text'])
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
@@ -76,6 +141,7 @@ async def start_with_param(e):
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'اخذلك فره وتعال')
     if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
+    if not whisper_id.startswith('nr'):return await _start_with_param(e)
     _type = messages[whisper_id]['type']
     if _type == 'text':
         text = messages[whisper_id]['text']
