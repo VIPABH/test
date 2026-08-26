@@ -35,13 +35,6 @@ async def whisper(e):
                 found_targets.append(part)
             else:
                 break
-        if not found_targets:
-            if e.is_reply:
-                reply_msg = await e.get_reply_message()
-                if reply_msg and reply_msg.sender_id:
-                    users.add(reply_msg.sender_id)
-            else:
-                return await e.reply("ما لكيت المستخدم.")
         if found_targets:
             try:
                 full_users = await ABH.get_entity(found_targets if len(found_targets) > 1 else found_targets[0])
