@@ -9,6 +9,8 @@ messages = {}
 async def whisper(e):
     id = e.sender_id    
     anymous = await bot() 
+    url = f"https://t.me/{anymous.username}?start={whisper_id}"
+    start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     if id in whisper_session:
         session = whisper_session[id]
         text = 'عذرا ماتكدر تسوي همسة \n عندك جلسة بعدك ما مكملها'
@@ -18,7 +20,6 @@ async def whisper(e):
             Button.url("رابط الهمسة", url=session['link'], style=blue, icon=5258262708838472996),]
         button = chunk_list(del_button, 2)
         return await e.reply(text, buttons=button)    
-    text = e.text
     List = text.split()
     del List[0]
     row_users = set()
@@ -33,7 +34,7 @@ async def whisper(e):
         r = await e.get_reply_message()
         row_users.add(r.sender_id)
     users = []
-    full_users = await ABH.get_entity(list(row_users))        
+    full_users = await ABH.get_entity(list(row_users))
     if not isinstance(full_users, list):
         full_users = [full_users]
     for user in full_users:
@@ -42,8 +43,6 @@ async def whisper(e):
     if not users:return await e.reply("ما لكيت مستخدم صالح.")
     owner_name = await mention(e)
     whisper_id = "nr"+str(uuid.uuid4())[:6]
-    # url = f"https://t.me/{anymous.username}?start={whisper_id}"
-    # start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     start_button = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
     _mentions = [await ment(user) for user in users]
     count = len(_mentions)
@@ -55,12 +54,14 @@ async def whisper(e):
     msg = await PROFILE_SEND(e, text, buttons=[start_button])
     whisper_session[id] = {
         'owner': e.sender_id, 
+        'owner_name': owner_name, 
         'to': users,
         'whisper_id': whisper_id,
         'to_name': to_names,
         'link': row_link(e),
         'chat_id': e.chat_id,
-        'msg': msg.id,}
+        'msg': msg.id,
+        }
     messages.setdefault(whisper_id, {
         'type': None,
         'text': [],
@@ -68,6 +69,9 @@ async def whisper(e):
         'file': [],
         'owner': e.sender_id, 
         'to': users,
+        'seen': set(),
+        'chat_id': e.chat_id,
+        'msg': msg.id,
         })
 whispers_file = 'whispers.json'
 if os.path.exists(whispers_file):
@@ -144,10 +148,22 @@ async def start_with_param(e):
         return await chs(e, 'اخذلك فره وتعال')
     if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
     _type = messages[whisper_id]['type']
+    seen = messages[whisper_id]['seen']
+    opened = False
+    anymous = await bot() 
+    url = f"https://t.me/{anymous.username}?start={whisper_id}"
+    start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     if _type == 'text':
         text = messages[whisper_id]['text']
+        if not (id in seen):
+            seen.add(id)
+            opened = True
         return await e.reply(text)
     elif _type == 'media':
+        text = messages[whisper_id]['text']
+        if not (id in seen):
+            seen.add(id)
+            opened = True
         files = messages[whisper_id]['file']
         texts = messages[whisper_id]['text']
         ttls = messages[whisper_id]['video_duration']
@@ -158,7 +174,13 @@ async def start_with_param(e):
                 return await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=int(video_duration))
             except TtlMediaInvalidError:
                 return await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
-    await chs(e, 'ارسل الان همسة ميديا او نص')
+    else:await chs(e, 'ارسل الان همسة ميديا او نص')
+    if opened:
+        who_open = [await ment(user) for user in seen]
+        users = ' و '.join(who_open)
+        text = f'همسة مرسلة من ({whisper_session[sender_id]["to_name"]} ) إلى ( {whisper_session[sender_id]["to_name"]} ) 🙂🙂',
+        buttons = [Button.url('فتح الهمسة', url=url, style=blue), Button.inline('حذف الهمسة', data=whisper['owner'], style=red)]
+        await ABH.edit_message(whisper['chat_id'], f'~~{text}~~\n تمت رؤية الهمسة من قبل ( {users} )', buttons=buttons)
 processed_groups = set()
 @ABH.on(events.NewMessage(incoming=True))
 async def recive_whisper(e):
