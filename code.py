@@ -179,7 +179,7 @@ async def start_with_param(e):
         who_open = [await ment(user) for user in seen]
         users = ' و '.join(who_open)
         text = f'همسة مرسلة من ({whisper_session[sender_id]["to_name"]} ) إلى ( {whisper_session[sender_id]["to_name"]} ) 🙂🙂',
-        buttons = [Button.url('فتح الهمسة', url=url, style=blue), Button.inline('حذف الهمسة', data=whisper['owner'], style=red)]
+        buttons = [Button.url('فتح الهمسة', url=url, style=blue), Button.inline('حذف الهمسة', data=f'del_l:{whisper['owner']}', style=red)]
         await ABH.edit_message(whisper['chat_id'], f'~~{text}~~\n تمت رؤية الهمسة من قبل ( {users} )', buttons=buttons)
 processed_groups = set()
 @ABH.on(events.NewMessage(incoming=True))
