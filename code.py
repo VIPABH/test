@@ -18,6 +18,7 @@ async def whisper(e):
             Button.url("رابط الهمسة", url=session['link'], style=blue, icon=5258262708838472996),]
         button = chunk_list(del_button, 2)
         return await e.reply(text, buttons=button)    
+    text = e.text
     List = text.split()
     del List[0]
     row_users = set()
