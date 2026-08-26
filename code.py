@@ -5,11 +5,9 @@ from Program import chs
 from ABH import *
 import uuid, re
 messages = {}
-@ABH.on(events.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$', from_users=[wfffp]))
+@ABH.on(events.NewMessage(pattern=r'^اهمس(?:\s+(.+))?$', from_users=[wfffp]))
 async def whisper(e):
     id = e.sender_id
-
-    # 1. التحقق من وجود جلسة قائمة
     if id in whisper_session:
         session = whisper_session[id]
         text = 'عذرا ماتكدر تسوي همسة \n عندك جلسة بعدك ما مكملها'
@@ -20,25 +18,18 @@ async def whisper(e):
         ]
         button = chunk_list(del_button, 2)
         return await e.reply(text, buttons=button)
-
     anymous = await bot()
     targets = e.pattern_match.group(2)
     users = set()
-
-    # 2. إذا لم يتم كتابة أي يوزر/آيدي بعد الأمر
     if not targets:
         if e.is_reply:
             reply_msg = await e.get_reply_message()
             if reply_msg and reply_msg.sender_id:
                 users.add(reply_msg.sender_id)
         else:
-            # إذا لم ينذكر هدف ولم يرسل بالرد
             return await react(e, '😁')
     else:
-        # 3. جمع كافة المعرفات والأرقام
         found_targets = re.findall(r'@\w+|\d+', targets)
-        
-        # إذا تم كتابة نص لا يحتوي على معرفات أو أرقام
         if not found_targets:
             if e.is_reply:
                 reply_msg = await e.get_reply_message()
@@ -46,11 +37,8 @@ async def whisper(e):
                     users.add(reply_msg.sender_id)
             else:
                 return await e.reply("ما لكيت المستخدم.")
-
-        # 4. إجراء استعلام واحد مجمع للأهداف المحددة
         if found_targets:
             try:
-                # محاولة جلب الكيانات دفعة واحدة بطلب واحد
                 full_users = await ABH.get_entity(found_targets if len(found_targets) > 1 else found_targets[0])
                 if not isinstance(full_users, list):
                     full_users = [full_users]
@@ -58,21 +46,16 @@ async def whisper(e):
                     if not getattr(u, "bot", False):
                         users.add(u.id)
             except Exception:
-                # حل احتياطي بالتوازي في حال فشل الاستعلام المجمع (مثل وجود يوزر غير صحيح)
                 async def fetch_safe(u):
                     try:
                         res = await ABH.get_entity(u)
                         return res.id if not getattr(res, "bot", False) else None
                     except Exception:
                         return None
-
                 results = await asyncio.gather(*(fetch_safe(u) for u in found_targets))
                 users.update({u for u in results if u is not None})
-
-    # 5. استبعاد آيدي المرسل نفسه
     users.discard(id)
     users = list(users)
-
     if not users:
         return await e.reply("ما لكيت المستخدم.")
     owner_name = await mention(e)
@@ -129,13 +112,10 @@ async def _start_with_param(e):
         fb = [
             Button.inline(
                 'حذف الهمسة',
-                data=f"del_l:{data['from']}"
-            ),
+                data=f"del_l:{data['from']}"),
             Button.url(
                 "رؤية الهمسة",
-                url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}"
-            )
-        ]
+                url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")]
         try:
             await ABH.edit_message(
                 data['chat_id'],
@@ -151,8 +131,7 @@ async def _start_with_param(e):
     if 'original_msg_id' in data and 'from_user_chat_id' in data:
         originals = await ABH.get_messages(
             data['from_user_chat_id'],
-            ids=data['original_msg_id']
-        )
+            ids=data['original_msg_id'])
         for original in originals:
             if original.media:
                 video_duration = data.get('video_duration')
@@ -162,15 +141,13 @@ async def _start_with_param(e):
                         file=original,
                         caption=original.message or None,
                         reply_to=e.id,
-                        ttl=int(video_duration) if video_duration else None
-                    )
+                        ttl=int(video_duration) if video_duration else None)
                 except Exception:
                     await ABH.send_file(
                         sender_id,
                         file=original,
                         caption=original.message or None,
-                        reply_to=e.id
-                    )
+                        reply_to=e.id)
             elif original.text:
                 await ABH.send_message(sender_id, original.text)
     elif 'text' in data:
