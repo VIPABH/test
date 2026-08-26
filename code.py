@@ -145,6 +145,9 @@ async def start_with_param(e):
     if not whisper_id.startswith('nr'):return await _start_with_param(e)
     id = e.sender_id
     whisper = messages[whisper_id]
+    is_recipient = id in whisper['to']
+    is_not_owner = id != whisper['owner']
+    print(f"DEBUG -> Is Recipient: {is_recipient} | Is Not Owner: {is_not_owner}")
     print(id in whisper['to'], id != whisper['owner'])
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'عذرا بس ماتكدر تشوف الهمسة لانها مو موجهه الك.')
