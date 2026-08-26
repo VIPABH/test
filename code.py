@@ -19,7 +19,7 @@ async def whisper(e):
         button = chunk_list(del_button, 2)
         return await e.reply(text, buttons=button)
     anymous = await bot()
-    targets = e.pattern_match.group(2)
+    targets = e.pattern_match.group(1)
     users = set()
     if not targets:
         if e.is_reply:
