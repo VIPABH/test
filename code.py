@@ -8,9 +8,6 @@ messages = {}
 @ABH.on(events.NewMessage(pattern=r'^اهمس(?:\s+(.+))?$', from_users=[wfffp]))
 async def whisper(e):
     id = e.sender_id    
-    anymous = await bot() 
-    url = f"https://t.me/{anymous.username}?start={whisper_id}"
-    start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     if id in whisper_session:
         session = whisper_session[id]
         text = 'عذرا ماتكدر تسوي همسة \n عندك جلسة بعدك ما مكملها'
@@ -19,7 +16,7 @@ async def whisper(e):
             Button.url("أكمال الهمسة", url=f"https://t.me/{anymous.username}?start={session['whisper_id']}", style=green, icon=5258073068852485953),
             Button.url("رابط الهمسة", url=session['link'], style=blue, icon=5258262708838472996),]
         button = chunk_list(del_button, 2)
-        return await e.reply(text, buttons=button)    
+        return await e.reply(text, buttons=button)
     text = e.text
     List = text.split()
     del List[0]
@@ -42,8 +39,11 @@ async def whisper(e):
         if user and not getattr(user, 'bot', False):
             users.append(user)
     if not users:return await e.reply("ما لكيت مستخدم صالح.")
-    owner_name = await mention(e)
+    anymous = await bot() 
     whisper_id = "nr"+str(uuid.uuid4())[:6]
+    url = f"https://t.me/{anymous.username}?start={whisper_id}"
+    start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
+    owner_name = await mention(e)
     start_button = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
     _mentions = [await ment(user) for user in users]
     count = len(_mentions)
