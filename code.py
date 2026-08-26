@@ -18,44 +18,27 @@ async def whisper(e):
             Button.url("رابط الهمسة", url=session['link'], style=blue, icon=5258262708838472996),]
         button = chunk_list(del_button, 2)
         return await e.reply(text, buttons=button)    
-    match_text = e.pattern_match.group(1) 
-    users = set()
-    if not match_text:
-        if e.is_reply:
-            reply_msg = await e.get_reply_message()
-            if reply_msg and reply_msg.sender_id:
-                users.add(reply_msg.sender_id)
-        else:
-            return await react(e, '😁')
-    else:
-        parts = match_text.split()
-        found_targets = []        
-        for part in parts:
-            if part.startswith('@') or part.isdigit():
-                found_targets.append(part)
-            else:
-                break
-        if found_targets:
-            try:
-                full_users = await ABH.get_entity(found_targets if len(found_targets) > 1 else found_targets[0])
-                if not isinstance(full_users, list):
-                    full_users = [full_users]
-                for u in full_users:
-                    if not getattr(u, "bot", False):
-                        users.add(u.id)
-            except Exception:
-                async def fetch_safe(u):
-                    try:
-                        res = await ABH.get_entity(u)
-                        return res.id if not getattr(res, "bot", False) else None
-                    except Exception:
-                        return None                
-                results = await asyncio.gather(*(fetch_safe(u) for u in found_targets))
-                users.update({u for u in results if u is not None})
-    users.discard(id)
-    users = list(users)    
-    if not users:
-        return await e.reply("ما لكيت المستخدم.")
+    List = text.split()
+    del List[0]
+    row_users = set()
+    for user in List:
+        if user.startswith('@') or user.lstrip('-').isdigit():
+            val = int(user) if user.lstrip('-').isdigit() else user
+            row_users.add(val)
+    row_users.discard(id)
+    if not row_users:
+        if not e.is_reply:
+            return await e.reply("ما لكيت المستخدم.")
+        r = await e.get_reply_message()
+        row_users.add(r.sender_id)
+    users = []
+    full_users = await ABH.get_entity(list(row_users))        
+    if not isinstance(full_users, list):
+        full_users = [full_users]
+    for user in full_users:
+        if user and not getattr(user, 'bot', False):
+            users.append(user)
+    if not users:return await e.reply("ما لكيت مستخدم صالح.")
     owner_name = await mention(e)
     whisper_id = "nr"+str(uuid.uuid4())[:6]
     # url = f"https://t.me/{anymous.username}?start={whisper_id}"
