@@ -7,21 +7,20 @@ import uuid, re
 messages = {}
 @ABH.on(events.NewMessage(pattern=r'^اهمس(?:\s+(.+))?$', from_users=[wfffp]))
 async def whisper(e):
-    id = e.sender_id
+    id = e.sender_id    
+    anymous = await bot() 
     if id in whisper_session:
         session = whisper_session[id]
         text = 'عذرا ماتكدر تسوي همسة \n عندك جلسة بعدك ما مكملها'
         del_button = [
             Button.inline("حذف الهمسة", data=f'del_l:{id}', style=red, icon=5258130763148172425),
             Button.url("أكمال الهمسة", url=f"https://t.me/{anymous.username}?start={session['whisper_id']}", style=green, icon=5258073068852485953),
-            Button.url("رابط الهمسة", url=session['link'], style=blue, icon=5258262708838472996),
-        ]
+            Button.url("رابط الهمسة", url=session['link'], style=blue, icon=5258262708838472996),]
         button = chunk_list(del_button, 2)
-        return await e.reply(text, buttons=button)
-    anymous = await bot()
-    targets = e.pattern_match.group(1)
+        return await e.reply(text, buttons=button)    
+    match_text = e.pattern_match.group(1) 
     users = set()
-    if not targets:
+    if not match_text:
         if e.is_reply:
             reply_msg = await e.get_reply_message()
             if reply_msg and reply_msg.sender_id:
@@ -29,7 +28,13 @@ async def whisper(e):
         else:
             return await react(e, '😁')
     else:
-        found_targets = re.findall(r'@\w+|\d+', targets)
+        parts = match_text.split()
+        found_targets = []        
+        for part in parts:
+            if part.startswith('@') or part.isdigit():
+                found_targets.append(part)
+            else:
+                break
         if not found_targets:
             if e.is_reply:
                 reply_msg = await e.get_reply_message()
@@ -51,11 +56,11 @@ async def whisper(e):
                         res = await ABH.get_entity(u)
                         return res.id if not getattr(res, "bot", False) else None
                     except Exception:
-                        return None
+                        return None                
                 results = await asyncio.gather(*(fetch_safe(u) for u in found_targets))
                 users.update({u for u in results if u is not None})
     users.discard(id)
-    users = list(users)
+    users = list(users)    
     if not users:
         return await e.reply("ما لكيت المستخدم.")
     owner_name = await mention(e)
