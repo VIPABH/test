@@ -1,17 +1,15 @@
 from telethon.tl.types import DocumentAttributeVideo
 from telethon.errors import TtlMediaInvalidError
 from Resources import *
+from Program import chs
 from ABH import *
 import uuid, re
 messages = {}
-@ABH.on(events.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$'))
+@ABH.on(events.NewMessage(pattern=r'^(اهمس|همس[هة])(?:\s+(.+))?$', from_users=[wfffp]))
 async def whisper(e):
     id = e.sender_id
-    anymous = await bot()
-    users = set()
-    targets = e.pattern_match.group(2)
-    if not targets:
-        return await react(e, '😁')
+
+    # 1. التحقق من وجود جلسة قائمة
     if id in whisper_session:
         session = whisper_session[id]
         text = 'عذرا ماتكدر تسوي همسة \n عندك جلسة بعدك ما مكملها'
@@ -22,20 +20,59 @@ async def whisper(e):
         ]
         button = chunk_list(del_button, 2)
         return await e.reply(text, buttons=button)
-    async def custom_user(user):
-        user = user.strip()
-        if not user:
-            return
-        try:
-            full_user = await ABH.get_entity(user)
-            if not getattr(full_user, "bot", False):
-                users.add(full_user.id)
-        except Exception:
-            return
-    for user in re.findall(r'@\w+|\d+', targets):
-        await custom_user(user)
+
+    anymous = await bot()
+    targets = e.pattern_match.group(2)
+    users = set()
+
+    # 2. إذا لم يتم كتابة أي يوزر/آيدي بعد الأمر
+    if not targets:
+        if e.is_reply:
+            reply_msg = await e.get_reply_message()
+            if reply_msg and reply_msg.sender_id:
+                users.add(reply_msg.sender_id)
+        else:
+            # إذا لم ينذكر هدف ولم يرسل بالرد
+            return await react(e, '😁')
+    else:
+        # 3. جمع كافة المعرفات والأرقام
+        found_targets = re.findall(r'@\w+|\d+', targets)
+        
+        # إذا تم كتابة نص لا يحتوي على معرفات أو أرقام
+        if not found_targets:
+            if e.is_reply:
+                reply_msg = await e.get_reply_message()
+                if reply_msg and reply_msg.sender_id:
+                    users.add(reply_msg.sender_id)
+            else:
+                return await e.reply("ما لكيت المستخدم.")
+
+        # 4. إجراء استعلام واحد مجمع للأهداف المحددة
+        if found_targets:
+            try:
+                # محاولة جلب الكيانات دفعة واحدة بطلب واحد
+                full_users = await ABH.get_entity(found_targets if len(found_targets) > 1 else found_targets[0])
+                if not isinstance(full_users, list):
+                    full_users = [full_users]
+                for u in full_users:
+                    if not getattr(u, "bot", False):
+                        users.add(u.id)
+            except Exception:
+                # حل احتياطي بالتوازي في حال فشل الاستعلام المجمع (مثل وجود يوزر غير صحيح)
+                async def fetch_safe(u):
+                    try:
+                        res = await ABH.get_entity(u)
+                        return res.id if not getattr(res, "bot", False) else None
+                    except Exception:
+                        return None
+
+                results = await asyncio.gather(*(fetch_safe(u) for u in found_targets))
+                users.update({u for u in results if u is not None})
+
+    # 5. استبعاد آيدي المرسل نفسه
     users.discard(id)
     users = list(users)
+
     if not users:
         return await e.reply("ما لكيت المستخدم.")
     owner_name = await mention(e)
