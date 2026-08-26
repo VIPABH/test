@@ -41,6 +41,7 @@ async def whisper(e):
     if not users:return await e.reply("ما لكيت مستخدم صالح.")
     anymous = await bot() 
     whisper_id = "nr"+str(uuid.uuid4())[:6]
+    print(whisper_id)
     url = f"https://t.me/{anymous.username}?start={whisper_id}"
     start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     owner_name = await mention(e)
