@@ -41,7 +41,6 @@ async def whisper(e):
     if not users:return await e.reply("ما لكيت مستخدم صالح.")
     anymous = await bot() 
     whisper_id = "nr"+str(uuid.uuid4())[:6]
-    print(whisper_id)
     url = f"https://t.me/{anymous.username}?start={whisper_id}"
     start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     owner_name = await mention(e)
@@ -146,7 +145,8 @@ async def start_with_param(e):
     if not whisper_id.startswith('nr'):return await _start_with_param(e)
     id = e.sender_id
     whisper = messages[whisper_id]
-    if not (id in whisper['to']) and id != whisper['owner']:
+    print(id in whisper['to'], id != whisper['owner'])
+    if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'عذرا بس ماتكدر تشوف الهمسة لانها مو موجهه الك.')
     if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
     _type = messages[whisper_id]['type']
