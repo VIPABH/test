@@ -8,8 +8,6 @@ messages = {}
 @ABH.on(events.NewMessage(pattern=r'^اهمس(?:\s+(.+))?$', from_users=[wfffp]))
 async def whisper(e):
     id = e.sender_id    
-    anymous = await bot() 
-    whisper_id = "nr"+str(uuid.uuid4())[:6]
     if id in whisper_session:
         session = whisper_session[id]
         text = 'عذرا ماتكدر تسوي همسة \n عندك جلسة بعدك ما مكملها'
@@ -41,10 +39,11 @@ async def whisper(e):
         if user and not getattr(user, 'bot', False):
             users.append(user.id)
     if not users:return await e.reply("ما لكيت مستخدم صالح.")
+    anymous = await bot() 
+    whisper_id = "nr"+str(uuid.uuid4())[:6]
     url = f"https://t.me/{anymous.username}?start={whisper_id}"
     start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     owner_name = await mention(e)
-    start_button = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
     _mentions = [await ment(user) for user in users]
     count = len(_mentions)
     to_names = ' و '.join(_mentions)
@@ -89,8 +88,8 @@ def save_whispers():
 async def _start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     data = whisper_session.get(whisper_id)
-    if not data:
-        return
+    print(data)
+    if not data:return
     sender_id = e.sender_id
     if sender_id not in (data['from'], data['to']):
         await e.reply("لا يمكنك مشاهدة هذه الهمسة.")
@@ -146,7 +145,6 @@ async def start_with_param(e):
     id = e.sender_id
     if whisper_id not in messages:return
     whisper = messages[whisper_id]
-    print(whisper['to'])
     if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'عذرا بس ماتكدر تشوف الهمسة لانها مو موجهه الك.')
     if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
@@ -177,7 +175,7 @@ async def start_with_param(e):
                 return await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id, ttl=int(video_duration))
             except TtlMediaInvalidError:
                 return await ABH.send_file(e.chat_id, file=file, caption=text, reply_to=e.id)
-    else:await chs(e, 'ارسل الان همسة ميديا او نص')
+    else:await chs(e, 'ارسل الان الهمسة ميديا او نص')
     if opened:
         who_open = [await ment(user) for user in seen]
         users = ' و '.join(who_open)
@@ -194,8 +192,8 @@ async def recive_whisper(e):
     session = whisper_session[sender_id]
     whisper_id = session['whisper_id']
     if not whisper_id:return
-    # url = f"https://t.me/{anymous.username}?start={whisper_id}"
-    # start_button = Button.url('فتح الهمسة', url=url, style=green, icon=5258073068852485953)
+    url = f"https://t.me/{anymous.username}?start={whisper_id}"
+    start_button = Button.url('فتح الهمسة', url=url, style=green, icon=5258073068852485953)
     b = Button.url("فتح الهمسة", url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")
     msg = e.message
     is_photo = getattr(msg.media, 'photo', None)
@@ -232,7 +230,7 @@ async def recive_whisper(e):
         whisper_session[sender_id]['chat_id'],
         whisper_session[sender_id]['msg'], 
         text=f'همسة مرسلة من ({whisper_session[sender_id]["to_name"]} ) إلى ( {whisper_session[sender_id]["to_name"]} ) 🙂🙂',
-        buttons=[b])
+        buttons=[start_button])
     await e.reply(t)
     await ABH.send_message(whisper_session[sender_id]['chat_id'], f'هَمستك عزيزي (  {whisper_session[sender_id]["to_name"]} )', reply_to=msg.id)
     del whisper_session[sender_id]
