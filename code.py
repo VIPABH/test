@@ -77,17 +77,17 @@ whispers_file = 'whispers.json'
 if os.path.exists(whispers_file):
     try:
         with open(whispers_file, 'r', encoding='utf-8') as f:
-            whisper_session = json.load(f)
+            db = json.load(f)
     except json.JSONDecodeError:
-        whisper_session = {}
+        db = {}
 else:
-    whisper_session = {}
+    db = {}
 def save_whispers():
     with open(whispers_file, 'w', encoding='utf-8') as f:
-        json.dump(whisper_session, f, ensure_ascii=False, indent=2)
+        json.dump(db, f, ensure_ascii=False, indent=2)
 async def _start_with_param(event):
     whisper_id = event.pattern_match.group(1)
-    data = whisper_links.get(whisper_id)
+    data = db.get(whisper_id)
     if not data:return
     sender_id = event.sender_id
     if sender_id not in (data['from'], data['to']):
