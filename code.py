@@ -8,6 +8,8 @@ messages = {}
 @ABH.on(events.NewMessage(pattern=r'^اهمس(?:\s+(.+))?$', from_users=[wfffp]))
 async def whisper(e):
     id = e.sender_id    
+    anymous = await bot() 
+    whisper_id = "nr"+str(uuid.uuid4())[:6]
     if id in whisper_session:
         session = whisper_session[id]
         text = 'عذرا ماتكدر تسوي همسة \n عندك جلسة بعدك ما مكملها'
@@ -39,8 +41,6 @@ async def whisper(e):
         if user and not getattr(user, 'bot', False):
             users.append(user.id)
     if not users:return await e.reply("ما لكيت مستخدم صالح.")
-    anymous = await bot() 
-    whisper_id = "nr"+str(uuid.uuid4())[:6]
     url = f"https://t.me/{anymous.username}?start={whisper_id}"
     start_button = Button.url('اضغط هنا للبدء', url=url, style=green, icon=5258073068852485953)
     owner_name = await mention(e)
