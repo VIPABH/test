@@ -37,7 +37,7 @@ async def whisper(e):
         full_users = [full_users]
     for user in full_users:
         if user and not getattr(user, 'bot', False):
-            users.append(user)
+            users.append(user.id)
     if not users:return await e.reply("ما لكيت مستخدم صالح.")
     anymous = await bot() 
     whisper_id = "nr"+str(uuid.uuid4())[:6]
