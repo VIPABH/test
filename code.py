@@ -144,8 +144,10 @@ async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
     if not whisper_id.startswith('nr'):return await _start_with_param(e)
     id = e.sender_id
+    if whisper_id not in messages:return
     whisper = messages[whisper_id]
-    if id not in whisper['to'] and id != (whisper['owner']):
+    print(whisper['to'])
+    if id not in whisper['to'] and id != whisper['owner']:
         return await chs(e, 'عذرا بس ماتكدر تشوف الهمسة لانها مو موجهه الك.')
     if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
     _type = messages[whisper_id]['type']
