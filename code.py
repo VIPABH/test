@@ -85,23 +85,25 @@ else:
 def save_whispers():
     with open(whispers_file, 'w', encoding='utf-8') as f:
         json.dump(whisper_session, f, ensure_ascii=False, indent=2)
-async def _start_with_param(e):
-    whisper_id = e.pattern_match.group(1)
-    data = whisper_session.get(whisper_id)
-    print(data)
+async def _start_with_param(event):
+    whisper_id = event.pattern_match.group(1)
+    data = whisper_links.get(whisper_id)
     if not data:return
-    sender_id = e.sender_id
+    sender_id = event.sender_id
     if sender_id not in (data['from'], data['to']):
-        await e.reply("لا يمكنك مشاهدة هذه الهمسة.")
+        await event.reply("لا يمكنك مشاهدة هذه الهمسة.")
         return
     if sender_id == data['to']:
         fb = [
             Button.inline(
                 'حذف الهمسة',
-                data=f"del_l:{data['from']}"),
+                data=f"del_l:{data['from']}"
+            ),
             Button.url(
                 "رؤية الهمسة",
-                url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}")]
+                url=f"https://t.me/{(await ABH.get_me()).username}?start={whisper_id}"
+            )
+        ]
         try:
             await ABH.edit_message(
                 data['chat_id'],
@@ -114,10 +116,19 @@ async def _start_with_param(e):
             )
         except Exception:
             pass
+    if not (
+        ('original_msg_id' in data and 'from_user_chat_id' in data)
+        or 'text' in data
+    ):
+        await event.reply(
+            f"أهلاً {await mention(event)}، ارسل نص الهمسة أو ميديا."
+        )
+        return
     if 'original_msg_id' in data and 'from_user_chat_id' in data:
         originals = await ABH.get_messages(
             data['from_user_chat_id'],
-            ids=data['original_msg_id'])
+            ids=data['original_msg_id']
+        )
         for original in originals:
             if original.media:
                 video_duration = data.get('video_duration')
@@ -126,18 +137,19 @@ async def _start_with_param(e):
                         sender_id,
                         file=original,
                         caption=original.message or None,
-                        reply_to=e.id,
-                        ttl=int(video_duration) if video_duration else None)
+                        reply_to=event.id,
+                        ttl=int(video_duration) if video_duration else None
+                    )
                 except Exception:
                     await ABH.send_file(
                         sender_id,
                         file=original,
                         caption=original.message or None,
-                        reply_to=e.id)
+                        reply_to=event.id)
             elif original.text:
                 await ABH.send_message(sender_id, original.text)
     elif 'text' in data:
-        await e.reply(data['text'])
+        await event.reply(data['text'])
 @ABH.on(events.NewMessage(pattern=r'/start (\w+)'))
 async def start_with_param(e):
     whisper_id = e.pattern_match.group(1)
