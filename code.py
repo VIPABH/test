@@ -37,7 +37,7 @@ async def whisper(e):
         full_users = [full_users]
     for user in full_users:
         if user and not getattr(user, 'bot', False):
-            users.append(user.id)
+            users.append(user)
     if not users:return await e.reply("ما لكيت مستخدم صالح.")
     anymous = await bot() 
     whisper_id = "nr"+str(uuid.uuid4())[:6]
@@ -145,9 +145,7 @@ async def start_with_param(e):
     if not whisper_id.startswith('nr'):return await _start_with_param(e)
     id = e.sender_id
     whisper = messages[whisper_id]
-    whisper['to'].append(whisper['owner'])
-    print(whisper['to'])
-    if id not in (whisper['to']):
+    if id not in whisper['to'] or id != (whisper['owner']):
         return await chs(e, 'عذرا بس ماتكدر تشوف الهمسة لانها مو موجهه الك.')
     if id in whisper['to'] and whisper['type'] is None:return await chs(e, 'همستك جارية الانشاء عزيزي')
     _type = messages[whisper_id]['type']
