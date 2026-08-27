@@ -130,7 +130,7 @@ async def _start_with_param(event):
             ids=data['original_msg_id']
         )
         for original in originals:
-            if original.media:
+            if original and original.media:
                 video_duration = data.get('video_duration')
                 try:
                     await ABH.send_file(
