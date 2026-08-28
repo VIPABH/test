@@ -2,11 +2,11 @@ from ABH import ABH
 from telethon import events
 
 # 1. الـ Handler الأول: يعدل على الحدث
-@ABH.on(events.NewMessage)
+@ABH.on(events.NewMessage(pattern='حدث'))
 async def modify_event_handler(event):
     # إضافة الخصائص الخاصة على أوبجكت الحدث
     event.is_done = True
-    event.custom_tag = "ABH_PROCESSED"
+    event.custom_tag = event.text
     event.user_id_str = str(event.sender_id)
 
 
