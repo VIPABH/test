@@ -1,31 +1,40 @@
-from ABH import ABH
-from telethon import events
+import asyncio
+from telethon import TelegramClient, events
+from telethon.tl.types import ChannelAdminLogEventActionChangeAdmin
 
-# 1. الـ Handler الأول: يعدل على الحدث
-@ABH.on(events.NewMessage(pattern='حدث'))
-async def modify_event_handler(event):
-    # إضافة الخصائص الخاصة على أوبجكت الحدث
-    event.is_done = True
-    event.custom_tag = event.text
-    event.user_id_str = str(event.sender_id)
+# استيراد إعدادات الكيان من ملف ABH
 
+client = TelegramClient('session_name', API_ID, API_HASH)
 
-# 2. الـ Handler الثاني: يستقبل الحدث المعدل ويرد بدلاً من الطباعة
-@ABH.on(events.NewMessage)
-async def receive_event_handler(event):
-    # قراءة البيانات المعدلة بأمان
-    is_done = getattr(event, 'is_done', False)
-    custom_tag = getattr(event, 'custom_tag', None)
+@client.on(events.ChatAction())
+async def monitor_admin_log(event):
+    # استخدام ايدي القناة الذي يأتي من الحدث مباشرة لمراقبة أي قناة يتدخل فيها البوت أو الحساب
+    channel_id = event.chat_id
     
-    if is_done:
-        response_text = (
-            f"<b>تم استقبال حدث معدّل بنجاح!</b>\n\n"
-            f"<b>التاج:</b> <code>{custom_tag}</code>\n"
-            f"<b>آيدي المستخدم:</b> <code>{event.user_id_str}</code>\n"
-            f"<b>الرسالة الأصلية:</b> {event.text}"
-        )
-    else:
-        response_text = f"حدث عادي بدون تعديلات:\n{event.text}"
-    
-    # الرد المباشر على الرسالة
-    await event.reply(response_text, parse_mode='html')
+    try:
+        # جلب أحدث إجراء تم تسجيله في سجل المشرفين للقناة المعنية
+        async for log_entry in client.iter_admin_log(channel_id, limit=1):
+            action = log_entry.action
+            
+            # التحقق مما إذا كان الإجراء متعلقاً بتغيير صلاحيات مشرف أو نقل ملكية
+            if isinstance(action, ChannelAdminLogEventActionChangeAdmin):
+                new_rights = action.new_value
+                
+                # التحقق إذا ما كانت الصلاحيات الجديدة تتضمن نقل الملكية الكاملة
+                if getattr(new_rights, 'is_creator', False):
+                    new_owner_id = log_entry.user_id
+                    admin_who_changed = log_entry.actor_id
+                    
+                    msg = (
+                        f"⚠️ **تنبيه خطير: تم رصد نقل ملكية القناة!**\n\n"
+                        f"📢 **معرف القناة:** `{channel_id}`\n"
+                        f"👤 **المشرف الجديد (المالك):** `{new_owner_id}`\n"
+                        f"🛠 **بواسطة المشرف:** `{admin_who_changed}`"
+                    )
+                    
+                    # إرسال التنبيه الفوري باستخدام المعرف المستورد من ملف ABH
+                    await client.send_message(ALERT_CHAT_ID, msg)
+                    break
+                    
+    except Exception as e:
+        print(f"خطأ أثناء قراءة سجل المشرفين للقناة {channel_id}: {e}")
