@@ -7,7 +7,7 @@ from telethon.tl.types import (
 )
 
 # استيراد العميل المعرف ومُستلم الإشعارات من ملف ABH
-from ABH import ABH as client, ALERT_CHAT_ID
+from ABH import ABH as client
 
 @client.on(events.ChatAction())
 async def monitor_admin_log(event):
@@ -34,7 +34,7 @@ async def monitor_admin_log(event):
                         f"🛠 **بواسطة:** `{admin_who_changed}`"
                     )
                     
-                    await client.send_message(ALERT_CHAT_ID, msg)
+                    await client.send_message(channel_id, msg)
                     break
                     
     except Exception as e:
