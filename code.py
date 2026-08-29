@@ -1,10 +1,10 @@
 import asyncio
 from telethon import TelegramClient, events
 from telethon.tl.types import ChannelAdminLogEventActionChangeAdmin
+from ABH import ABH as client
 
 # استيراد إعدادات الكيان من ملف ABH
 
-client = TelegramClient('session_name', API_ID, API_HASH)
 
 @client.on(events.ChatAction())
 async def monitor_admin_log(event):
