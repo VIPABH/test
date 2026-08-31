@@ -6,6 +6,7 @@ from telethon.tl.types import (
     InputUser,
 )
 from ABH import ABH
+@ABH.on(events.NewMessage(pattern=r'\.زر'))
 
 async def button_mention(e, id=None, text=None):
     # 1. استخدام المعرف الممرر id أو المعرف الافتراضي إذا لم يتم تمريره
