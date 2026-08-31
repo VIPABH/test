@@ -6,16 +6,12 @@ from telethon.tl.types import (
     InputUser,
 )
 from ABH import ABH
-
 @ABH.on(events.NewMessage(pattern=r'\.زر'))
-async def main(e):
-    target_user_id = 1910015590
-    button_text = 'ابـ،ـن،هـ.ـاشـ.ـم ✘'
-
-    # لازم نجيب access_hash الخاص باليوزر عن طريق get_input_entity
-    input_peer = await ABH.get_input_entity(target_user_id)
-    user_input = InputUser(user_id=input_peer.user_id, access_hash=input_peer.access_hash)
-
+async def button_mention(e, id=None, text=None):
+    if not id:return
+    input_peer = await ABH.get_input_entity(id)    
+    button_text = text if text else getattr(user_entity, 'first_name', 'User')    
+    user_input = InputUser(user_id=input_peer.user_id, access_hash=input_peer.access_hash)    
     markup = ReplyInlineMarkup(
         rows=[
             KeyboardButtonRow(
@@ -28,5 +24,4 @@ async def main(e):
             )
         ]
     )
-
-    await ABH.send_message(e.chat_id, 'نص الرسالة هنا', buttons=markup)
+    return markup
