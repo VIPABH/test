@@ -1,4 +1,4 @@
-from ABH import ABH
+from ABH import *
 from telethon.tl.custom import Button
 @ABH.on(events.NewMessage)
 async def _(e):
