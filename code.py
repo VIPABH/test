@@ -1,25 +1,32 @@
-from telethon import events, types
-from telethon.tl.custom import Button
-from ABH import *
+from telethon import events
+from telethon.tl.types import (
+    ReplyInlineMarkup,
+    KeyboardButtonRow,
+    InputKeyboardButtonUserProfile,
+    InputUser,
+)
+from ABH import ABH
 
-def mention_button(text, user_entity):
-    # تحويل الـ InputEntity إلى InputUser يتضمن access_hash
-    input_user = types.InputUser(
-        user_id=user_entity.user_id,
-        access_hash=user_entity.access_hash
+@ABH.on(events.NewMessage(pattern=r'\.زر'))
+async def main(e):
+    target_user_id = 1910015590
+    button_text = 'ابـ،ـن،هـ.ـاشـ.ـم ✘'
+
+    # لازم نجيب access_hash الخاص باليوزر عن طريق get_input_entity
+    input_peer = await ABH.get_input_entity(target_user_id)
+    user_input = InputUser(user_id=input_peer.user_id, access_hash=input_peer.access_hash)
+
+    markup = ReplyInlineMarkup(
+        rows=[
+            KeyboardButtonRow(
+                buttons=[
+                    InputKeyboardButtonUserProfile(
+                        text=button_text,
+                        user_id=user_input
+                    )
+                ]
+            )
+        ]
     )
-    return types.KeyboardButtonRow(
-        buttons=[types.InputKeyboardButtonUserProfile(text=text, user_id=input_user)]
-    )
 
-Button.mention = staticmethod(mention_button)
-
-@ABH.on(events.NewMessage)
-async def _(e):
-    # جلب entity المستخدم المرسل
-    user_entity = await ABH.get_input_entity(e.sender_id)
-    
-    # إرسال الزر المغلف
-    await e.reply('>', buttons=[
-        [Button.mention('--', user_entity)]
-    ])
+    await ABH.send_message(e.chat_id, 'نص الرسالة هنا', buttons=markup)
