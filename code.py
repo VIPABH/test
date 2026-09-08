@@ -8,10 +8,10 @@ async def restrict_user(event):
     chat_id = event.chat_id
     user, id, t = extractfree(event.text)
     if user:
-        if user in info:
-            FullUser = info[user]
-        else:
+        if not user in info:
             fulluser = await ABH.get_entity(user)
+        else:
+            fullUser = info[user]
             info[user] = fulluser
         if not fulluser:
             await chs(event, "عذرا هذا المستخدم غير موجود.")
