@@ -18,7 +18,7 @@ async def restrict_user(event):
     user, id, t = extractfree(event.text)
     if user:
         if user in info:
-            fulluser = info[fulluser]
+            fulluser = info[user]
         else:
             fulluser = await ABH.get_entity(user)
             info[user] = fulluser
