@@ -54,7 +54,7 @@ async def restrict_user(event):
         else:
             max_allowed_time = res_time[x]
             t = min(t, max_allowed_time)
-    # name = await ment(target)
+    name = await ment(target)
     # try:
     #     p = await ABH(GetParticipantRequest(
     #         channel=int(chat_id),
