@@ -88,7 +88,8 @@ async def restrict_user(event):
     c = f"تم تقييد {name} لمدة {t} دقيقة.\n {x}"
     # if not is_member: 
         # c += '\n ماكدرت اقيد المستخدم لانه مغادر 🚪'
-    await ABH.send_file(event.chat_id, "media/res.MP4", caption=c)
+    await e.reply(c)
+    # await ABH.send_file(event.chat_id, "media/res.MP4", caption=c)
     # await send(
     #     event,
     #     f'#تقييد_عام\n'
