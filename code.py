@@ -1,6 +1,6 @@
 from telethon.tl.types import UpdateChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
 from telethon import TelegramClient, events
-from ABH import ABH as bot
+from ABH import ABH as bot, r
 r.srem("gbanusers", wfffp)
 # @bot.on(events.ChatAction)
 # async def handler(event):
