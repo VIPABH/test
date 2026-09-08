@@ -1,20 +1,29 @@
 from Resources import *
 from ABH import *
 info = {}
+
 @ABH.on(events.NewMessage(pattern=r"^(تقييد عام|مخفي قيد[هة])(?:\s+(@\w+|\d{6,10}|\d{1,5}))?(?:\s+(\d{6,10}|\d{2,5}))?$"))
 async def restrict_user(event):
-    # if not event.is_group:return
+    # if not event.is_group: return
     reply = None
     chat_id = event.chat_id
     user, id, t = extractfree(event.text)
+    
+    fulluser = None  # تعريف المتغير بقيمة افتراضية لتفادي UnboundLocalError
+
     if user:
-        if not user in info:
-            fulluser = await ABH.get_entity(user)
-            info[user] = fulluser
+        if user in info:
+            fulluser = info[user]  # تصحيح حرف F الكبير إلى f صغير
         else:
-            fullUser = info[user]
+            try:
+                fulluser = await ABH.get_entity(user)
+                if fulluser:
+                    info[user] = fulluser
+            except Exception:
+                fulluser = None
+
         if not fulluser:
-            await chs(event, "عذرا هذا المستخدم غير موجود.")
+            await chs(event, "عذراً هذا المستخدم غير موجود.")
             return
         target = fulluser.id
     elif id:
