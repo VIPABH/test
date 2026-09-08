@@ -1,45 +1,15 @@
 from Resources import *
 from ABH import *
 info = {}
-def extract(text):
-    words_to_remove = ['تقييد عام', 'مخفي قيده', 'مخفي قيدة']
-    pattern = r"|".join(map(re.escape, words_to_remove))
-    clean_words = re.sub(pattern, "", text).split()    
-    username = None
-    user_id = None
-    time_val = None
-    for word in clean_words:
-        if word.startswith('@') and len(word) > 1:
-            if username is None:
-                username = word                
-        elif word.isdigit():
-            val = int(word)
-            if len(word) >= 6 and len(word) <= 10:
-                if user_id is None:
-                    user_id = val
-            else:
-                if time_val is None:
-                    time_val = val
-    return username, user_id, time_val
-@ABH.on(events.NewMessage(pattern=r"^(تقييد عام|مخفي قيد[هة])"))
+@ABH.on(events.NewMessage(pattern=r"^(تقييد عام|مخفي قيد[هة])(?:\s+(@\w+|\d{6,10}|\d{1,5}))?(?:\s+(\d{6,10}|\d{2,5}))?$"))
 async def restrict_user(event):
     # if not event.is_group:return
-    # x = await auth(event, x=False, to=event.sender_id)
-    # a = await auth(event, x=False, to=target)
-    # if not x: return await event.reply('😂')
-    # if target == wfffp: 
-    #     await chs(event, "😂")
-    #     return
-    # can = authers(x, a)
-    # if not can:
-    #     await chs(event, f"عذرا بس ماتكدر تقيد {a}")
-    #     return
     reply = None
     chat_id = event.chat_id
-    user, id, t = extract(event.text)
+    user, id, t = extractfree(event.text)
     if user:
         if user in info:
-            fulluser = info[user]
+            FullUser = user[info]
         else:
             fulluser = await ABH.get_entity(user)
             info[user] = fulluser
@@ -56,6 +26,16 @@ async def restrict_user(event):
         else:
             await chs(event, "يجب تحديد المستخدم أو الرد على رسالته.")
             return            
+    # x = await auth(event, x=False, to=event.sender_id)
+    # a = await auth(event, x=False, to=target)
+    # if not x: return await event.reply('😂')
+    # if target == wfffp: 
+    #     await chs(event, "😂")
+    #     return
+    # can = authers(x, a)
+    # if not can:
+    #     await chs(event, f"عذرا بس ماتكدر تقيد {a}")
+    #     return
     # await event.delete()
     # end_time_str = r.hget(str(chat_id), str(target))
     # if end_time_str:
@@ -88,27 +68,27 @@ async def restrict_user(event):
     #     await hint('gurd 73*' + str(e))
     #     return
     # if is_member:
-        # if isinstance(p.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
-            # await res(f"{chat_id}:{target}", True, t*60)
-            # await chs(event, f'تم كتم {name} مدة {t} دقيقة')
-            # await send(
-            #     event,
-            #     f'#تقييد_عام\n'
-            #     f'تم كتم {a if a else "المستخدم"} \n'
-            #     f'اسمه ( {name} ) \n'
-            #     f'🆔 ايديه: ( `{target}` )\n'
-            #     f'👤 بواسطة {x} \n'
-            #     f'اسمه: ( {await mention(event)} ) \n'
-            #     f'ايديه: ( `{event.sender_id}` )\n'
-            #     f'المده ( {t} د ) \n'
-            #     f'الرابط {await link(event)}'
-            # )
-            # return
+    #     if isinstance(p.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
+    #         await res(f"{chat_id}:{target}", True, t*60)
+    #         await chs(event, f'تم كتم {name} مدة {t} دقيقة')
+    #         await send(
+    #             event,
+    #             f'#تقييد_عام\n'
+    #             f'تم كتم {a if a else "المستخدم"} \n'
+    #             f'اسمه ( {name} ) \n'
+    #             f'🆔 ايديه: ( `{target}` )\n'
+    #             f'👤 بواسطة {x} \n'
+    #             f'اسمه: ( {await mention(event)} ) \n'
+    #             f'ايديه: ( `{event.sender_id}` )\n'
+    #             f'المده ( {t} د ) \n'
+    #             f'الرابط {await link(event)}'
+    #         )
+    #         return
     # await res(f"{chat_id}:{target}", not is_member, int(t) * 60)
     c = f"تم تقييد {name} لمدة {t} دقيقة.\n {x}"
-    # if not is_member: 
-        # c += '\n ماكدرت اقيد المستخدم لانه مغادر 🚪'
     await event.reply(c)
+    # if not is_member: 
+    #     c += '\n ماكدرت اقيد المستخدم لانه مغادر 🚪'
     # await ABH.send_file(event.chat_id, "media/res.MP4", caption=c)
     # await send(
     #     event,
