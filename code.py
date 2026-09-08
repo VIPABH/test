@@ -1,7 +1,7 @@
 from telethon.tl.types import UpdateChannelParticipant, ChannelParticipantAdmin, ChannelParticipantCreator
 from telethon import TelegramClient, events
 from ABH import ABH as bot, r
-r.srem("gbanusers", wfffp)
+r.srem("gbanusers", 1910015590)
 # @bot.on(events.ChatAction)
 # async def handler(event):
 #     if not event.user_joined or not event.user_added:return
