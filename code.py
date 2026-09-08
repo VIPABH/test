@@ -10,9 +10,9 @@ async def restrict_user(event):
     if user:
         if not user in info:
             fulluser = await ABH.get_entity(user)
+            info[user] = fulluser
         else:
             fullUser = info[user]
-            info[user] = fulluser
         if not fulluser:
             await chs(event, "عذرا هذا المستخدم غير موجود.")
             return
