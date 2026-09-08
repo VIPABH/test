@@ -1,6 +1,26 @@
 from Resources import *
 from ABH import *
 info = {}
+def extract(text):
+    words_to_remove = ['تقييد عام', 'مخفي قيده', 'مخفي قيدة']
+    pattern = r"|".join(map(re.escape, words_to_remove))
+    clean_words = re.sub(pattern, "", text).split()    
+    username = None
+    user_id = None
+    time_val = None
+    for word in clean_words:
+        if word.startswith('@') and len(word) > 1:
+            if username is None:
+                username = word                
+        elif word.isdigit():
+            val = int(word)
+            if len(word) >= 6 and len(word) <= 10:
+                if user_id is None:
+                    user_id = val
+            else:
+                if time_val is None:
+                    time_val = val
+    return username, user_id, time_val
 @ABH.on(events.NewMessage(pattern=r"^(تقييد عام|مخفي قيد[هة])"))
 async def restrict_user(event):
     # if not event.is_group:return
@@ -16,7 +36,7 @@ async def restrict_user(event):
     #     return
     reply = None
     chat_id = event.chat_id
-    user, id, t = extractfree(event.text)
+    user, id, t = extract(event.text)
     if user:
         if user in info:
             fulluser = info[user]
@@ -88,7 +108,7 @@ async def restrict_user(event):
     c = f"تم تقييد {name} لمدة {t} دقيقة.\n {x}"
     # if not is_member: 
         # c += '\n ماكدرت اقيد المستخدم لانه مغادر 🚪'
-    await e.reply(c)
+    await event.reply(c)
     # await ABH.send_file(event.chat_id, "media/res.MP4", caption=c)
     # await send(
     #     event,
