@@ -1,5 +1,6 @@
 from Resources import *
 from ABH import *
+info = {}
 @ABH.on(events.NewMessage(pattern=r"^(تقييد عام|مخفي قيد[هة])(?:\s+(@\w+|\d{6,10}|\d{1,5}))?(?:\s+(\d{6,10}|\d{2,5}))?$"))
 async def restrict_user(event):
     # if not event.is_group:return
@@ -17,7 +18,11 @@ async def restrict_user(event):
     chat_id = event.chat_id
     user, id, t = extractfree(event.text)
     if user:
-        fulluser = await ABH.get_entity(user)
+        if user in info:
+            fulluser = info[fulluser]
+        else:
+            fulluser = await ABH.get_entity(user)
+            info[user] = fulluser
         if not fulluser:
             await chs(event, "عذرا هذا المستخدم غير موجود.")
             return
