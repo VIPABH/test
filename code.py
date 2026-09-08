@@ -1,4 +1,3 @@
-from Resources import *
 from ABH import *
 info = {}
 @ABH.on(events.NewMessage(pattern=r"^(تقييد عام|مخفي قيد[هة])(?:\s+(@\w+|\d{6,10}|\d{1,5}))?(?:\s+(\d{6,10}|\d{2,5}))?$"))
