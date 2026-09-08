@@ -47,13 +47,14 @@ async def restrict_user(event):
     #         await chs(event, f"المستخدم مقيد مسبقا باقي على تقييده {remaining_str}")
     #         return
     t = int(t) if t else 20
+    x = random.choice(['المعاون', 'المساعد', 'المطور الثانوي'])
     if x in res_time:
         if t < 10:
             t = 10
         else:
             max_allowed_time = res_time[x]
             t = min(t, max_allowed_time)
-    name = await ment(target)
+    # name = await ment(target)
     # try:
     #     p = await ABH(GetParticipantRequest(
     #         channel=int(chat_id),
@@ -70,7 +71,6 @@ async def restrict_user(event):
         # if isinstance(p.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
             # await res(f"{chat_id}:{target}", True, t*60)
             # await chs(event, f'تم كتم {name} مدة {t} دقيقة')
-    await chs(event, f'تم كتم {name} مدة {t} دقيقة')
             # await send(
             #     event,
             #     f'#تقييد_عام\n'
@@ -85,7 +85,7 @@ async def restrict_user(event):
             # )
             # return
     # await res(f"{chat_id}:{target}", not is_member, int(t) * 60)
-    c = f"تم تقييد {name} لمدة {t} دقيقة."
+    c = f"تم تقييد {name} لمدة {t} دقيقة.\n {x}"
     # if not is_member: 
         # c += '\n ماكدرت اقيد المستخدم لانه مغادر 🚪'
     await ABH.send_file(event.chat_id, "media/res.MP4", caption=c)
