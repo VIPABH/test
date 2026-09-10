@@ -13,15 +13,21 @@ import joblib
 from Resources import *
 from telethon import Button, events
 
-# اسم الملفات المحلية للحفظ
+# الملفات الأساسية للحفظ النهائي
 SAFE_FILE = "safe.json"
 BANNED_FILE = "banned.json"
 
-sentences = set()  # تجميع الكلمات المنفردة
+# جلسة العمل الحالية لقراءة ملف
+current_session = {
+    "filename": None,
+    "words": [],
+    "total_count": 0,
+    "current_index": 0,
+}
 
 
 def append_to_json(filename: str, word: str):
-    """دالة مساعدة لإضافة الكلمة إلى ملف JSON دون تكرار"""
+    """دالة إضافة الكلمة إلى ملف JSON دون تكرار"""
     data = []
     if os.path.exists(filename):
         try:
@@ -36,103 +42,133 @@ def append_to_json(filename: str, word: str):
             json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def get_next_word_message():
-    """دالة مساعدة لاستخراج كلمة عشوائية مع الأزرار 3"""
-    if not sentences:
-        return "⚠️ القائمة فارغة حالياً.", None
+def get_json_files():
+    """البحث عن كل ملفات JSON المتاحة في مجلد السكربت"""
+    files = [f for f in os.listdir(".") if f.endswith(".json")]
+    return sorted(files)
 
-    word = random.choice(list(sentences))
+
+def get_current_word_payload():
+    """تجهيز النص والأزرار للكلمة الحالية داخل الملف المفتوح"""
+    words = current_session["words"]
+    idx = current_session["current_index"]
+    total = current_session["total_count"]
+    filename = current_session["filename"]
+
+    # عند انتهاء جميع كلمات الملف
+    if idx >= total or not words:
+        return f"🎉 **أكتمل تصنيف جميع كلمات الملف:** `{filename}`", None
+
+    word = words[idx]
+    remaining = total - idx
+
+    # معلومات الملف والنص الرئيسي
+    text = (
+        f"📁 **الملف الحالي:** `{filename}`\n"
+        f"📊 **المعلومات:** الإجمالي: `{total}` | المتبقي: `{remaining}`\n"
+        f"----------------------------------------\n"
+        f"💬 **الكلمة المقترحة:** `{word}`\n\n"
+        f"اختر التصنيف المناسب:"
+    )
 
     buttons = [
         [
-            Button.inline("✅ كلمة عادية", data=f"add_safe:{word}"),
-            Button.inline("❌ كلمة بذيئة", data=f"add_ban:{word}"),
+            Button.inline("✅ كلمة عادية", data=f"classify_safe:{word}"),
+            Button.inline("❌ كلمة بذيئة", data=f"classify_ban:{word}"),
         ],
-        [Button.inline("🚫 تجاهل", data="ignore_word")],
+        [Button.inline("🚫 تجاهل", data="classify_ignore")],
+        [Button.inline("🔙 العودة للملفات", data="list_files")],
     ]
 
-    text = f"💬 **الكلمة المقترحة:** `{word}`\n\nاختر التصنيف المناسب:"
     return text, buttons
 
 
 @client.on(events.NewMessage)
 async def handler(event):
-    global sentences
-
-    # 1. تجاهل رسائل البوتات والرسائل الفارغة
     sender = await event.get_sender()
     if not sender or getattr(sender, "bot", False):
         return
 
     text_input = event.raw_text.strip() if event.raw_text else ""
-    if not text_input:
-        return
 
-    # --- الأوامر المباشرة ---
-    if text_input == "عدد الكلمات":
-        return await event.reply(f"📊 عدد الكلمات المجمعة: `{len(sentences)}`")
+    # --- أمر عرض واستعراض الملفات ---
+    if text_input == "الملفات":
+        json_files = get_json_files()
+        if not json_files:
+            return await event.reply("⚠️ لا توجد ملفات JSON في مجلد السكربت.")
 
-    elif text_input == "كلمة عشوائية":
-        msg_text, buttons = get_next_word_message()
-        if buttons:
-            return await event.reply(msg_text, buttons=buttons)
-        return await event.reply(msg_text)
+        buttons = []
+        for f in json_files:
+            buttons.append([Button.inline(f"📄 {f}", data=f"open_file:{f}")])
 
-    # 2. تقسيم النص إلى كلمات منفردة وتجاهل الرموز وعلامات الترقيم
-    words = re.findall(r"\b\w+\b", text_input)
-
-    for w in words:
-        word = w.strip()
-        if len(word) > 2 and not word.isdigit():
-            sentences.add(word)
-
-    # 3. عند الوصول إلى 1000 كلمة
-    if len(sentences) >= 1000:
-        data_to_save = list(sentences)[:1000]
-
-        filename = f"words_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(data_to_save, f, ensure_ascii=False, indent=2)
-
-        await client.send_file(
-            wfffp,
-            filename,
-            caption=f"✅ تم جمع وحفظ {len(data_to_save)} كلمة بنجاح!",
+        return await event.reply(
+            "📁 **اختر الملف الذي تريد البدء بتصنيف كلماته:**", buttons=buttons
         )
 
-        sentences.clear()
 
-
-# --- معالج الضغط على الأزرار ---
+# --- معالج الأزرار والتفاعل ---
 @client.on(events.CallbackQuery)
 async def callback_handler(event):
-    global sentences
+    global current_session
     data = event.data.decode("utf-8")
 
-    # 1. إضافة للكلمات العادية وحذفها من الـ Set
-    if data.startswith("add_safe:"):
-        word = data.split("add_safe:")[1]
+    # 1. استعراض قائمة الملفات
+    if data == "list_files":
+        json_files = get_json_files()
+        if not json_files:
+            return await event.edit("⚠️ لا توجد ملفات JSON متاحة.")
+
+        buttons = [[Button.inline(f"📄 {f}", data=f"open_file:{f}")] for f in json_files]
+        return await event.edit("📁 **اختر ملفاً للاستعراض والتصنيف:**", buttons=buttons)
+
+    # 2. فتح ملف محدد وعرض معلوماته
+    elif data.startswith("open_file:"):
+        filename = data.split("open_file:")[1]
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                loaded_words = json.load(f)
+
+            if not isinstance(loaded_words, list) or not loaded_words:
+                return await event.answer("⚠️ الملف فارغ أو بنيته غير صالحة!", alert=True)
+
+            current_session["filename"] = filename
+            current_session["words"] = loaded_words
+            current_session["total_count"] = len(loaded_words)
+            current_session["current_index"] = 0
+
+            await event.answer(f"تم فتح {filename}")
+            msg_text, buttons = get_current_word_payload()
+            return await event.edit(msg_text, buttons=buttons)
+
+        except Exception as e:
+            return await event.answer(f"❌ خطأ في قراءة الملف: {e}", alert=True)
+
+    # 3. تصنيف: كلمة عادية
+    elif data.startswith("classify_safe:"):
+        word = data.split("classify_safe:")[1]
         append_to_json(SAFE_FILE, word)
-        sentences.discard(word)  # إزالة الكلمة حتى لا تتكرر
-        await event.answer(f"✅ تم حفظ '{word}' في الكلمات العادية")
+        current_session["current_index"] += 1
+        await event.answer(f"✅ تم حفظ '{word}' في safe.json")
 
-    # 2. إضافة للكلمات البذيئة وحذفها من الـ Set
-    elif data.startswith("add_ban:"):
-        word = data.split("add_ban:")[1]
+    # 4. تصنيف: كلمة بذيئة
+    elif data.startswith("classify_ban:"):
+        word = data.split("classify_ban:")[1]
         append_to_json(BANNED_FILE, word)
-        sentences.discard(word)  # إزالة الكلمة حتى لا تتكرر
-        await event.answer(f"❌ تم حفظ '{word}' في الكلمات البذيئة")
+        current_session["current_index"] += 1
+        await event.answer(f"❌ تم حفظ '{word}' في banned.json")
 
-    # 3. تجاهل الكلمة الحالية
-    elif data == "ignore_word":
+    # 5. تجاهل الكلمة
+    elif data == "classify_ignore":
+        current_session["current_index"] += 1
         await event.answer("🚫 تم التجاهل")
 
-    # عرض الكلمة التالية فوراً لتسريع عملية الفرز
-    msg_text, buttons = get_next_word_message()
+    # عرض الكلمة التالية تلقائياً مع تحديث العداد
+    msg_text, buttons = get_current_word_payload()
     if buttons:
         await event.edit(msg_text, buttons=buttons)
     else:
-        await event.edit("⚠️ اكتمل تصنيف الكلمات أو أن القائمة فارغة حالياً!")
+        await event.edit(msg_text)
+
 
 
 
