@@ -9,50 +9,62 @@ import joblib
 from Resources import *
 
 
-
-import json
-import re, random
 from datetime import datetime
+import json
+import random
+import re
+from telethon import events
 
-
-# Set لمنع التكرار تلقائياً
-sentences = set()
+sentences = set()  # هنا ستُخزن الكلمات المنفردة
 
 
 @client.on(events.NewMessage)
 async def handler(event):
     global sentences
 
-    if not event.raw_text:
+    # 1. تجاهل رسائل البوتات والرسائل الفارغة
+    sender = await event.get_sender()
+    if not sender or getattr(sender, "bot", False):
         return
-    text = event.text
-    if text == "عدد الجمل":return await event.reply(str(len(sentences)))
-    elif text == "جملة عشوائية":return await event.reply(random.choice(list(sentences)))
-    # تقسيم النص إلى جمل حسب الأسطر وعلامات الترقيم
-    split_sentences = re.split(r"[\n.!?؟]+", event.raw_text)
 
-    for s in split_sentences:
-        text = s.strip()
-        if len(text) > 3:  # تجاهل الرموز والكلمات القصيرة جداً
-            sentences.add(text)
+    text_input = event.raw_text.strip() if event.raw_text else ""
+    if not text_input:
+        return
 
-    # عند الوصول إلى 1000 جملة
+    # --- الأوامر المباشرة ---
+    if text_input == "عدد الكلمات":
+        return await event.reply(f"📊 عدد الكلمات المجمعة: `{len(sentences)}`")
+    elif text_input == "كلمة عشوائية":
+        if sentences:
+            return await event.reply(
+                f"💬 كلمة عشوائية: `{random.choice(list(sentences))}`"
+            )
+        return await event.reply("⚠️ القائمة فارغة حالياً.")
+
+    # 2. تقسيم النص إلى كلمات منفردة وتجاهل الرموز وعلامات الترقيم
+    words = re.findall(r"\b\w+\b", text_input)
+
+    for w in words:
+        word = w.strip()
+        # إضافة الكلمة إذا كان طولها أكثر من حرفين وليست أرقاماً فقط
+        if len(word) > 2 and not word.isdigit():
+            sentences.add(word)
+
+    # 3. عند الوصول إلى 1000 كلمة
     if len(sentences) >= 1000:
         data_to_save = list(sentences)[:1000]
 
-        # حفظ الملف
-        filename = f"sentences_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        filename = f"words_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(data_to_save, f, ensure_ascii=False, indent=2)
 
-        # إرسال الملف والإشعار إلى الرسائل المحفوظة
+        # إرسال الملف للإشعار
         await client.send_file(
             wfffp,
             filename,
-            caption=f"✅ تم جمع وحفظ {len(data_to_save)} جملة بنجاح!",
+            caption=f"✅ تم جمع وحفظ {len(data_to_save)} كلمة بنجاح!",
         )
 
-        # إعادة تصفير الـ Set للدفعة القادمة
         sentences.clear()
 
 
