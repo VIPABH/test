@@ -26,7 +26,7 @@ async def handler(event):
     if not event.raw_text:
         return
     text = event.text
-    if text == "عدد الجمل":return await event.reply(len(sentences))
+    if text == "عدد الجمل":return await event.reply(str(len(sentences)))
     elif text == "جملة عشوائية":return await event.reply(random.choice(list(sentences)))
     # تقسيم النص إلى جمل حسب الأسطر وعلامات الترقيم
     split_sentences = re.split(r"[\n.!?؟]+", event.raw_text)
