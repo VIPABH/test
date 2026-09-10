@@ -1,120 +1,154 @@
+import asyncio
+import re
+import warnings
+
+warnings.filterwarnings("ignore")
+
+from ABH import ABH as client
+import joblib
 from Resources import *
-from ABH import *
-info = {}
 
-@ABH.on(events.NewMessage(pattern=r"^(تقييد عام|مخفي قيد[هة])(?:\s+(@\w+|\d{6,10}|\d{1,5}))?(?:\s+(\d{6,10}|\d{2,5}))?$"))
-async def restrict_user(event):
-    # if not event.is_group: return
-    reply = None
-    chat_id = event.chat_id
-    user, id, t = extractfree(event.text)
-    
-    fulluser = None  # تعريف المتغير بقيمة افتراضية لتفادي UnboundLocalError
+RAW_BANNED_WORDS = [
+    "كس",
+    "كسمك",
+    "كسختك",
+    "عير",
+    "كسخالتك",
+    "خرا",
+    "كحاب",
+    "مناويج",
+    "كحبه",
+    "ابن الكحبه",
+    "فرخ",
+    "فروخ",
+    "طيزك",
+    "طيزختك",
+    "شرموط",
+    "شرموطه",
+    "ابن الشرموطه",
+    "ابن الخول",
+    "ابن العرص",
+    "منايك",
+    "متناك",
+    "ابن المتناكه",
+    "زبك",
+    "عرص",
+    "زبي",
+    "خول",
+    "لبوه",
+    "منيوك",
+    "قحبه",
+    "القحبه",
+    "شراميط",
+    "العلق",
+    "تيز",
+    "التيز",
+    "الديوث",
+    "كسمج",
+    "بلبولك",
+    "صدرج",
+    "كسعرضك",
+    "الخنيث",
+    "نغل",
+    "نغولة",
+    "انيجة",
+    "انيج",
+    "عاهرات",
+    "عاهرة",
+    "طيز",
+    "كواد",
+    "بربوك",
+    "زب",
+    "الكواد",
+    "دودة",
+    "كسك",
+    "سكسي",
+    "ابن الزنا",
+    "قحبة",
+    "عيري",
+    "نودز",
+    "قضيب",
+]
 
-    if user:
-        if user in info:
-            fulluser = info[user]  # تصحيح حرف F الكبير إلى f صغير
-        else:
-            try:
-                fulluser = await ABH.get_entity(user)
-                if fulluser:
-                    info[user] = fulluser
-            except Exception:
-                fulluser = None
+BANNED_SET = set(RAW_BANNED_WORDS)
 
-        if not fulluser:
-            await chs(event, "عذراً هذا المستخدم غير موجود.")
-            return
-        target = fulluser.id
-    elif id:
-        target = id
-    else:
-        reply = await event.get_reply_message()
-        if reply:
-            target = reply.sender_id
-        else:
-            await chs(event, "يجب تحديد المستخدم أو الرد على رسالته.")
-            return            
-    # x = await auth(event, x=False, to=event.sender_id)
-    # a = await auth(event, x=False, to=target)
-    # if not x: return await event.reply('😂')
-    # if target == wfffp: 
-    #     await chs(event, "😂")
-    #     return
-    # can = authers(x, a)
-    # if not can:
-    #     await chs(event, f"عذرا بس ماتكدر تقيد {a}")
-    #     return
-    # await event.delete()
-    # end_time_str = r.hget(str(chat_id), str(target))
-    # if end_time_str:
-    #     now = int(time.time())
-    #     remaining = int(end_time_str) - now
-    #     if remaining > 0:
-    #         minutes, seconds = divmod(remaining, 60)
-    #         remaining_str = f"( {minutes:02}:{seconds:02} )"
-    #         await chs(event, f"المستخدم مقيد مسبقا باقي على تقييده {remaining_str}")
-    #         return
-    t = int(t) if t else 20
-    x = random.choice(['المعاون', 'المساعد', 'المطور الثانوي'])
-    if x in res_time:
-        if t < 10:
-            t = 10
-        else:
-            max_allowed_time = res_time[x]
-            t = min(t, max_allowed_time)
-    name = await ment(target)
-    # try:
-    #     p = await ABH(GetParticipantRequest(
-    #         channel=int(chat_id),
-    #         participant=int(target)
-    #     ))
-    #     is_member = True
-    # except UserNotParticipantError:
-    #     is_member = False
-    #     p = None
-    # except Exception as e:
-    #     await hint('gurd 73*' + str(e))
-    #     return
-    # if is_member:
-    #     if isinstance(p.participant, (ChannelParticipantCreator, ChannelParticipantAdmin)):
-    #         await res(f"{chat_id}:{target}", True, t*60)
-    #         await chs(event, f'تم كتم {name} مدة {t} دقيقة')
-    #         await send(
-    #             event,
-    #             f'#تقييد_عام\n'
-    #             f'تم كتم {a if a else "المستخدم"} \n'
-    #             f'اسمه ( {name} ) \n'
-    #             f'🆔 ايديه: ( `{target}` )\n'
-    #             f'👤 بواسطة {x} \n'
-    #             f'اسمه: ( {await mention(event)} ) \n'
-    #             f'ايديه: ( `{event.sender_id}` )\n'
-    #             f'المده ( {t} د ) \n'
-    #             f'الرابط {await link(event)}'
-    #         )
-    #         return
-    # await res(f"{chat_id}:{target}", not is_member, int(t) * 60)
-    c = f"تم تقييد {name} لمدة {t} دقيقة.\n {x}"
-    await event.reply(c)
-    # if not is_member: 
-    #     c += '\n ماكدرت اقيد المستخدم لانه مغادر 🚪'
-    # await ABH.send_file(event.chat_id, "media/res.MP4", caption=c)
-    # await send(
-    #     event,
-    #     f'#تقييد_عام\n'
-    #     f'تم تقييد المستخدم \n'
-    #     f'اسمه ( {name} ) \n'
-    #     f'🆔 ايديه: ( `{target}` )\n'
-    #     f'👤 بواسطة {x} \n'
-    #     f'اسمه: ( {await mention(event)} ) \n'
-    #     f'ايديه: ( `{event.sender_id}` )\n'
-    #     f'المده ( {t} د ) \n'
-    #     f'الرابط {await link(event)}'
-    # )
-    # if reply:
-    #     await try_forward(reply)
-    #     try:
-    #         await reply.delete()
-    #     except:
-    #         pass
-    # signres(chat_id, 'تقييد عام', event.sender_id, target)
+# تحميل الموديل الذكي
+print("جاري تحميل الموديل...")
+model = joblib.load("profanity_model.joblib")
+print("تم تحميل الموديل بنجاح!")
+
+
+def check_profanity(text: str) -> tuple[bool, float, str]:
+    """دالة فحص النص: تعيد (هل بذيء، نسبة الثقة، السبب)"""
+    if not text:
+        return False, 0.0, "نص فارغ"
+
+    # تفكيك النص لكلمات
+    words = re.findall(r"\w+", text.lower())
+
+    # الفحص الأول: المطابقة التامة المباشرة (100% دقة)
+    for word in words:
+        if word in BANNED_SET:
+            return True, 1.0, f"كلمة محظورة: '{word}'"
+
+    # الفحص الثاني: الموديل الذكي
+    prob = model.predict_proba([text])[0][1]
+    if prob >= 0.50:
+        return True, prob, "تكهن الموديل الذكي"
+
+    return False, prob, "نص سليم"
+
+
+@client.on(events.NewMessage)
+async def monitor_messages(event):
+    # تجاهل الرسائل الفارغة أو الرسائل القادمة من البوتات
+    sender = await event.get_sender()
+    if not sender or getattr(sender, "bot", False):
+        return
+
+    text = event.raw_text
+    if not text:
+        return
+
+    # فحص الكلمات البذيئة
+    is_bad, confidence, reason = check_profanity(text)
+
+    if is_bad:
+        try:
+            # 1. استخراج رابط الرسالة المباشر (Public أو Private)
+            chat = await event.get_chat()
+            if getattr(chat, "username", None):
+                msg_link = f"https://t.me/{chat.username}/{event.id}"
+            else:
+                # للمجموعات والجروبات الخاصة
+                clean_chat_id = str(event.chat_id).replace("-100", "")
+                msg_link = f"https://t.me/c/{clean_chat_id}/{event.id}"
+
+            # 2. جمع معلومات المرسل
+            first_name = sender.first_name or "بدون اسم"
+            last_name = f" {sender.last_name}" if sender.last_name else ""
+            full_name = f"{first_name}{last_name}"
+            username = f"@{sender.username}" if sender.username else "لا يوجد"
+            user_id = sender.id
+
+            # 3. صياغة التقرير الإشعاري
+            report_text = (
+                f"🚨 **تم كشف كلام بذيء!**\n\n"
+                f"👤 **معلومات المرسل:**\n"
+                f"• **الاسم:** [{full_name}](tg://user?id={user_id})\n"
+                f"• **اليوزر:** {username}\n"
+                f"• **الآيدي:** `{user_id}`\n\n"
+                f"📝 **النص المخالف:**\n`{text}`\n\n"
+                f"🔍 **السبب / الكلمة:** `{reason}`\n"
+                f"📊 **نسبة الثقة:** `{confidence * 100:.1f}%`\n\n"
+                f"🔗 **رابط الرسالة:** [اضغط هنا للانتثال للرسالة]({msg_link})"
+            )
+
+            # إرسال التقرير لجهة الاستلام المحددة (wfffp)
+            await client.send_message(
+                wfffp, report_text, link_preview=False
+            )
+
+
+        except Exception as e:
+            print(f"خطأ أثناء إرسال التقرير: {e}")
