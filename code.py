@@ -255,8 +255,8 @@ async def handler(event):
         text = event.text
         buttons = [
         
-            Button.inline("✅ قبول فردي", data=f"single_safe:{word}"),
-            Button.inline("❌ رفض فردي", data=f"single_ban:{word}"),
+            Button.inline("✅ قبول فردي", data=f"single_safe:{text}"),
+            Button.inline("❌ رفض فردي", data=f"single_ban:{text}"),
         ]
         await event.reply(f"شنو تحب تسوي وي `{text}`", buttons=buttons)
     # 2. التجميع المستمر من كل المحادثات والمجموعات
