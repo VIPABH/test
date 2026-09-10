@@ -148,9 +148,6 @@ async def monitor_messages(event):
             # إرسال التقرير
             await client.send_message(wfffp, report_text, link_preview=False)
 
-            print(
-                f"[تم الرصد] ID: {user_id} | النسبة: {confidence * 100:.1f}% | السبب: {reason}"
-            )
 
         except Exception as e:
             print(f"خطأ أثناء إرسال التقرير: {e}")
