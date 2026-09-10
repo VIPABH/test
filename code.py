@@ -7,7 +7,53 @@ warnings.filterwarnings("ignore")
 from ABH import ABH as client
 import joblib
 from Resources import *
-from telethon import TelegramClient, events
+
+
+
+import json
+import re
+from datetime import datetime
+
+
+# Set لمنع التكرار تلقائياً
+sentences = set()
+
+
+@client.on(events.NewMessage)
+async def handler(event):
+    global sentences
+
+    if not event.raw_text:
+        return
+
+    # تقسيم النص إلى جمل حسب الأسطر وعلامات الترقيم
+    split_sentences = re.split(r"[\n.!?؟]+", event.raw_text)
+
+    for s in split_sentences:
+        text = s.strip()
+        if len(text) > 3:  # تجاهل الرموز والكلمات القصيرة جداً
+            sentences.add(text)
+
+    # عند الوصول إلى 1000 جملة
+    if len(sentences) >= 1000:
+        data_to_save = list(sentences)[:1000]
+
+        # حفظ الملف
+        filename = f"sentences_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(data_to_save, f, ensure_ascii=False, indent=2)
+
+        # إرسال الملف والإشعار إلى الرسائل المحفوظة
+        await client.send_file(
+            wfffp,
+            filename,
+            caption=f"✅ تم جمع وحفظ {len(data_to_save)} جملة بنجاح!",
+        )
+
+        # إعادة تصفير الـ Set للدفعة القادمة
+        sentences.clear()
+
+
 
 RAW_BANNED_WORDS = [
     "كس",
