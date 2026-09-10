@@ -7,6 +7,7 @@ warnings.filterwarnings("ignore")
 from ABH import ABH as client
 import joblib
 from Resources import *
+from telethon import TelegramClient, events
 
 RAW_BANNED_WORDS = [
     "كس",
@@ -78,22 +79,23 @@ model = joblib.load("profanity_model.joblib")
 print("تم تحميل الموديل بنجاح!")
 
 
-def check_profanity(text: str) -> tuple[bool, float, str]:
-    """دالة فحص النص: تعيد (هل بذيء، نسبة الثقة، السبب)"""
+def check_profanity_50_to_100(text: str) -> tuple[bool, float, str]:
+    """دالة فحص تعيد True إذا كانت نسبة التوقع للبذاءة بين 50% و 100%"""
     if not text:
         return False, 0.0, "نص فارغ"
 
-    # تفكيك النص لكلمات
     words = re.findall(r"\w+", text.lower())
 
-    # الفحص الأول: المطابقة التامة المباشرة (100% دقة)
+    # 1. مطابقة صريحة من القائمة = نسبة بذاءة 100%
     for word in words:
         if word in BANNED_SET:
-            return True, 1.0, f"كلمة محظورة: '{word}'"
+            return True, 1.0, f"مطابقة صريحة (100%): '{word}'"
 
-    # الفحص الثاني: الموديل الذكي
+    # 2. حساب نسبة التوقع من الموديل الذكي
     prob = model.predict_proba([text])[0][1]
-    if prob >= 0.50:
+
+    # الشرط: أن تكون النسبة بين 0.50 (50%) و 1.0 (100%)
+    if 0.50 <= prob <= 1.0:
         return True, prob, "تكهن الموديل الذكي"
 
     return False, prob, "نص سليم"
@@ -101,7 +103,7 @@ def check_profanity(text: str) -> tuple[bool, float, str]:
 
 @client.on(events.NewMessage)
 async def monitor_messages(event):
-    # تجاهل الرسائل الفارغة أو الرسائل القادمة من البوتات
+    # تجاهل الرسائل الفارغة أو القادمة من البوتات
     sender = await event.get_sender()
     if not sender or getattr(sender, "bot", False):
         return
@@ -110,45 +112,45 @@ async def monitor_messages(event):
     if not text:
         return
 
-    # فحص الكلمات البذيئة
-    is_bad, confidence, reason = check_profanity(text)
+    # فحص الرسالة بشرط (50% - 100%)
+    is_flagged, confidence, reason = check_profanity_50_to_100(text)
 
-    if is_bad:
+    if is_flagged:
         try:
-            # 1. استخراج رابط الرسالة المباشر (Public أو Private)
+            # 1. استخراج رابط الرسالة
             chat = await event.get_chat()
             if getattr(chat, "username", None):
                 msg_link = f"https://t.me/{chat.username}/{event.id}"
             else:
-                # للمجموعات والجروبات الخاصة
                 clean_chat_id = str(event.chat_id).replace("-100", "")
                 msg_link = f"https://t.me/c/{clean_chat_id}/{event.id}"
 
-            # 2. جمع معلومات المرسل
+            # 2. معلومات المرسل
             first_name = sender.first_name or "بدون اسم"
             last_name = f" {sender.last_name}" if sender.last_name else ""
             full_name = f"{first_name}{last_name}"
             username = f"@{sender.username}" if sender.username else "لا يوجد"
             user_id = sender.id
 
-            # 3. صياغة التقرير الإشعاري
+            # 3. إعداد التقرير الإشعاري
             report_text = (
-                f"🚨 **تم كشف كلام بذيء!**\n\n"
+                f"🚨 **رصد كلام بذيء ({confidence * 100:.1f}%)**\n\n"
                 f"👤 **معلومات المرسل:**\n"
                 f"• **الاسم:** [{full_name}](tg://user?id={user_id})\n"
                 f"• **اليوزر:** {username}\n"
                 f"• **الآيدي:** `{user_id}`\n\n"
-                f"📝 **النص المخالف:**\n`{text}`\n\n"
-                f"🔍 **السبب / الكلمة:** `{reason}`\n"
-                f"📊 **نسبة الثقة:** `{confidence * 100:.1f}%`\n\n"
-                f"🔗 **رابط الرسالة:** [اضغط هنا للانتثال للرسالة]({msg_link})"
+                f"📝 **النص:**\n`{text}`\n\n"
+                f"🔍 **السبب:** `{reason}`\n"
+                f"📊 **نسبة التوقع:** `{confidence * 100:.1f}%`\n\n"
+                f"🔗 **رابط الرسالة:** [الانتقال للرسالة]({msg_link})"
             )
 
-            # إرسال التقرير لجهة الاستلام المحددة (wfffp)
-            await client.send_message(
-                wfffp, report_text, link_preview=False
-            )
+            # إرسال التقرير
+            await client.send_message(wfffp, report_text, link_preview=False)
 
+            print(
+                f"[تم الرصد] ID: {user_id} | النسبة: {confidence * 100:.1f}% | السبب: {reason}"
+            )
 
         except Exception as e:
             print(f"خطأ أثناء إرسال التقرير: {e}")
