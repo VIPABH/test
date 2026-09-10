@@ -252,7 +252,13 @@ async def handler(event):
                 f"📦 **الخزان العام التراكمي:** `{len(sentences)}` كلمة\n\n"
                 f"💡 أرسل **`تم`** لكتابة التغييرات إلى الملفات."
             )
-
+        text = event.text
+        buttons = [
+        
+            Button.inline("✅ قبول فردي", data=f"single_safe:{word}"),
+            Button.inline("❌ رفض فردي", data=f"single_ban:{word}"),
+        ]
+        await event.reply(f"شنو تحب تسوي وي `{text}`", buttons=buttons)
     # 2. التجميع المستمر من كل المحادثات والمجموعات
     if not sender or getattr(sender, "bot", False):
         return
