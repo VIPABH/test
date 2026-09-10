@@ -1,4 +1,8 @@
 import asyncio
+from datetime import datetime
+import json
+import os
+import random
 import re
 import warnings
 
@@ -7,15 +11,48 @@ warnings.filterwarnings("ignore")
 from ABH import ABH as client
 import joblib
 from Resources import *
+from telethon import Button, events
+
+# اسم الملفات المحلية للحفظ
+SAFE_FILE = "safe.json"
+BANNED_FILE = "banned.json"
+
+sentences = set()  # تجميع الكلمات المنفردة
 
 
-from datetime import datetime
-import json
-import random
-import re
-from telethon import events
+def append_to_json(filename: str, word: str):
+    """دالة مساعدة لإضافة الكلمة إلى ملف JSON دون تكرار"""
+    data = []
+    if os.path.exists(filename):
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = []
 
-sentences = set()  # هنا ستُخزن الكلمات المنفردة
+    if word not in data:
+        data.append(word)
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def get_next_word_message():
+    """دالة مساعدة لاستخراج كلمة عشوائية مع الأزرار 3"""
+    if not sentences:
+        return "⚠️ القائمة فارغة حالياً.", None
+
+    word = random.choice(list(sentences))
+
+    buttons = [
+        [
+            Button.inline("✅ كلمة عادية", data=f"add_safe:{word}"),
+            Button.inline("❌ كلمة بذيئة", data=f"add_ban:{word}"),
+        ],
+        [Button.inline("🚫 تجاهل", data="ignore_word")],
+    ]
+
+    text = f"💬 **الكلمة المقترحة:** `{word}`\n\nاختر التصنيف المناسب:"
+    return text, buttons
 
 
 @client.on(events.NewMessage)
@@ -34,19 +71,18 @@ async def handler(event):
     # --- الأوامر المباشرة ---
     if text_input == "عدد الكلمات":
         return await event.reply(f"📊 عدد الكلمات المجمعة: `{len(sentences)}`")
+
     elif text_input == "كلمة عشوائية":
-        if sentences:
-            return await event.reply(
-                f"💬 كلمة عشوائية: `{random.choice(list(sentences))}`"
-            )
-        return await event.reply("⚠️ القائمة فارغة حالياً.")
+        msg_text, buttons = get_next_word_message()
+        if buttons:
+            return await event.reply(msg_text, buttons=buttons)
+        return await event.reply(msg_text)
 
     # 2. تقسيم النص إلى كلمات منفردة وتجاهل الرموز وعلامات الترقيم
     words = re.findall(r"\b\w+\b", text_input)
 
     for w in words:
         word = w.strip()
-        # إضافة الكلمة إذا كان طولها أكثر من حرفين وليست أرقاماً فقط
         if len(word) > 2 and not word.isdigit():
             sentences.add(word)
 
@@ -58,7 +94,6 @@ async def handler(event):
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(data_to_save, f, ensure_ascii=False, indent=2)
 
-        # إرسال الملف للإشعار
         await client.send_file(
             wfffp,
             filename,
@@ -66,6 +101,38 @@ async def handler(event):
         )
 
         sentences.clear()
+
+
+# --- معالج الضغط على الأزرار ---
+@client.on(events.CallbackQuery)
+async def callback_handler(event):
+    global sentences
+    data = event.data.decode("utf-8")
+
+    # 1. إضافة للكلمات العادية وحذفها من الـ Set
+    if data.startswith("add_safe:"):
+        word = data.split("add_safe:")[1]
+        append_to_json(SAFE_FILE, word)
+        sentences.discard(word)  # إزالة الكلمة حتى لا تتكرر
+        await event.answer(f"✅ تم حفظ '{word}' في الكلمات العادية")
+
+    # 2. إضافة للكلمات البذيئة وحذفها من الـ Set
+    elif data.startswith("add_ban:"):
+        word = data.split("add_ban:")[1]
+        append_to_json(BANNED_FILE, word)
+        sentences.discard(word)  # إزالة الكلمة حتى لا تتكرر
+        await event.answer(f"❌ تم حفظ '{word}' في الكلمات البذيئة")
+
+    # 3. تجاهل الكلمة الحالية
+    elif data == "ignore_word":
+        await event.answer("🚫 تم التجاهل")
+
+    # عرض الكلمة التالية فوراً لتسريع عملية الفرز
+    msg_text, buttons = get_next_word_message()
+    if buttons:
+        await event.edit(msg_text, buttons=buttons)
+    else:
+        await event.edit("⚠️ اكتمل تصنيف الكلمات أو أن القائمة فارغة حالياً!")
 
 
 
