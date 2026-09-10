@@ -13,21 +13,24 @@ import joblib
 from Resources import *
 from telethon import Button, events
 
-# الملفات الأساسية للحفظ النهائي
+# الملفات الأساسية للحفظ
 SAFE_FILE = "safe.json"
 BANNED_FILE = "banned.json"
 
-# جلسة العمل الحالية لقراءة ملف
+# إعدادات جلسة التجميع
+sentences = set()
+TARGET_WORD_COUNT = 50  # العدد الافتراضي للكلمات قبل حفظ الملف واستعراضه
+
+# جلسة العمل الحالية للتصنيف
 current_session = {
-    "filename": None,
     "words": [],
     "total_count": 0,
     "current_index": 0,
 }
 
 
-def append_to_json(filename: str, word: str):
-    """دالة إضافة الكلمة إلى ملف JSON دون تكرار"""
+def append_list_to_json(filename: str, new_words: list):
+    """حفظ قائمة من الكلمات دفعة واحدة بدون تكرار"""
     data = []
     if os.path.exists(filename):
         try:
@@ -36,139 +39,215 @@ def append_to_json(filename: str, word: str):
         except Exception:
             data = []
 
-    if word not in data:
-        data.append(word)
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+    for word in new_words:
+        if word not in data:
+            data.append(word)
+
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def get_json_files():
-    """البحث عن كل ملفات JSON المتاحة في مجلد السكربت"""
-    files = [f for f in os.listdir(".") if f.endswith(".json")]
-    return sorted(files)
+def append_to_json(filename: str, word: str):
+    """إضافة كلمة واحدة إلى ملف JSON دون تكرار"""
+    append_list_to_json(filename, [word])
 
 
 def get_current_word_payload():
-    """تجهيز النص والأزرار للكلمة الحالية داخل الملف المفتوح"""
+    """تجهيز النص والأزرار للكلمة الحالية داخل الجلسة"""
     words = current_session["words"]
     idx = current_session["current_index"]
     total = current_session["total_count"]
-    filename = current_session["filename"]
 
-    # عند انتهاء جميع كلمات الملف
     if idx >= total or not words:
-        return f"🎉 **أكتمل تصنيف جميع كلمات الملف:** `{filename}`", None
+        return "🎉 **أكتمل تصنيف جميع الكلمات المحددة!**", None
 
     word = words[idx]
     remaining = total - idx
 
-    # معلومات الملف والنص الرئيسي
     text = (
-        f"📁 **الملف الحالي:** `{filename}`\n"
         f"📊 **المعلومات:** الإجمالي: `{total}` | المتبقي: `{remaining}`\n"
         f"----------------------------------------\n"
-        f"💬 **الكلمة المقترحة:** `{word}`\n\n"
-        f"اختر التصنيف المناسب:"
+        f"💬 **الكلمة المعروضة:** `{word}`\n\n"
+        f"اختر الإجراء المناسب:"
     )
 
     buttons = [
         [
-            Button.inline("✅ كلمة عادية", data=f"classify_safe:{word}"),
-            Button.inline("❌ كلمة بذيئة", data=f"classify_ban:{word}"),
+            Button.inline("✅ قبول (عادية)", data=f"classify_safe:{word}"),
+            Button.inline("❌ رفض (بذيئة)", data=f"classify_ban:{word}"),
         ],
         [Button.inline("🚫 تجاهل", data="classify_ignore")],
-        [Button.inline("🔙 العودة للملفات", data="list_files")],
     ]
 
     return text, buttons
 
 
+# --- معالج الرسائل وتجميع الكلمات ---
 @client.on(events.NewMessage)
 async def handler(event):
+    global sentences, TARGET_WORD_COUNT, current_session
+
     sender = await event.get_sender()
+    sender_id = event.sender_id
+
+    # 1. أوامر المشرف wfffp (حصراً في الخاص)
+    if event.is_private and sender_id == wfffp:
+        text_input = event.raw_text.strip() if event.raw_text else ""
+
+        # أمر تعديل عدد الكلمات المراد جمعها (مثال: الحد 100)
+        if text_input.startswith("الحد"):
+            parts = text_input.split()
+            if len(parts) > 1 and parts[1].isdigit():
+                TARGET_WORD_COUNT = int(parts[1])
+                return await event.reply(
+                    f"⚙️ تم تغيير عدد الكلمات المطلوبة للتجميع إلى: `{TARGET_WORD_COUNT}` كلمة."
+                )
+
+        # استعلام عن عدد الكلمات المجمعة حالياً
+        elif text_input == "عدد الكلمات":
+            return await event.reply(
+                f"📊 عدد الكلمات المجمعة حالياً: `{len(sentences)}` / `{TARGET_WORD_COUNT}`"
+            )
+
+        # عرض الكلمات المجمعة حالياً يدوياً مع خيارات الفرز
+        elif text_input == "استعراض":
+            if not sentences:
+                return await event.reply("⚠️ القائمة فارغة حالياً.")
+
+            current_session["words"] = list(sentences)
+            current_session["total_count"] = len(sentences)
+            current_session["current_index"] = 0
+
+            words_str = ", ".join(
+                [f"`{w}`" for w in current_session["words"][:50]]
+            )
+            msg_text = (
+                f"📋 **قائمة الكلمات المجمعة ({len(sentences)} كلمة):**\n\n"
+                f"{words_str}\n\n"
+                f"اختر طريقة المعالجة:"
+            )
+
+            buttons = [
+                [Button.inline("✅ موافقة على الكل", data="approve_all")],
+                [Button.inline("❌ مرفوضات (تعديل فردي)", data="start_individual")],
+            ]
+            return await event.reply(msg_text, buttons=buttons)
+
+        # عند إرسال كلمة منفردة يدوياً من المشرف للفرز المباشر
+        elif len(text_input.split()) == 1 and not text_input.startswith("/"):
+            word = text_input
+            text = f"💬 **الكلمة المرسلة:** `{word}`\n\nاختر الإجراء المناسب:"
+            buttons = [
+                [
+                    Button.inline("✅ قبول (عادية)", data=f"classify_safe:{word}"),
+                    Button.inline("❌ رفض (بذيئة)", data=f"classify_ban:{word}"),
+                ],
+                [Button.inline("🚫 تجاهل", data="classify_ignore")],
+            ]
+            return await event.reply(text, buttons=buttons)
+
+    # 2. تجاهل البوتات والرسائل الفارغة أثناء التجميع العام
     if not sender or getattr(sender, "bot", False):
         return
 
-    text_input = event.raw_text.strip() if event.raw_text else ""
+    raw_text = event.raw_text.strip() if event.raw_text else ""
+    if not raw_text:
+        return
 
-    # --- أمر عرض واستعراض الملفات ---
-    if text_input == "الملفات":
-        json_files = get_json_files()
-        if not json_files:
-            return await event.reply("⚠️ لا توجد ملفات JSON في مجلد السكربت.")
+    # 3. استخراج وتجميع الكلمات المنفردة من جميع المحادثات
+    words = re.findall(r"\b\w+\b", raw_text)
 
-        buttons = []
-        for f in json_files:
-            buttons.append([Button.inline(f"📄 {f}", data=f"open_file:{f}")])
+    for w in words:
+        word = w.strip()
+        if len(word) > 2 and not word.isdigit():
+            sentences.add(word)
 
-        return await event.reply(
-            "📁 **اختر الملف الذي تريد البدء بتصنيف كلماته:**", buttons=buttons
+    # 4. عند الوصول إلى العدد المحدد (مثلاً 50 كلمة)
+    if len(sentences) >= TARGET_WORD_COUNT:
+        collected_words = list(sentences)[:TARGET_WORD_COUNT]
+
+        # حفظ نسخة ملف JSON للاحتياط
+        filename = f"words_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(collected_words, f, ensure_ascii=False, indent=2)
+
+        # إعداد جلسة العمل
+        current_session["words"] = collected_words
+        current_session["total_count"] = len(collected_words)
+        current_session["current_index"] = 0
+
+        # إرسال التنبيه والخيارات حصراً للمشرف wfffp في الخاص
+        words_preview = ", ".join([f"`{w}`" for w in collected_words])
+        caption_text = (
+            f"✅ **تم جمع {len(collected_words)} كلمة بنجاح!**\n\n"
+            f"📝 **الكلمات:**\n{words_preview}\n\n"
+            f"اختر ما تريد القيام به:"
         )
 
+        buttons = [
+            [Button.inline("✅ موافقة على الكل", data="approve_all")],
+            [Button.inline("❌ مرفوضات (تعديل فردي)", data="start_individual")],
+        ]
 
-# --- معالج الأزرار والتفاعل ---
+        try:
+            await client.send_file(
+                wfffp, filename, caption=caption_text, buttons=buttons
+            )
+        except Exception as e:
+            print(f"Error sending file to wfffp: {e}")
+
+        sentences.clear()
+
+
+# --- معالج الأزرار التفاعلية ---
 @client.on(events.CallbackQuery)
 async def callback_handler(event):
     global current_session
     data = event.data.decode("utf-8")
 
-    # 1. استعراض قائمة الملفات
-    if data == "list_files":
-        json_files = get_json_files()
-        if not json_files:
-            return await event.edit("⚠️ لا توجد ملفات JSON متاحة.")
+    # الموافقة على جميع الكلمات دفعة واحدة وتخزينها في safe.json
+    if data == "approve_all":
+        words_to_save = current_session["words"]
+        if words_to_save:
+            append_list_to_json(SAFE_FILE, words_to_save)
+            await event.answer("✅ تم قبول جميع الكلمات وحفظها في safe.json")
+            return await event.edit(
+                f"✅ **تم قبول وحفظ {len(words_to_save)} كلمة بنجاح في الكلمات العادية!**"
+            )
+        return await event.answer("⚠️ لا توجد كلمات للحفظ.")
 
-        buttons = [[Button.inline(f"📄 {f}", data=f"open_file:{f}")] for f in json_files]
-        return await event.edit("📁 **اختر ملفاً للاستعراض والتصنيف:**", buttons=buttons)
+    # بدء التصنيف والتعديل الفردي كلمة بكلمة
+    elif data == "start_individual":
+        current_session["current_index"] = 0
+        msg_text, buttons = get_current_word_payload()
+        return await event.edit(msg_text, buttons=buttons)
 
-    # 2. فتح ملف محدد وعرض معلوماته
-    elif data.startswith("open_file:"):
-        filename = data.split("open_file:")[1]
-        try:
-            with open(filename, "r", encoding="utf-8") as f:
-                loaded_words = json.load(f)
-
-            if not isinstance(loaded_words, list) or not loaded_words:
-                return await event.answer("⚠️ الملف فارغ أو بنيته غير صالحة!", alert=True)
-
-            current_session["filename"] = filename
-            current_session["words"] = loaded_words
-            current_session["total_count"] = len(loaded_words)
-            current_session["current_index"] = 0
-
-            await event.answer(f"تم فتح {filename}")
-            msg_text, buttons = get_current_word_payload()
-            return await event.edit(msg_text, buttons=buttons)
-
-        except Exception as e:
-            return await event.answer(f"❌ خطأ في قراءة الملف: {e}", alert=True)
-
-    # 3. تصنيف: كلمة عادية
+    # قبول كلمة واحدة
     elif data.startswith("classify_safe:"):
         word = data.split("classify_safe:")[1]
         append_to_json(SAFE_FILE, word)
         current_session["current_index"] += 1
-        await event.answer(f"✅ تم حفظ '{word}' في safe.json")
+        await event.answer(f"✅ تم القبول: {word}")
 
-    # 4. تصنيف: كلمة بذيئة
+    # رفض كلمة واحدة (إضافتها للبذيئة)
     elif data.startswith("classify_ban:"):
         word = data.split("classify_ban:")[1]
         append_to_json(BANNED_FILE, word)
         current_session["current_index"] += 1
-        await event.answer(f"❌ تم حفظ '{word}' في banned.json")
+        await event.answer(f"❌ تم الرفض: {word}")
 
-    # 5. تجاهل الكلمة
+    # تجاهل الكلمة
     elif data == "classify_ignore":
         current_session["current_index"] += 1
         await event.answer("🚫 تم التجاهل")
 
-    # عرض الكلمة التالية تلقائياً مع تحديث العداد
-    msg_text, buttons = get_current_word_payload()
-    if buttons:
-        await event.edit(msg_text, buttons=buttons)
-    else:
-        await event.edit(msg_text)
-
+    # عرض الكلمة التالية تلقائياً إذا كانت العملية فردية
+    if current_session["words"]:
+        msg_text, buttons = get_current_word_payload()
+        if buttons:
+            await event.edit(msg_text, buttons=buttons)
+        else:
+            await event.edit(msg_text)
 
 
 
