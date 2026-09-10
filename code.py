@@ -79,14 +79,14 @@ model = joblib.load("profanity_model.joblib")
 print("تم تحميل الموديل بنجاح!")
 
 
-def check_profanity_50_to_100(text: str) -> tuple[bool, float, str]:
-    """دالة فحص تعيد True إذا كانت نسبة التوقع للبذاءة بين 50% و 100%"""
+def check_profanity_high_confidence(text: str) -> tuple[bool, float, str]:
+    """دالة الفحص بعد رفع العتبة إلى 85% للموديل الذكي لتفادي التنبيهات الكاذبة"""
     if not text:
         return False, 0.0, "نص فارغ"
 
     words = re.findall(r"\w+", text.lower())
 
-    # 1. مطابقة صريحة من القائمة = نسبة بذاءة 100%
+    # 1. مطابقة صريحة مباشرة من القائمة (100%)
     for word in words:
         if word in BANNED_SET:
             return True, 1.0, f"مطابقة صريحة (100%): '{word}'"
@@ -94,9 +94,9 @@ def check_profanity_50_to_100(text: str) -> tuple[bool, float, str]:
     # 2. حساب نسبة التوقع من الموديل الذكي
     prob = model.predict_proba([text])[0][1]
 
-    # الشرط: أن تكون النسبة بين 0.50 (50%) و 1.0 (100%)
-    if 0.50 <= prob <= 1.0:
-        return True, prob, "تكهن الموديل الذكي"
+    # العتبة المرفوعة: يجب أن تكون النسبة 85% (0.85) أو أعلى
+    if prob >= 0.85:
+        return True, prob, "تكهن الموديل الذكي (ثقة عالية)"
 
     return False, prob, "نص سليم"
 
@@ -112,8 +112,8 @@ async def monitor_messages(event):
     if not text:
         return
 
-    # فحص الرسالة بشرط (50% - 100%)
-    is_flagged, confidence, reason = check_profanity_50_to_100(text)
+    # فحص الرسالة
+    is_flagged, confidence, reason = check_profanity_high_confidence(text)
 
     if is_flagged:
         try:
@@ -147,7 +147,6 @@ async def monitor_messages(event):
 
             # إرسال التقرير
             await client.send_message(wfffp, report_text, link_preview=False)
-
 
         except Exception as e:
             print(f"خطأ أثناء إرسال التقرير: {e}")
