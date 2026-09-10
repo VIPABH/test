@@ -17,20 +17,20 @@ from telethon import Button, events
 SAFE_FILE = "safe.json"
 BANNED_FILE = "banned.json"
 
-# إعدادات جلسة التجميع
+# إعدادات حالة التجميع والجلسة
 sentences = set()
-TARGET_WORD_COUNT = 50  # العدد الافتراضي للكلمات قبل حفظ الملف واستعراضه
+TARGET_WORD_COUNT = 50  # العدد الافتراضي للكلمات في الدفعة
 
-# جلسة العمل الحالية للتصنيف
 current_session = {
     "words": [],
     "total_count": 0,
     "current_index": 0,
+    "awaiting_count_input": False,  # ينتظر إدخال عدد جديد من المستخدم
 }
 
 
 def append_list_to_json(filename: str, new_words: list):
-    """حفظ قائمة من الكلمات دفعة واحدة بدون تكرار"""
+    """حفظ قائمة كلمات دفعة واحدة في ملف JSON دون تكرار"""
     data = []
     if os.path.exists(filename):
         try:
@@ -48,41 +48,77 @@ def append_list_to_json(filename: str, new_words: list):
 
 
 def append_to_json(filename: str, word: str):
-    """إضافة كلمة واحدة إلى ملف JSON دون تكرار"""
+    """حفظ كلمة واحدة في ملف JSON دون تكرار"""
     append_list_to_json(filename, [word])
 
 
-def get_current_word_payload():
-    """تجهيز النص والأزرار للكلمة الحالية داخل الجلسة"""
+def get_single_word_payload():
+    """تجهيز الكلمة الفردية الحالية مع أزرار الفرز"""
     words = current_session["words"]
     idx = current_session["current_index"]
     total = current_session["total_count"]
 
     if idx >= total or not words:
-        return "🎉 **أكتمل تصنيف جميع الكلمات المحددة!**", None
+        return (
+            "🎉 **اكتمل فرز وتعديل جميع الكلمات في هذه الدفعة!**",
+            [[Button.inline("🔙 القائمة الرئيسية", data="main_menu")]],
+        )
 
     word = words[idx]
     remaining = total - idx
 
     text = (
-        f"📊 **المعلومات:** الإجمالي: `{total}` | المتبقي: `{remaining}`\n"
+        f"📊 **فرز فردي:** `{idx + 1}` من `{total}` (المتبقي: `{remaining}`)\n"
         f"----------------------------------------\n"
-        f"💬 **الكلمة المعروضة:** `{word}`\n\n"
-        f"اختر الإجراء المناسب:"
+        f"💬 **الكلمة الحالية:** `{word}`\n\n"
+        f"اختر الإجراء المطلوب:"
     )
 
     buttons = [
         [
-            Button.inline("✅ قبول (عادية)", data=f"classify_safe:{word}"),
-            Button.inline("❌ رفض (بذيئة)", data=f"classify_ban:{word}"),
+            Button.inline("✅ قبول فردي (عادية)", data=f"single_safe:{word}"),
+            Button.inline("❌ رفض فردي (بذيئة)", data=f"single_ban:{word}"),
         ],
-        [Button.inline("🚫 تجاهل", data="classify_ignore")],
+        [Button.inline("🚫 تجاهل", data="single_ignore")],
     ]
 
     return text, buttons
 
 
-# --- معالج الرسائل وتجميع الكلمات ---
+def get_batch_payload():
+    """تجهيز العرض الجماعي للدفعة الكاملة مع الأزرار العامة"""
+    words = current_session["words"]
+    total = len(words)
+
+    words_preview = "\n".join(
+        [f"{i+1}. `{w}`" for i, w in enumerate(words[:50])]
+    )
+    if total > 50:
+        words_preview += f"\n\n...و `{total - 50}` كلمة أخرى."
+
+    text = (
+        f"📦 **دفعة الكلمات المجمعة ({total} كلمة):**\n\n"
+        f"{words_preview}\n\n"
+        f"اختر كيفية التعامل مع هذه الدفعة:"
+    )
+
+    buttons = [
+        [Button.inline("✅ موافقة على الكل", data="batch_approve_all")],
+        [
+            Button.inline(
+                "❌ فرز وتعديل فردي (كلمة بكلمة)", data="start_single_mode"
+            )
+        ],
+        [
+            Button.inline("⚙️ تحديد عدد الكلمات", data="change_count_prompt"),
+            Button.inline("🗑 تجاهل الدفعة", data="batch_ignore"),
+        ],
+    ]
+
+    return text, buttons
+
+
+# --- معالج الرسائل والأوامر النصية ---
 @client.on(events.NewMessage)
 async def handler(event):
     global sentences, TARGET_WORD_COUNT, current_session
@@ -90,63 +126,54 @@ async def handler(event):
     sender = await event.get_sender()
     sender_id = event.sender_id
 
-    # 1. أوامر المشرف wfffp (حصراً في الخاص)
+    # 1. تخصيص الأوامر والخاص للمشرف wfffp
     if event.is_private and sender_id == wfffp:
         text_input = event.raw_text.strip() if event.raw_text else ""
 
-        # أمر تعديل عدد الكلمات المراد جمعها (مثال: الحد 100)
+        # إذا كان البوت ينتظر من الأدمن إدخال رقم محدد للدفعة
+        if current_session.get("awaiting_count_input"):
+            if text_input.isdigit():
+                TARGET_WORD_COUNT = int(text_input)
+                current_session["awaiting_count_input"] = False
+                return await event.reply(
+                    f"✅ تم تعديل عدد كلمات الدفعة إلى: `{TARGET_WORD_COUNT}` كلمة."
+                )
+            else:
+                return await event.reply(
+                    "⚠️ يرجى إرسال رقم صحيح فقط لتحديد العدد."
+                )
+
+        # تغيير عدد الكلمات عبر الأمر المباشر (مثال: الحد 30)
         if text_input.startswith("الحد"):
             parts = text_input.split()
             if len(parts) > 1 and parts[1].isdigit():
                 TARGET_WORD_COUNT = int(parts[1])
                 return await event.reply(
-                    f"⚙️ تم تغيير عدد الكلمات المطلوبة للتجميع إلى: `{TARGET_WORD_COUNT}` كلمة."
+                    f"⚙️ تم تغيير حجم الدفعة إلى: `{TARGET_WORD_COUNT}` كلمة."
                 )
 
-        # استعلام عن عدد الكلمات المجمعة حالياً
-        elif text_input == "عدد الكلمات":
-            return await event.reply(
-                f"📊 عدد الكلمات المجمعة حالياً: `{len(sentences)}` / `{TARGET_WORD_COUNT}`"
-            )
-
-        # عرض الكلمات المجمعة حالياً يدوياً مع خيارات الفرز
-        elif text_input == "استعراض":
+        # استعراض الكلمات المجمعة حالياً
+        elif text_input in ["استعراض", "الكلمات"]:
             if not sentences:
-                return await event.reply("⚠️ القائمة فارغة حالياً.")
+                return await event.reply("⚠️ لا توجد كلمات مجمعة حالياً.")
 
             current_session["words"] = list(sentences)
             current_session["total_count"] = len(sentences)
             current_session["current_index"] = 0
 
-            words_str = ", ".join(
-                [f"`{w}`" for w in current_session["words"][:50]]
-            )
-            msg_text = (
-                f"📋 **قائمة الكلمات المجمعة ({len(sentences)} كلمة):**\n\n"
-                f"{words_str}\n\n"
-                f"اختر طريقة المعالجة:"
-            )
-
-            buttons = [
-                [Button.inline("✅ موافقة على الكل", data="approve_all")],
-                [Button.inline("❌ مرفوضات (تعديل فردي)", data="start_individual")],
-            ]
-            return await event.reply(msg_text, buttons=buttons)
-
-        # عند إرسال كلمة منفردة يدوياً من المشرف للفرز المباشر
-        elif len(text_input.split()) == 1 and not text_input.startswith("/"):
-            word = text_input
-            text = f"💬 **الكلمة المرسلة:** `{word}`\n\nاختر الإجراء المناسب:"
-            buttons = [
-                [
-                    Button.inline("✅ قبول (عادية)", data=f"classify_safe:{word}"),
-                    Button.inline("❌ رفض (بذيئة)", data=f"classify_ban:{word}"),
-                ],
-                [Button.inline("🚫 تجاهل", data="classify_ignore")],
-            ]
+            text, buttons = get_batch_payload()
             return await event.reply(text, buttons=buttons)
 
-    # 2. تجاهل البوتات والرسائل الفارغة أثناء التجميع العام
+        # عند إرسال كلمة واحدة يدوياً بالخاص لتصنيفها فوراً
+        elif len(text_input.split()) == 1 and not text_input.startswith("/"):
+            current_session["words"] = [text_input]
+            current_session["total_count"] = 1
+            current_session["current_index"] = 0
+
+            text, buttons = get_single_word_payload()
+            return await event.reply(text, buttons=buttons)
+
+    # 2. تجميع الكلمات من المجموعات والمحادثات (تجاهل البوتات)
     if not sender or getattr(sender, "bot", False):
         return
 
@@ -154,101 +181,96 @@ async def handler(event):
     if not raw_text:
         return
 
-    # 3. استخراج وتجميع الكلمات المنفردة من جميع المحادثات
     words = re.findall(r"\b\w+\b", raw_text)
-
     for w in words:
         word = w.strip()
         if len(word) > 2 and not word.isdigit():
             sentences.add(word)
 
-    # 4. عند الوصول إلى العدد المحدد (مثلاً 50 كلمة)
+    # 3. عند الوصول للعدد المحدد من الكلمات
     if len(sentences) >= TARGET_WORD_COUNT:
         collected_words = list(sentences)[:TARGET_WORD_COUNT]
 
-        # حفظ نسخة ملف JSON للاحتياط
-        filename = f"words_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(collected_words, f, ensure_ascii=False, indent=2)
-
-        # إعداد جلسة العمل
+        # إعداد بيانات الجلسة للدفعة
         current_session["words"] = collected_words
         current_session["total_count"] = len(collected_words)
         current_session["current_index"] = 0
 
-        # إرسال التنبيه والخيارات حصراً للمشرف wfffp في الخاص
-        words_preview = ", ".join([f"`{w}`" for w in collected_words])
-        caption_text = (
-            f"✅ **تم جمع {len(collected_words)} كلمة بنجاح!**\n\n"
-            f"📝 **الكلمات:**\n{words_preview}\n\n"
-            f"اختر ما تريد القيام به:"
-        )
-
-        buttons = [
-            [Button.inline("✅ موافقة على الكل", data="approve_all")],
-            [Button.inline("❌ مرفوضات (تعديل فردي)", data="start_individual")],
-        ]
-
-        try:
-            await client.send_file(
-                wfffp, filename, caption=caption_text, buttons=buttons
-            )
-        except Exception as e:
-            print(f"Error sending file to wfffp: {e}")
-
         sentences.clear()
 
+        text, buttons = get_batch_payload()
+        try:
+            await client.send_message(wfffp, text, buttons=buttons)
+        except Exception as e:
+            print(f"فشل إرسال الدفعة للمشرف: {e}")
 
-# --- معالج الأزرار التفاعلية ---
+
+# --- معالج الأزرار والتفاعل ---
 @client.on(events.CallbackQuery)
 async def callback_handler(event):
-    global current_session
+    global current_session, TARGET_WORD_COUNT
     data = event.data.decode("utf-8")
 
-    # الموافقة على جميع الكلمات دفعة واحدة وتخزينها في safe.json
-    if data == "approve_all":
-        words_to_save = current_session["words"]
+    # 1. الموافقة على الدفعة كاملة بحركة واحدة
+    if data == "batch_approve_all":
+        words_to_save = current_session.get("words", [])
         if words_to_save:
             append_list_to_json(SAFE_FILE, words_to_save)
-            await event.answer("✅ تم قبول جميع الكلمات وحفظها في safe.json")
+            await event.answer("✅ تم قبول جميع الكلمات وحفظها!")
             return await event.edit(
-                f"✅ **تم قبول وحفظ {len(words_to_save)} كلمة بنجاح في الكلمات العادية!**"
+                f"✅ **تم قبول وحفظ {len(words_to_save)} كلمة بنجاح في `{SAFE_FILE}`!**"
             )
         return await event.answer("⚠️ لا توجد كلمات للحفظ.")
 
-    # بدء التصنيف والتعديل الفردي كلمة بكلمة
-    elif data == "start_individual":
+    # 2. بدء نمط الفرز الفردي (كلمة كلمة)
+    elif data == "start_single_mode":
         current_session["current_index"] = 0
-        msg_text, buttons = get_current_word_payload()
-        return await event.edit(msg_text, buttons=buttons)
+        text, buttons = get_single_word_payload()
+        return await event.edit(text, buttons=buttons)
 
-    # قبول كلمة واحدة
-    elif data.startswith("classify_safe:"):
-        word = data.split("classify_safe:")[1]
+    # 3. طلّب تحديد عدد الكلمات
+    elif data == "change_count_prompt":
+        current_session["awaiting_count_input"] = True
+        await event.answer("أرسل الرقم المطلوب في المحادثة الآن")
+        return await event.edit(
+            f"⚙️ **العدد الحالي للدفعة:** `{TARGET_WORD_COUNT}`\n\n"
+            f"يرجى كتابة وإرسال العدد الجديد للكلمات مباشرة في الشات:"
+        )
+
+    # 4. تجاهل الدفعة كاملة
+    elif data == "batch_ignore":
+        current_session["words"] = []
+        await event.answer("🗑 تم تجاهل الدفعة")
+        return await event.edit("🗑 **تمت إزالة الدفعة وتجاهلها.**")
+
+    # 5. قبول فردي للكلمة الحالية والتأهل للكلمة التالية
+    elif data.startswith("single_safe:"):
+        word = data.split("single_safe:")[1]
         append_to_json(SAFE_FILE, word)
         current_session["current_index"] += 1
         await event.answer(f"✅ تم القبول: {word}")
 
-    # رفض كلمة واحدة (إضافتها للبذيئة)
-    elif data.startswith("classify_ban:"):
-        word = data.split("classify_ban:")[1]
+    # 6. رفض فردي للكلمة الحالية (إضافتها للبذيئة) والتأهل للكلمة التالية
+    elif data.startswith("single_ban:"):
+        word = data.split("single_ban:")[1]
         append_to_json(BANNED_FILE, word)
         current_session["current_index"] += 1
         await event.answer(f"❌ تم الرفض: {word}")
 
-    # تجاهل الكلمة
-    elif data == "classify_ignore":
+    # 7. تجاهل الكلمة الحالية والتأهل للكلمة التالية
+    elif data == "single_ignore":
         current_session["current_index"] += 1
         await event.answer("🚫 تم التجاهل")
 
-    # عرض الكلمة التالية تلقائياً إذا كانت العملية فردية
-    if current_session["words"]:
-        msg_text, buttons = get_current_word_payload()
-        if buttons:
-            await event.edit(msg_text, buttons=buttons)
-        else:
-            await event.edit(msg_text)
+    # 8. القائمة الرئيسية
+    elif data == "main_menu":
+        text, buttons = get_batch_payload()
+        return await event.edit(text, buttons=buttons)
 
+    # عند الاستمرار في الفرز الفردي: يتم الاستماع وإظهار الكلمة التالية تلقائياً
+    if current_session.get("words"):
+        text, buttons = get_single_word_payload()
+        await event.edit(text, buttons=buttons)
 
 
 RAW_BANNED_WORDS = [
