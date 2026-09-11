@@ -118,7 +118,7 @@ def check_profanity_high_confidence(text: str) -> tuple[bool, float, str]:
             prob = model.predict_proba([clean_text])[0][1]
 
             # العتبة 85% للحد من البلاغات الخاطئة
-            if prob >= 0.85:
+            if prob >= 0.95:
                 return True, prob, "تكهن الموديل الذكي (ثقة عالية)"
             return False, prob, "نص سليم"
         except Exception as e:
