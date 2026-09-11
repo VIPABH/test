@@ -13,74 +13,9 @@ from ABH import ABH as client
 from Resources import *
 from telethon import Button, events
 
-# 1. قائمة الكلمات المحظورة المباشرة (مطابقة صريحة 100%)
-RAW_BANNED_WORDS = [
-    "كس",
-    "كسمك",
-    "كسختك",
-    "عير",
-    "كسخالتك",
-    "خرا",
-    "كحاب",
-    "مناويج",
-    "كحبه",
-    "ابن الكحبه",
-    "فرخ",
-    "فروخ",
-    "طيزك",
-    "طيزختك",
-    "شرموط",
-    "شرموطه",
-    "ابن الشرموطه",
-    "ابن الخول",
-    "ابن العرص",
-    "منايك",
-    "متناك",
-    "ابن المتناكه",
-    "زبك",
-    "عرص",
-    "زبي",
-    "خول",
-    "لبوه",
-    "منيوك",
-    "قحبه",
-    "القحبه",
-    "شراميط",
-    "العلق",
-    "تيز",
-    "التيز",
-    "الديوث",
-    "كسمج",
-    "بلبولك",
-    "صدرج",
-    "كسعرضك",
-    "الخنيث",
-    "نغل",
-    "نغولة",
-    "انيجة",
-    "انيج",
-    "عاهرات",
-    "عاهرة",
-    "طيز",
-    "كواد",
-    "بربوك",
-    "زب",
-    "الكواد",
-    "دودة",
-    "كسك",
-    "سكسي",
-    "ابن الزنا",
-    "قحبة",
-    "عيري",
-    "نودز",
-    "قضيب",
-]
-
-BANNED_SET = set(RAW_BANNED_WORDS)
-
-# 2. تحميل الموديل الذكي باسمه الصحيح
+# 1. تحميل الموديل الذكي
 print("⏳ جاري تحميل الموديل...")
-MODEL_PATH = "model.joblib"  # المطابق لملف Colab
+MODEL_PATH = "model.joblib"
 if os.path.exists(MODEL_PATH):
     model = joblib.load(MODEL_PATH)
     print("✅ تم تحميل الموديل بنجاح!")
@@ -89,43 +24,26 @@ else:
     print("⚠️ لم يتم العثور على ملف model.joblib!")
 
 
-def normalize_arabic_text(text: str) -> str:
-    """توحيد الألفات والتاء والياء لضمان تطابق الفحص مع تدريب الموديل"""
-    text = re.sub(r"[إأآا]", "ا", text)
-    text = re.sub(r"ة\b", "ه", text)
-    text = re.sub(r"ى\b", "ي", text)
-    text = re.sub(r"[\u064B-\u0652\u0640]", "", text)  # إزالة التشكيل والتطويل
-    return text.strip()
-
-
 def check_profanity_high_confidence(text: str) -> tuple[bool, float, str]:
-    """دالة الفحص باستخدام التطابق الصريح أولاً ثم التنبؤ بالذكاء الاصطناعي"""
+    """دالة الفحص باستخدام الموديل مباشرة على النص الخام بدون أي تنظيف أو توحيد"""
     if not text or not text.strip():
         return False, 0.0, "نص فارغ"
 
-    clean_text = normalize_arabic_text(text)
-    words = clean_text.split()
-
-    # 1. مطابقة صريحة مباشرة من القائمة (100%)
-    for word in words:
-        if word in BANNED_SET or normalize_arabic_text(word) in BANNED_SET:
-            return True, 1.0, f"مطابقة صريحة (100%): '{word}'"
-
-    # 2. التنبؤ عبر الموديل الذكي (إذا كان محمولاً)
     if model is not None:
         try:
-            # التنبؤ على النص المنظف
-            prob = model.predict_proba([clean_text])[0][1]
+            # التنبؤ المباشر على النص الأصلي كما هو
+            prob = model.predict_proba([text])[0][1]
 
-            # العتبة 85% للحد من البلاغات الخاطئة
+            # العتبة 95%
             if prob >= 0.95:
                 return True, prob, "تكهن الموديل الذكي (ثقة عالية)"
             return False, prob, "نص سليم"
+
         except Exception as e:
             print(f"خطأ أثناء التنبؤ: {e}")
             return False, 0.0, "خطأ في الموديل"
 
-    return False, 0.0, "نص سليم"
+    return False, 0.0, "الموديل غير محمل"
 
 
 @client.on(events.NewMessage)
@@ -139,7 +57,7 @@ async def monitor_messages(event):
     if not text:
         return
 
-    # فحص الرسالة
+    # فحص الرسالة بالنص الخام
     is_flagged, confidence, reason = check_profanity_high_confidence(text)
 
     if is_flagged:
@@ -161,7 +79,7 @@ async def monitor_messages(event):
 
             # 3. إعداد التقرير الإشعاري
             report_text = (
-                f"🚨 **رصد كلام بذيء ({confidence * 100:.1f}%)**\n\n"
+                f"🚨 **رصد كلام بذيء عبر الذكاء الاصطناعي ({confidence * 100:.1f}%)**\n\n"
                 f"👤 **معلومات المرسل:**\n"
                 f"• **الاسم:** [{full_name}](tg://user?id={user_id})\n"
                 f"• **اليوزر:** {username}\n"
@@ -172,7 +90,7 @@ async def monitor_messages(event):
                 f"🔗 **رابط الرسالة:** [الانتقال للرسالة]({msg_link})"
             )
 
-            # 4. إرسال التقرير (تأكد من معرف wfffp أنه ايدي روم الإشعارات أو الإدمن)
+            # 4. إرسال التقرير
             await client.send_message(wfffp, report_text, link_preview=False)
 
         except Exception as e:
