@@ -24,26 +24,47 @@ else:
     print("⚠️ لم يتم العثور على ملف model.joblib!")
 
 
-def check_profanity_high_confidence(text: str) -> tuple[bool, float, str]:
-    """دالة الفحص باستخدام الموديل مباشرة على النص الخام بدون أي تنظيف أو توحيد"""
-    if not text or not text.strip():
-        return False, 0.0, "نص فارغ"
+def normalize_arabic_text(text: str) -> str:
+    """توحيد النصوص العربية لضمان تطابق الفحص مع تدريب الموديل"""
+    text = re.sub(r"[إأآا]", "ا", text)
+    text = re.sub(r"ة\b", "ه", text)
+    text = re.sub(r"ى\b", "ي", text)
+    text = re.sub(r"[\u064B-\u0652\u0640]", "", text)  # إزالة التشكيل والتطويل
+    return text.strip()
 
-    if model is not None:
+
+def check_profanity_ai_only(text: str) -> tuple[bool, float, str]:
+    """دالة الفحص المعتمدة على الذكاء الاصطناعي حصراً (كلمة بكلمة)"""
+    if not text or not text.strip() or model is None:
+        return False, 0.0, "نص فارغ أو الموديل غير محمل"
+
+    clean_text = normalize_arabic_text(text)
+    words = clean_text.split()
+
+    max_prob = 0.0
+    flagged_word = ""
+
+    # فحص كل كلمة بشكل منفصل عبر الذكاء الاصطناعي
+    for word in words:
+        # تجنب الكلمات القصيرة جداً (حرفين أو أقل) لتفادي البلاغات الخاطئة
+        if len(word) <= 2:
+            continue
+
         try:
-            # التنبؤ المباشر على النص الأصلي كما هو
-            prob = model.predict_proba([text])[0][1]
+            # حساب احتمال أن تكون الكلمة بذيئة
+            prob = model.predict_proba([word])[0][1]
 
-            # العتبة 95%
-            if prob >= 0.95:
-                return True, prob, "تكهن الموديل الذكي (ثقة عالية)"
-            return False, prob, "نص سليم"
-
+            if prob > max_prob:
+                max_prob = prob
+                flagged_word = word
         except Exception as e:
-            print(f"خطأ أثناء التنبؤ: {e}")
-            return False, 0.0, "خطأ في الموديل"
+            continue
 
-    return False, 0.0, "الموديل غير محمل"
+    # العتبة 95%: يتم تعليم الرسالة فقط إذا كان الموديل متأكداً بنسبة 95% أو أعلى
+    if max_prob >= 0.95:
+        return True, max_prob, f"تكهن الموديل الذكي على الكلمة: '{flagged_word}'"
+
+    return False, max_prob, "نص سليم"
 
 
 @client.on(events.NewMessage)
@@ -57,8 +78,8 @@ async def monitor_messages(event):
     if not text:
         return
 
-    # فحص الرسالة بالنص الخام
-    is_flagged, confidence, reason = check_profanity_high_confidence(text)
+    # فحص الرسالة عبر الذكاء الاصطناعي فقط
+    is_flagged, confidence, reason = check_profanity_ai_only(text)
 
     if is_flagged:
         try:
@@ -79,7 +100,7 @@ async def monitor_messages(event):
 
             # 3. إعداد التقرير الإشعاري
             report_text = (
-                f"🚨 **رصد كلام بذيء عبر الذكاء الاصطناعي ({confidence * 100:.1f}%)**\n\n"
+                f"🚨 **رصد كلام بذيء ({confidence * 100:.1f}%)**\n\n"
                 f"👤 **معلومات المرسل:**\n"
                 f"• **الاسم:** [{full_name}](tg://user?id={user_id})\n"
                 f"• **اليوزر:** {username}\n"
