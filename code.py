@@ -33,43 +33,84 @@ def normalize_arabic_text(text: str) -> str:
     return text.strip()
 
 
-def check_profanity_ai_only(text: str) -> tuple[bool, float, str]:
-    """دالة الفحص المعتمدة على الذكاء الاصطناعي حصراً (كلمة بكلمة)"""
+def extract_context_understanding(clean_text: str) -> list[tuple[str, float]]:
+    """تحليل النص واستخراج أبرز الكلمات التي فهم الموديل أنها سبب البلاغ"""
+    if model is None:
+        return []
+
+    try:
+        # الوصول للـ Pipeline (Vectorizer + Classifier)
+        if hasattr(model, "named_steps"):
+            vectorizer = model.named_steps.get("vectorizer") or model.steps[0][1]
+            classifier = model.named_steps.get("classifier") or model.steps[-1][1]
+        else:
+            return []
+
+        # تحويل النص إلى مصفوفة خfeatures
+        X_vec = vectorizer.transform([clean_text])
+        feature_names = vectorizer.get_feature_names_out()
+
+        # استخراج العناصر الموجودة في النص فقط
+        nonzero_indices = X_vec.nonzero()[1]
+
+        # تحديد معامات الشدة لكل كلمة بحسب نوع الموديل
+        if hasattr(classifier, "coef_"):
+            weights = classifier.coef_[0]
+        elif hasattr(classifier, "feature_log_prob_"):
+            weights = classifier.feature_log_prob_[1] - classifier.feature_log_prob_[0]
+        else:
+            return []
+
+        word_scores = []
+        for idx in nonzero_indices:
+            word = feature_names[idx]
+            score = weights[idx]
+            # نأخذ الكلمات التي أثرت إيجابياً باتجاه تصنيف الإساءة
+            if score > 0:
+                word_scores.append((word, float(score)))
+
+        # ترتيب الكلمات من الأكثر تأثيراً إلى الأقل
+        word_scores.sort(key=lambda x: x[1], reverse=True)
+        return word_scores[:3]  # أرجِع أعلى 3 كلمات تأثيراً
+    except Exception as e:
+        print(f"تعذر استخراج تحليل الكلمات: {e}")
+        return []
+
+
+def _predict_sync(clean_text: str) -> tuple[float, list[tuple[str, float]]]:
+    """تنبؤ تزامني ينفذ داخل Thread منفصل مع تحليل فهم الموديل"""
+    if model is None:
+        return 0.0, []
+    try:
+        prob = float(model.predict_proba([clean_text])[0][1])
+        top_words = extract_context_understanding(clean_text) if prob >= 0.95 else []
+        return prob, top_words
+    except Exception as e:
+        print(f"خطأ أثناء التنبؤ: {e}")
+        return 0.0, []
+
+
+async def check_profanity_ai_only(
+    text: str,
+) -> tuple[bool, float, str, list[tuple[str, float]]]:
+    """دالة الفحص المعتمدة على الذكاء الاصطناعي مع شرح فهم السياق"""
     if not text or not text.strip() or model is None:
-        return False, 0.0, "نص فارغ أو الموديل غير محمل"
+        return False, 0.0, "نص فارغ أو الموديل غير محمل", []
 
     clean_text = normalize_arabic_text(text)
-    words = clean_text.split()
+    if not clean_text:
+        return False, 0.0, "نص فارغ بعد التنظيف", []
 
-    max_prob = 0.0
-    flagged_word = ""
+    prob, top_words = await asyncio.to_thread(_predict_sync, clean_text)
 
-    # فحص كل كلمة بشكل منفصل عبر الذكاء الاصطناعي
-    for word in words:
-        # تجنب الكلمات القصيرة جداً (حرفين أو أقل) لتفادي البلاغات الخاطئة
-        if len(word) <= 2:
-            continue
+    if prob >= 0.95:
+        return True, prob, "تكهن الموديل الذكي (ثقة عالية)", top_words
 
-        try:
-            # حساب احتمال أن تكون الكلمة بذيئة
-            prob = model.predict_proba([word])[0][1]
-
-            if prob > max_prob:
-                max_prob = prob
-                flagged_word = word
-        except Exception as e:
-            continue
-
-    # العتبة 95%: يتم تعليم الرسالة فقط إذا كان الموديل متأكداً بنسبة 95% أو أعلى
-    if max_prob >= 0.95:
-        return True, max_prob, f"تكهن الموديل الذكي على الكلمة: '{flagged_word}'"
-
-    return False, max_prob, "نص سليم"
+    return False, prob, "نص سليم", []
 
 
 @client.on(events.NewMessage)
 async def monitor_messages(event):
-    # تجاهل رسائل البوتات والقنوات والرسائل الفارغة
     sender = await event.get_sender()
     if not sender or getattr(sender, "bot", False):
         return
@@ -78,8 +119,8 @@ async def monitor_messages(event):
     if not text:
         return
 
-    # فحص الرسالة عبر الذكاء الاصطناعي فقط
-    is_flagged, confidence, reason = check_profanity_ai_only(text)
+    # فحص الرسالة واستخراج فهم الموديل للسياق
+    is_flagged, confidence, reason, top_words = await check_profanity_ai_only(text)
 
     if is_flagged:
         try:
@@ -98,7 +139,14 @@ async def monitor_messages(event):
             username = f"@{sender.username}" if sender.username else "لا يوجد"
             user_id = sender.id
 
-            # 3. إعداد التقرير الإشعاري
+            # 3. صياغة فهم الموديل للسياق
+            if top_words:
+                words_str = ", ".join([f"`{w[0]}`" for w in top_words])
+                ai_understanding = f"فهم الذكاء أن السياق مسيء بناءً على الكلمات: {words_str}"
+            else:
+                ai_understanding = "فهم الذكاء التركيب العام للجملة وسياقها ككل"
+
+            # 4. إعداد التقرير الإشعاري
             report_text = (
                 f"🚨 **رصد كلام بذيء ({confidence * 100:.1f}%)**\n\n"
                 f"👤 **معلومات المرسل:**\n"
@@ -106,12 +154,12 @@ async def monitor_messages(event):
                 f"• **اليوزر:** {username}\n"
                 f"• **الآيدي:** `{user_id}`\n\n"
                 f"📝 **النص:**\n`{text}`\n\n"
-                f"🔍 **السبب:** `{reason}`\n"
+                f"💡 **تفسير الذكاء الاصطناعي للسياق:**\n{ai_understanding}\n\n"
                 f"📊 **نسبة التوقع:** `{confidence * 100:.1f}%`\n\n"
                 f"🔗 **رابط الرسالة:** [الانتقال للرسالة]({msg_link})"
             )
 
-            # 4. إرسال التقرير
+            # 5. إرسال التقرير
             await client.send_message(wfffp, report_text, link_preview=False)
 
         except Exception as e:
