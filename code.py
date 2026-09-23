@@ -2,7 +2,7 @@ from ABH import *
 message = {}
 @ABH.on(events.NewMessage(pattern=r'^انشاء رسالة$'))
 async def create_message(e):
-    session = message.get(e.sender_id)
+    session = message.get(e.sender_id, {})
     text = session.get('text')
     media = session.get('media')
     buttons = session.get('buttons')
