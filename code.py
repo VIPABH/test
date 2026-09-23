@@ -18,7 +18,7 @@ async def create_message(e):
         Button.inline('حذف معين', data='delete', icon=5229113891081956317, style=red),
         ],
         [
-        Button.inline('تم', data='done', icon=5854724316385512963, style=green),
+        Button.inline('تم', data='done', icon=5854724316385512963, style=blue),
         ]
     ]
     await e.reply('اهلا عزيزي وين تحب نبدي', buttons=b)    
