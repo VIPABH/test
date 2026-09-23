@@ -2,6 +2,9 @@ from ABH import *
 message = {}
 @ABH.on(events.NewMessage(pattern=r'^انشاء رسالة$'))
 async def create_message(e):
+    red = "danger"
+    green = "success"
+    blue = "primary"
     session = message.get(e.sender_id, {})
     text = session.get('text')
     media = session.get('media')
