@@ -53,9 +53,9 @@ async def send_or_update_preview(e, user_id, notice=None):
     
     # إذا كان الاستدعاء من CallbackQuery يتم التعديل، وإلا يتم الإرسال كـ reply
     if hasattr(e, 'edit'):
-        await e.edit(preview, buttons=keyboards)
-    else:
         await e.respond(preview, buttons=keyboards)
+    else:
+        await e.edit(preview, buttons=keyboards)
 
 @ABH.on(events.NewMessage(pattern=r'^انشاء رسالة$'))
 async def create_message(e):
