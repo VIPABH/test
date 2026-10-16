@@ -1,7 +1,8 @@
 from ABH import ABH as client
 import asyncio
-from telethon import TelegramClient, events
+from telethon import events
 from pytgcalls import PyTgCalls
+from pytgcalls.types import AudioPiped
 
 call_py = PyTgCalls(client)
 
@@ -15,8 +16,12 @@ async def join_voice_call(event):
     chat_id = event.chat_id
 
     try:
-        # الانضمام إلى الاتصال الصوتي للمجموعة
-        await call_py.join_group_call(chat_id)
+        # في الإصدارات الحديثة، يتم الانضمام والتشغيل عبر play
+        # (يجب توفير ملف صوتي مثل song.mp3 أو استخدام تدفق صوتي)
+        await call_py.play(
+            chat_id,
+            AudioPiped("song.mp3")
+        )
         await event.reply("✅ تم الانضمام إلى الاتصال الصوتي بنجاح!")
     except Exception as e:
         await event.reply(f"❌ حدث خطأ أثناء الانضمام: {e}")
@@ -30,9 +35,8 @@ async def leave_voice_call(event):
     chat_id = event.chat_id
 
     try:
-        # المغادرة من الاتصال الصوتي
-        await call_py.leave_group_call(chat_id)
+        # المغادرة في الإصدارات الحديثة تتم عبر leave_call
+        await call_py.leave_call(chat_id)
         await event.reply("👋 تم الخروج من الاتصال الصوتي.")
     except Exception as e:
         await event.reply(f"❌ حدث خطأ أثناء المغادرة: {e}")
-
