@@ -2,7 +2,7 @@ from ABH import ABH as client
 import asyncio
 from telethon import events
 from pytgcalls import PyTgCalls
-from pytgcalls.types import AudioPiped
+from pytgcalls.types import AudioPiped  # إذا استمر الخطأ، جرب الطريقة البديلة بالأسفل
 
 call_py = PyTgCalls(client)
 
