@@ -1,21 +1,38 @@
-from ABH import *
-import inspect
-def print_all():
-  caller_frame = inspect.currentframe().f_back
-  func_name = caller_frame.f_code.co_name
-  caller_locals = caller_frame.f_locals
-  items = list(caller_locals.items())[1:]
-  formatted_items = []
-  for k, v in items:
-    if not isinstance(v, (str, int, float, bool, list, dict, set, tuple)):
-      continue
-    formatted_items.append(f"{k}={v}")
-  result = " , ".join(formatted_items)
-  print(f"متغيرات دالة ( {func_name} ): \n{result}")
-@ABH.on(events.NewMessage)
-async def _(e):
-  x = 2
-  y = 1
-  s = '3e'
-  k=20
-  print_all()
+from ABH import ABH as client
+import asyncio
+from telethon import TelegramClient, events
+from pytgcalls import PyTgCalls
+
+call_py = PyTgCalls(client)
+
+
+@client.on(events.NewMessage(pattern=r"^/join$"))
+async def join_voice_call(event):
+    if not event.is_group:
+        await event.reply("❌ هذا الأمر يعمل داخل المجموعات فقط.")
+        return
+
+    chat_id = event.chat_id
+
+    try:
+        # الانضمام إلى الاتصال الصوتي للمجموعة
+        await call_py.join_group_call(chat_id)
+        await event.reply("✅ تم الانضمام إلى الاتصال الصوتي بنجاح!")
+    except Exception as e:
+        await event.reply(f"❌ حدث خطأ أثناء الانضمام: {e}")
+
+
+@client.on(events.NewMessage(pattern=r"^/leave$"))
+async def leave_voice_call(event):
+    if not event.is_group:
+        return
+
+    chat_id = event.chat_id
+
+    try:
+        # المغادرة من الاتصال الصوتي
+        await call_py.leave_group_call(chat_id)
+        await event.reply("👋 تم الخروج من الاتصال الصوتي.")
+    except Exception as e:
+        await event.reply(f"❌ حدث خطأ أثناء المغادرة: {e}")
+
