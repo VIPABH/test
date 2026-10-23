@@ -1,4 +1,4 @@
-from ABH import ABH as client
+from ABH import *
 from telethon import  events
 
 
