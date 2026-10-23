@@ -7,7 +7,7 @@ import pytz, os, json, asyncio, time, inspect, random, re
 from telethon.tl.types import ChatParticipantCreator
 from telethon.errors import UserNotParticipantError
 from telethon.tl.types import ReactionEmoji, User
-\from telethon.tl.types import Chat, Channel
+from telethon.tl.types import Chat, Channel
 from telethon import types, Button
 from types import SimpleNamespace
 from ABH import ABH, r, events
