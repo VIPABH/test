@@ -15,7 +15,7 @@ async def react_like_target(event):
 
     # 2. إعادة جلب الرسالة لضمان تحديث البيانات
     full_message = await client.get_messages(reply_message.peer_id, ids=reply_message.id)
-
+    await event.reply(str(full_message)))
     if not full_message or not full_message.reactions:
         await event.reply("ℹ️ لا توجد تفاعلات على الرسالة المردود عليها لتكرارها.")
         return
