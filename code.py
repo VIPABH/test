@@ -2,7 +2,7 @@ from ABH import *
 from telethon import  events
 
 
-@client.on(events.NewMessage(pattern=r'^/reactions$|^تفاعلات$'))
+@user.on(events.NewMessage(pattern=r'^/reactions$|^تفاعلات$'))
 async def check_reply_reactions(event):
     reply_message = await event.get_reply_message()
     
