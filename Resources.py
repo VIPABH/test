@@ -103,14 +103,6 @@ async def download_avatar(target_id_or_entity):
     except Exception as e:
         await hint(f"خطأ أثناء تنزيل الصورة: {e}")
     return None
-def get_years_months_days(past_date_str, date_format="%Y-%m-%d"):
-    past_date = datetime.strptime(past_date_str, date_format).date()
-    current_date = datetime.now().date()
-    difference = relativedelta(current_date, past_date)
-    years = difference.years
-    months = difference.months
-    days = difference.days        
-    return years, months, days
 async def PROFILE_SEND(e, text, buttons=None, id=None):
     id = id or e.sender_id
     l = lock(e, 'ايدي')
