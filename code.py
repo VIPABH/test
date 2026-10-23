@@ -11,7 +11,7 @@ async def check_reply_reactions(event):
         return
 
     # 🔑 الخطوة الحاسمة: إعادة جلب الرسالة بالكامل من السيرفر لتحديث بيانات التفاعلات والمشاهدات
-    full_message = await client.get_messages(event.chat_id, ids=reply_message.id)
+    full_message = await user.get_messages(event.chat_id, ids=reply_message.id)
 
     # التحقق من وجود تفاعلات بعد الجلب الكامل
     if not full_message or not full_message.reactions:
