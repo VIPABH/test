@@ -1,26 +1,26 @@
-from ABH import ABH as client, events
+from ABH import ABH as client, 
+from telethon import  events
 
-# ... إعداد الـ client والتسجيل ...
 
 @client.on(events.NewMessage(pattern=r'^/reactions$|^تفاعلات$'))
 async def check_reply_reactions(event):
-    # التأكد من أن المستخدم قام بالرد على رسالة
     reply_message = await event.get_reply_message()
     
     if not reply_message:
         await event.reply("❌ يرجى الرد على الرسالة التي تريد معرفة تفاعلاتها!")
         return
 
-    # فحص ما إذا كانت الرسالة المردود عليها تحتوي على تفاعلات
-    if not reply_message.reactions:
-        await event.reply("ℹ️ لا توجد أي تفاعلات على هذه الرسالة.")
+    # 🔑 الخطوة الحاسمة: إعادة جلب الرسالة بالكامل من السيرفر لتحديث بيانات التفاعلات والمشاهدات
+    full_message = await client.get_messages(event.chat_id, ids=reply_message.id)
+
+    # التحقق من وجود تفاعلات بعد الجلب الكامل
+    if not full_message or not full_message.reactions:
+        await event.reply("ℹ️ لا توجد تفاعلات على هذه الرسالة (أو لم يتم تحميلها).")
         return
 
-    # تجهيز النص المنسق للتفاعلات
-    text = "📊 **التفاعلات على هذه الرسالة:**\n\n"
+    text = "📊 **التفاعلات الحقيقية على الرسالة:**\n\n"
     
-    for count in reply_message.reactions.results:
-        # معرفة نوع الإيموجي (عادي أم مخصص/بريميوم)
+    for count in full_message.reactions.results:
         reaction = count.reaction
         if hasattr(reaction, 'emoticon'):
             emoji = reaction.emoticon
@@ -30,5 +30,4 @@ async def check_reply_reactions(event):
         total_count = count.count
         text += f"• الإيموجي: {emoji} ⟵ العدد: **{total_count}**\n"
 
-    # إرسال النتيجة رداً على المستخدم
     await event.reply(text)
