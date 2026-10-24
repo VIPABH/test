@@ -1,6 +1,13 @@
 from ABH import ABH
 from telethon import  events
 import asyncio
+from telethon.tl.functions.messages import GetMessagesViewsRequest, SendReactionRequest
+from telethon.tl.functions.channels import GetParticipantRequest
+from telethon.tl.types import MessageEntityCustomEmoji
+from telethon.tl.types import ChannelParticipantAdmin
+from telethon.errors import UserNotParticipantError
+from telethon.tl.types import ReactionEmoji
+
 _emoji = [
     "🤣", "❤️", "👍", "👎", "🔥", "🥰", "👏", "😁", "🤯", "😱", "🤬", "😡", "😢", "🎉", "🤩", "🤮", "💩", "🙏", "👌", "🕊",
     "🤡", "🥱", "☺️", "😍", "🐳", "❤️‍🔥", "🌚", "🌭", "😙", "💯", "⚡️", "🍌", "🏆", "😡", "😘", "🙊", "😎", "👾", "🤷‍♂️",
