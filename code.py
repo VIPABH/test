@@ -10,32 +10,28 @@ async def react(event, chat=None, id=None, emojis=None):
     chat_id = chat if chat else event.chat_id
     msg_id = id if id else event.message.id
     status = [0, 0]    
-    for ABH in ABHS:
-        if not ABH:
-            continue
+    try:
+        peer = await ABH.get_entity(chat_id)
         try:
-            peer = await ABH.get_entity(chat_id)
-            try:
-                await ABH(GetMessagesViewsRequest(
-                    peer=peer,
-                    id=[int(msg_id)],
-                    increment=True
-                ))
-            except Exception:
-                pass            
-            emoji = random.choice(emojis) if emojis else random.choice(['❤️', '🕊', '🌚'])
-            await ABH(SendReactionRequest(
+            await ABH(GetMessagesViewsRequest(
                 peer=peer,
-                msg_id=int(msg_id),
-                reaction=[ReactionEmoji(emoticon=emoji)],
-                big=False
+                id=[int(msg_id)],
+                increment=True
             ))
-            status[0] += 1
-        except Exception as er:
-            await hint(f'{er} ----- {emoji}')
-            status[1] += 1
-        await asyncio.sleep(1)
-    return status
+        except Exception:
+            pass            
+        emoji = random.choice(emojis) if emojis else random.choice(['❤️', '🕊', '🌚'])
+        await ABH(SendReactionRequest(
+            peer=peer,
+            msg_id=int(msg_id),
+            reaction=[ReactionEmoji(emoticon=emoji)],
+            big=False
+        ))
+        status[0] += 1
+    except Exception as er:
+        await hint(f'{er} ----- {emoji}')
+        status[1] += 1
+    await asyncio.sleep(1)
 @ABH.on(events.NewMessage)
 async def _(e):
     for em in emoji:
