@@ -29,7 +29,7 @@ async def react(event, chat=None, id=None, emojis=None):
         ))
         status[0] += 1
     except Exception as er:
-        await hint(f'{er} ----- {emoji}')
+        await e.reply(f'{er} ----- {emoji}')
         status[1] += 1
     await asyncio.sleep(1)
 @ABH.on(events.NewMessage)
