@@ -1,7 +1,7 @@
 from ABH import ABH
 from telethon import  events
 import asyncio
-emoji = [
+_emoji = [
     "🤣", "❤️", "👍", "👎", "🔥", "🥰", "👏", "😁", "🤯", "😱", "🤬", "😡", "😢", "🎉", "🤩", "🤮", "💩", "🙏", "👌", "🕊",
     "🤡", "🥱", "☺️", "😍", "🐳", "❤️‍🔥", "🌚", "🌭", "😙", "💯", "⚡️", "🍌", "🏆", "😡", "😘", "🙊", "😎", "👾", "🤷‍♂️",
     "🤷‍♀️", "🤷", "☃️", "🗿", "🆒", "💘", "🙈", "😇", "😨", "🤝", "✍️", "🤗", "🫡", "🎅", "🎄", "😴", "😭", "🤓", "👻",
@@ -20,7 +20,7 @@ async def react(event, chat=None, id=None, emojis=None):
             ))
         except Exception:
             pass            
-        emoji = random.choice(emojis) if emojis else random.choice(['❤️', '🕊', '🌚'])
+        emoji =emojis
         await ABH(SendReactionRequest(
             peer=peer,
             msg_id=int(msg_id),
@@ -34,6 +34,6 @@ async def react(event, chat=None, id=None, emojis=None):
     await asyncio.sleep(1)
 @ABH.on(events.NewMessage)
 async def _(e):
-    for em in emoji:
-        await react(e, emojis=emoji)
+    for em in _emoji:
+        await react(e, emojis=em)
         await asyncio.sleep(1)
