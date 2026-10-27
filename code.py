@@ -21,7 +21,7 @@ async def mention_admins_command(event):
             
         # إنشاء منشن مخفي لكل مشرف (النقطة أو الفراغ يحمل رابط الـ ID)
         # يمكنك تغيير الحرف (.) بأي رمز تريده أو مسافة مخفية
-        admin_link = f"[هنا](tg://user?id={user.id})"
+        admin_link = f"[︎ ](tg://user?id={user.id})"
         admins_list.append(admin_link)
         
     if not admins_list:
