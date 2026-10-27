@@ -1,9 +1,7 @@
 from ABH import ABH as client
-from telethon import  events
+from telethon import events
 import asyncio
-from telethon import TelegramClient, events
 from telethon.tl.types import ChannelParticipantsAdmins
-
 
 @client.on(events.NewMessage(pattern=r'\.admins'))
 async def mention_admins_command(event):
@@ -21,25 +19,28 @@ async def mention_admins_command(event):
         if user.bot or user.deleted:
             continue
             
-        # إنشاء رابط المنشن المخفي باسم المشرف
-        admin_link = f"[{user.first_name}](tg://user?id={user.id})"
+        # إنشاء منشن مخفي لكل مشرف (النقطة أو الفراغ يحمل رابط الـ ID)
+        # يمكنك تغيير الحرف (.) بأي رمز تريده أو مسافة مخفية
+        admin_link = f"[\u200b](tg://user?id={user.id})"
         admins_list.append(admin_link)
         
     if not admins_list:
         await event.reply("لم يتم العثور على مشرفين في هذه المجموعة.")
         return
 
-    # دمج المنشنات في رسالة واحدة
-    mentions_text = " ".join(admins_list)
-    final_message = f"🚨 **تنبيه للمشرفين:**\n\n{mentions_text}"
+    # دمج المنشنات المخفية مع نص عادي تختاره (مثلاً: تنبيه إداري)
+    mentions_text = "".join(admins_list)
     
-    # حذف رسالة الأمر التي كتبها المستخدم (اختياري، لتنظيف الدردشة)
+    # الرسالة التي ستظهر للمستخدمين بشكل طبيعي مضاف إليها المنشنات المخفية (Zero-width)
+    final_message = f"🚨 **تنبيه: تم استدعاء المشرفين.**{mentions_text}"
+    
+    # حذف رسالة الأمر التي كتبها المستخدم لتنظيف الدردشة
     try:
         await event.delete()
     except Exception:
         pass
         
-    # إرسال الرسالة النهائية التي تحتوي على جميع المنشنات
+    # إرسال الرسالة النهائية
     await client.send_message(chat, final_message, parse_mode='md')
 
 print("المساعد يعمل الآن... اكتب .admins في أي مجموعة لتجربته.")
