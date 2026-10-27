@@ -1,46 +1,45 @@
-from ABH import ABH
+from ABH import ABH as client
 from telethon import  events
 import asyncio
-from telethon.tl.functions.messages import GetMessagesViewsRequest, SendReactionRequest
-from telethon.tl.functions.channels import GetParticipantRequest
-from telethon.tl.types import MessageEntityCustomEmoji
-from telethon.tl.types import ChannelParticipantAdmin
-from telethon.errors import UserNotParticipantError
-from telethon.tl.types import ReactionEmoji
+from telethon import TelegramClient, events
+from telethon.tl.types import ChannelParticipantsAdmins
 
-_emoji = [
-    "🤣", "❤️", "👍", "👎", "🔥", "🥰", "👏", "😁", "🤯", "😱", "🤬", "😡", "😢", "🎉", "🤩", "🤮", "💩", "🙏", "👌", "🕊",
-    "🤡", "🥱", "☺️", "😍", "🐳", "❤️‍🔥", "🌚", "🌭", "😙", "💯", "⚡️", "🍌", "🏆", "😡", "😘", "🙊", "😎", "👾", "🤷‍♂️",
-    "🤷‍♀️", "🤷", "☃️", "🗿", "🆒", "💘", "🙈", "😇", "😨", "🤝", "✍️", "🤗", "🫡", "🎅", "🎄", "😴", "😭", "🤓", "👻",
-    "👨‍💻", "👀", "🎃", "🙈", "💔", "🤨", "😐", "🍓", "🍾", "💋", "🖕", "😈"]
-async def react(event, chat=None, id=None, emojis=None):
-    chat_id = chat if chat else event.chat_id
-    msg_id = id if id else event.message.id
-    status = [0, 0]    
+
+@client.on(events.NewMessage(pattern=r'\.admins'))
+async def mention_admins_command(event):
+    # التأكد من أن الأمر تم استخدامه داخل مجموعة وليست محادثة خاصة
+    if not event.is_group:
+        await event.reply("هذا الأمر مخصص للاستخدام داخل المجموعات فقط.")
+        return
+
+    chat = await event.get_chat()
+    admins_list = []
+    
+    # جلب قائمة المشرفين في المجموعة
+    async for user in client.iter_participants(chat, filter=ChannelParticipantsAdmins):
+        # تخطي البوتات أو الحسابات المحذوفة
+        if user.bot or user.deleted:
+            continue
+            
+        # إنشاء رابط المنشن المخفي باسم المشرف
+        admin_link = f"[{user.first_name}](tg://user?id={user.id})"
+        admins_list.append(admin_link)
+        
+    if not admins_list:
+        await event.reply("لم يتم العثور على مشرفين في هذه المجموعة.")
+        return
+
+    # دمج المنشنات في رسالة واحدة
+    mentions_text = " ".join(admins_list)
+    final_message = f"🚨 **تنبيه للمشرفين:**\n\n{mentions_text}"
+    
+    # حذف رسالة الأمر التي كتبها المستخدم (اختياري، لتنظيف الدردشة)
     try:
-        peer = await ABH.get_entity(chat_id)
-        try:
-            await ABH(GetMessagesViewsRequest(
-                peer=peer,
-                id=[int(msg_id)],
-                increment=True
-            ))
-        except Exception:
-            pass            
-        emoji =emojis
-        await ABH(SendReactionRequest(
-            peer=peer,
-            msg_id=int(msg_id),
-            reaction=[ReactionEmoji(emoticon=emoji)],
-            big=False
-        ))
-        status[0] += 1
-    except Exception as er:
-        await event.reply(f'{er} ----- {emoji}')
-        status[1] += 1
-    await asyncio.sleep(1)
-@ABH.on(events.NewMessage)
-async def _(e):
-    for em in _emoji:
-        await react(e, emojis=em)
-        await asyncio.sleep(1)
+        await event.delete()
+    except Exception:
+        pass
+        
+    # إرسال الرسالة النهائية التي تحتوي على جميع المنشنات
+    await client.send_message(chat, final_message, parse_mode='md')
+
+print("المساعد يعمل الآن... اكتب .admins في أي مجموعة لتجربته.")
