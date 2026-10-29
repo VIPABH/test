@@ -136,7 +136,7 @@ async def try_forward(event, chat=None, id=None, to=None, drop_author=None):
 
 
 # --- حدث تجريبي لتشغيل الدوال عند إرسال كلمة معينة ---
-@client.on(events.NewMessage(pattern=pattern=r"تجربة"))
+@client.on(events.NewMessage(pattern=r"تجربة"))
 async def test_handler(event):
     await event.respond("جارٍ اختبار التفاعل والتوجيه...")
     
