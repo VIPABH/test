@@ -2,10 +2,16 @@ from ABH import ABH as client
 import asyncio
 import random
 from telethon import TelegramClient, events
-from telethon.tl.functions.messages import GetMessagesViewsRequest
-from telethon.tl.functions.channels import GetFullChannelRequest
-from telethon.tl.types import SendReactionRequest, ReactionEmoji, ChatReactionsAll, ChatReactionsSome, ChatReactionsNone
+# الاستيراد الصحيح للطلبات (Functions)
+from telethon.tl.functions.messages import SendReactionRequest
 
+# الاستيراد الصحيح للأنواع (Types)
+from telethon.tl.types import (
+    ReactionEmoji, 
+    ChatReactionsAll, 
+    ChatReactionsSome, 
+    ChatReactionsNone
+)
 
 async def hint(text):
     """دالة بسيطة لطباعة الأخطاء والتنبيهات"""
