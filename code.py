@@ -23,7 +23,35 @@ def print_all():
     print("--- [بدء عملية التفاعل والتوجيه] ---")
 
 
-# 1. دالة التفاعل وفحص الإيموجيات المسموحة
+# دالة مستقلة لجلب الإيموجيات المسموحة في القناة
+async def get_channel_allowed_reactions(client_instance, chat):
+    try:
+        try:
+            peer = await client_instance.get_input_entity(chat)
+        except Exception:
+            entity = await client_instance.get_entity(chat)
+            peer = await client_instance.get_input_entity(entity)
+
+        if not isinstance(peer, InputPeerChannel):
+            return "all"  # الشات العادي أو المجموعات غالباً تقبل الكل
+
+        full_chat = await client_instance(GetFullChannelRequest(peer))
+        reactions = full_chat.full_chat.available_reactions
+
+        if isinstance(reactions, ChatReactionsAll):
+            return "all"
+        elif isinstance(reactions, ChatReactionsSome):
+            allowed_emojis = [r.emoticon for r in reactions.reactions if hasattr(r, 'emoticon')]
+            return allowed_emojis
+        elif isinstance(reactions, ChatReactionsNone):
+            return "disabled"
+    except Exception as e:
+        print(f"Error fetching reactions: {e}")
+    
+    return "all"
+
+
+# 1. دالة التفاعل الذكية والمحدثة
 async def react(event, chat=None, id=None, emojis=None):
     chat_id = chat if chat else event.chat_id
     msg_id = id if id else event.message.id
@@ -35,7 +63,6 @@ async def react(event, chat=None, id=None, emojis=None):
         
     status = [0, 0]
     
-    # دعم نظام الحسابات (إذا كانت ABH عبارة عن قائمة أو عميل مفرد)
     ABHS = ABH if isinstance(ABH, (list, tuple)) else [ABH]
     
     for ABH_client in ABHS:
@@ -49,21 +76,26 @@ async def react(event, chat=None, id=None, emojis=None):
                 entity = await ABH_client.get_entity(chat_id)
                 peer = await ABH_client.get_input_entity(entity)
 
-            # معرفة وطباعة الإيموجيات المسموحة فقط إذا كان الكيان قناة أو مجموعة خارقة
-            if isinstance(peer, InputPeerChannel):
-                try:
-                    full_chat = await ABH_client(GetFullChannelRequest(peer))
-                    reactions = full_chat.full_chat.available_reactions
-                    
-                    if isinstance(reactions, ChatReactionsAll):
-                        print(f"التفاعلات المسموحة: جميع الإيموجيات القياسية (All)")
-                    elif isinstance(reactions, ChatReactionsSome):
-                        allowed_list = [r.emoticon for r in reactions.reactions if hasattr(r, 'emoticon')]
-                        print(f"الإيموجيات المسموحة المخصصة في القناة: {allowed_list}")
-                    elif isinstance(reactions, ChatReactionsNone):
-                        print(f"التفاعلات معطلة بالكامل في هذه القناة!")
-                except Exception as r_err:
-                    print(f"لم يتم جلب تفاصيل التفاعلات: {r_err}")
+            # 1. فحص الإيموجيات المسموحة في القناة أولاً
+            allowed_res = await get_channel_allowed_reactions(ABH_client, chat_id)
+            
+            if allowed_res == "disabled":
+                print(f"[{ABH_client.api_id if hasattr(ABH_client, 'api_id') else 'Bot'}] التفاعلات معطلة في هذه القناة!")
+                continue
+            
+            # 2. اختيار الإيموجي بذكاء بناءً على قيود القناة
+            if isinstance(allowed_res, list):
+                print(f"الإيموجيات المسموحة في القناة حصراً: {allowed_res}")
+                # إذا كانت القناة تحدد قائمة، نختار فقط من المسموح وبما يتوافق مع رغبتك (emojis) إن وجدت
+                if emojis:
+                    # تصفية الإيموجيات التي أرسلتها لتتوافق مع المسموح بالقناة فقط
+                    valid_choices = [e for e in emojis if e in allowed_res]
+                    emoji = random.choice(valid_choices) if valid_choices else random.choice(allowed_res)
+                else:
+                    emoji = random.choice(allowed_res)
+            else:
+                # إذا كانت القناة تقبل الكل (all)
+                emoji = random.choice(emojis) if emojis else random.choice(['❤️', '🕊', '🌚'])
 
             # زيادة المشاهدات
             try:
@@ -75,9 +107,7 @@ async def react(event, chat=None, id=None, emojis=None):
             except Exception:
                 pass
                 
-            emoji = random.choice(emojis) if emojis else random.choice(['❤️', '🕊', '🌚'])
-            
-            # إرسال التفاعل مع معالجة الأخطاء
+            # إرسال التفاعل المختار
             try:
                 await ABH_client(SendReactionRequest(
                     peer=peer,
@@ -88,6 +118,7 @@ async def react(event, chat=None, id=None, emojis=None):
                 status[0] += 1
             except Exception as react_err:
                 if "Invalid reaction provided" in str(react_err):
+                    # احتياطاً إذا حدث أي رفض، نرسل إيموجي آمن
                     await ABH_client(SendReactionRequest(
                         peer=peer,
                         msg_id=int(msg_id),
@@ -152,8 +183,8 @@ async def try_forward(event, chat=None, id=None, to=None, drop_author=None):
 # --- حدث تجريبي لتشغيل الدوال عند إرسال كلمة معينة ---
 @client.on(events.NewMessage(pattern=r"تجربة"))
 async def test_handler(event):
-    await event.respond("جارٍ اختبار التفاعل والتوجيه...")
+    await event.respond("جارٍ فحص القناة والتفاعل بذكاء...")
     
-    # تجربة دالة التفاعل بإيموجي فراولة أو عشوائي
-    status = await react(event, emojis=['🍓', '🔥', '❤️'])
+    # تجربة دالة التفاعل الذكي
+    status = await react(event, emojis=['🍓', '🔥', '❤️', '👍'])
     await event.respond(f"نتيجة التفاعلات الناجحة: {status[0]} | الفاشلة: {status[1]}")
