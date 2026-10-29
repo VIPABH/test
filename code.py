@@ -3,7 +3,7 @@ from ABH import ABH
 import asyncio
 import random
 from telethon import TelegramClient, events
-# الاستيراد الصحيح للطلبات (Functions)
+from telethon.tl.functions.channels import GetFullChannelRequest
 from telethon.tl.functions.messages import SendReactionRequest
 
 # الاستيراد الصحيح للأنواع (Types)
