@@ -2,16 +2,17 @@ from ABH import ABH as client
 from ABH import ABH
 import asyncio
 import random
-from telethon import TelegramClient, events
+from telethon import events
 from telethon.tl.functions.channels import GetFullChannelRequest
-from telethon.tl.functions.messages import SendReactionRequest
+from telethon.tl.functions.messages import SendReactionRequest, GetMessagesViewsRequest
 
-# الاستيراد الصحيح للأنواع (Types)
+# الاستيراد الصحيح للأنواع والكيانات (Types & Inputs)
 from telethon.tl.types import (
     ReactionEmoji, 
     ChatReactionsAll, 
     ChatReactionsSome, 
-    ChatReactionsNone
+    ChatReactionsNone,
+    InputPeerChannel
 )
 
 async def hint(text):
@@ -34,72 +35,78 @@ async def react(event, chat=None, id=None, emojis=None):
         
     status = [0, 0]
     
-    emoji = None
-    try:
-        # جلب الكيان بأمان
+    # دعم نظام الحسابات (إذا كانت ABH عبارة عن قائمة أو عميل مفرد)
+    ABHS = ABH if isinstance(ABH, (list, tuple)) else [ABH]
+    
+    for ABH_client in ABHS:
+        if not ABH_client:
+            continue
         try:
-            peer = await ABH.get_input_entity(chat_id)
-        except Exception:
-            entity = await ABH.get_entity(chat_id)
-            peer = await ABH.get_input_entity(entity)
+            # جلب الكيان بأمان
+            try:
+                peer = await ABH_client.get_input_entity(chat_id)
+            except Exception:
+                entity = await ABH_client.get_entity(chat_id)
+                peer = await ABH_client.get_input_entity(entity)
 
-        # معرفة وطباعة الإيموجيات المسموحة في القناة
-        try:
-            full_chat = await ABH(GetFullChannelRequest(peer))
-            reactions = full_chat.full_chat.available_reactions
-            
-            if isinstance(reactions, ChatReactionsAll):
-                print(f"التفاعلات المسموحة: جميع الإيموجيات القياسية (All)")
-            elif isinstance(reactions, ChatReactionsSome):
-                allowed_list = [r.emoticon for r in reactions.reactions if hasattr(r, 'emoticon')]
-                print(f"الإيموجيات المسموحة المخصصة في القناة: {allowed_list}")
-            elif isinstance(reactions, ChatReactionsNone):
-                print(f"التفاعلات معطلة بالكامل في هذه القناة!")
-        except Exception as r_err:
-            print(f"لم يتم جلب تفاصيل التفاعلات: {r_err}")
+            # معرفة وطباعة الإيموجيات المسموحة فقط إذا كان الكيان قناة أو مجموعة خارقة
+            if isinstance(peer, InputPeerChannel):
+                try:
+                    full_chat = await ABH_client(GetFullChannelRequest(peer))
+                    reactions = full_chat.full_chat.available_reactions
+                    
+                    if isinstance(reactions, ChatReactionsAll):
+                        print(f"التفاعلات المسموحة: جميع الإيموجيات القياسية (All)")
+                    elif isinstance(reactions, ChatReactionsSome):
+                        allowed_list = [r.emoticon for r in reactions.reactions if hasattr(r, 'emoticon')]
+                        print(f"الإيموجيات المسموحة المخصصة في القناة: {allowed_list}")
+                    elif isinstance(reactions, ChatReactionsNone):
+                        print(f"التفاعلات معطلة بالكامل في هذه القناة!")
+                except Exception as r_err:
+                    print(f"لم يتم جلب تفاصيل التفاعلات: {r_err}")
 
-        # زيادة المشاهدات
-        try:
-            await ABH(GetMessagesViewsRequest(
-                peer=peer,
-                id=[int(msg_id)],
-                increment=True 
-            ))
-        except Exception:
-            pass
+            # زيادة المشاهدات
+            try:
+                await ABH_client(GetMessagesViewsRequest(
+                    peer=peer,
+                    id=[int(msg_id)],
+                    increment=True 
+                ))
+            except Exception:
+                pass
+                
+            emoji = random.choice(emojis) if emojis else random.choice(['❤️', '🕊', '🌚'])
             
-        emoji = random.choice(emojis) if emojis else random.choice(['❤️', '🕊', '🌚'])
-        
-        # إرسال التفاعل مع معالجة الأخطاء
-        try:
-            await ABH(SendReactionRequest(
-                peer=peer,
-                msg_id=int(msg_id),
-                reaction=[ReactionEmoji(emoticon=emoji)],
-                big=False
-            ))
-            status[0] += 1
-        except Exception as react_err:
-            if "Invalid reaction provided" in str(react_err):
-                await ABH(SendReactionRequest(
+            # إرسال التفاعل مع معالجة الأخطاء
+            try:
+                await ABH_client(SendReactionRequest(
                     peer=peer,
                     msg_id=int(msg_id),
-                    reaction=[ReactionEmoji(emoticon='❤️')],
+                    reaction=[ReactionEmoji(emoticon=emoji)],
                     big=False
                 ))
                 status[0] += 1
-            else:
-                raise react_err
+            except Exception as react_err:
+                if "Invalid reaction provided" in str(react_err):
+                    await ABH_client(SendReactionRequest(
+                        peer=peer,
+                        msg_id=int(msg_id),
+                        reaction=[ReactionEmoji(emoticon='❤️')],
+                        big=False
+                    ))
+                    status[0] += 1
+                else:
+                    raise react_err
 
-        await asyncio.sleep(0.3)
-        
-    except Exception as e:
-        status[1] += 1
-        try:
-            await hint(str(e))
-        except Exception:
-            print(f"Error in react loop: {e}")
+            await asyncio.sleep(0.3)
             
+        except Exception as e:
+            status[1] += 1
+            try:
+                await hint(str(e))
+            except Exception:
+                print(f"Error in react loop: {e}")
+                
     return status if status is not None else [0, 0]
 
 
@@ -150,4 +157,3 @@ async def test_handler(event):
     # تجربة دالة التفاعل بإيموجي فراولة أو عشوائي
     status = await react(event, emojis=['🍓', '🔥', '❤️'])
     await event.respond(f"نتيجة التفاعلات الناجحة: {status[0]} | الفاشلة: {status[1]}")
-
