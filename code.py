@@ -1,19 +1,18 @@
-from telethon import TelegramClient, events, Button
-import redis, os
-import os
-api_id = int(os.environ.get('API_ID16'))
-api_hash = os.environ.get('API_HASH16')
-bot_token = os.environ.get('BOT_TOKEN')
-ABH = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
-user = TelegramClient('code16', api_id, api_hash).start()
-r = redis.StrictRedis(
-    host='localhost',
-    port=6379,
-    db=0,
-    decode_responses=True
-)
-CHANNEL_KEY = 'anymousupdate'
-ch = r.get(CHANNEL_KEY)
-buttons = Button.url('🫆', url=f'https://t.me/{ch}')
-async def chs(event, c):
-    await ABH.send_message(event.chat_id, c, reply_to=event.id, buttons=buttons)
+from telethon.tl.functions.channels import InviteToChannelRequest
+from ABH import *
+@ABH.on(events.NewMessage)
+async def _(e):
+    add_bot_to_channel(e.chat_id, '@fristagent')
+async def add_bot_to_channel(chat_id, bot_username):
+    try:
+        bot_entity = await ABH.get_entity(bot_username)
+        await ABH(InviteToChannelRequest(
+            channel=int(chat_id),
+            users=[bot_entity]
+        ))
+        
+        print(f"تمت إضافة البوت {bot_username} إلى القناة بنجاح!")
+        return True
+    except Exception as e:
+        print(f"فشل إضافة البوت: {e}")
+        return False
