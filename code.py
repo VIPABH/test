@@ -2,7 +2,7 @@ from telethon.tl.functions.channels import InviteToChannelRequest
 from ABH import *
 @ABH.on(events.NewMessage)
 async def _(e):
-    add_bot_to_channel(e.chat_id, '@fristagent')
+    await add_bot_to_channel(e.chat_id, '@fristagent')
 async def add_bot_to_channel(chat_id, bot_username):
     try:
         bot_entity = await ABH.get_entity(bot_username)
