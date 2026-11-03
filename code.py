@@ -24,7 +24,7 @@ async def custom_reaction_handler(event):
     chat_id = event.chat_id
     msg_id = reply_msg.id
 
-    await event.edit(f"⏳ جاري إرسال التفاعل المميز بالآيدي: `{custom_doc_id}`...")
+    await event.reply(f"⏳ جاري إرسال التفاعل المميز بالآيدي: `{custom_doc_id}`...")
 
     try:
         # معالجة الآيدي سواء كان سالباً (قناة/مجموعة) أو موجباً
@@ -42,10 +42,9 @@ async def custom_reaction_handler(event):
             big=False
         ))
         
-        await event.edit("✅ تم إرسال التفاعل المميز بنجاح!")
         
     except Exception as e:
-        await event.edit(f"❌ حدث خطأ أثناء إرسال التفاعل:\n`{str(e)}`")
+        await event.reply(f"❌ حدث خطأ أثناء إرسال التفاعل:\n`{str(e)}`")
 
 # تشغيل البوت أو الجلسة
 print("البوت يعمل الآن...")
