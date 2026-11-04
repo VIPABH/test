@@ -1,6 +1,7 @@
 from telethon import events
 from telethon.tl import *
 from ABH import ABH
+from telethon.tl.types import InputUser
 @ABH.on(events.NewMessage(pattern=r'\.زر'))
 async def button_mention(e, id=None, text=None):
     # if not id:return
