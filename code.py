@@ -1,8 +1,6 @@
 from ABH import ABH 
 from telethon import events
-from telethon.tl.types import InputKeyboardButtonUserProfile, InputUser
-from telethon.tl.types import ReplyKeyboardMarkup, KeyboardButtonRow
-
+from telethon.tl.types import KeyboardButtonUserProfile, InputUser
 # افترض أنك مسجل الأحداث هكذا مع ABH (وهو مثيل Telethon Client)
 @ABH.on(events.NewMessage(pattern='/profile_btn'))
 async def send_profile_button(event):
