@@ -1,50 +1,30 @@
-from ABH import ABH as client
-import asyncio
-from telethon import TelegramClient, events
-from telethon.tl.types import PeerChannel, ReactionCustomEmoji
-from telethon.tl.functions.messages import SendReactionRequest
+from ABH import ABH 
+from telethon import events
+from telethon.tl.types import InputKeyboardButtonUserProfile, InputUser
+from telethon.tl.types import ReplyKeyboardMarkup, KeyboardButtonRow
 
-@client.on(events.NewMessage(pattern=r'^\.تفاعل_مميز\s+(\d+)$'))
-async def custom_reaction_handler(event):
-    """
-    أمر مستمع لتجربة التفاعل المميز
-    الاستخدام بالرد على أي رسالة:
-    .تفاعل_مميز 5432109876543210
-    """
-    # التأكد من أن الأمر مرفوع بالرد على رسالة
-    if not event.is_reply:
-        await event.reply("⚠️ يجب الرد على الرسالة التي تريد التفاعل معها!")
+# افترض أنك مسجل الأحداث هكذا مع ABH (وهو مثيل Telethon Client)
+@ABH.on(events.NewMessage(pattern='/profile_btn'))
+async def send_profile_button(event):
+    # الحصول على معلومات المرسل أو استخدام دالة الـ button_mention التي عدلناها سابقاً
+    sender = await event.get_sender()
+    
+    if not sender:
         return
 
-    # استخراج آيدي التفاعل المميز (Document ID) المرسل مع الأمر
-    custom_doc_id = int(event.pattern_match.group(1))
+    # إنشاء زر الملف الشخصي
+    input_user = await ABH.get_input_user(sender)
+    profile_button = InputKeyboardButtonUserProfile(
+        text=f"ملف {getattr(sender, 'first_name', 'المستخدم')}",
+        user_id=input_user
+    )
     
-    # جلب الرسالة المستهدفة وآيدي القناة/المحادثة
-    reply_msg = await event.get_reply_message()
-    chat_id = event.chat_id
-    msg_id = reply_msg.id
-
-    await event.reply(f"⏳ جاري إرسال التفاعل المميز بالآيدي: `{custom_doc_id}`...")
-
-    try:
-        # معالجة الآيدي سواء كان سالباً (قناة/مجموعة) أو موجباً
-        clean_chat = str(chat_id).lstrip('-')
-        if clean_chat.isdigit() and str(chat_id).startswith('-'):
-            peer = PeerChannel(int(chat_id))
-        else:
-            peer = await event.get_input_chat()
-
-        # إرسال التفاعل المميز
-        await client(SendReactionRequest(
-            peer=peer,
-            msg_id=msg_id,
-            reaction=[ReactionCustomEmoji(document_id=custom_doc_id)],
-            big=False
-        ))
-        
-        
-    except Exception as e:
-        await event.reply(f"❌ حدث خطأ أثناء إرسال التفاعل:\n`{str(e)}`")
-
-# تشغيل البوت أو الجلسة
-print("البوت يعمل الآن...")
+    # وضع الزر داخل لوحة مفاتيح (ReplyKeyboardMarkup أو InlineKeyboardMarkup حسب الاستخدام)
+    # ملاحظة: أزرار الملف الشخصي عادةً تُوضع في ReplyKeyboardMarkup أو Inline حسب إصدار تيليثون
+    markup = ReplyKeyboardMarkup(
+        rows=[KeyboardButtonRow(buttons=[profile_button])],
+        resize=True
+    )
+    
+    # إرسال الرسالة مع الزر
+    await event.reply("اضغط على الزر أدناه لعرض الملف الشخصي:", buttons=markup)
