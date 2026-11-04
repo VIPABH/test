@@ -1,10 +1,5 @@
 from telethon import events
-from telethon.tl.types import (
-    ReplyInlineMarkup,
-    KeyboardButtonRow,
-    InputKeyboardButtonUserProfile,
-    InputUser,
-)
+from telethon.tl import *
 from ABH import ABH
 @ABH.on(events.NewMessage(pattern=r'\.زر'))
 async def button_mention(e, id=None, text=None):
