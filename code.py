@@ -1,25 +1,38 @@
 from telethon import events
-from telethon.tl import *
+from telethon.tl import *  # استيراد كل شيء لمنع ظهور أي NameError أو ImportError
 from ABH import ABH
-from telethon.tl.types import InputUser
+
 @ABH.on(events.NewMessage(pattern=r'\.زر'))
-async def button_mention(e, id=None, text=None):
-    # if not id:return
+async def button_mention(e):
+    if not e.sender_id:
+        return
+        
     text = '>>'
+    
+    # الحصول على الكيان والـ InputUser بأمان
     input_peer = await ABH.get_input_entity(e.sender_id)
-    button_text = text if text else getattr(user_entity, 'first_name', 'User')    
-    user_input = InputUser(user_id=input_peer.user_id, access_hash=input_peer.access_hash)    
-    markup = ReplyInlineMarkup(
+    
+    if not hasattr(input_peer, 'user_id'):
+        return
+
+    user_input = types.InputUser(user_id=input_peer.user_id, access_hash=input_peer.access_hash)  
+    
+    # ملاحظة: إذا كنت تستخدم الكلاس القديم للأزرار، تأكد من استخدامه هكذا:
+    # (إذا استمرت مشكلة InputKeyboardButtonUserProfile، يفضل استخدام Button.url كما شرحنا سابقاً)
+    
+    # بناء الكيبورد باستخدام الأنواع المستوردة
+    markup = types.ReplyInlineMarkup(
         rows=[
-            KeyboardButtonRow(
+            types.KeyboardButtonRow(
                 buttons=[
-                    InputKeyboardButtonUserProfile(
-                        text=button_text,
-                        user_id=user_input
+                    types.KeyboardButtonUrl(
+                        text=text,
+                        url=f"tg://user?id={e.sender_id}"
                     )
                 ]
             )
         ]
     )
+    
     await e.reply('[]', buttons=markup)
     return markup
