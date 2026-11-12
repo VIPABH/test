@@ -5,7 +5,6 @@ from Resources import *
 async def _(e):
     e.text = 'حجرة @IUHASHEM'
     await e.reply("تم تغيير الحدث")
-    await rock_logic(e) # نستدعي الدالة هنا لتعمل فوراً
 
 # 3. الهاندلر الثاني: للأمر الطبيعي
 @ABH.on(events.NewMessage(pattern=r"^(?:حجرة|/rock)(?:\s+(.+))?$"))
