@@ -1,6 +1,6 @@
 from ABH import *
 from Resources import *
-@ABH.on(events.NewMessage(pattern='^(عرض الاعدادات|الاعدادات|/settings)$', from_users=[wfffp]))
+@ABH.on(events.NewMessage(pattern='^(عرض الاعدادات|الاعدادات|/settings)$')
 async def settings(e):
     if not e.is_group:return
     a = await auth(e)
