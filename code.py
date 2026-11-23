@@ -2,9 +2,10 @@ from ABH import *
 from Resources import *
 target_bot_id = 2080276323
 yt_session = {}
-@ABH.on(events.NewMessage(pattern='^(حمل|يوت|تحميل|yt) ?(.*)'))
+@ABH.on(events.NewMessage(pattern='^(حمل|يوت|تحميل|yt) ?(.*)', incoming=True))
 async def yt_func(e):
     # if not e.is_group:return
+    if e.sender_id ==  7278066500:return
     cmd = e.pattern_match.group(1)
     # if cmd != 'حمل':
     #     l = lock(e, 'يوت')
