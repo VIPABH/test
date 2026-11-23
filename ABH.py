@@ -7,7 +7,7 @@ bot_token = os.environ.get('BOT_TOKEN')
 user_ip = int(os.environ.get('user_ip'))
 user_hash = os.environ.get('user_hash')
 ABH = TelegramClient('session_name', api_id, api_hash).start(bot_token=bot_token)
-user = TelegramClient('user', user_ip, user_hash).start()
+user = TelegramClient('user_bot', user_ip, user_hash).start()
 r = redis.StrictRedis(
     host='localhost',
     port=6379,
