@@ -4,11 +4,11 @@ target_bot_id = 2080276323
 yt_session = {}
 @ABH.on(events.NewMessage(pattern='^(حمل|يوت|تحميل|yt) ?(.*)'))
 async def yt_func(e):
-    if not e.is_group:return
+    # if not e.is_group:return
     cmd = e.pattern_match.group(1)
-    if cmd != 'حمل':
-        l = lock(e, 'يوت')
-        if not l:return
+    # if cmd != 'حمل':
+    #     l = lock(e, 'يوت')
+    #     if not l:return
     query = e.pattern_match.group(2)
     if not query:
         r = await e.get_reply_message()
