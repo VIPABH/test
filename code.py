@@ -1,7 +1,7 @@
 from ABH import *
 from Resources import *
 target_bot_id = 2080276323
-yt_session
+yt_session = {}
 @ABH.on(events.NewMessage(pattern='^(حمل|يوت|تحميل|yt) ?(.*)'))
 async def yt_func(e):
     if not e.is_group:return
