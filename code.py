@@ -14,7 +14,7 @@ async def yt_func(e):
         r = await e.get_reply_message()
         if not r:return await e.reply('اهلا عزيزي شنو تحب احملك؟')
         query = r.text
-    await user.send_message(-1002219196756, query)
+    await user.send_message(-1002219196756, 'يوت '+query)
     yt_session[e.id] = {
         'query': query
     }
