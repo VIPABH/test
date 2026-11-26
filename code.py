@@ -1,9 +1,9 @@
+import io
 import os
 from telethon import events
 from telethon.tl.types import (
     DocumentAttributeAudio,
     DocumentAttributeFilename,
-    InputDocument,
 )
 from Resources import *
 from ABH import *
@@ -19,6 +19,29 @@ def _is_audio_message(message) -> bool:
         return True
     doc = message.document
     return bool(doc and doc.mime_type and doc.mime_type.startswith("audio/"))
+
+
+def _get_current_performer(doc):
+    """جلب اسم المؤدي الحالي إن وجد"""
+    if not doc:
+        return None
+    for attr in doc.attributes:
+        if isinstance(attr, DocumentAttributeAudio):
+            return attr.performer
+    return None
+
+
+def _get_audio_filename(doc) -> str:
+    """استخراج اسم الملف الأصلي أو تحديد اسم افتراضي مناسب"""
+    if doc:
+        for attr in doc.attributes:
+            if isinstance(attr, DocumentAttributeFilename) and attr.file_name:
+                return attr.file_name
+        if doc.mime_type and "/" in doc.mime_type:
+            ext = doc.mime_type.split("/", 1)[1].split(";")[0].strip()
+            if ext:
+                return f"audio.{ext}"
+    return "audio.mp3"
 
 
 def _build_updated_attributes(doc):
@@ -38,7 +61,7 @@ def _build_updated_attributes(doc):
                     waveform=attr.waveform,
                 )
             )
-        elif isinstance(attr, DocumentAttributeFilename):
+        else:
             updated_attrs.append(attr)
 
     if not has_audio_attr:
@@ -54,15 +77,6 @@ def _build_updated_attributes(doc):
     return updated_attrs
 
 
-def _to_input_document(doc):
-    """تحويل Document إلى InputDocument"""
-    return InputDocument(
-        id=doc.id,
-        access_hash=doc.access_hash,
-        file_reference=doc.file_reference,
-    )
-
-
 @ABH.on(events.NewMessage())
 @timer
 async def auto_update_incoming_audio(event):
@@ -71,27 +85,25 @@ async def auto_update_incoming_audio(event):
     if not _is_audio_message(msg) or not msg.document:
         return
 
+    if event.out and _get_current_performer(msg.document) == NEW_PERFORMER:
+        return
+
+    audio_bytes = await ABH.download_media(msg, file=bytes)
+    if not audio_bytes:
+        return
+
+    audio_stream = io.BytesIO(audio_bytes)
+    audio_stream.name = _get_audio_filename(msg.document)
+
     updated_attrs = _build_updated_attributes(msg.document)
-    input_doc = _to_input_document(msg.document)
     thumb = await ABH.upload_file(THUMB_PATH) if os.path.exists(THUMB_PATH) else None
 
-    try:
-        await ABH.edit_message(
-            entity=event.chat_id,
-            message=msg.id,
-            text=msg.text or "",
-            file=input_doc,
-            thumb=thumb,
-            attributes=updated_attrs,
-            force_document=False,
-        )
-    except Exception:
-        await ABH.send_file(
-            entity=event.chat_id,
-            file=input_doc,
-            caption=msg.text or "",
-            attributes=updated_attrs,
-            thumb=thumb,
-            force_document=False,
-            reply_to=msg.reply_to_msg_id,
-        )
+    await ABH.send_file(
+        entity=event.chat_id,
+        file=audio_stream,
+        caption=msg.text or "",
+        attributes=updated_attrs,
+        thumb=thumb,
+        force_document=False,
+        reply_to=msg.reply_to_msg_id,
+    )
