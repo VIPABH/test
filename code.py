@@ -3,7 +3,6 @@ from telethon import events
 from telethon.tl.types import (
     DocumentAttributeAudio,
     InputDocument,
-    InputMediaDocument,
 )
 from Resources import *
 from ABH import *
@@ -73,17 +72,13 @@ async def auto_update_incoming_audio(event):
     updated_attrs = _build_updated_attributes(msg.document)
     input_doc = _to_input_document(msg.document)
 
-    media = InputMediaDocument(
-        id=input_doc,
-        thumb=thumb,
-    )
-
     try:
         await ABH.edit_message(
             entity=event.chat_id,
             message=msg.id,
             text=msg.text or "",
-            file=media,
+            file=input_doc,
+            thumb=thumb,
             attributes=updated_attrs,
         )
     except Exception:
