@@ -1,37 +1,17 @@
-import asyncio
-import io
-import os
 from telethon import events
 from telethon.tl.types import (
     DocumentAttributeAudio,
-    DocumentAttributeFilename,
+    InputDocument,
 )
-from mutagen.id3 import APIC, ID3, TPE1
 from Resources import *
 from ABH import *
 
 
-THUMB_PATH = "موارد/photo_2025-02-10_11-40-17.jpg"
 NEW_PERFORMER = "Anymous"
-CHUNK_SIZE = 512 * 1024  # 512 KB
-UPLOAD_PART_KB = 512     # 512 KB
-
-_THUMB_BYTES = None
-
-
-def _get_thumb_bytes() -> bytes | None:
-    """قراءة الصورة مرة واحدة في الذاكرة"""
-    global _THUMB_BYTES
-    if _THUMB_BYTES is not None:
-        return _THUMB_BYTES
-    if os.path.exists(THUMB_PATH):
-        with open(THUMB_PATH, "rb") as f:
-            _THUMB_BYTES = f.read()
-    return _THUMB_BYTES
 
 
 def _is_audio_message(message) -> bool:
-    """التحقق السريع من أن الرسالة تحتوي على ملف صوتي"""
+    """التحقق من أن الرسالة تحتوي على ملف صوتي"""
     if message.audio or message.voice:
         return True
     doc = message.document
@@ -39,7 +19,7 @@ def _is_audio_message(message) -> bool:
 
 
 def _get_current_performer(doc) -> str | None:
-    """جلب المؤدي الحالي لتفادي إعادة المعالجة"""
+    """جلب اسم المؤدي الحالي لتفادي تكرار الإرسال"""
     if not doc:
         return None
     for attr in doc.attributes:
@@ -48,54 +28,8 @@ def _get_current_performer(doc) -> str | None:
     return None
 
 
-def _get_audio_filename(doc) -> str:
-    """استخراج اسم الملف أو تحديد اسم افتراضي"""
-    if doc:
-        for attr in doc.attributes:
-            if isinstance(attr, DocumentAttributeFilename) and attr.file_name:
-                return attr.file_name
-        if doc.mime_type and "/" in doc.mime_type:
-            ext = doc.mime_type.split("/", 1)[1].split(";")[0].strip()
-            if ext:
-                return f"audio.{ext}"
-    return "audio.mp3"
-
-
-async def _download_audio_fast(client, doc) -> bytes:
-    """تحميل الملف الصوتي على أجزاء كبيرة مباشرة إلى الذاكرة"""
-    buf = io.BytesIO()
-    async for chunk in client.iter_download(doc, request_size=CHUNK_SIZE):
-        buf.write(chunk)
-    return buf.getvalue()
-
-
-def _patch_mp3_in_memory(raw_bytes: bytes, thumb_bytes: bytes | None) -> bytes:
-    """تعديل وسوم MP3 داخل الذاكرة دون كتابة ملفات على القرص"""
-    buf = io.BytesIO(raw_bytes)
-    try:
-        tags = ID3(buf)
-    except Exception:
-        tags = ID3()
-
-    tags["TPE1"] = TPE1(encoding=3, text=[NEW_PERFORMER])
-
-    if thumb_bytes:
-        tags.delall("APIC")
-        tags["APIC"] = APIC(
-            encoding=3,
-            mime="image/jpeg",
-            type=3,
-            desc="Cover",
-            data=thumb_bytes,
-        )
-
-    out = io.BytesIO(raw_bytes)
-    tags.save(out, v2_version=3)
-    return out.getvalue()
-
-
 def _build_updated_attributes(doc) -> list:
-    """تحديث المؤدي فقط مع إبقاء باقي خصائص الصوت كما هي"""
+    """تحديث المؤدي فقط مع إبقاء باقي الخصائص كما هي"""
     updated_attrs = []
     has_audio_attr = False
 
@@ -127,61 +61,35 @@ def _build_updated_attributes(doc) -> list:
     return updated_attrs
 
 
+def _to_input_document(doc) -> InputDocument:
+    """تحويل Document إلى InputDocument"""
+    return InputDocument(
+        id=doc.id,
+        access_hash=doc.access_hash,
+        file_reference=doc.file_reference,
+    )
+
+
 @ABH.on(events.NewMessage())
 @timer
-async def auto_update_incoming_audio(event):
-    """التقاط الصوتيات وتحديث المؤدي والصورة بأسرع مسار"""
+async def auto_update_performer(event):
+    """تحديث اسم المؤدي تلقائياً عند وصول ملف صوتي"""
     msg = event.message
     if not _is_audio_message(msg) or not msg.document:
         return
 
-    if event.out and _get_current_performer(msg.document) == NEW_PERFORMER:
+    current_performer = _get_current_performer(msg.document)
+    if current_performer == NEW_PERFORMER:
         return
 
-    raw_audio = await _download_audio_fast(ABH, msg.document)
-    if not raw_audio:
-        return
-
-    thumb_bytes = _get_thumb_bytes()
-    filename = _get_audio_filename(msg.document)
-
-    if filename.lower().endswith(".mp3"):
-        raw_audio = _patch_mp3_in_memory(raw_audio, thumb_bytes)
-
-    audio_stream = io.BytesIO(raw_audio)
-    audio_stream.name = filename
-
-    tasks = [
-        ABH.upload_file(
-            audio_stream,
-            part_size_kb=UPLOAD_PART_KB,
-            file_size=len(raw_audio),
-        )
-    ]
-
-    if thumb_bytes:
-        thumb_stream = io.BytesIO(thumb_bytes)
-        thumb_stream.name = "thumb.jpg"
-        tasks.append(
-            ABH.upload_file(
-                thumb_stream,
-                part_size_kb=64,
-                file_size=len(thumb_bytes),
-            )
-        )
-
-    uploaded = await asyncio.gather(*tasks)
-    uploaded_audio = uploaded[0]
-    uploaded_thumb = uploaded[1] if len(uploaded) > 1 else None
-
+    input_doc = _to_input_document(msg.document)
     updated_attrs = _build_updated_attributes(msg.document)
 
     await ABH.send_file(
         entity=event.chat_id,
-        file=uploaded_audio,
+        file=input_doc,
         caption=msg.text or "",
         attributes=updated_attrs,
-        thumb=uploaded_thumb,
         force_document=False,
         reply_to=msg.reply_to_msg_id,
     )
