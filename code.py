@@ -4,7 +4,9 @@ from telethon.tl.types import (
     DocumentAttributeAudio,
     InputMediaDocument,
 )
-from ABH import ABH
+from Resources import *
+from ABH import *
+
 
 THUMB_PATH = "موارد/photo_2025-02-10_11-40-17.jpg"
 NEW_PERFORMER = "Anymous"
