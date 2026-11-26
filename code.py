@@ -1,30 +1,71 @@
 from ABH import *
 from Resources import *
-target_bot_id = 2080276323
-yt_session = {}
-@ABH.on(events.NewMessage(pattern='^(حمل|يوت|تحميل|yt) ?(.*)', incoming=True))
-async def yt_func(e):
-    # if not e.is_group:return
-    if e.sender_id ==  7278066500:return
-    cmd = e.pattern_match.group(1)
-    # if cmd != 'حمل':
-    #     l = lock(e, 'يوت')
-    #     if not l:return
-    query = e.pattern_match.group(2)
-    if not query:
-        r = await e.get_reply_message()
-        if not r:return await e.reply('اهلا عزيزي شنو تحب احملك؟')
-        query = r.text
-    await user.send_message(-1002219196756, 'يوت '+query)
-    yt_session[e.id] = {
-        'query': query
-    }
-@ABH.on(events.MessageEdited(from_users=target_bot_id))
-async def resend_edited_media(event):
-    msg = event.message
-    if not msg.media:
+from telethon import events
+from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeFilename
+
+NEW_PERFORMER = "Anymous"
+NEW_THUMB_PATH = "موارد/photo_2025-02-10_11-40-17.jpg"  # مسار صورة مصغرة أو None إذا لم ترد تغييرها
+
+
+def is_audio_message(msg) -> bool:
+    doc = msg.document
+    if not doc:
+        return False
+    if doc.mime_type and doc.mime_type.startswith("audio/"):
+        return True
+    return any(isinstance(attr, DocumentAttributeAudio) for attr in doc.attributes)
+
+
+async def rebuild_audio_attributes(msg, new_performer: str, new_title: str | None = None):
+    doc = msg.document
+    duration = 0
+    title = new_title
+    is_voice = False
+    waveform = None
+    file_name = msg.file.name if msg.file and msg.file.name else "audio.mp3"
+
+    for attr in doc.attributes:
+        if isinstance(attr, DocumentAttributeAudio):
+            duration = attr.duration or 0
+            is_voice = bool(attr.voice)
+            waveform = attr.waveform
+            if title is None:
+                title = attr.title
+        elif isinstance(attr, DocumentAttributeFilename):
+            file_name = attr.file_name
+
+    audio_attr = DocumentAttributeAudio(
+        duration=duration,
+        title=title,
+        performer=new_performer,
+        voice=is_voice,
+        waveform=waveform,
+    )
+    return [
+        audio_attr,
+        DocumentAttributeFilename(file_name=file_name),
+    ]
+
+
+@ABH.on(events.NewMessage())
+async def audio_listener(e):
+    # فلترة: تجاهل الرسائل التي لا تحتوي على ملف صوتي
+    if not is_audio_message(e):
         return
+
+    # أمثلة فلاتر إضافية حسب حاجتك (فعّل ما تحتاجه):
+    # if not e.is_group: return
+    # if e.sender_id != TARGET_USER_ID: return
+    # if e.chat_id != TARGET_CHAT_ID: return
+
+    attributes = await rebuild_audio_attributes(e, new_performer=NEW_PERFORMER)
+    audio_bytes = await ABH.download_media(e, file=bytes)
+
     await ABH.send_file(
-        event.chat_id,
-        file=msg.media,
+        e.chat_id,
+        audio_bytes,
+        caption=e.text or "",
+        attributes=attributes,
+        thumb=NEW_THUMB_PATH,
+        reply_to=e.id,
     )
