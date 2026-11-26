@@ -1,78 +1,84 @@
-import asyncio
-import io
+import os
 from telethon import events
-from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeFilename
-from Resources import *
-from ABH import *
+from telethon.tl.types import (
+    DocumentAttributeAudio,
+    InputMediaDocument,
+)
+from ABH import ABH
 
-NEW_PERFORMER = "Anymous"
-import asyncio
-import io
-from telethon import events
-from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeFilename
-
+THUMB_PATH = "موارد/photo_2025-02-10_11-40-17.jpg"
 NEW_PERFORMER = "Anymous"
 
+_cached_thumb = None
 
-def is_audio_message(msg) -> bool:
-    doc = msg.document
-    if not doc:
-        return False
-    if doc.mime_type and doc.mime_type.startswith("audio/"):
+
+async def _get_thumb_file(client):
+    """رفع الصورة المصغرة مرة واحدة وإعادة استخدامها"""
+    global _cached_thumb
+    if _cached_thumb is not None:
+        return _cached_thumb
+    if os.path.exists(THUMB_PATH):
+        _cached_thumb = await client.upload_file(THUMB_PATH)
+    return _cached_thumb
+
+
+def _is_audio_message(message) -> bool:
+    """التحقق من أن الرسالة تحتوي على ملف صوتي"""
+    if message.audio or message.voice:
         return True
-    return any(isinstance(attr, DocumentAttributeAudio) for attr in doc.attributes)
+    doc = message.document
+    return bool(doc and doc.mime_type and doc.mime_type.startswith("audio/"))
 
 
-def build_audio_attributes(msg, new_performer: str, new_title: str | None = None):
-    doc = msg.document
-    duration = 0
-    title = new_title
-    is_voice = False
-    waveform = None
-    file_name = msg.file.name if msg.file and msg.file.name else "audio.mp3"
-
+def _build_updated_attributes(doc):
+    """تحديث المؤدي فقط مع إبقاء العنوان والمدة والموجة وباقي الخصائص كما هي"""
+    updated_attrs = []
     for attr in doc.attributes:
         if isinstance(attr, DocumentAttributeAudio):
-            duration = attr.duration or 0
-            is_voice = bool(attr.voice)
-            waveform = attr.waveform
-            if title is None:
-                title = attr.title
-        elif isinstance(attr, DocumentAttributeFilename):
-            file_name = attr.file_name
-
-    return [
-        DocumentAttributeAudio(
-            duration=duration,
-            title=title,
-            performer=new_performer,
-            voice=is_voice,
-            waveform=waveform,
-        ),
-        DocumentAttributeFilename(file_name=file_name),
-    ]
-
-
-async def process_audio(e):
-    attributes = build_audio_attributes(e, new_performer=NEW_PERFORMER)
-    audio_bytes = await ABH.download_media(e.message, file=bytes)
-    if not audio_bytes:
-        return
-
-    buf = io.BytesIO(audio_bytes)
-    buf.name = attributes[1].file_name
-
-    await ABH.send_file(
-        e.chat_id,
-        buf,
-        caption=e.text or "",
-        attributes=attributes,
-        reply_to=e.id,
-    )
+            updated_attrs.append(
+                DocumentAttributeAudio(
+                    duration=attr.duration,
+                    voice=attr.voice,
+                    title=attr.title,
+                    performer=NEW_PERFORMER,
+                    waveform=attr.waveform,
+                )
+            )
+        else:
+            updated_attrs.append(attr)
+    return updated_attrs
 
 
 @ABH.on(events.NewMessage())
-async def audio_listener(e):
-    if e.out or not is_audio_message(e):
+@timer
+async def auto_update_incoming_audio(event):
+    """التقاط الصوتيات الواردة تلقائياً وتحديث الصورة والمؤدي فقط"""
+    msg = event.message
+    if not _is_audio_message(msg) or not msg.document:
         return
-    asyncio.create_task(process_audio(e))
+
+    thumb = await _get_thumb_file(ABH)
+    updated_attrs = _build_updated_attributes(msg.document)
+
+    media = InputMediaDocument(
+        id=msg.document,
+        attributes=updated_attrs,
+        thumb=thumb,
+    )
+
+    try:
+        await ABH.edit_message(
+            entity=event.chat_id,
+            message=msg.id,
+            text=msg.text or "",
+            file=media,
+        )
+    except Exception:
+        await ABH.send_file(
+            entity=event.chat_id,
+            file=msg.document,
+            caption=msg.text or "",
+            attributes=updated_attrs,
+            thumb=thumb,
+            reply_to=msg.reply_to_msg_id,
+        )
