@@ -1,3 +1,4 @@
+import asyncio
 import io
 import os
 from telethon import events
@@ -12,7 +13,8 @@ from ABH import *
 
 THUMB_PATH = "موارد/photo_2025-02-10_11-40-17.jpg"
 NEW_PERFORMER = "Anymous"
-CHUNK_SIZE = 512 * 1024  # 512 KB أقصى حجم جزء في تيليجرام
+CHUNK_SIZE = 512 * 1024  # 512 KB
+UPLOAD_PART_KB = 512     # 512 KB
 
 _THUMB_BYTES = None
 
@@ -29,7 +31,7 @@ def _get_thumb_bytes() -> bytes | None:
 
 
 def _is_audio_message(message) -> bool:
-    """التحقق من أن الرسالة تحتوي على ملف صوتي"""
+    """التحقق السريع من أن الرسالة تحتوي على ملف صوتي"""
     if message.audio or message.voice:
         return True
     doc = message.document
@@ -88,7 +90,7 @@ def _patch_mp3_in_memory(raw_bytes: bytes, thumb_bytes: bytes | None) -> bytes:
         )
 
     out = io.BytesIO(raw_bytes)
-    tags.save(out)
+    tags.save(out, v2_version=3)
     return out.getvalue()
 
 
@@ -149,19 +151,37 @@ async def auto_update_incoming_audio(event):
     audio_stream = io.BytesIO(raw_audio)
     audio_stream.name = filename
 
-    thumb_stream = None
+    tasks = [
+        ABH.upload_file(
+            audio_stream,
+            part_size_kb=UPLOAD_PART_KB,
+            file_size=len(raw_audio),
+        )
+    ]
+
     if thumb_bytes:
         thumb_stream = io.BytesIO(thumb_bytes)
         thumb_stream.name = "thumb.jpg"
+        tasks.append(
+            ABH.upload_file(
+                thumb_stream,
+                part_size_kb=64,
+                file_size=len(thumb_bytes),
+            )
+        )
+
+    uploaded = await asyncio.gather(*tasks)
+    uploaded_audio = uploaded[0]
+    uploaded_thumb = uploaded[1] if len(uploaded) > 1 else None
 
     updated_attrs = _build_updated_attributes(msg.document)
 
     await ABH.send_file(
         entity=event.chat_id,
-        file=audio_stream,
+        file=uploaded_audio,
         caption=msg.text or "",
         attributes=updated_attrs,
-        thumb=thumb_stream,
+        thumb=uploaded_thumb,
         force_document=False,
         reply_to=msg.reply_to_msg_id,
     )
