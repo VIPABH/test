@@ -46,10 +46,9 @@ async def rebuild_audio_attributes(msg, new_performer: str, new_title: str | Non
         DocumentAttributeFilename(file_name=file_name),
     ]
 
-
+@timer
 @ABH.on(events.NewMessage)
 async def audio_listener(e):
-    await e.reply(str(e))
     if e.out or not is_audio_message(e):
         return
 
