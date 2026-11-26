@@ -6,14 +6,12 @@ from Resources import *
 from ABH import *
 
 NEW_PERFORMER = "Anymous"
-NEW_THUMB_PATH = "موارد/photo_2025-02-10_11-40-17.jpg"  # مسار صورة مصغرة أو None إذا لم ترد تغييرها
+import asyncio
+import io
+from telethon import events
+from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeFilename
 
-# تحميل الصورة المصغرة مرة واحدة في الذاكرة عند بدء التشغيل
-try:
-    with open(THUMB_FILE_PATH, "rb") as f:
-        CACHED_THUMB: bytes | None = f.read()
-except OSError:
-    CACHED_THUMB = None
+NEW_PERFORMER = "Anymous"
 
 
 def is_audio_message(msg) -> bool:
@@ -69,7 +67,6 @@ async def process_audio(e):
         buf,
         caption=e.text or "",
         attributes=attributes,
-        thumb=CACHED_THUMB,
         reply_to=e.id,
     )
 
