@@ -1,11 +1,12 @@
-from ABH import *
-from Resources import *
+import io
+import os
+import tempfile
 from telethon import events
 from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeFilename
-
+from ABH import *
+from Resources import *
 NEW_PERFORMER = "Anymous"
 NEW_THUMB_PATH = "موارد/photo_2025-02-10_11-40-17.jpg"  # مسار صورة مصغرة أو None إذا لم ترد تغييرها
-
 
 def is_audio_message(msg) -> bool:
     doc = msg.document
@@ -34,38 +35,59 @@ async def rebuild_audio_attributes(msg, new_performer: str, new_title: str | Non
         elif isinstance(attr, DocumentAttributeFilename):
             file_name = attr.file_name
 
-    audio_attr = DocumentAttributeAudio(
-        duration=duration,
-        title=title,
-        performer=new_performer,
-        voice=is_voice,
-        waveform=waveform,
-    )
     return [
-        audio_attr,
+        DocumentAttributeAudio(
+            duration=duration,
+            title=title,
+            performer=new_performer,
+            voice=is_voice,
+            waveform=waveform,
+        ),
         DocumentAttributeFilename(file_name=file_name),
     ]
 
 
 @ABH.on(events.NewMessage())
 async def audio_listener(e):
-    # فلترة: تجاهل الرسائل التي لا تحتوي على ملف صوتي
-    if not is_audio_message(e):
+    if e.out or not is_audio_message(e):
         return
 
-    # أمثلة فلاتر إضافية حسب حاجتك (فعّل ما تحتاجه):
-    # if not e.is_group: return
-    # if e.sender_id != TARGET_USER_ID: return
-    # if e.chat_id != TARGET_CHAT_ID: return
-
     attributes = await rebuild_audio_attributes(e, new_performer=NEW_PERFORMER)
-    audio_bytes = await ABH.download_media(e, file=bytes)
 
-    await ABH.send_file(
-        e.chat_id,
-        audio_bytes,
-        caption=e.text or "",
-        attributes=attributes,
-        thumb=NEW_THUMB_PATH,
-        reply_to=e.id,
-    )
+    # محاولة التحميل في الذاكرة أولاً
+    audio_bytes = await ABH.download_media(e.message, file=bytes)
+
+    if audio_bytes:
+        buf = io.BytesIO(audio_bytes)
+        buf.name = attributes[1].file_name
+        await ABH.send_file(
+            e.chat_id,
+            buf,
+            caption=e.text or "",
+            attributes=attributes,
+            thumb=NEW_THUMB_PATH if NEW_THUMB_PATH and os.path.exists(NEW_THUMB_PATH) else None,
+            reply_to=e.id,
+        )
+        return
+
+    # بديل احتياطي عبر ملف مؤقت على القرص إذا رجع bytes قيمة None
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".tmp") as tmp:
+            tmp_path = tmp.name
+
+        downloaded = await ABH.download_media(e.message, file=tmp_path)
+        if not downloaded:
+            return
+
+        await ABH.send_file(
+            e.chat_id,
+            downloaded,
+            caption=e.text or "",
+            attributes=attributes,
+            thumb=NEW_THUMB_PATH if NEW_THUMB_PATH and os.path.exists(NEW_THUMB_PATH) else None,
+            reply_to=e.id,
+        )
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
