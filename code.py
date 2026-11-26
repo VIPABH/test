@@ -12,12 +12,13 @@ from ABH import *
 
 THUMB_PATH = "موارد/photo_2025-02-10_11-40-17.jpg"
 NEW_PERFORMER = "Anymous"
+CHUNK_SIZE = 512 * 1024  # 512 KB أقصى حجم جزء في تيليجرام
 
 _THUMB_BYTES = None
 
 
 def _get_thumb_bytes() -> bytes | None:
-    """قراءة الصورة مرة واحدة في الذاكرة لسرعة الإرسال والتضمين"""
+    """قراءة الصورة مرة واحدة في الذاكرة"""
     global _THUMB_BYTES
     if _THUMB_BYTES is not None:
         return _THUMB_BYTES
@@ -28,7 +29,7 @@ def _get_thumb_bytes() -> bytes | None:
 
 
 def _is_audio_message(message) -> bool:
-    """التحقق السريع من أن الرسالة تحتوي على ملف صوتي"""
+    """التحقق من أن الرسالة تحتوي على ملف صوتي"""
     if message.audio or message.voice:
         return True
     doc = message.document
@@ -36,7 +37,7 @@ def _is_audio_message(message) -> bool:
 
 
 def _get_current_performer(doc) -> str | None:
-    """جلب المؤدي الحالي لتفادي إعادة معالجة رسائل البوت المحدثة"""
+    """جلب المؤدي الحالي لتفادي إعادة المعالجة"""
     if not doc:
         return None
     for attr in doc.attributes:
@@ -56,6 +57,14 @@ def _get_audio_filename(doc) -> str:
             if ext:
                 return f"audio.{ext}"
     return "audio.mp3"
+
+
+async def _download_audio_fast(client, doc) -> bytes:
+    """تحميل الملف الصوتي على أجزاء كبيرة مباشرة إلى الذاكرة"""
+    buf = io.BytesIO()
+    async for chunk in client.iter_download(doc, request_size=CHUNK_SIZE):
+        buf.write(chunk)
+    return buf.getvalue()
 
 
 def _patch_mp3_in_memory(raw_bytes: bytes, thumb_bytes: bytes | None) -> bytes:
@@ -119,7 +128,7 @@ def _build_updated_attributes(doc) -> list:
 @ABH.on(events.NewMessage())
 @timer
 async def auto_update_incoming_audio(event):
-    """التقاط الصوتيات وتحديث المؤدي والصورة بأسرع مسار ممكن"""
+    """التقاط الصوتيات وتحديث المؤدي والصورة بأسرع مسار"""
     msg = event.message
     if not _is_audio_message(msg) or not msg.document:
         return
@@ -127,12 +136,12 @@ async def auto_update_incoming_audio(event):
     if event.out and _get_current_performer(msg.document) == NEW_PERFORMER:
         return
 
-    thumb_bytes = _get_thumb_bytes()
-    filename = _get_audio_filename(msg.document)
-
-    raw_audio = await ABH.download_media(msg, file=bytes)
+    raw_audio = await _download_audio_fast(ABH, msg.document)
     if not raw_audio:
         return
+
+    thumb_bytes = _get_thumb_bytes()
+    filename = _get_audio_filename(msg.document)
 
     if filename.lower().endswith(".mp3"):
         raw_audio = _patch_mp3_in_memory(raw_audio, thumb_bytes)
