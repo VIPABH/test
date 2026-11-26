@@ -2,6 +2,8 @@ import asyncio
 import io
 from telethon import events
 from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeFilename
+from Resources import *
+from ABH import *
 
 NEW_PERFORMER = "Anymous"
 NEW_THUMB_PATH = "موارد/photo_2025-02-10_11-40-17.jpg"  # مسار صورة مصغرة أو None إذا لم ترد تغييرها
