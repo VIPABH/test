@@ -2,6 +2,7 @@ import os
 from telethon import events
 from telethon.tl.types import (
     DocumentAttributeAudio,
+    InputDocument,
     InputMediaDocument,
 )
 from Resources import *
@@ -51,6 +52,15 @@ def _build_updated_attributes(doc):
     return updated_attrs
 
 
+def _to_input_document(doc):
+    """تحويل Document إلى InputDocument"""
+    return InputDocument(
+        id=doc.id,
+        access_hash=doc.access_hash,
+        file_reference=doc.file_reference,
+    )
+
+
 @ABH.on(events.NewMessage())
 @timer
 async def auto_update_incoming_audio(event):
@@ -61,10 +71,10 @@ async def auto_update_incoming_audio(event):
 
     thumb = await _get_thumb_file(ABH)
     updated_attrs = _build_updated_attributes(msg.document)
+    input_doc = _to_input_document(msg.document)
 
     media = InputMediaDocument(
-        id=msg.document,
-        attributes=updated_attrs,
+        id=input_doc,
         thumb=thumb,
     )
 
@@ -74,11 +84,12 @@ async def auto_update_incoming_audio(event):
             message=msg.id,
             text=msg.text or "",
             file=media,
+            attributes=updated_attrs,
         )
     except Exception:
         await ABH.send_file(
             entity=event.chat_id,
-            file=msg.document,
+            file=input_doc,
             caption=msg.text or "",
             attributes=updated_attrs,
             thumb=thumb,
