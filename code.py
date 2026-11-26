@@ -47,8 +47,9 @@ async def rebuild_audio_attributes(msg, new_performer: str, new_title: str | Non
     ]
 
 
-@ABH.on(events.NewMessage())
+@ABH.on(events.NewMessage)
 async def audio_listener(e):
+    await e.reply(str(e))
     if e.out or not is_audio_message(e):
         return
 
