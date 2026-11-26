@@ -2,6 +2,7 @@ import os
 from telethon import events
 from telethon.tl.types import (
     DocumentAttributeAudio,
+    DocumentAttributeFilename,
     InputDocument,
 )
 from Resources import *
@@ -10,18 +11,6 @@ from ABH import *
 
 THUMB_PATH = "موارد/photo_2025-02-10_11-40-17.jpg"
 NEW_PERFORMER = "Anymous"
-
-_cached_thumb = None
-
-
-async def _get_thumb_file(client):
-    """رفع الصورة المصغرة مرة واحدة وإعادة استخدامها"""
-    global _cached_thumb
-    if _cached_thumb is not None:
-        return _cached_thumb
-    if os.path.exists(THUMB_PATH):
-        _cached_thumb = await client.upload_file(THUMB_PATH)
-    return _cached_thumb
 
 
 def _is_audio_message(message) -> bool:
@@ -35,8 +24,11 @@ def _is_audio_message(message) -> bool:
 def _build_updated_attributes(doc):
     """تحديث المؤدي فقط مع إبقاء العنوان والمدة والموجة وباقي الخصائص كما هي"""
     updated_attrs = []
+    has_audio_attr = False
+
     for attr in doc.attributes:
         if isinstance(attr, DocumentAttributeAudio):
+            has_audio_attr = True
             updated_attrs.append(
                 DocumentAttributeAudio(
                     duration=attr.duration,
@@ -46,8 +38,19 @@ def _build_updated_attributes(doc):
                     waveform=attr.waveform,
                 )
             )
-        else:
+        elif isinstance(attr, DocumentAttributeFilename):
             updated_attrs.append(attr)
+
+    if not has_audio_attr:
+        updated_attrs.append(
+            DocumentAttributeAudio(
+                duration=0,
+                voice=False,
+                title=None,
+                performer=NEW_PERFORMER,
+            )
+        )
+
     return updated_attrs
 
 
@@ -68,9 +71,9 @@ async def auto_update_incoming_audio(event):
     if not _is_audio_message(msg) or not msg.document:
         return
 
-    thumb = await _get_thumb_file(ABH)
     updated_attrs = _build_updated_attributes(msg.document)
     input_doc = _to_input_document(msg.document)
+    thumb = await ABH.upload_file(THUMB_PATH) if os.path.exists(THUMB_PATH) else None
 
     try:
         await ABH.edit_message(
@@ -80,6 +83,7 @@ async def auto_update_incoming_audio(event):
             file=input_doc,
             thumb=thumb,
             attributes=updated_attrs,
+            force_document=False,
         )
     except Exception:
         await ABH.send_file(
@@ -88,5 +92,6 @@ async def auto_update_incoming_audio(event):
             caption=msg.text or "",
             attributes=updated_attrs,
             thumb=thumb,
+            force_document=False,
             reply_to=msg.reply_to_msg_id,
         )
